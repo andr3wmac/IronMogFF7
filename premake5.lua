@@ -1,4 +1,5 @@
 local ROOT_DIR = "./"
+local LIB_DIR = "./lib/"
 
 solution "IronMogFF7"
     startproject "IronMogFF7"
@@ -22,7 +23,7 @@ solution "IronMogFF7"
     filter {}
 
 project "IronMogFF7"
-    kind "ConsoleApp"
+    kind "WindowedApp"
     language "C++"
     cppdialect "C++17"
     exceptionhandling "Off"
@@ -41,10 +42,26 @@ project "IronMogFF7"
 
     includedirs {
         path.join(ROOT_DIR, "src/"),
+        path.join(LIB_DIR, "ImFrame/include/"),
+        path.join(LIB_DIR, "glad/include/"),
+        path.join(LIB_DIR, "glfw/include/"),
+        path.join(LIB_DIR, "imgui/include/"),
+        path.join(LIB_DIR, "implot/include/"),
+        path.join(LIB_DIR, "linmath/include/"),
     }
 
     files { 
         path.join(ROOT_DIR, "src/**.cpp"),
         path.join(ROOT_DIR, "src/**.c"),
         path.join(ROOT_DIR, "src/**.h")
+    }
+
+    links { 
+        path.join(LIB_DIR, "ImFrame/lib/Release/ImFrame"),
+        path.join(LIB_DIR, "glad/lib/Release/glad"),
+        path.join(LIB_DIR, "glfw/lib/Release/glfw3"),
+        path.join(LIB_DIR, "imgui/lib/Release/Imgui"),
+        path.join(LIB_DIR, "implot/lib/Release/Implot"),
+        path.join(LIB_DIR, "nativefiledialog-extended/lib/Release/nfd"),
+        path.join(LIB_DIR, "stb/lib/Release/stb"),
     }
