@@ -1,4 +1,5 @@
 #include "Emulator.h"
+#include "CustomEmulator.h"
 #include "DuckStation.h"
 #include "utilities/Process.h"
 
@@ -35,6 +36,11 @@ Emulator* Emulator::getEmulatorFromProcessName(std::string processName)
     }
 
     return nullptr;
+}
+
+Emulator* Emulator::getEmulatorCustom(std::string processName, uintptr_t memoryAddress)
+{
+    return new CustomEmulator(memoryAddress);
 }
 
 Emulator::Emulator()

@@ -42,12 +42,9 @@ project "IronMogFF7"
 
     includedirs {
         path.join(ROOT_DIR, "src/"),
-        path.join(LIB_DIR, "ImFrame/include/"),
-        path.join(LIB_DIR, "glad/include/"),
         path.join(LIB_DIR, "glfw/include/"),
-        path.join(LIB_DIR, "imgui/include/"),
-        path.join(LIB_DIR, "implot/include/"),
-        path.join(LIB_DIR, "linmath/include/"),
+        path.join(LIB_DIR, "imgui/"),
+        path.join(LIB_DIR, "stb/include/"),
     }
 
     files { 
@@ -57,11 +54,7 @@ project "IronMogFF7"
     }
 
     links { 
-        path.join(LIB_DIR, "ImFrame/lib/Release/ImFrame"),
-        path.join(LIB_DIR, "glad/lib/Release/glad"),
+        "opengl32",
         path.join(LIB_DIR, "glfw/lib/Release/glfw3"),
-        path.join(LIB_DIR, "imgui/lib/Release/Imgui"),
-        path.join(LIB_DIR, "implot/lib/Release/Implot"),
-        path.join(LIB_DIR, "nativefiledialog-extended/lib/Release/nfd"),
         path.join(LIB_DIR, "stb/lib/Release/stb"),
     }

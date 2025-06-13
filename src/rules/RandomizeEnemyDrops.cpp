@@ -1,18 +1,13 @@
 #include "RandomizeEnemyDrops.h"
 #include "game/MemoryOffsets.h"
 
-#include <iostream>
+REGISTER_RULE("Randomize Enemy Drops", RandomizeEnemyDrops)
 
-void RandomizeEnemyDrops::onEnable()
+void RandomizeEnemyDrops::onStart()
 {
     BIND_EVENT_ONE_ARG(game->onFrame, RandomizeEnemyDrops::onFrame);
     BIND_EVENT(game->onBattleEnter, RandomizeEnemyDrops::onBattleEnter);
     BIND_EVENT(game->onBattleExit, RandomizeEnemyDrops::onBattleExit);
-}
-
-void RandomizeEnemyDrops::onDisable()
-{
-
 }
 
 void RandomizeEnemyDrops::onFrame(uint32_t frameNumber)
@@ -79,13 +74,10 @@ void RandomizeEnemyDrops::onFrame(uint32_t frameNumber)
 
 void RandomizeEnemyDrops::onBattleEnter()
 {
-    // Select a random item to replace each existing item with.
-    std::cout << "Entered battle!" << std::endl;
-    
 
 }
 
 void RandomizeEnemyDrops::onBattleExit()
 {
-    std::cout << "Exited battle!" << std::endl;
+
 }

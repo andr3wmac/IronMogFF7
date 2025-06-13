@@ -5,7 +5,7 @@
 #include <string>
 #include <array>
 
-class Feature;
+class Rule;
 
 class GameManager
 {
@@ -14,12 +14,17 @@ public:
     ~GameManager();
     
     bool attachToEmulator(std::string processName);
-    void addFeature(Feature* module);
-    void run();
+    bool attachToEmulator(std::string processName, uintptr_t memoryAddress);
+
+    void addRule(Rule* rule);
+
+    void start(uint32_t inputSeed);
+    void update();
 
     // Returns a byte representing what module the game is. eg Field, Battle, World, etc
     uint8_t getGameModule() { return gameModule; }
     bool inBattle();
+    uint16_t getFieldID() { return fieldID; }
 
     // Returns a list of the character IDs that are currently in the party. 0xFF is the slot is empty.
     std::array<uint8_t, 3> getPartyIDs();
@@ -35,6 +40,7 @@ public:
     Event<int> onFrame;
     Event<> onBattleEnter;
     Event<> onBattleExit;
+    Event<uint16_t> onFieldChanged;
 
     // Read/Write RAM Functions
     template <typename T>
@@ -58,8 +64,11 @@ public:
 
 private:
     Emulator* emulator;
-    std::vector<Feature*> features;
+    std::vector<Rule*> rules;
 
+    uint32_t seed = 0;
     uint32_t frameNumber = 0;
     uint8_t gameModule = 0;
+
+    uint16_t fieldID = 0;
 };

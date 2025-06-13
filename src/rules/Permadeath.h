@@ -1,13 +1,12 @@
 #pragma once
-#include "Feature.h"
+#include "Rule.h"
 #include <cstdint>
 #include <set>
 
-class Permadeath : public Feature
+class Permadeath : public Rule
 {
 public:
-    void onEnable() override;
-    void onDisable() override;
+    void onStart() override;
 
 private:
     void onFrame(uint32_t frameNumber);

@@ -1,12 +1,11 @@
 #pragma once
-#include "Feature.h"
+#include "Rule.h"
 #include <cstdint>
 
-class RandomizeEnemyDrops : public Feature
+class RandomizeESkills : public Rule
 {
 public:
-    void onEnable() override;
-    void onDisable() override;
+    void onStart() override;
 
 private:
     void onFrame(uint32_t frameNumber);

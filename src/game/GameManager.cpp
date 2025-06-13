@@ -1,6 +1,6 @@
 #include "GameManager.h"
 #include "game/MemoryOffsets.h"
-#include "features/Feature.h"
+#include "rules/Rule.h"
 
 #include <thread>
 #include <chrono>
@@ -13,6 +13,12 @@ GameManager::GameManager()
 
 GameManager::~GameManager()
 {
+    for (int i = 0; i < rules.size(); ++i)
+    {
+        delete rules[i];
+    }
+    rules.clear();
+
     if (emulator != nullptr)
     {
         delete emulator;
@@ -30,48 +36,72 @@ bool GameManager::attachToEmulator(std::string processName)
     return emulator->attach(processName);
 }
 
-void GameManager::addFeature(Feature* feature)
+bool GameManager::attachToEmulator(std::string processName, uintptr_t memoryAddress)
 {
-    features.push_back(feature);
-    feature->setManager(this);
-}
-
-void GameManager::run()
-{
-    for (int i = 0; i < features.size(); ++i)
+    emulator = Emulator::getEmulatorCustom(processName, memoryAddress);
+    if (emulator == nullptr)
     {
-        features[i]->onEnable();
+        return false;
     }
 
-    while (true)
+    return emulator->attach(processName);
+}
+
+void GameManager::addRule(Rule* rule)
+{
+    rules.push_back(rule);
+    rule->setManager(this);
+}
+
+void GameManager::start(uint32_t inputSeed)
+{
+    // Try to load seed from the game data
+    // if its not found then use input seed and write it.
+
+    seed = inputSeed;
+
+    for (int i = 0; i < rules.size(); ++i)
     {
-        uint8_t newGameModule = read<uint8_t>(GameOffsets::CurrentModule);
-        if (newGameModule != gameModule)
+        rules[i]->onStart();
+    }
+}
+
+void GameManager::update()
+{
+    uint8_t newGameModule = read<uint8_t>(GameOffsets::CurrentModule);
+    if (newGameModule != gameModule)
+    {
+        // Entered battle
+        if (gameModule != GameModule::Battle && newGameModule == GameModule::Battle)
         {
-            // Entered battle
-            if (gameModule != GameModule::Battle && newGameModule == GameModule::Battle)
-            {
-                onBattleEnter.Invoke();
-            }
-
-            // Exited battle
-            if (gameModule == GameModule::Battle && newGameModule != GameModule::Battle)
-            {
-                onBattleEnter.Invoke();
-            }
-
-            // Game module changed.
-            gameModule = newGameModule;
+            onBattleEnter.Invoke();
         }
 
-        uint32_t newFrameNumber = read<uint32_t>(GameOffsets::FrameNumber);
-        if (newFrameNumber != frameNumber)
+        // Exited battle
+        if (gameModule == GameModule::Battle && newGameModule != GameModule::Battle)
         {
-            frameNumber = newFrameNumber;
-            onFrame.Invoke(newFrameNumber);
+            onBattleExit.Invoke();
         }
 
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        // Game module changed.
+        gameModule = newGameModule;
+    }
+
+    if (gameModule == GameModule::Field)
+    {
+        uint16_t newFieldID = read<uint16_t>(GameOffsets::FieldID);
+        if (newFieldID != fieldID)
+        {
+            onFieldChanged.Invoke(newFieldID);
+            fieldID = newFieldID;
+        }
+    }
+
+    uint32_t newFrameNumber = read<uint32_t>(GameOffsets::FrameNumber);
+    if (newFrameNumber != frameNumber)
+    {
+        frameNumber = newFrameNumber;
+        onFrame.Invoke(newFrameNumber);
     }
 }
 

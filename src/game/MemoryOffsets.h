@@ -12,6 +12,7 @@
 struct GameOffsets
 {
     OFF_CONST FrameNumber       = 0x51568;
+    OFF_CONST FieldID           = 0x9A05C;
     OFF_CONST CurrentModule     = 0x9C560; 
     OFF_CONST PartyIDList       = 0x9CBDC; // 3 Bytes in a row.
     OFF_CONST Inventory         = 0x9CBE0; // 320 item list, 2 byte ids.

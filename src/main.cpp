@@ -1,153 +1,297 @@
+#include "gui/GUI.h"
 #include "game/GameManager.h"
-#include "features/DisableLimitBreaks.h"
-#include "features/Permadeath.h"
-#include "features/RandomizeEnemyDrops.h"
+#include "rules/RandomizeFieldItems.h"
 #include "utilities/MemorySearch.h"
+#include "utilities/Process.h"
 
-#include "ImFrame/ImFrame.h"
-
+#include <imgui.h>
 #include <iostream>
+#include <thread>
+#include <random>
+#include <iomanip>
+#include <sstream>
 
-#ifdef IMFRAME_WINDOWS
-#include <SDKDDKVer.h>
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
-#endif
 
-class IronMogFF7GUI : public ImFrame::ImApp
+GameManager* game = nullptr;
+
+const char* emulators[] { "Duckstation", "Custom" };
+int selectedEmulatorIdx = 0;
+
+std::vector<std::string> runningProcesses;
+std::vector<const char*> runningProcessesCStr;
+int selectedProcessIdx = 0;
+char processMemoryOffset[20];
+
+char seedValue[9];
+std::vector<std::pair<std::string, bool>> ruleData;
+
+int connectionState = 0;
+std::string connectionStatus = "Not Attached";
+
+ImColor dotRed(1.0f, 0.0f, 0.0f, 1.0f);
+ImColor dotYellow(1.0f, 1.0f, 0.0f, 1.0f);
+ImColor dotGreen(0.0f, 1.0f, 0.0f, 1.0f);
+
+std::thread* managerThread = nullptr;
+std::atomic<bool> managerRunning = false;
+
+void generateSeed() 
 {
-public:
-    IronMogFF7GUI(GLFWwindow* window) : ImFrame::ImApp(window) 
+    const int numBytes = 8;
+
+    // Use a secure, high-entropy source
+    std::random_device rd;
+    std::array<uint8_t, numBytes> buffer;
+
+    for (size_t i = 0; i < numBytes; ++i) 
     {
-        HWND windowHandle = GetForegroundWindow();
-        long Style = GetWindowLong(windowHandle, GWL_STYLE);
-        Style &= ~WS_MAXIMIZEBOX; //this makes it still work when WS_MAXIMIZEBOX is actually already toggled off
-        SetWindowLong(windowHandle, GWL_STYLE, Style);
-
-        // Setup Style
-        {
-            ImVec4* colors = ImGui::GetStyle().Colors;
-            colors[ImGuiCol_Text] = ImVec4(1.00f, 1.00f, 1.00f, 1.00f);
-            colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.50f, 1.00f);
-            colors[ImGuiCol_WindowBg] = ImVec4(0.04f, 0.04f, 0.04f, 0.94f);
-            colors[ImGuiCol_ChildBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-            colors[ImGuiCol_PopupBg] = ImVec4(0.08f, 0.08f, 0.08f, 1.00f);
-            colors[ImGuiCol_Border] = ImVec4(0.43f, 0.43f, 0.50f, 0.50f);
-            colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-            colors[ImGuiCol_FrameBg] = ImVec4(0.15f, 0.15f, 0.15f, 0.54f);
-            colors[ImGuiCol_FrameBgHovered] = ImVec4(0.48f, 0.26f, 0.98f, 0.40f);
-            colors[ImGuiCol_FrameBgActive] = ImVec4(0.37f, 0.00f, 1.00f, 1.00f);
-            colors[ImGuiCol_TitleBg] = ImVec4(0.04f, 0.04f, 0.04f, 1.00f);
-            colors[ImGuiCol_TitleBgActive] = ImVec4(0.21f, 0.16f, 0.48f, 1.00f);
-            colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.00f, 0.00f, 0.00f, 0.51f);
-            colors[ImGuiCol_MenuBarBg] = ImVec4(0.11f, 0.11f, 0.11f, 1.00f);
-            colors[ImGuiCol_ScrollbarBg] = ImVec4(0.02f, 0.02f, 0.02f, 0.53f);
-            colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.31f, 0.31f, 0.31f, 1.00f);
-            colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.41f, 0.41f, 0.41f, 1.00f);
-            colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.51f, 0.51f, 0.51f, 1.00f);
-            colors[ImGuiCol_CheckMark] = ImVec4(0.45f, 0.26f, 0.98f, 1.00f);
-            colors[ImGuiCol_SliderGrab] = ImVec4(0.41f, 0.00f, 1.00f, 0.40f);
-            colors[ImGuiCol_SliderGrabActive] = ImVec4(0.48f, 0.26f, 0.98f, 0.52f);
-            colors[ImGuiCol_Button] = ImVec4(0.20f, 0.20f, 0.20f, 0.40f);
-            colors[ImGuiCol_ButtonHovered] = ImVec4(1.00f, 1.00f, 1.00f, 0.04f);
-            colors[ImGuiCol_ButtonActive] = ImVec4(0.34f, 0.06f, 0.98f, 1.00f);
-            colors[ImGuiCol_Header] = ImVec4(1.00f, 1.00f, 1.00f, 0.04f);
-            colors[ImGuiCol_HeaderHovered] = ImVec4(0.15f, 0.15f, 0.15f, 0.80f);
-            colors[ImGuiCol_HeaderActive] = ImVec4(1.00f, 1.00f, 1.00f, 0.04f);
-            colors[ImGuiCol_Separator] = ImVec4(0.43f, 0.43f, 0.50f, 0.50f);
-            colors[ImGuiCol_SeparatorHovered] = ImVec4(0.10f, 0.40f, 0.75f, 0.78f);
-            colors[ImGuiCol_SeparatorActive] = ImVec4(0.10f, 0.40f, 0.75f, 1.00f);
-            colors[ImGuiCol_ResizeGrip] = ImVec4(1.00f, 1.00f, 1.00f, 0.04f);
-            colors[ImGuiCol_ResizeGripHovered] = ImVec4(1.00f, 1.00f, 1.00f, 0.13f);
-            colors[ImGuiCol_ResizeGripActive] = ImVec4(0.38f, 0.38f, 0.38f, 1.00f);
-            colors[ImGuiCol_TabHovered] = ImVec4(0.40f, 0.26f, 0.98f, 0.50f);
-            colors[ImGuiCol_Tab] = ImVec4(0.18f, 0.20f, 0.58f, 0.73f);
-            //colors[ImGuiCol_TabSelected] = ImVec4(0.29f, 0.20f, 0.68f, 1.00f);
-            //colors[ImGuiCol_TabSelectedOverline] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-            //colors[ImGuiCol_TabDimmed] = ImVec4(0.07f, 0.10f, 0.15f, 0.97f);
-            //colors[ImGuiCol_TabDimmedSelected] = ImVec4(0.14f, 0.26f, 0.42f, 1.00f);
-            //colors[ImGuiCol_TabDimmedSelectedOverline] = ImVec4(0.50f, 0.50f, 0.50f, 0.00f);
-            colors[ImGuiCol_PlotLines] = ImVec4(0.61f, 0.61f, 0.61f, 1.00f);
-            colors[ImGuiCol_PlotLinesHovered] = ImVec4(1.00f, 0.43f, 0.35f, 1.00f);
-            colors[ImGuiCol_PlotHistogram] = ImVec4(0.90f, 0.70f, 0.00f, 1.00f);
-            colors[ImGuiCol_PlotHistogramHovered] = ImVec4(1.00f, 0.60f, 0.00f, 1.00f);
-            colors[ImGuiCol_TableHeaderBg] = ImVec4(0.19f, 0.19f, 0.20f, 1.00f);
-            colors[ImGuiCol_TableBorderStrong] = ImVec4(0.31f, 0.31f, 0.35f, 1.00f);
-            colors[ImGuiCol_TableBorderLight] = ImVec4(0.23f, 0.23f, 0.25f, 1.00f);
-            colors[ImGuiCol_TableRowBg] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-            colors[ImGuiCol_TableRowBgAlt] = ImVec4(1.00f, 1.00f, 1.00f, 0.06f);
-            //colors[ImGuiCol_TextLink] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-            colors[ImGuiCol_TextSelectedBg] = ImVec4(1.00f, 1.00f, 1.00f, 0.04f);
-            colors[ImGuiCol_DragDropTarget] = ImVec4(1.00f, 1.00f, 0.00f, 0.90f);
-            //colors[ImGuiCol_NavCursor] = ImVec4(0.26f, 0.59f, 0.98f, 1.00f);
-            colors[ImGuiCol_NavWindowingHighlight] = ImVec4(1.00f, 1.00f, 1.00f, 0.70f);
-            colors[ImGuiCol_NavWindowingDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.20f);
-            colors[ImGuiCol_ModalWindowDimBg] = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
-        }
-
-        auto ret = ImFrame::LoadTexture("img/logo.png");
-        if (ret)
-        {
-            if (logoTexture.textureID)
-            {
-                glDeleteTextures(1, &logoTexture.textureID);
-            }
-            logoTexture = ret.value();
-        }
-    
+        buffer[i] = static_cast<uint8_t>(rd());
     }
 
-    virtual ~IronMogFF7GUI() 
+    std::ostringstream oss;
+    for (size_t i = 0; i < numBytes; ++i) 
     {
-        if (logoTexture.textureID)
+        oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(buffer[i]);
+    }
+    std::string finalStr = oss.str();
+
+    for (int i = 0; i < 8; ++i)
+    {
+        seedValue[i] = finalStr[i];
+    }
+    seedValue[8] = '\0';
+}
+
+uint32_t hexStringToUint32(const std::string& hex) 
+{
+    uint32_t seed;
+    std::istringstream iss(hex);
+    iss >> std::hex >> seed;
+    return seed;
+}
+
+void runGameManager()
+{
+    if (game != nullptr)
+    {
+        delete game;
+        game = nullptr;
+    }
+
+    game = new GameManager();
+    connectionState = 1;
+    connectionStatus = "Attaching to Duckstation..";
+
+    bool connected = false;
+
+    if (selectedEmulatorIdx == 0)
+    {
+        std::string targetProcess = "duckstation-qt-x64-ReleaseLTCG.exe";
+        connected = game->attachToEmulator(targetProcess);
+    }
+    if (selectedEmulatorIdx == 1)
+    {
+        uintptr_t customAddress = Process::ParseAddress(processMemoryOffset);
+        connected = game->attachToEmulator(runningProcesses[selectedProcessIdx], customAddress);
+    }
+
+    if (connected)
+    {
+        connectionState = 2;
+        connectionStatus = "Attached to emulator.";
+    }
+    else 
+    {
+        connectionState = 0;
+        connectionStatus = "Failed to attach to emulator.";
+    }
+
+    MemorySearch search(game);
+    std::vector<uint8_t> searchValues = { 0x58, 0, 0, 0, 0x01 };
+    std::vector<uintptr_t> results = search.search(searchValues);
+
+    auto ruleRegistry = Rule::registry();
+    for (auto& rule : ruleData) 
+    {
+        // Check if rule is enabled
+        if (rule.second)
         {
-            glDeleteTextures(1, &logoTexture.textureID);
+            game->addRule(ruleRegistry[rule.first]());
         }
     }
 
-    void OnUpdate() override 
+    game->start(hexStringToUint32(seedValue));
+
+    managerRunning = true;
+    while (managerRunning.load())
     {
-        ImGuiViewport* viewport = ImGui::GetMainViewport();
-        ImGui::SetNextWindowPos(viewport->Pos);
-        ImGui::SetNextWindowSize(viewport->Size);
+        game->update();
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+}
 
-        if (ImGui::Begin("OpenGL Texture Test", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_HorizontalScrollbar))
+void attach()
+{
+    if (managerThread != nullptr)
+    {
+        return;
+    }
+
+    managerThread = new std::thread(runGameManager);
+}
+
+void detach()
+{
+    connectionState = 0;
+    connectionStatus = "Not Attached";
+
+    if (managerThread == nullptr || !managerRunning.load())
+    {
+        return;
+    }
+
+    managerRunning = false;
+    managerThread->join();
+    delete managerThread;
+    managerThread = nullptr;
+}
+
+int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
+{
+    GUI gui;
+    gui.initialize();
+
+    generateSeed();
+
+    // Populate list of rules
+    {
+        for (const auto& factory : Rule::registry())
         {
-            /*ImGui::Image((void*)(intptr_t)logoTexture.textureID, ImVec2((float)logoTexture.width / 2.0f, (float)logoTexture.height / 2.0f));
-            
-            ImGui::Spacing();
-            
-            ImGui::Text("Emulator:");
-            ImGui::SameLine();
+            ruleData.push_back({ factory.first, true });
+        }
+        std::sort(ruleData.begin(), ruleData.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
+    }
 
-            static const char* items[]{ "Duckstation", "Custom" };
-            static int Selecteditem = 0;
-            if (ImGui::Combo("", &Selecteditem, items, IM_ARRAYSIZE(items)))
+    while (true)
+    {
+        if (gui.wasWindowClosed())
+        {
+            break;
+        }
+
+        if (!gui.beginFrame())
+        {
+            continue;
+        }
+
+        ImGui::Begin("IronMogFF7", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize);
+        {
+            gui.drawLogo();
+
+            ImGui::Spacing();
+            ImGui::BeginChild("##ScrollBox", ImVec2(0, 250));
+            ImGui::BeginDisabled(connectionState > 0);
             {
-                // Here event is fired
+                ImGui::SeparatorText("Game");
+                {
+                    ImGui::Text("Emulator:");
+                    ImGui::SameLine();
+
+                    if (ImGui::Combo("##EmulatorList", &selectedEmulatorIdx, emulators, IM_ARRAYSIZE(emulators)))
+                    {
+                        // Update list of processes if Custom is selected.
+                        if (selectedEmulatorIdx == 1)
+                        {
+                            runningProcesses = Process::GetRunningProcesses();
+                            runningProcessesCStr.clear();
+                            for (const auto& name : runningProcesses)
+                            {
+                                runningProcessesCStr.push_back(name.c_str());
+                            }
+                        }
+                    }
+
+                    if (selectedEmulatorIdx == 1)
+                    {
+                        ImGui::Text("Process:");
+                        ImGui::SameLine();
+                        ImGui::Combo("##ProcessList", &selectedProcessIdx, runningProcessesCStr.data(), (int)runningProcessesCStr.size());
+                        ImGui::Text("Memory Offset:");
+                        ImGui::SameLine();
+                        ImGui::InputText("##MemoryOffset", processMemoryOffset, 20);
+                    }
+                }
+                ImGui::Spacing();
+
+                ImGui::SeparatorText("Seed");
+                {
+                    ImGui::InputText("##Seed", seedValue, 9);
+                    ImGui::SameLine();
+                    if (ImGui::Button("Regenerate"))
+                    {
+                        generateSeed();
+                    }
+                }
+                ImGui::Spacing();
+
+                ImGui::SeparatorText("Rules");
+                {
+                    for (auto& rule : ruleData)
+                    {
+                        ImGui::Checkbox(rule.first.c_str(), &rule.second);
+                    }
+                }
             }
-            ImGui::Button("Connect");
-
+            ImGui::EndDisabled();
+            ImGui::EndChild();
             ImGui::Spacing();
 
-            if (ImGui::CollapsingHeader("Rules", ImGuiTreeNodeFlags_DefaultOpen))
+            const ImVec2 p = ImGui::GetCursorScreenPos();
+            ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+            if (connectionState == 0)
             {
-                bool tmp = true;
-                ImGui::BeginDisabled(true);
-                ImGui::Checkbox("Disable Limit Breaks", &tmp);
-                ImGui::Checkbox("Permadeath", &tmp);
-                ImGui::Checkbox("Randomize Enemy Drops", &tmp);
+                drawList->AddCircleFilled(ImVec2(p.x + 135, p.y + 10), 5.0f, dotRed);
+            }
+            if (connectionState == 1)
+            {
+                drawList->AddCircleFilled(ImVec2(p.x + 135, p.y + 10), 5.0f, dotYellow);
+            }
+            if (connectionState == 2)
+            {
+                drawList->AddCircleFilled(ImVec2(p.x + 135, p.y + 10), 5.0f, dotGreen);
+            }
+
+            if (connectionState == 0)
+            {
+                if (ImGui::Button("Attach", ImVec2(120, 0)))
+                {
+                    attach();
+                }
+            }
+            else 
+            {
+                ImGui::BeginDisabled(connectionState == 1);
+                if (ImGui::Button("Detach", ImVec2(120, 0)))
+                {
+                    detach();
+                }
                 ImGui::EndDisabled();
-            }*/
+            }
+
+            ImGui::SameLine();
+            ImGui::Indent(150.0f);
+            ImGui::Text(connectionStatus.c_str());
+            ImGui::Unindent(150.0f);
+
         }
         ImGui::End();
+
+        gui.endFrame();
     }
 
-private:
-    ImFrame::TextureInfo logoTexture;
-};
-
-ImFrame::ImAppCreateArgs args = { 496, 500, false };
-
-// ImFrame main function and app creation
-IMFRAME_MAIN("IronMogFF7", "IronMog FF7 v0.1", args, IronMogFF7GUI)
+    gui.destroy();
+    return 0;
+}

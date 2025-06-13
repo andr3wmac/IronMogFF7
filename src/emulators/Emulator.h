@@ -7,6 +7,7 @@ class Emulator
 {
 public:
     static Emulator* getEmulatorFromProcessName(std::string processName);
+    static Emulator* getEmulatorCustom(std::string processName, uintptr_t memoryAddress);
 
 public:
     Emulator();

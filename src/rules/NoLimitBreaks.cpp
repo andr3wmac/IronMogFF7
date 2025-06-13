@@ -1,17 +1,14 @@
-#include "DisableLimitBreaks.h"
+#include "NoLimitBreaks.h"
 #include "game/MemoryOffsets.h"
 
-void DisableLimitBreaks::onEnable()
+REGISTER_RULE("No Limit Breaks", NoLimitBreaks)
+
+void NoLimitBreaks::onStart()
 {
-    BIND_EVENT_ONE_ARG(game->onFrame, DisableLimitBreaks::onFrame);
+    BIND_EVENT_ONE_ARG(game->onFrame, NoLimitBreaks::onFrame);
 }
 
-void DisableLimitBreaks::onDisable()
-{
-
-}
-
-void DisableLimitBreaks::onFrame(uint32_t frameNumber)
+void NoLimitBreaks::onFrame(uint32_t frameNumber)
 {
     // These only apply outside of battles.
     game->write<uint8_t>(CharacterDataOffsets::Cloud    + CharacterDataOffsets::CurrentLimitBar, 0);

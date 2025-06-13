@@ -2,14 +2,11 @@
 #include "game/MemoryOffsets.h"
 #include "utilities/Flags.h"
 
-void Permadeath::onEnable()
+REGISTER_RULE("Permadeath", Permadeath)
+
+void Permadeath::onStart()
 {
     game->onFrame.AddListener(std::bind(&Permadeath::onFrame, this, std::placeholders::_1));
-}
-
-void Permadeath::onDisable()
-{
-
 }
 
 void Permadeath::onFrame(uint32_t frameNumber)
