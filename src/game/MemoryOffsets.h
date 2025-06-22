@@ -36,6 +36,14 @@ struct FieldOffsets
     OFF_CONST FieldZ = 0x74EB8;
 };
 
+struct FieldScriptOffsets
+{
+    OFF_CONST ScriptStart = 0x115000;
+
+    OFF_CONST ItemID = 0x02;
+    OFF_CONST ItemQuantity = 0x04;
+};
+
 // Character data exists for each of the cast of playabale characters and these stats are all saved onto memory card.
 // When you enter a battle, relevant fields from this are copied into Battle Allies, etc
 // Therefore, changing Current HP on character data while in a battle has no effect.

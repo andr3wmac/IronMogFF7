@@ -1,5 +1,6 @@
 #pragma once
 #include "Rule.h"
+#include "game/GameData.h"
 #include <cstdint>
 
 class RandomizeFieldItems : public Rule
@@ -12,7 +13,9 @@ private:
     void onFrame(uint32_t frameNumber);
     void onBattleExit();
 
+    void generateRandomizedItems();
     void randomizeFieldItems(uint16_t fieldID);
 
-    int framesUntilApply = 0;
+    std::unordered_map<uint32_t, FieldItemData> randomizedItems;
+    bool fieldNeedsRandomize = false;
 };

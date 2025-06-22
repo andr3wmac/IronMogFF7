@@ -19,6 +19,7 @@ public:
     void addRule(Rule* rule);
 
     void start(uint32_t inputSeed);
+    inline uint32_t getSeed() { return seed; }
     void update();
 
     // Returns a byte representing what module the game is. eg Field, Battle, World, etc

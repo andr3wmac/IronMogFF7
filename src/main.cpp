@@ -1,6 +1,8 @@
 #include "gui/GUI.h"
+#include "game/GameData.h"
 #include "game/GameManager.h"
 #include "rules/RandomizeFieldItems.h"
+#include "utilities/Logging.h"
 #include "utilities/MemorySearch.h"
 #include "utilities/Process.h"
 
@@ -62,6 +64,8 @@ void generateSeed()
         seedValue[i] = finalStr[i];
     }
     seedValue[8] = '\0';
+
+    LOG("Seed generated: %s", seedValue);
 }
 
 uint32_t hexStringToUint32(const std::string& hex) 
@@ -160,6 +164,8 @@ void detach()
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 {
+    GameData::loadGameData();
+
     GUI gui;
     gui.initialize();
 

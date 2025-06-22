@@ -1,5 +1,6 @@
 #include "DuckStation.h"
 #include "game/MemoryOffsets.h"
+#include "utilities/Logging.h"
 
 #define NOMINMAX
 #include <windows.h>
@@ -47,7 +48,7 @@ std::pair<uintptr_t, uint32_t> memChecks[MEMCHECK_COUNT] = {
 
 uintptr_t DuckStation::getPS1MemoryOffset()
 {
-    std::cout << "Searching for DuckStation PS1 Memory Offset.." << std::endl;
+    LOG("Searching for DuckStation PS1 Memory Offset..");
 
     SYSTEM_INFO sysInfo;
     GetSystemInfo(&sysInfo);

@@ -1,6 +1,7 @@
 #include "Permadeath.h"
 #include "game/MemoryOffsets.h"
 #include "utilities/Flags.h"
+#include "utilities/Logging.h"
 
 REGISTER_RULE("Permadeath", Permadeath)
 
@@ -41,7 +42,7 @@ void Permadeath::onFrame(uint32_t frameNumber)
             if (isDead)
             {
                 deadCharacterIDs.insert(id);
-                printf("Character has died: %d\n", id);
+                LOG("Character has died: %d", id);
             }
         }
 

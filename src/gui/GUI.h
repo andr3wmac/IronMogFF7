@@ -18,6 +18,8 @@ public:
     bool wasWindowClosed();
     void drawLogo();
 
+    void onKeyCallback(int key, int scancode, int action, int mods);
+
 private:
     GLFWwindow* window;
 };

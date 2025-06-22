@@ -93,15 +93,6 @@ void setupStyle()
     colors[ImGuiCol_ModalWindowDimBg]       = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
 }
 
-void KeyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
-{
-    if (key == GLFW_KEY_D && action == GLFW_PRESS && (mods & GLFW_MOD_CONTROL))
-    {
-        // Ctrl + D was pressed
-        printf("HELLO WORLD!\n");
-    }
-}
-
 // Simple helper function to load an image into a OpenGL texture with common settings
 bool loadTextureFromMemory(const void* data, size_t data_size, uint32_t* out_texture, int* out_width, int* out_height)
 {
@@ -179,7 +170,14 @@ bool GUI::initialize()
         return false;
     }
 
-    glfwSetKeyCallback(window, KeyCallback);
+    glfwSetWindowUserPointer(window, this);
+
+    auto keyCallbackFunc = [](GLFWwindow* window, int key, int scancode, int action, int mods)
+    {
+        static_cast<GUI*>(glfwGetWindowUserPointer(window))->onKeyCallback(key, scancode, action, mods);
+    };
+
+    glfwSetKeyCallback(window, keyCallbackFunc);
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); // Enable vsync
 
@@ -284,4 +282,13 @@ bool GUI::wasWindowClosed()
 void GUI::drawLogo()
 {
     ImGui::Image((ImTextureID)logoTexture, ImVec2((float)logoTextureWidth / 2.0f, (float)logoTextureHeight / 2.0f));
+}
+
+void GUI::onKeyCallback(int key, int scancode, int action, int mods)
+{
+    if (key == GLFW_KEY_D && action == GLFW_PRESS && (mods & GLFW_MOD_CONTROL))
+    {
+        // Ctrl + D was pressed
+        printf("HELLO WORLD!\n");
+    }
 }

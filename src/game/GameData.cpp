@@ -1,11 +1,14 @@
 #include "GameData.h"
 
 static ItemData gInvalidItem = { 0xFF, "" };
+static FieldData gInvalidField = { "" };
 
 std::unordered_map<uint8_t, ItemData> GameData::accessoryData;
 std::unordered_map<uint8_t, ItemData> GameData::armorData;
 std::unordered_map<uint8_t, ItemData> GameData::itemData;
 std::unordered_map<uint8_t, ItemData> GameData::weaponData;
+
+std::unordered_map<uint16_t, FieldData> GameData::fieldData;
 
 ItemData GameData::getAccessory(uint8_t id)
 {
@@ -45,4 +48,42 @@ ItemData GameData::getWeapon(uint8_t id)
     }
 
     return weaponData[id];
+}
+
+FieldData GameData::getField(uint16_t id)
+{
+    if (fieldData.count(id) == 0)
+    {
+        return gInvalidField;
+    }
+
+    return fieldData[id];
+}
+
+ItemData GameData::getItemDataFromFieldItemID(uint16_t fieldItemID)
+{
+    /*
+    Field Item ID Conversion:
+        0   + X = Items
+        128 + X = Weapons
+        256 + X = Armor
+        288 + X = Accessories
+    */
+
+    if (fieldItemID < 128)
+    {
+        return getItem((uint8_t)fieldItemID);
+    }
+    else if (fieldItemID < 256)
+    {
+        return getWeapon((uint8_t)(fieldItemID - 128));
+    }
+    else if (fieldItemID < 288)
+    {
+        return getArmor((uint8_t)(fieldItemID - 256));
+    }
+    else
+    {
+        return getAccessory((uint8_t)(fieldItemID - 288));
+    }
 }

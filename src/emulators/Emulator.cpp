@@ -1,6 +1,7 @@
 #include "Emulator.h"
 #include "CustomEmulator.h"
 #include "DuckStation.h"
+#include "utilities/Logging.h"
 #include "utilities/Process.h"
 
 #include <iostream>
@@ -63,14 +64,14 @@ bool Emulator::attach(std::string processName)
 
     if (pid == 0)
     {
-        std::cout << "Emulator process not found.\n";
+        LOG("Emulator process not found.");
         return false;
     }
 
     processHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
     if (!processHandle)
     {
-        std::cout << "Failed to open emulator process.\n";
+        LOG("Failed to open emulator process.");
         return false;
     }
 
@@ -81,7 +82,7 @@ bool Emulator::attach(std::string processName)
     int32_t fieldX = 0;
     if (!ReadProcessMemory(processHandle, (LPCVOID)(ps1BaseAddress + fieldXOffset), &fieldX, sizeof(fieldX), nullptr))
     {
-        std::cout << "Failed to read playstation memory.\n";
+        LOG("Failed to read playstation memory.");
         return false;
     }
 
@@ -92,7 +93,7 @@ bool Emulator::read(uintptr_t offset, void* outBuffer, size_t size)
 {
     if (!ReadProcessMemory(processHandle, (LPCVOID)(ps1BaseAddress + offset), outBuffer, size, nullptr))
     {
-        std::cout << "Failed to read memory from: " << offset << std::endl;
+        LOG("Failed to read memory from: %d", offset);
         return false;
     }
 
@@ -103,7 +104,7 @@ bool Emulator::write(uintptr_t offset, void* inValue, size_t size)
 {
     if (!WriteProcessMemory(processHandle, (LPVOID)(ps1BaseAddress + offset), inValue, size, nullptr))
     {
-        std::cout << "Failed to write memory to: " << offset << std::endl;
+        LOG("Failed to write memory to: %d", offset);
         return false;
     }
 
