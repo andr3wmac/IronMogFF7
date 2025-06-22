@@ -1,6 +1,7 @@
 #pragma once
 #include "Rule.h"
 #include <cstdint>
+#include <random>
 
 class RandomizeEnemyDrops : public Rule
 {
@@ -12,5 +13,8 @@ private:
     void onBattleEnter();
     void onBattleExit();
 
-    int framesInBattle = 0;
+    uint16_t randomizeDropID(uint16_t dropID);
+
+    std::mt19937_64 rng;
+    int waitingFrames = 0;
 };

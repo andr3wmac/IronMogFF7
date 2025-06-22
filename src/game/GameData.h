@@ -39,6 +39,7 @@ public:
 
     static FieldData getField(uint16_t id);
     static ItemData getItemDataFromFieldItemID(uint16_t fieldItemID);
+    static ItemData getItemDataFromBattleDropID(uint16_t battleDropID);
 
     static std::unordered_map<uint8_t, ItemData> accessoryData;
     static std::unordered_map<uint8_t, ItemData> armorData;

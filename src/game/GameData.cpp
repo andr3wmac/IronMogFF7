@@ -1,4 +1,5 @@
 #include "GameData.h"
+#include "game/MemoryOffsets.h"
 
 static ItemData gInvalidItem = { 0xFF, "" };
 static FieldData gInvalidField = { "" };
@@ -86,4 +87,26 @@ ItemData GameData::getItemDataFromFieldItemID(uint16_t fieldItemID)
     {
         return getAccessory((uint8_t)(fieldItemID - 288));
     }
+}
+
+ItemData GameData::getItemDataFromBattleDropID(uint16_t battleDropID)
+{
+    std::pair<uint8_t, uint16_t> data = unpackDropID(battleDropID);
+    if (data.first == DropType::Accessory)
+    {
+        return getAccessory(data.second);
+    }
+    if (data.first == DropType::Armor)
+    {
+        return getArmor(data.second);
+    }
+    if (data.first == DropType::Item)
+    {
+        return getItem(data.second);
+    }
+    if (data.first == DropType::Weapon)
+    {
+        return getWeapon(data.second);
+    }
+    return gInvalidItem;
 }

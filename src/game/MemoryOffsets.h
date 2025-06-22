@@ -145,6 +145,8 @@ struct BattleCharacterOffsets
 // For instance if you have 6 of the same enemy in a fight all 6 of those will reference a single entry in formation data.
 struct EnemyFormationOffsets
 {
+    OFF_CONST FormationID = 0x707BC;
+
     // Enemy Data Length = 184 bytes
     OFF_CONST Enemies[] = { 0xF5FCC, 0xF6084, 0xF613C };
 

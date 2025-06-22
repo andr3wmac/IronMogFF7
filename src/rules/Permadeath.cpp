@@ -7,7 +7,7 @@ REGISTER_RULE("Permadeath", Permadeath)
 
 void Permadeath::onStart()
 {
-    game->onFrame.AddListener(std::bind(&Permadeath::onFrame, this, std::placeholders::_1));
+    BIND_EVENT_ONE_ARG(game->onFrame, Permadeath::onFrame);
 }
 
 void Permadeath::onFrame(uint32_t frameNumber)

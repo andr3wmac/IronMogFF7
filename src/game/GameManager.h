@@ -72,4 +72,7 @@ private:
     uint8_t gameModule = 0;
 
     uint16_t fieldID = 0;
+
+    bool waitingForBattleData = false;
+    bool isBattleDataLoaded();
 };
