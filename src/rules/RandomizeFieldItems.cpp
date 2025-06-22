@@ -6,6 +6,9 @@
 #include <algorithm>
 #include <random>
 
+// TODO:
+// - Update the text boxes when picking up an item
+
 REGISTER_RULE("Randomize Field Items", RandomizeFieldItems)
 
 void RandomizeFieldItems::onStart()
@@ -40,9 +43,9 @@ void RandomizeFieldItems::onFrame(uint32_t frameNumber)
     }
 }
 
-uint32_t makeKey(uint16_t fieldID, uint8_t itemIndex)
+uint32_t makeKey(uint16_t fieldID, uint8_t index)
 {
-    return (uint32_t(fieldID) << 16 | itemIndex);
+    return (uint32_t(fieldID) << 16 | index);
 }
 
 // Generate a map of fieldID and item index to the item data then shuffle those pairings
@@ -63,10 +66,11 @@ void RandomizeFieldItems::generateRandomizedItems()
     struct SourceLoc
     {
         uint32_t fieldID;
-        size_t itemIndex;
+        size_t index;
     };
 
     std::vector<std::pair<FieldItemData, SourceLoc>> allItems;
+    std::vector<std::pair<FieldItemData, SourceLoc>> allMateria;
 
     for (uint32_t fieldID : sortedFieldIDs) 
     {
@@ -83,17 +87,31 @@ void RandomizeFieldItems::generateRandomizedItems()
         {
             allItems.push_back({ field.items[i], { fieldID, i } });
         }
+
+        for (size_t i = 0; i < field.materia.size(); ++i)
+        {
+            allMateria.push_back({ field.materia[i], { fieldID, i } });
+        }
     }
 
     std::mt19937 rng(game->getSeed());
-    std::vector<std::pair<FieldItemData, SourceLoc>> shuffled = allItems;
-    std::shuffle(shuffled.begin(), shuffled.end(), rng);
+    std::vector<std::pair<FieldItemData, SourceLoc>> shuffledItems = allItems;
+    std::shuffle(shuffledItems.begin(), shuffledItems.end(), rng);
+    std::vector<std::pair<FieldItemData, SourceLoc>> shuffledMateria = allMateria;
+    std::shuffle(shuffledMateria.begin(), shuffledMateria.end(), rng);
 
     for (size_t i = 0; i < allItems.size(); ++i) 
     {
         const SourceLoc& newLoc = allItems[i].second;
-        const FieldItemData& randomizedItem = shuffled[i].first;
-        randomizedItems[makeKey(newLoc.fieldID, newLoc.itemIndex)] = randomizedItem;
+        const FieldItemData& randomItem = shuffledItems[i].first;
+        randomizedItems[makeKey(newLoc.fieldID, newLoc.index)] = randomItem;
+    }
+
+    for (size_t i = 0; i < allMateria.size(); ++i)
+    {
+        const SourceLoc& newLoc = allMateria[i].second;
+        const FieldItemData& randomMateria = shuffledMateria[i].first;
+        randomizedMateria[makeKey(newLoc.fieldID, newLoc.index)] = randomMateria;
     }
 
     // TODO: generate spoiler log information here?
@@ -108,6 +126,7 @@ void RandomizeFieldItems::randomizeFieldItems(uint16_t fieldID)
     }
 
     int randomizedFieldItems = 0;
+    int randomizedFieldMateria = 0;
 
     for (int i = 0; i < fieldData.items.size(); ++i)
     {
@@ -135,14 +154,44 @@ void RandomizeFieldItems::randomizeFieldItems(uint16_t fieldID)
         game->write<uint16_t>(itemIDOffset, newItem.id);
         game->write<uint8_t>(itemQuantityOffset, newItem.quantity);
 
-        ItemData oldItemData = GameData::getItemDataFromFieldItemID(oldItemID);
-        ItemData newItemData = GameData::getItemDataFromFieldItemID(newItem.id);
-        LOG("Randomized item on field %d: %s (%d) changed to: %s (%d)", fieldID, oldItemData.name.c_str(), oldItemQuantity, newItemData.name.c_str(), newItem.quantity);
+        std::string oldItemName = GameData::getNameFromFieldScriptID(oldItemID);
+        std::string newItemName = GameData::getNameFromFieldScriptID(newItem.id);
+        LOG("Randomized item on field %d: %s (%d) changed to: %s (%d)", fieldID, oldItemName.c_str(), oldItemQuantity, newItemName.c_str(), newItem.quantity);
         
         randomizedFieldItems++;
     }
 
-    if (randomizedFieldItems == fieldData.items.size())
+    for (int i = 0; i < fieldData.materia.size(); ++i)
+    {
+        FieldItemData& materia = fieldData.materia[i];
+        uintptr_t idOffset = FieldScriptOffsets::ScriptStart + materia.offset + FieldScriptOffsets::MateriaID;
+
+        uint8_t oldMaterialID = game->read<uint8_t>(idOffset);
+
+        if (oldMaterialID != materia.id)
+        {
+            // Data isn't loaded yet.
+            continue;
+        }
+
+        uint32_t randomKey = makeKey(fieldID, i);
+        if (randomizedMateria.count(randomKey) == 0)
+        {
+            continue;
+        }
+
+        // Select a different item from the already randomized table and overwrite.
+        FieldItemData newMateria = randomizedMateria[randomKey];
+        game->write<uint8_t>(idOffset, newMateria.id);
+
+        std::string oldMateriaName = GameData::getMateriaName(oldMaterialID);
+        std::string newMateriaName = GameData::getMateriaName(newMateria.id);
+        LOG("Randomized materia on field %d: %s changed to: %s", fieldID, oldMateriaName.c_str(), newMateriaName.c_str());
+
+        randomizedFieldMateria++;
+    }
+
+    if (randomizedFieldItems == fieldData.items.size() && randomizedFieldMateria == fieldData.materia.size())
     {
         fieldNeedsRandomize = false;
     }

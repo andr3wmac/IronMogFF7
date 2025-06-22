@@ -17,5 +17,6 @@ private:
     void randomizeFieldItems(uint16_t fieldID);
 
     std::unordered_map<uint32_t, FieldItemData> randomizedItems;
+    std::unordered_map<uint32_t, FieldItemData> randomizedMateria;
     bool fieldNeedsRandomize = false;
 };

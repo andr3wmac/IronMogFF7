@@ -1,54 +1,64 @@
 #include "GameData.h"
 #include "game/MemoryOffsets.h"
 
-static ItemData gInvalidItem = { 0xFF, "" };
 static FieldData gInvalidField = { "" };
 
-std::unordered_map<uint8_t, ItemData> GameData::accessoryData;
-std::unordered_map<uint8_t, ItemData> GameData::armorData;
-std::unordered_map<uint8_t, ItemData> GameData::itemData;
-std::unordered_map<uint8_t, ItemData> GameData::weaponData;
+std::unordered_map<uint8_t, std::string> GameData::accessoryNames;
+std::unordered_map<uint8_t, std::string> GameData::armorNames;
+std::unordered_map<uint8_t, std::string> GameData::itemNames;
+std::unordered_map<uint8_t, std::string> GameData::weaponNames;
+std::unordered_map<uint8_t, std::string> GameData::materiaNames;
 
 std::unordered_map<uint16_t, FieldData> GameData::fieldData;
 
-ItemData GameData::getAccessory(uint8_t id)
+std::string GameData::getAccessoryName(uint8_t id)
 {
-    if (accessoryData.count(id) == 0)
+    if (accessoryNames.count(id) == 0)
     {
-        return gInvalidItem;
+        return "";
     }
 
-    return accessoryData[id];
+    return accessoryNames[id];
 }
 
-ItemData GameData::getArmor(uint8_t id)
+std::string GameData::getArmorName(uint8_t id)
 {
-    if (armorData.count(id) == 0)
+    if (armorNames.count(id) == 0)
     {
-        return gInvalidItem;
+        return "";
     }
 
-    return armorData[id];
+    return armorNames[id];
 }
 
-ItemData GameData::getItem(uint8_t id)
+std::string GameData::getItemName(uint8_t id)
 {
-    if (itemData.count(id) == 0)
+    if (itemNames.count(id) == 0)
     {
-        return gInvalidItem;
+        return "";
     }
 
-    return itemData[id];
+    return itemNames[id];
 }
 
-ItemData GameData::getWeapon(uint8_t id)
+std::string GameData::getWeaponName(uint8_t id)
 {
-    if (weaponData.count(id) == 0)
+    if (weaponNames.count(id) == 0)
     {
-        return gInvalidItem;
+        return "";
     }
 
-    return weaponData[id];
+    return weaponNames[id];
+}
+
+std::string GameData::getMateriaName(uint8_t id)
+{
+    if (materiaNames.count(id) == 0)
+    {
+        return "";
+    }
+
+    return materiaNames[id];
 }
 
 FieldData GameData::getField(uint16_t id)
@@ -61,7 +71,7 @@ FieldData GameData::getField(uint16_t id)
     return fieldData[id];
 }
 
-ItemData GameData::getItemDataFromFieldItemID(uint16_t fieldItemID)
+std::string GameData::getNameFromFieldScriptID(uint16_t fieldItemID)
 {
     /*
     Field Item ID Conversion:
@@ -73,40 +83,40 @@ ItemData GameData::getItemDataFromFieldItemID(uint16_t fieldItemID)
 
     if (fieldItemID < 128)
     {
-        return getItem((uint8_t)fieldItemID);
+        return getItemName((uint8_t)fieldItemID);
     }
     else if (fieldItemID < 256)
     {
-        return getWeapon((uint8_t)(fieldItemID - 128));
+        return getWeaponName((uint8_t)(fieldItemID - 128));
     }
     else if (fieldItemID < 288)
     {
-        return getArmor((uint8_t)(fieldItemID - 256));
+        return getArmorName((uint8_t)(fieldItemID - 256));
     }
     else
     {
-        return getAccessory((uint8_t)(fieldItemID - 288));
+        return getAccessoryName((uint8_t)(fieldItemID - 288));
     }
 }
 
-ItemData GameData::getItemDataFromBattleDropID(uint16_t battleDropID)
+std::string GameData::getNameFromBattleDropID(uint16_t battleDropID)
 {
     std::pair<uint8_t, uint16_t> data = unpackDropID(battleDropID);
     if (data.first == DropType::Accessory)
     {
-        return getAccessory(data.second);
+        return getAccessoryName((uint8_t)data.second);
     }
     if (data.first == DropType::Armor)
     {
-        return getArmor(data.second);
+        return getArmorName((uint8_t)data.second);
     }
     if (data.first == DropType::Item)
     {
-        return getItem(data.second);
+        return getItemName((uint8_t)data.second);
     }
     if (data.first == DropType::Weapon)
     {
-        return getWeapon(data.second);
+        return getWeaponName((uint8_t)data.second);
     }
-    return gInvalidItem;
+    return "";
 }

@@ -23,9 +23,9 @@ uint16_t RandomizeEnemyDrops::randomizeDropID(uint16_t dropID)
     {
         if (data.first == DropType::Accessory)
         {
-            std::uniform_int_distribution<int> dist(0, (int)GameData::accessoryData.size() - 1);
+            std::uniform_int_distribution<int> dist(0, (int)GameData::accessoryNames.size() - 1);
             int randIdx = dist(rng);
-            if (GameData::accessoryData.count(randIdx) > 0)
+            if (GameData::accessoryNames.count(randIdx) > 0)
             {
                 selectedID = (uint16_t)randIdx;
                 break;
@@ -33,9 +33,9 @@ uint16_t RandomizeEnemyDrops::randomizeDropID(uint16_t dropID)
         }
         else if (data.first == DropType::Armor)
         {
-            std::uniform_int_distribution<int> dist(0, (int)GameData::armorData.size() - 1);
+            std::uniform_int_distribution<int> dist(0, (int)GameData::armorNames.size() - 1);
             int randIdx = dist(rng);
-            if (GameData::armorData.count(randIdx) > 0)
+            if (GameData::armorNames.count(randIdx) > 0)
             {
                 selectedID = (uint16_t)randIdx;
                 break;
@@ -43,9 +43,9 @@ uint16_t RandomizeEnemyDrops::randomizeDropID(uint16_t dropID)
         }
         else if (data.first == DropType::Item)
         {
-            std::uniform_int_distribution<int> dist(0, (int)GameData::itemData.size() - 1);
+            std::uniform_int_distribution<int> dist(0, (int)GameData::itemNames.size() - 1);
             int randIdx = dist(rng);
-            if (GameData::itemData.count(randIdx) > 0)
+            if (GameData::itemNames.count(randIdx) > 0)
             {
                 selectedID = (uint16_t)randIdx;
                 break;
@@ -53,9 +53,9 @@ uint16_t RandomizeEnemyDrops::randomizeDropID(uint16_t dropID)
         }
         else if (data.first == DropType::Weapon)
         {
-            std::uniform_int_distribution<int> dist(0, (int)GameData::weaponData.size() - 1);
+            std::uniform_int_distribution<int> dist(0, (int)GameData::weaponNames.size() - 1);
             int randIdx = dist(rng);
-            if (GameData::weaponData.count(randIdx) > 0)
+            if (GameData::weaponNames.count(randIdx) > 0)
             {
                 selectedID = (uint16_t)randIdx;
                 break;
@@ -111,9 +111,9 @@ void RandomizeEnemyDrops::onBattleEnter()
             uint16_t newDropID = randomizeDropID(dropID);
             game->write<uint16_t>(EnemyFormationOffsets::Enemies[i] + EnemyFormationOffsets::DropIDs[j], newDropID);
 
-            ItemData oldItemData = GameData::getItemDataFromBattleDropID(dropID);
-            ItemData newItemData = GameData::getItemDataFromBattleDropID(newDropID);
-            LOG("Randomized enemy drop in formation %d: %s changed to %s", formationID, oldItemData.name.c_str(), newItemData.name.c_str());
+            std::string oldItemName = GameData::getNameFromBattleDropID(dropID);
+            std::string newItemName = GameData::getNameFromBattleDropID(newDropID);
+            LOG("Randomized enemy drop in formation %d: %s changed to %s", formationID, oldItemName.c_str(), newItemName.c_str());
         }
     }
 }

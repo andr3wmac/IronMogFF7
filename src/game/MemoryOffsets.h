@@ -42,6 +42,9 @@ struct FieldScriptOffsets
 
     OFF_CONST ItemID = 0x02;
     OFF_CONST ItemQuantity = 0x04;
+
+    // TODO: get the real number
+    OFF_CONST MateriaID = 0x03;
 };
 
 // Character data exists for each of the cast of playabale characters and these stats are all saved onto memory card.
