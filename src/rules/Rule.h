@@ -5,7 +5,9 @@
 class Rule
 {
 public:
-    virtual void onStart() {}
+    std::string name = "";
+
+    virtual void setup() {}
 
     void setManager(GameManager* gameManager)
     {
@@ -32,7 +34,7 @@ public:
     namespace { \
         struct ClassName##AutoRegister { \
             ClassName##AutoRegister() { \
-                Rule::registerRule(NameStr, [] { return new ClassName(); }); \
+                Rule::registerRule(NameStr, [] { ClassName* tmp = new ClassName(); tmp->name = NameStr; return tmp; }); \
             } \
         }; \
         static ClassName##AutoRegister _autoRegister_##ClassName; \

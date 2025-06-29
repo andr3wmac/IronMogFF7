@@ -2,9 +2,10 @@
 #include "game/GameData.h"
 #include "game/GameManager.h"
 #include "rules/RandomizeFieldItems.h"
+#include "rules/Restrictions.h"
 #include "utilities/Logging.h"
 #include "utilities/MemorySearch.h"
-#include "utilities/Process.h"
+#include "utilities/Utilities.h"
 
 #include <imgui.h>
 #include <iostream>
@@ -41,30 +42,15 @@ std::atomic<bool> managerRunning = false;
 
 void generateSeed() 
 {
-    const int numBytes = 8;
-
-    // Use a secure, high-entropy source
     std::random_device rd;
-    std::array<uint8_t, numBytes> buffer;
 
-    for (size_t i = 0; i < numBytes; ++i) 
-    {
-        buffer[i] = static_cast<uint8_t>(rd());
-    }
+    // Generate a random 32-bit seed
+    uint32_t seed = (static_cast<uint32_t>(rd()) << 16) ^ rd();
 
-    std::ostringstream oss;
-    for (size_t i = 0; i < numBytes; ++i) 
-    {
-        oss << std::hex << std::setw(2) << std::setfill('0') << static_cast<int>(buffer[i]);
-    }
-    std::string finalStr = oss.str();
+    // Format as 8-character uppercase hex string
+    snprintf(seedValue, sizeof(seedValue), "%08X", seed);
 
-    for (int i = 0; i < 8; ++i)
-    {
-        seedValue[i] = finalStr[i];
-    }
-    seedValue[8] = '\0';
-
+    // Optional log
     LOG("Seed generated: %s", seedValue);
 }
 
@@ -76,6 +62,12 @@ uint32_t hexStringToUint32(const std::string& hex)
     return seed;
 }
 
+void onStart()
+{
+    uint32_t chosenSeed = game->getSeed();
+    snprintf(seedValue, 9, "%08X", chosenSeed);
+}
+
 void runGameManager()
 {
     if (game != nullptr)
@@ -85,6 +77,7 @@ void runGameManager()
     }
 
     game = new GameManager();
+    game->onStart.AddListener(onStart);
     connectionState = 1;
     connectionStatus = "Attaching to Duckstation..";
 
@@ -97,7 +90,7 @@ void runGameManager()
     }
     if (selectedEmulatorIdx == 1)
     {
-        uintptr_t customAddress = Process::ParseAddress(processMemoryOffset);
+        uintptr_t customAddress = Utilities::parseAddress(processMemoryOffset);
         connected = game->attachToEmulator(runningProcesses[selectedProcessIdx], customAddress);
     }
 
@@ -112,9 +105,8 @@ void runGameManager()
         connectionStatus = "Failed to attach to emulator.";
     }
 
-    MemorySearch search(game);
-    std::vector<uint8_t> searchValues = { 0x58, 0, 0, 0, 0x01 };
-    std::vector<uintptr_t> results = search.search(searchValues);
+    // Reset any global restrictions
+    Restrictions::reset();
 
     auto ruleRegistry = Rule::registry();
     for (auto& rule : ruleData) 
@@ -126,7 +118,7 @@ void runGameManager()
         }
     }
 
-    game->start(hexStringToUint32(seedValue));
+    game->setup(hexStringToUint32(seedValue));
 
     managerRunning = true;
     while (managerRunning.load())
@@ -210,7 +202,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                         // Update list of processes if Custom is selected.
                         if (selectedEmulatorIdx == 1)
                         {
-                            runningProcesses = Process::GetRunningProcesses();
+                            runningProcesses = Utilities::getRunningProcesses();
                             runningProcessesCStr.clear();
                             for (const auto& name : runningProcesses)
                             {

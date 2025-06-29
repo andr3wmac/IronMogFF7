@@ -121,6 +121,7 @@ struct PlayerOffsets
     OFF_CONST MaxMP         = 0x16;
 
     OFF_CONST LimitBreakDisplay = 0x1B;
+    OFF_CONST EnemySkillMenu = 0x5B;
 };
 
 struct BattleCharacterOffsets
@@ -185,4 +186,10 @@ struct StatusFlags
     STATUS_FLAG Sleep      = (1 << 2);
     STATUS_FLAG Poison     = (1 << 3);
     STATUS_FLAG Sadness    = (1 << 4);
+};
+
+struct ShopOffsets
+{
+    OFF_CONST ShopStart = 0x1D4714;
+    OFF_CONST ShopStride = 84;
 };

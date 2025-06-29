@@ -5,7 +5,7 @@
 
 REGISTER_RULE("Permadeath", Permadeath)
 
-void Permadeath::onStart()
+void Permadeath::setup()
 {
     BIND_EVENT_ONE_ARG(game->onFrame, Permadeath::onFrame);
 }

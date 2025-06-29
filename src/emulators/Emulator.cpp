@@ -2,7 +2,7 @@
 #include "CustomEmulator.h"
 #include "DuckStation.h"
 #include "utilities/Logging.h"
-#include "utilities/Process.h"
+#include "utilities/Utilities.h"
 
 #include <iostream>
 #include <algorithm>
@@ -60,7 +60,7 @@ Emulator::~Emulator()
 
 bool Emulator::attach(std::string processName)
 {
-    DWORD pid = Process::GetIDByName(processName);
+    DWORD pid = Utilities::getProcessIDByName(processName);
 
     if (pid == 0)
     {

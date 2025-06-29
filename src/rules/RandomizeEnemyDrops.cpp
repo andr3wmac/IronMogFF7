@@ -7,7 +7,7 @@
 
 REGISTER_RULE("Randomize Enemy Drops", RandomizeEnemyDrops)
 
-void RandomizeEnemyDrops::onStart()
+void RandomizeEnemyDrops::setup()
 {
     BIND_EVENT(game->onBattleEnter, RandomizeEnemyDrops::onBattleEnter);
 }
@@ -23,43 +23,23 @@ uint16_t RandomizeEnemyDrops::randomizeDropID(uint16_t dropID)
     {
         if (data.first == DropType::Accessory)
         {
-            std::uniform_int_distribution<int> dist(0, (int)GameData::accessoryNames.size() - 1);
-            int randIdx = dist(rng);
-            if (GameData::accessoryNames.count(randIdx) > 0)
-            {
-                selectedID = (uint16_t)randIdx;
-                break;
-            }
+            selectedID = GameData::getRandomAccessory(rng);
+            break;
         }
         else if (data.first == DropType::Armor)
         {
-            std::uniform_int_distribution<int> dist(0, (int)GameData::armorNames.size() - 1);
-            int randIdx = dist(rng);
-            if (GameData::armorNames.count(randIdx) > 0)
-            {
-                selectedID = (uint16_t)randIdx;
-                break;
-            }
+            selectedID = GameData::getRandomArmor(rng);
+            break;
         }
         else if (data.first == DropType::Item)
         {
-            std::uniform_int_distribution<int> dist(0, (int)GameData::itemNames.size() - 1);
-            int randIdx = dist(rng);
-            if (GameData::itemNames.count(randIdx) > 0)
-            {
-                selectedID = (uint16_t)randIdx;
-                break;
-            }
+            selectedID = GameData::getRandomItem(rng);
+            break;
         }
         else if (data.first == DropType::Weapon)
         {
-            std::uniform_int_distribution<int> dist(0, (int)GameData::weaponNames.size() - 1);
-            int randIdx = dist(rng);
-            if (GameData::weaponNames.count(randIdx) > 0)
-            {
-                selectedID = (uint16_t)randIdx;
-                break;
-            }
+            selectedID = GameData::getRandomWeapon(rng);
+            break;
         }
         else 
         {

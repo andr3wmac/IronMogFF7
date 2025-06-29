@@ -102,3 +102,45 @@ std::vector<uintptr_t> MemorySearch::searchForCloseValues(uint8_t first, uint8_t
 
     return results;
 }
+
+std::vector<uintptr_t> MemorySearch::checkAddresses(const std::vector<uintptr_t>& addresses, const std::vector<uint8_t>& searchBytes)
+{
+    std::vector<uintptr_t> results;
+
+    if (game == nullptr || searchBytes.empty())
+    {
+        return results;
+    }
+
+    // Copy PS1 RAM into temporary storage
+    if (!game->read(0, PS1RAMSize, RAMData))
+    {
+        return results;
+    }
+
+    for (uintptr_t address : addresses)
+    {
+        // Skip out-of-bounds checks
+        if (address + searchBytes.size() > PS1RAMSize)
+        {
+            continue;
+        }
+
+        bool match = true;
+        for (size_t i = 0; i < searchBytes.size(); ++i)
+        {
+            if (RAMData[address + i] != searchBytes[i])
+            {
+                match = false;
+                break;
+            }
+        }
+
+        if (match)
+        {
+            results.push_back(address);
+        }
+    }
+
+    return results;
+}

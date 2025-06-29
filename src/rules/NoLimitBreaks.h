@@ -5,7 +5,7 @@
 class NoLimitBreaks : public Rule
 {
 public:
-    void onStart() override;
+    void setup() override;
 
 private:
     void onFrame(uint32_t frameNumber);

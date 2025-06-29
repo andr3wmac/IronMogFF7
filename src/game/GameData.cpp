@@ -61,6 +61,81 @@ std::string GameData::getMateriaName(uint8_t id)
     return materiaNames[id];
 }
 
+uint16_t GameData::getRandomAccessory(std::mt19937_64& rng)
+{
+    static std::vector<uint16_t> keys;
+    if (keys.empty())
+    {
+        for (const auto& pair : GameData::accessoryNames)
+        {
+            keys.push_back(pair.first);
+        }
+    }
+
+    std::uniform_int_distribution<size_t> dist(0, keys.size() - 1);
+    return keys[dist(rng)];
+}
+
+uint16_t GameData::getRandomArmor(std::mt19937_64& rng)
+{
+    static std::vector<uint16_t> keys;
+    if (keys.empty())
+    {
+        for (const auto& pair : GameData::armorNames)
+        {
+            keys.push_back(pair.first);
+        }
+    }
+
+    std::uniform_int_distribution<size_t> dist(0, keys.size() - 1);
+    return keys[dist(rng)];
+}
+
+uint16_t GameData::getRandomItem(std::mt19937_64& rng)
+{
+    static std::vector<uint16_t> keys;
+    if (keys.empty())
+    {
+        for (const auto& pair : GameData::itemNames)
+        {
+            keys.push_back(pair.first);
+        }
+    }
+
+    std::uniform_int_distribution<size_t> dist(0, keys.size() - 1);
+    return keys[dist(rng)];
+}
+
+uint16_t GameData::getRandomWeapon(std::mt19937_64& rng)
+{
+    static std::vector<uint16_t> keys;
+    if (keys.empty())
+    {
+        for (const auto& pair : GameData::weaponNames)
+        {
+            keys.push_back(pair.first);
+        }
+    }
+
+    std::uniform_int_distribution<size_t> dist(0, keys.size() - 1);
+    return keys[dist(rng)];
+}
+
+uint16_t GameData::getRandomMateria(std::mt19937_64& rng)
+{
+    static std::vector<uint16_t> keys;
+    if (keys.empty()) 
+    {
+        for (const auto& pair : GameData::materiaNames) 
+        {
+            keys.push_back(pair.first);
+        }
+    }
+
+    std::uniform_int_distribution<size_t> dist(0, keys.size() - 1);
+    return keys[dist(rng)];
+}
+
 FieldData GameData::getField(uint16_t id)
 {
     if (fieldData.count(id) == 0)
@@ -119,4 +194,55 @@ std::string GameData::getNameFromBattleDropID(uint16_t battleDropID)
         return getWeaponName((uint8_t)data.second);
     }
     return "";
+}
+
+const char* normalChars[256] = {
+    " ", "!", "\"", "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/",
+    "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ":", ";", "<", "=", ">", "?",
+    "@", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O",
+    "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "[", "\\", "]", "^", "_",
+    "`", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o",
+    "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "{", "|", "}", "~",     
+    "Ä", "Å", "Ç", "É", "Ñ", "Ö", "Ü", "á", "à", "â", "ä", "ã", "å", "ç", "é", "è",
+    "ê", "ë", "í", "ì", "î", "ï", "ñ", "ó", "ò", "ô", "ö", "õ", "ú", "ù", "û", "ü",
+    " ", "°", "¢", "£", " ", " ", " ", " ", " ", " ", " ", "´", "¨", " ", " ", "Ø",
+    " ", "±", " ", " ", "¥", "µ", " ", " ", " ", " ", " ", "ª", "º", " ", " ", "ø",
+    "¿", "¡", "¬", " ", "ƒ", " ", " ", " ", "»", "…", "À", "Ã", "Õ", "Œ", "œ", "–",
+    "—", "“", "”", "‘", "’", "÷", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ",
+    "‚", "„", "‰", "Â", "Ê", "Á", "Ë", "È", "Í", "Î", "Ï", "Ì", "Ó", "Ô", " ", "Ò",
+    "Ú", "Û", "Ù", " ", "ˆ", "˜", "¯", " ", " ", " ", " ", " ", " ", " ", " ", " ",
+    " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ",
+    " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " ", " "
+};
+
+std::string GameData::decodeString(const std::vector<uint8_t>& data)
+{
+    std::string result;
+    for (uint8_t byte : data) 
+    {
+        if (byte == 0xFF) break;
+        result += normalChars[byte];
+    }
+    return result;
+}
+
+std::vector<uint8_t> GameData::encodeString(const std::string& input)
+{
+    std::vector<uint8_t> encoded;
+
+    for (size_t i = 0; i < input.size(); ++i) 
+    {
+        uint8_t value = 0;
+        for (int j = 0; j < 256; ++j)
+        {
+            if (*normalChars[j] == input.at(i))
+            {
+                value = j;
+                break;
+            }
+        }
+        encoded.push_back(value);
+    }
+
+    return encoded;
 }

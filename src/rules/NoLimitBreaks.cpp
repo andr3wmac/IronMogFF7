@@ -3,7 +3,7 @@
 
 REGISTER_RULE("No Limit Breaks", NoLimitBreaks)
 
-void NoLimitBreaks::onStart()
+void NoLimitBreaks::setup()
 {
     BIND_EVENT_ONE_ARG(game->onFrame, NoLimitBreaks::onFrame);
 }

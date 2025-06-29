@@ -1,6 +1,9 @@
-#include "GameManager.h"
+﻿#include "GameManager.h"
+#include "game/GameData.h"
 #include "game/MemoryOffsets.h"
 #include "rules/Rule.h"
+#include "utilities/Logging.h"
+#include "utilities/Utilities.h"
 
 #include <thread>
 #include <chrono>
@@ -47,28 +50,105 @@ bool GameManager::attachToEmulator(std::string processName, uintptr_t memoryAddr
     return emulator->attach(processName);
 }
 
+std::string GameManager::readString(uintptr_t offset, uint32_t length)
+{
+    std::vector<uint8_t> strData;
+    strData.resize(length);
+    emulator->read(offset, strData.data(), length);
+    return GameData::decodeString(strData);
+}
+
+void GameManager::writeString(uintptr_t offset, uint32_t length, std::string& string, bool centerAlign)
+{
+    std::vector<uint8_t> strData = GameData::encodeString(string);
+
+    std::vector<uint8_t> finalStrData;
+    finalStrData.resize(length, 0x00); // Fill with 0x00 by default
+
+    size_t strLen = std::min<size_t>(strData.size(), length);
+    size_t padding = centerAlign ? (length - strLen) / 2 : 0;
+
+    for (size_t i = 0; i < strLen; ++i)
+    {
+        finalStrData[padding + i] = strData[i];
+    }
+
+    emulator->write(offset, finalStrData.data(), length);
+}
+
 void GameManager::addRule(Rule* rule)
 {
     rules.push_back(rule);
     rule->setManager(this);
 }
 
-void GameManager::start(uint32_t inputSeed)
+bool GameManager::isRuleEnabled(std::string ruleName)
 {
-    // Try to load seed from the game data
-    // if its not found then use input seed and write it.
+    for (int i = 0; i < rules.size(); ++i)
+    {
+        if (rules[i]->name == ruleName)
+        {
+            return true;
+        }
+    }
 
+    return false;
+}
+
+void GameManager::setup(uint32_t inputSeed)
+{
+    // Note: seed may change after loading a save file, so its important to not utilize it in rule setup.
     seed = inputSeed;
 
     for (int i = 0; i < rules.size(); ++i)
     {
-        rules[i]->onStart();
+        rules[i]->setup();
+    }
+}
+
+void GameManager::loadSaveData()
+{
+    const uint8_t saveDataVersion = 0;
+
+    uint8_t byte0 = read<uint8_t>(0x9D240);
+    uint8_t byte1 = read<uint8_t>(0x9D241);
+
+    // 49 and 4D are the letters IM for Iron Mog
+    if (byte0 == 0x49 && byte1 == 0x4D)
+    {
+        // Load existing save data.
+        seed = read<uint32_t>(0x9D243);
+
+        std::string seedString = Utilities::seedToHexString(seed);
+        LOG("Loaded seed from save file: %s", seedString.c_str());
+    }
+    else 
+    {
+        // Write header and seed into save data area.
+        write<uint8_t>(0x9D240, 0x49);
+        write<uint8_t>(0x9D241, 0x4D);
+        write<uint8_t>(0x9D242, saveDataVersion);
+
+        // Write seed
+        write<uint32_t>(0x9D243, seed);
     }
 }
 
 void GameManager::update()
 {
     uint8_t newGameModule = read<uint8_t>(GameOffsets::CurrentModule);
+    if (newGameModule == 0)
+    {
+        // At main menu
+        return;
+    }
+    else if (!hasStarted)
+    {
+        loadSaveData();
+        onStart.Invoke();
+        hasStarted = true;
+    }
+    
     if (newGameModule != gameModule)
     {
         // Entered battle
@@ -81,6 +161,16 @@ void GameManager::update()
         if (gameModule == GameModule::Battle && newGameModule != GameModule::Battle)
         {
             onBattleExit.Invoke();
+        }
+
+        if (gameModule == GameModule::Battle && newGameModule == GameModule::Field)
+        {
+            waitingForFieldData = true;
+        }
+
+        if (gameModule != GameModule::Menu && newGameModule == GameModule::Menu)
+        {
+            waitingForShopData = true;
         }
 
         // Game module changed.
@@ -101,8 +191,23 @@ void GameManager::update()
         uint16_t newFieldID = read<uint16_t>(GameOffsets::FieldID);
         if (newFieldID != fieldID)
         {
-            onFieldChanged.Invoke(newFieldID);
+            waitingForFieldData = true;
             fieldID = newFieldID;
+        }
+
+        if (waitingForFieldData && isFieldDataLoaded())
+        {
+            onFieldChanged.Invoke(fieldID);
+            waitingForFieldData = false;
+        }
+    }
+
+    if (gameModule == GameModule::Menu)
+    {
+        if (waitingForShopData && isShopDataLoaded())
+        {
+            onShopOpened.Invoke();
+            waitingForShopData = false;
         }
     }
 
@@ -153,6 +258,11 @@ std::array<uint32_t, 200> GameManager::getPartyMateria()
 bool GameManager::inBattle()
 {
     return gameModule == GameModule::Battle && !waitingForBattleData;
+}
+
+bool GameManager::inMenu()
+{
+    return gameModule == GameModule::Menu;
 }
 
 // When we switch to the battle module the actual data for the battle isn't fully loaded
@@ -218,4 +328,103 @@ bool GameManager::isBattleDataLoaded()
     }
 
     return false;
+}
+
+bool GameManager::isFieldDataLoaded()
+{
+    if (gameModule != GameModule::Field)
+    {
+        return false;
+    }
+
+    FieldData fieldData = GameData::getField(fieldID);
+    if (!fieldData.isValid())
+    {
+        return false;
+    }
+
+    int randomizedFieldItems = 0;
+    int randomizedFieldMateria = 0;
+
+    for (int i = 0; i < fieldData.items.size(); ++i)
+    {
+        FieldItemData& item = fieldData.items[i];
+        uintptr_t itemIDOffset = FieldScriptOffsets::ScriptStart + item.offset + FieldScriptOffsets::ItemID;
+        uintptr_t itemQuantityOffset = FieldScriptOffsets::ScriptStart + item.offset + FieldScriptOffsets::ItemQuantity;
+
+        uint16_t itemID = read<uint16_t>(itemIDOffset);
+        uint8_t itemQuantity = read<uint8_t>(itemQuantityOffset);
+
+        if (itemID != item.id || itemQuantity != item.quantity)
+        {
+            return false;
+        }
+    }
+
+    for (int i = 0; i < fieldData.materia.size(); ++i)
+    {
+        FieldItemData& materia = fieldData.materia[i];
+        uintptr_t idOffset = FieldScriptOffsets::ScriptStart + materia.offset + FieldScriptOffsets::MateriaID;
+
+        uint8_t materiaID = read<uint8_t>(idOffset);
+
+        if (materiaID != materia.id)
+        {
+            return false;
+        }
+    }
+
+    for (int i = 0; i < fieldData.messages.size(); ++i)
+    {
+        FieldMessage& message = fieldData.messages[i];
+        uint8_t opCode = read<uint8_t>(FieldScriptOffsets::ScriptStart + message.offset);
+        if (opCode != 0x40)
+        {
+            return false;
+        }
+    }
+
+    return true;
+}
+
+// TODO:
+//  - Hardcode expectations instead of checking like this, less reading.
+//  - There has to be some better indicator of what type of menu is currently on the screen.
+bool GameManager::isShopDataLoaded()
+{
+    if (gameModule != GameModule::Menu)
+    {
+        return false;
+    }
+
+    uintptr_t shopOffset = ShopOffsets::ShopStart + (84 * 2);
+
+    uint16_t shopType = read<uint16_t>(shopOffset + 0);
+    if (shopType > 8) { return false; }
+
+    uint8_t invCount = read<uint8_t>(shopOffset + 2);
+    if (invCount == 0 || invCount > SHOP_ITEM_MAX) { return false; }
+
+    uint8_t padding = read<uint8_t>(shopOffset + 3);
+    if (padding != 0) { return false; }
+
+    for (int i = 0; i < SHOP_ITEM_MAX; ++i)
+    {
+        uintptr_t itemOffset = shopOffset + 4 + (i * 8);
+
+        uint32_t itemType = read<uint32_t>(itemOffset + 0);
+        uint16_t itemID = read<uint32_t>(itemOffset + 4);
+        uint16_t itemPadding = read<uint16_t>(itemOffset + 6);
+
+        if (i >= invCount)
+        {
+            // If we're outside the specified item count we should see all zeroes.
+            if (itemType != 0 || itemID != 0 || itemPadding != 0)
+            {
+                return false;
+            }
+        }
+    }
+
+    return true;
 }

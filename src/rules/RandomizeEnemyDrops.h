@@ -6,7 +6,7 @@
 class RandomizeEnemyDrops : public Rule
 {
 public:
-    void onStart() override;
+    void setup() override;
 
 private:
     std::mt19937_64 rng;

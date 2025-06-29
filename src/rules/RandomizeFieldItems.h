@@ -6,17 +6,18 @@
 class RandomizeFieldItems : public Rule
 {
 public:
-    void onStart() override;
+    void setup() override;
 
 private:
+    void onStart();
     void onFieldChanged(uint16_t fieldID);
-    void onFrame(uint32_t frameNumber);
-    void onBattleExit();
 
+    // Shuffles items and materia between maps based on the game seed.
     void generateRandomizedItems();
-    void randomizeFieldItems(uint16_t fieldID);
+
+    // Finds the nearest message that contains the item name
+    int findPickUpMessage(FieldData& fieldData, std::string itemName, uint32_t itemOffset);
 
     std::unordered_map<uint32_t, FieldItemData> randomizedItems;
     std::unordered_map<uint32_t, FieldItemData> randomizedMateria;
-    bool fieldNeedsRandomize = false;
 };

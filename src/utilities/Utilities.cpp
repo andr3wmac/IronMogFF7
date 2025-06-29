@@ -1,4 +1,4 @@
-#include "Process.h"
+#include "Utilities.h"
 
 #define NOMINMAX
 #include <windows.h>
@@ -6,7 +6,7 @@
 #include <psapi.h>
 #include <set>
 
-uint32_t Process::GetIDByName(const std::string& processName)
+uint32_t Utilities::getProcessIDByName(const std::string& processName)
 {
     DWORD pid = 0;
     HANDLE snapshot = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
@@ -31,7 +31,7 @@ uint32_t Process::GetIDByName(const std::string& processName)
     return pid;
 }
 
-uintptr_t Process::GetBaseAddress(void* processHandle)
+uintptr_t Utilities::getProcessBaseAddress(void* processHandle)
 {
     HMODULE hMod;
     DWORD cbNeeded;
@@ -44,7 +44,7 @@ uintptr_t Process::GetBaseAddress(void* processHandle)
     return 0;
 }
 
-std::vector<std::string> Process::GetRunningProcesses() 
+std::vector<std::string> Utilities::getRunningProcesses()
 {
     std::vector<std::string> result;
     std::set<DWORD> seenPIDs;
@@ -84,7 +84,7 @@ std::vector<std::string> Process::GetRunningProcesses()
     return result;
 }
 
-uintptr_t Process::ParseAddress(const std::string& input)
+uintptr_t Utilities::parseAddress(const std::string& input)
 {
     std::string str = input;
 

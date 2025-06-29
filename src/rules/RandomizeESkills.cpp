@@ -2,7 +2,7 @@
 
 REGISTER_RULE("Randomize E.Skills", RandomizeESkills)
 
-void RandomizeESkills::onStart()
+void RandomizeESkills::setup()
 {
     BIND_EVENT_ONE_ARG(game->onFrame, RandomizeESkills::onFrame);
     BIND_EVENT(game->onBattleEnter, RandomizeESkills::onBattleEnter);

@@ -17,14 +17,17 @@ public:
     bool attachToEmulator(std::string processName, uintptr_t memoryAddress);
 
     void addRule(Rule* rule);
+    bool isRuleEnabled(std::string ruleName);
 
-    void start(uint32_t inputSeed);
+    void setup(uint32_t inputSeed);
+    void loadSaveData();
     inline uint32_t getSeed() { return seed; }
     void update();
 
     // Returns a byte representing what module the game is. eg Field, Battle, World, etc
     uint8_t getGameModule() { return gameModule; }
     bool inBattle();
+    bool inMenu();
     uint16_t getFieldID() { return fieldID; }
 
     // Returns a list of the character IDs that are currently in the party. 0xFF is the slot is empty.
@@ -38,10 +41,12 @@ public:
     std::array<uint32_t, 200> getPartyMateria();
 
     // Events
+    Event<> onStart;
     Event<int> onFrame;
     Event<> onBattleEnter;
     Event<> onBattleExit;
     Event<uint16_t> onFieldChanged;
+    Event<> onShopOpened;
 
     // Read/Write RAM Functions
     template <typename T>
@@ -63,10 +68,14 @@ public:
         emulator->write(offset, &value, sizeof(value));
     }
 
+    std::string readString(uintptr_t offset, uint32_t length);
+    void writeString(uintptr_t offset, uint32_t length, std::string& string, bool centerAlign = false);
+
 private:
     Emulator* emulator;
     std::vector<Rule*> rules;
 
+    bool hasStarted = false;
     uint32_t seed = 0;
     uint32_t frameNumber = 0;
     uint8_t gameModule = 0;
@@ -75,4 +84,10 @@ private:
 
     bool waitingForBattleData = false;
     bool isBattleDataLoaded();
+
+    bool waitingForFieldData = false;
+    bool isFieldDataLoaded();
+
+    bool waitingForShopData = false;
+    bool isShopDataLoaded();
 };
