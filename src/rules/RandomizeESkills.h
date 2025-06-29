@@ -8,9 +8,16 @@ public:
     void setup() override;
 
 private:
-    void onFrame(uint32_t frameNumber);
+    struct TrackedMateria
+    {
+        uintptr_t offset;
+        uint32_t materiaID;
+    };
+
+    void onStart();
     void onBattleEnter();
     void onBattleExit();
 
-    int framesInBattle = 0;
+    std::vector<int> eSkillMapping;
+    std::vector<TrackedMateria> trackedMateria;
 };

@@ -1,50 +1,46 @@
 #pragma once
 #include <cstdint>
 
-#define OFF_CONST static constexpr uintptr_t
-#define STATUS_FLAG static constexpr uint16_t
-#define MODULE_CONST static constexpr uint8_t
-
 #define CONST_U8  static constexpr uint8_t
 #define CONST_U16 static constexpr uint16_t
 #define CONST_PTR static constexpr uintptr_t
 
 struct GameOffsets
 {
-    OFF_CONST FrameNumber       = 0x51568;
-    OFF_CONST FieldID           = 0x9A05C;
-    OFF_CONST CurrentModule     = 0x9C560; 
-    OFF_CONST PartyIDList       = 0x9CBDC; // 3 Bytes in a row.
-    OFF_CONST Inventory         = 0x9CBE0; // 320 item list, 2 byte ids.
-    OFF_CONST MateriaInventory  = 0x9C360; // 200 item list, 4 byte ids.
-    OFF_CONST PauseMenuOptions  = 0x9D2A6; // Bitmask of options enabled in the menu.
+    CONST_PTR FrameNumber       = 0x51568;
+    CONST_PTR FieldID           = 0x9A05C;
+    CONST_PTR CurrentModule     = 0x9C560; 
+    CONST_PTR PartyIDList       = 0x9CBDC; // 3 Bytes in a row.
+    CONST_PTR Inventory         = 0x9CBE0; // 320 item list, 2 byte ids.
+    CONST_PTR MateriaInventory  = 0x9C360; // 200 item list, 4 byte ids.
+    CONST_PTR PauseMenuOptions  = 0x9D2A6; // Bitmask of options enabled in the menu.
 };
 
 struct GameModule
 {
-    MODULE_CONST None   = 0;
-    MODULE_CONST Field  = 1;
-    MODULE_CONST Battle = 2;
-    MODULE_CONST World  = 3;
-    MODULE_CONST Menu   = 5;
+    CONST_U8 None   = 0;
+    CONST_U8 Field  = 1;
+    CONST_U8 Battle = 2;
+    CONST_U8 World  = 3;
+    CONST_U8 Menu   = 5;
 };
 
 struct FieldOffsets
 {
-    OFF_CONST FieldX = 0x74EB0;
-    OFF_CONST FieldY = 0x74EB4;
-    OFF_CONST FieldZ = 0x74EB8;
+    CONST_PTR FieldX = 0x74EB0;
+    CONST_PTR FieldY = 0x74EB4;
+    CONST_PTR FieldZ = 0x74EB8;
 };
 
 struct FieldScriptOffsets
 {
-    OFF_CONST ScriptStart = 0x115000;
+    CONST_PTR ScriptStart = 0x115000;
 
-    OFF_CONST ItemID = 0x02;
-    OFF_CONST ItemQuantity = 0x04;
+    CONST_PTR ItemID = 0x02;
+    CONST_PTR ItemQuantity = 0x04;
 
     // TODO: get the real number
-    OFF_CONST MateriaID = 0x03;
+    CONST_PTR MateriaID = 0x03;
 };
 
 // Character data exists for each of the cast of playabale characters and these stats are all saved onto memory card.
@@ -52,34 +48,39 @@ struct FieldScriptOffsets
 // Therefore, changing Current HP on character data while in a battle has no effect.
 struct CharacterDataOffsets
 {
-    OFF_CONST Cloud     = 0x9C738;
-    OFF_CONST Barret    = 0x9C7BC;
-    OFF_CONST Tifa      = 0x9C840;
-    OFF_CONST Aerith    = 0x9C8C4;
-    OFF_CONST RedXIII   = 0x9C948;
-    OFF_CONST Yuffie    = 0x9C9CC;
-    OFF_CONST CaitSith  = 0x9CA50;
-    OFF_CONST Vincent   = 0x9CAD4;
+    CONST_PTR Cloud     = 0x9C738;
+    CONST_PTR Barret    = 0x9C7BC;
+    CONST_PTR Tifa      = 0x9C840;
+    CONST_PTR Aerith    = 0x9C8C4;
+    CONST_PTR RedXIII   = 0x9C948;
+    CONST_PTR Yuffie    = 0x9C9CC;
+    CONST_PTR CaitSith  = 0x9CA50;
+    CONST_PTR Vincent   = 0x9CAD4;
+    CONST_PTR Cid       = 0x9CB58;
 
-    OFF_CONST ID                = 0x00;
-    OFF_CONST Level             = 0x01;
-    OFF_CONST Strength          = 0x02;
-    OFF_CONST Vitality          = 0x03;
-    OFF_CONST Magic             = 0x04;
-    OFF_CONST Spirit            = 0x05;
-    OFF_CONST Dexterity         = 0x06;
-    OFF_CONST Luck              = 0x07;
-    OFF_CONST StrengthBonus     = 0x08;
-    OFF_CONST VitalityBonus     = 0x09;
-    OFF_CONST MagicBonus        = 0x0A;
-    OFF_CONST SpiritBonus       = 0x0B;
-    OFF_CONST DexterityBonus    = 0x0C;
-    OFF_CONST LuckBonus         = 0x0D;
-    OFF_CONST CurrentLimitLevel = 0x0E;
-    OFF_CONST CurrentLimitBar   = 0x0F;
-    OFF_CONST Name              = 0x10;
+    CONST_PTR Characters[] = { Cloud, Barret, Tifa, Aerith, RedXIII, Yuffie, CaitSith, Vincent, Cid };
 
-    OFF_CONST CurrentHP         = 0x2C;
+    CONST_PTR ID                = 0x00;
+    CONST_PTR Level             = 0x01;
+    CONST_PTR Strength          = 0x02;
+    CONST_PTR Vitality          = 0x03;
+    CONST_PTR Magic             = 0x04;
+    CONST_PTR Spirit            = 0x05;
+    CONST_PTR Dexterity         = 0x06;
+    CONST_PTR Luck              = 0x07;
+    CONST_PTR StrengthBonus     = 0x08;
+    CONST_PTR VitalityBonus     = 0x09;
+    CONST_PTR MagicBonus        = 0x0A;
+    CONST_PTR SpiritBonus       = 0x0B;
+    CONST_PTR DexterityBonus    = 0x0C;
+    CONST_PTR LuckBonus         = 0x0D;
+    CONST_PTR CurrentLimitLevel = 0x0E;
+    CONST_PTR CurrentLimitBar   = 0x0F;
+    CONST_PTR Name              = 0x10;
+    CONST_PTR CurrentHP         = 0x2C;
+
+    CONST_PTR WeaponMateria[] = { 0x40, 0x44, 0x48, 0x4C, 0x50, 0x54, 0x58, 0x5C };
+    CONST_PTR ArmorMateria[]  = { 0x60, 0x64, 0x68, 0x6C, 0x70, 0x74, 0x78, 0x7C };
 };
 
 inline uintptr_t getCharacterDataOffset(uint8_t characterID)
@@ -101,61 +102,61 @@ inline uintptr_t getCharacterDataOffset(uint8_t characterID)
 
 struct PlayerOffsets
 {
-    OFF_CONST Players[] = { 0x9D84C, 0x9DC8C, 0x9E0CC };
+    CONST_PTR Players[] = { 0x9D84C, 0x9DC8C, 0x9E0CC };
 
-    OFF_CONST CharacterID   = 0x00;
-    OFF_CONST CoverChance   = 0x01;
-    OFF_CONST Strength      = 0x02;
-    OFF_CONST Vitality      = 0x03;
-    OFF_CONST Magic         = 0x04;
-    OFF_CONST Spirit        = 0x05;
-    OFF_CONST Speed         = 0x06;
-    OFF_CONST Luck          = 0x07;
-    OFF_CONST PhysAttack    = 0x08;
-    OFF_CONST PhysDefense   = 0x0A;
-    OFF_CONST MagicAttack   = 0x0C;
-    OFF_CONST MagicDefense  = 0x0E;
-    OFF_CONST CurrentHP     = 0x10;
-    OFF_CONST MaxHP         = 0x12;
-    OFF_CONST CurrentMP     = 0x14;
-    OFF_CONST MaxMP         = 0x16;
+    CONST_PTR CharacterID   = 0x00;
+    CONST_PTR CoverChance   = 0x01;
+    CONST_PTR Strength      = 0x02;
+    CONST_PTR Vitality      = 0x03;
+    CONST_PTR Magic         = 0x04;
+    CONST_PTR Spirit        = 0x05;
+    CONST_PTR Speed         = 0x06;
+    CONST_PTR Luck          = 0x07;
+    CONST_PTR PhysAttack    = 0x08;
+    CONST_PTR PhysDefense   = 0x0A;
+    CONST_PTR MagicAttack   = 0x0C;
+    CONST_PTR MagicDefense  = 0x0E;
+    CONST_PTR CurrentHP     = 0x10;
+    CONST_PTR MaxHP         = 0x12;
+    CONST_PTR CurrentMP     = 0x14;
+    CONST_PTR MaxMP         = 0x16;
 
-    OFF_CONST LimitBreakDisplay = 0x1B;
-    OFF_CONST EnemySkillMenu = 0x5B;
+    CONST_PTR LimitBreakDisplay = 0x1B;
+    CONST_PTR EnemySkillMenu    = 0x5B;
 };
 
 struct BattleCharacterOffsets
 {
     // Battle Character Data Length = 104 bytes
-    OFF_CONST Allies[] = { 0xF83E0, 0xF8448, 0xF84B0 };
-    OFF_CONST Enemies[] = { 0xF8580, 0xF85E8, 0xF8650, 0xF86B8, 0xF8720, 0xF8788 };
+    CONST_PTR Allies[] = { 0xF83E0, 0xF8448, 0xF84B0 };
+    CONST_PTR Enemies[] = { 0xF8580, 0xF85E8, 0xF8650, 0xF86B8, 0xF8720, 0xF8788 };
 
-    OFF_CONST Status    = 0x00;
-    OFF_CONST Level     = 0x09;
-    OFF_CONST Strength  = 0x0D;
-    OFF_CONST Evade     = 0x0F;
-    OFF_CONST Speed     = 0x14;
-    OFF_CONST Luck      = 0x15;
-    OFF_CONST ID        = 0x24;
-    OFF_CONST CurrentHP = 0x2C;
-    OFF_CONST MaxHP     = 0x30;
+    CONST_PTR Status    = 0x00;
+    CONST_PTR Level     = 0x09;
+    CONST_PTR Strength  = 0x0D;
+    CONST_PTR Evade     = 0x0F;
+    CONST_PTR Speed     = 0x14;
+    CONST_PTR Luck      = 0x15;
+    CONST_PTR ID        = 0x24;
+    CONST_PTR CurrentHP = 0x2C;
+    CONST_PTR MaxHP     = 0x30;
 
     // TODO: what do these do for allies?
-    OFF_CONST Gil = 0x58;
-    OFF_CONST Exp = 0x5C;
+    CONST_PTR Gil = 0x58;
+    CONST_PTR Exp = 0x5C;
 };
 
 // Note: It looks like every formation can have a maximum of 3 enemies, but those enemies can be used multiple times.
 // For instance if you have 6 of the same enemy in a fight all 6 of those will reference a single entry in formation data.
 struct EnemyFormationOffsets
 {
-    OFF_CONST FormationID = 0x707BC;
+    CONST_PTR FormationID = 0x707BC;
 
     // Enemy Data Length = 184 bytes
-    OFF_CONST Enemies[] = { 0xF5FCC, 0xF6084, 0xF613C };
+    CONST_PTR Enemies[] = { 0xF5FCC, 0xF6084, 0xF613C };
 
-    OFF_CONST DropRates[]   = { 0x00, 0x01, 0x02, 0x03 };
-    OFF_CONST DropIDs[]     = { 0x04, 0x06, 0x08, 0x0A };   // First 4 bits specify the type (Item, Weapon, etc) remaining 
+    CONST_PTR DropRates[]   = { 0x00, 0x01, 0x02, 0x03 };
+    CONST_PTR DropIDs[]     = { 0x04, 0x06, 0x08, 0x0A };   // First 4 bits specify the type (Item, Weapon, etc)
 };
 
 struct DropType
@@ -180,16 +181,20 @@ inline uint16_t packDropID(uint8_t dropType, uint16_t id)
 
 struct StatusFlags
 {
-    STATUS_FLAG None       = 0;
-    STATUS_FLAG Dead       = (1 << 0);
-    STATUS_FLAG NearDeath  = (1 << 1);
-    STATUS_FLAG Sleep      = (1 << 2);
-    STATUS_FLAG Poison     = (1 << 3);
-    STATUS_FLAG Sadness    = (1 << 4);
+    CONST_U16 None       = 0;
+    CONST_U16 Dead       = (1 << 0);
+    CONST_U16 NearDeath  = (1 << 1);
+    CONST_U16 Sleep      = (1 << 2);
+    CONST_U16 Poison     = (1 << 3);
+    CONST_U16 Sadness    = (1 << 4);
 };
 
 struct ShopOffsets
 {
-    OFF_CONST ShopStart = 0x1D4714;
-    OFF_CONST ShopStride = 84;
+    CONST_PTR ShopStart  = 0x1D4714;
+    CONST_PTR ShopStride = 84;
+
+    // All prices are stored in uint32_t and are just an array of them in order of:
+    // Items, Weapons, Armor, Accessories, Materia.
+    CONST_PTR PricesStart = 0x1D6854;
 };

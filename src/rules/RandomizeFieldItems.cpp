@@ -6,9 +6,6 @@
 #include <algorithm>
 #include <random>
 
-// TODO:
-// - Update the text boxes when picking up an item
-
 REGISTER_RULE("Randomize Field Items", RandomizeFieldItems)
 
 void RandomizeFieldItems::setup()
