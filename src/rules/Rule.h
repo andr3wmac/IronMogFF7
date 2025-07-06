@@ -5,9 +5,13 @@
 class Rule
 {
 public:
+    bool enabled = true;
     std::string name = "";
+    bool settingsVisible = false;
 
     virtual void setup() {}
+    virtual bool hasSettings() { return false; }
+    virtual void onSettingsGUI() { }
 
     void setManager(GameManager* gameManager)
     {
@@ -18,15 +22,15 @@ protected:
     GameManager* game;
 
 public:
-    static std::unordered_map<std::string, std::function<Rule*()>>& registry()
+    static std::vector<Rule*>& getList()
     {
-        static std::unordered_map<std::string, std::function<Rule*()>> factories;
-        return factories;
+        static std::vector<Rule*> list;
+        return list;
     }
 
-    static void registerRule(std::string name, std::function<Rule*()> factory)
+    static void registerRule(std::string name, Rule* rule)
     {
-        registry()[name] = std::move(factory);
+        getList().push_back(rule);
     }
 };
 
@@ -34,7 +38,9 @@ public:
     namespace { \
         struct ClassName##AutoRegister { \
             ClassName##AutoRegister() { \
-                Rule::registerRule(NameStr, [] { ClassName* tmp = new ClassName(); tmp->name = NameStr; return tmp; }); \
+                ClassName* tmp = new ClassName(); \
+                tmp->name = NameStr; \
+                Rule::registerRule(NameStr, tmp); \
             } \
         }; \
         static ClassName##AutoRegister _autoRegister_##ClassName; \

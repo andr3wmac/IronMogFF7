@@ -16,7 +16,6 @@ public:
     bool attachToEmulator(std::string processName);
     bool attachToEmulator(std::string processName, uintptr_t memoryAddress);
 
-    void addRule(Rule* rule);
     bool isRuleEnabled(std::string ruleName);
 
     void setup(uint32_t inputSeed);
@@ -39,6 +38,9 @@ public:
 
     // Returns a list of materia IDs currently in the party's possession.
     std::array<uint32_t, 200> getPartyMateria();
+
+    // Finds the nearest message that contains the item name
+    int findPickUpMessage(std::string itemName, uint32_t itemOffset);
 
     // Events
     Event<> onStart;
@@ -73,7 +75,6 @@ public:
 
 private:
     Emulator* emulator;
-    std::vector<Rule*> rules;
 
     bool hasStarted = false;
     uint32_t seed = 0;

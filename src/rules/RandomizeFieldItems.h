@@ -15,9 +15,6 @@ private:
     // Shuffles items and materia between maps based on the game seed.
     void generateRandomizedItems();
 
-    // Finds the nearest message that contains the item name
-    int findPickUpMessage(FieldData& fieldData, std::string itemName, uint32_t itemOffset);
-
     std::unordered_map<uint32_t, FieldItemData> randomizedItems;
     std::unordered_map<uint32_t, FieldItemData> randomizedMateria;
 };

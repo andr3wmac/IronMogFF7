@@ -1,4 +1,5 @@
 #include "gui/GUI.h"
+#include "gui/IconsFontAwesome5.h"
 #include "game/GameData.h"
 #include "game/GameManager.h"
 #include "rules/RandomizeFieldItems.h"
@@ -19,16 +20,14 @@
 
 GameManager* game = nullptr;
 
-const char* emulators[] { "Duckstation", "Custom" };
+const char* emulators[] { "DuckStation", "BizHawk", "Custom" };
 int selectedEmulatorIdx = 0;
 
 std::vector<std::string> runningProcesses;
 std::vector<const char*> runningProcessesCStr;
 int selectedProcessIdx = 0;
 char processMemoryOffset[20];
-
 char seedValue[9];
-std::vector<std::pair<std::string, bool>> ruleData;
 
 int connectionState = 0;
 std::string connectionStatus = "Not Attached";
@@ -43,14 +42,8 @@ std::atomic<bool> managerRunning = false;
 void generateSeed() 
 {
     std::random_device rd;
-
-    // Generate a random 32-bit seed
     uint32_t seed = (static_cast<uint32_t>(rd()) << 16) ^ rd();
-
-    // Format as 8-character uppercase hex string
     snprintf(seedValue, sizeof(seedValue), "%08X", seed);
-
-    // Optional log
     LOG("Seed generated: %s", seedValue);
 }
 
@@ -79,16 +72,23 @@ void runGameManager()
     game = new GameManager();
     game->onStart.AddListener(onStart);
     connectionState = 1;
-    connectionStatus = "Attaching to Duckstation..";
+    connectionStatus = "Attaching to Emulator..";
 
     bool connected = false;
 
     if (selectedEmulatorIdx == 0)
     {
+        connectionStatus = "Attaching to DuckStation..";
         std::string targetProcess = "duckstation-qt-x64-ReleaseLTCG.exe";
         connected = game->attachToEmulator(targetProcess);
     }
     if (selectedEmulatorIdx == 1)
+    {
+        connectionStatus = "Attaching to BizHawk..";
+        std::string targetProcess = "EmuHawk.exe";
+        connected = game->attachToEmulator(targetProcess);
+    }
+    if (selectedEmulatorIdx == 2)
     {
         uintptr_t customAddress = Utilities::parseAddress(processMemoryOffset);
         connected = game->attachToEmulator(runningProcesses[selectedProcessIdx], customAddress);
@@ -105,20 +105,14 @@ void runGameManager()
         connectionStatus = "Failed to attach to emulator.";
     }
 
-    // Reset any global restrictions
+    // Reset any global restrictions as we might be using a different set of rules on this run.
     Restrictions::reset();
 
-    auto ruleRegistry = Rule::registry();
-    for (auto& rule : ruleData) 
-    {
-        // Check if rule is enabled
-        if (rule.second)
-        {
-            game->addRule(ruleRegistry[rule.first]());
-        }
-    }
-
     game->setup(hexStringToUint32(seedValue));
+
+    MemorySearch search(game);
+    std::vector<uint8_t> searchEskill = { 0xAA, 0x55, 0xAA };
+    std::vector<uintptr_t> results = search.search(searchEskill);
 
     managerRunning = true;
     while (managerRunning.load())
@@ -163,15 +157,6 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 
     generateSeed();
 
-    // Populate list of rules
-    {
-        for (const auto& factory : Rule::registry())
-        {
-            ruleData.push_back({ factory.first, true });
-        }
-        std::sort(ruleData.begin(), ruleData.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
-    }
-
     while (true)
     {
         if (gui.wasWindowClosed())
@@ -189,7 +174,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
             gui.drawLogo();
 
             ImGui::Spacing();
-            ImGui::BeginChild("##ScrollBox", ImVec2(0, 250));
+            ImGui::BeginChild("##ScrollBox", ImVec2(0, 300));
             ImGui::BeginDisabled(connectionState > 0);
             {
                 ImGui::SeparatorText("Game");
@@ -200,7 +185,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                     if (ImGui::Combo("##EmulatorList", &selectedEmulatorIdx, emulators, IM_ARRAYSIZE(emulators)))
                     {
                         // Update list of processes if Custom is selected.
-                        if (selectedEmulatorIdx == 1)
+                        if (selectedEmulatorIdx == 2)
                         {
                             runningProcesses = Utilities::getRunningProcesses();
                             runningProcessesCStr.clear();
@@ -211,7 +196,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                         }
                     }
 
-                    if (selectedEmulatorIdx == 1)
+                    if (selectedEmulatorIdx == 2)
                     {
                         ImGui::Text("Process:");
                         ImGui::SameLine();
@@ -236,9 +221,31 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 
                 ImGui::SeparatorText("Rules");
                 {
-                    for (auto& rule : ruleData)
+                    int ruleIndex = 0;
+                    for (auto& rule : Rule::getList())
                     {
-                        ImGui::Checkbox(rule.first.c_str(), &rule.second);
+                        ImGui::Checkbox(rule->name.c_str(), &rule->enabled);
+                        
+                        if (rule->hasSettings())
+                        {
+                            ImGui::SameLine();
+
+                            std::string ruleID = "RuleSettings" + std::to_string(ruleIndex);
+                            ImGui::PushID(ruleID.c_str());
+                            if (ImGui::Button(ICON_FA_COG))
+                            {
+                                rule->settingsVisible = !rule->settingsVisible;
+                            }
+                            ImGui::PopID();
+                            ruleIndex++;
+
+                            if (rule->settingsVisible)
+                            {
+                                ImGui::Indent(25.0f);
+                                rule->onSettingsGUI();
+                                ImGui::Unindent(25.0f);
+                            }
+                        }
                     }
                 }
             }

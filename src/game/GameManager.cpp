@@ -16,12 +16,6 @@ GameManager::GameManager()
 
 GameManager::~GameManager()
 {
-    for (int i = 0; i < rules.size(); ++i)
-    {
-        delete rules[i];
-    }
-    rules.clear();
-
     if (emulator != nullptr)
     {
         delete emulator;
@@ -76,17 +70,11 @@ void GameManager::writeString(uintptr_t offset, uint32_t length, std::string& st
     emulator->write(offset, finalStrData.data(), length);
 }
 
-void GameManager::addRule(Rule* rule)
-{
-    rules.push_back(rule);
-    rule->setManager(this);
-}
-
 bool GameManager::isRuleEnabled(std::string ruleName)
 {
-    for (int i = 0; i < rules.size(); ++i)
+    for (Rule* rule : Rule::getList())
     {
-        if (rules[i]->name == ruleName)
+        if (rule->enabled && rule->name == ruleName)
         {
             return true;
         }
@@ -100,9 +88,14 @@ void GameManager::setup(uint32_t inputSeed)
     // Note: seed may change after loading a save file, so its important to not utilize it in rule setup.
     seed = inputSeed;
 
-    for (int i = 0; i < rules.size(); ++i)
+    for (Rule* rule : Rule::getList())
     {
-        rules[i]->setup();
+        if (!rule->enabled)
+        {
+            continue;
+        }
+        rule->setManager(this);
+        rule->setup();
     }
 }
 
@@ -426,5 +419,55 @@ bool GameManager::isShopDataLoaded()
         }
     }
 
+    // Check some hardcoded prices to ensure the price table is loaded
+    {
+        uint32_t lastItemPrice = read<uint32_t>(ShopOffsets::PricesStart + (101 * 4));
+        if (lastItemPrice != 50) { return false; }
+
+        uint32_t lastWeaponPrice = read<uint32_t>(ShopOffsets::PricesStart + (255 * 4));
+        if (lastWeaponPrice != 999999) { return false; }
+
+        uint32_t lastArmorPrice = read<uint32_t>(ShopOffsets::PricesStart + (287 * 4));
+        if (lastArmorPrice != 2) { return false; }
+
+        uint32_t lastAccessoryPrice = read<uint32_t>(ShopOffsets::PricesStart + (317 * 4));
+        if (lastAccessoryPrice != 10000) { return false; }
+
+        uint32_t lastMateriaPrice = read<uint32_t>(ShopOffsets::MateriaPricesStart + (68 * 4));
+        if (lastMateriaPrice != 9000) { return false; }
+    }
+
     return true;
+}
+
+// The goal here is to find the message thats closest in memory (offset) that also contains
+// the name of the item. The message is usually: Received "{itemName}"!
+int GameManager::findPickUpMessage(std::string itemName, uint32_t itemOffset)
+{
+    FieldData fieldData = GameData::getField(fieldID);
+    if (!fieldData.isValid())
+    {
+        return - 1;
+    }
+
+    int bestIndex = -1;
+    uint32_t bestDistance = UINT32_MAX;
+
+    for (int i = 0; i < fieldData.messages.size(); ++i)
+    {
+        FieldMessage& fieldMsg = fieldData.messages[i];
+        std::string msg = readString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength);
+
+        if (msg.find(itemName) != std::string::npos)
+        {
+            uint32_t distance = std::abs((int32_t)(fieldMsg.strOffset - itemOffset));
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                bestIndex = i;
+            }
+        }
+    }
+
+    return bestIndex;
 }

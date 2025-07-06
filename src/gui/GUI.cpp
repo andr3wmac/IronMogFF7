@@ -4,6 +4,7 @@
 #include "misc/single_file/imgui_single_file.h"
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "IconsFontAwesome5.h"
 
 #include <stdio.h>
 
@@ -26,6 +27,8 @@
 uint32_t logoTexture = 0;
 int logoTextureWidth = 0;
 int logoTextureHeight = 0;
+
+ImFont* iconFont = nullptr;
 
 static void glfw_error_callback(int error, const char* description)
 {
@@ -164,7 +167,7 @@ bool GUI::initialize()
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
     // Create window with graphics context
-    window = glfwCreateWindow(497, 500, "IronMog FF7 v0.1", nullptr, nullptr);
+    window = glfwCreateWindow(497, 550, "IronMog FF7 v0.1", nullptr, nullptr);
     if (window == nullptr)
     {
         return false;
@@ -211,6 +214,17 @@ bool GUI::initialize()
     //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
     //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
     //IM_ASSERT(font != nullptr);
+
+    io.Fonts->AddFontDefault();
+
+    float baseFontSize = 16.0f; // 13.0f is the size of the default font. Change to the font size you use.
+    float iconFontSize = baseFontSize * 2.0f / 3.0f; // FontAwesome fonts need to have their sizes reduced by
+    static const ImWchar icons_ranges[] = { ICON_MIN_FA, ICON_MAX_16_FA, 0 };
+    ImFontConfig icons_config;
+    icons_config.MergeMode = true;
+    icons_config.PixelSnapH = true;
+    icons_config.GlyphMinAdvanceX = iconFontSize;
+    iconFont = io.Fonts->AddFontFromFileTTF("fonts/fa-solid-900.ttf", iconFontSize, &icons_config, icons_ranges);
 
     // Setup style
     setupStyle();
@@ -291,4 +305,14 @@ void GUI::onKeyCallback(int key, int scancode, int action, int mods)
         // Ctrl + D was pressed
         printf("HELLO WORLD!\n");
     }
+}
+
+void GUI::pushIconFont()
+{
+    ImGui::PushFont(iconFont);
+}
+
+void GUI::popIconFont()
+{
+    ImGui::PopFont();
 }

@@ -195,6 +195,9 @@ struct ShopOffsets
     CONST_PTR ShopStride = 84;
 
     // All prices are stored in uint32_t and are just an array of them in order of:
-    // Items, Weapons, Armor, Accessories, Materia.
+    // Items, Weapons, Armor, Accessories.
     CONST_PTR PricesStart = 0x1D6854;
+
+    // All material prices are stored in uint32_t
+    CONST_PTR MateriaPricesStart = 0x1D6E54;
 };

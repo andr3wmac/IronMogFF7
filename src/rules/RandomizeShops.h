@@ -7,6 +7,8 @@ class RandomizeShops : public Rule
 {
 public:
     void setup() override;
+    bool hasSettings() override { return true; }
+    void onSettingsGUI() override;
 
 private:
     void onFieldChanged(uint16_t fieldID);
@@ -17,4 +19,5 @@ private:
 
     std::mt19937_64 rng;
     uint16_t lastFieldID = 0;
+    bool keepPrices = true;
 };

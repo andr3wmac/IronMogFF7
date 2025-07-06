@@ -64,7 +64,7 @@ void RandomizeFieldItems::onFieldChanged(uint16_t fieldID)
         LOG("Randomized item on field %d: %s (%d) changed to: %s (%d)", fieldID, oldItemName.c_str(), oldItemQuantity, newItemName.c_str(), newItem.quantity);
 
         // Overwrite the popup message
-        int msgIndex = findPickUpMessage(fieldData, oldItemName, item.offset);
+        int msgIndex = game->findPickUpMessage(oldItemName, item.offset);
         if (msgIndex >= 0)
         {
             FieldMessage& fieldMsg = fieldData.messages[msgIndex];
@@ -101,7 +101,7 @@ void RandomizeFieldItems::onFieldChanged(uint16_t fieldID)
         LOG("Randomized materia on field %d: %s changed to: %s", fieldID, oldMateriaName.c_str(), newMateriaName.c_str());
 
         // Overwrite the popup message
-        int msgIndex = findPickUpMessage(fieldData, oldMateriaName, materia.offset);
+        int msgIndex = game->findPickUpMessage(oldMateriaName, materia.offset);
         if (msgIndex >= 0)
         {
             FieldMessage& fieldMsg = fieldData.messages[msgIndex];
@@ -179,30 +179,4 @@ void RandomizeFieldItems::generateRandomizedItems()
     }
 
     // TODO: generate spoiler log information here?
-}
-
-// The goal here is to find the message thats closest in memory (offset) that also contains
-// the name of the item. The message is usually: Received "{itemName}"!
-int RandomizeFieldItems::findPickUpMessage(FieldData& fieldData, std::string itemName, uint32_t itemOffset)
-{
-    int bestIndex = -1;
-    uint32_t bestDistance = UINT32_MAX;
-
-    for (int i = 0; i < fieldData.messages.size(); ++i)
-    {
-        FieldMessage& fieldMsg = fieldData.messages[i];
-        std::string msg = game->readString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength);
-
-        if (msg.find(itemName) != std::string::npos)
-        {
-            uint32_t distance = std::abs((int32_t)(fieldMsg.strOffset - itemOffset));
-            if (distance < bestDistance)
-            {
-                bestDistance = distance;
-                bestIndex = i;
-            }
-        }
-    }
-
-    return bestIndex;
 }

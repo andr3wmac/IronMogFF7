@@ -1,8 +1,11 @@
 #include "RandomizeShops.h"
+#include "gui/GUI.h"
 #include "game/GameData.h"
 #include "game/MemoryOffsets.h"
 #include "rules/Restrictions.h"
 #include "utilities/Logging.h"
+
+#include <imgui.h>
 
 REGISTER_RULE("Randomize Shops", RandomizeShops)
 
@@ -10,6 +13,12 @@ void RandomizeShops::setup()
 {
     BIND_EVENT_ONE_ARG(game->onFieldChanged, RandomizeShops::onFieldChanged);
     BIND_EVENT(game->onShopOpened, RandomizeShops::onShopOpened);
+}
+
+void RandomizeShops::onSettingsGUI()
+{
+    ImGui::Checkbox("Keep Prices", &keepPrices);
+    ImGui::SetItemTooltip("Keep shop prices the same as the original items.");
 }
 
 uint64_t makeKey(uint32_t seed, uint16_t fieldID, uint8_t index)
@@ -46,18 +55,6 @@ void RandomizeShops::onShopOpened()
         return;
     }
 
-    /*
-        Shop Iventory Count = 0x1D4716
-        Padding = 0x1D4717 should equal 0
-
-        Each entry:
-         4 bytes for type, seems like 1 = materia, everything else?
-         2 bytes for index, follows same storage pattern as other items
-         2 bytes for padding, seems like it should always be zero?
-
-        Max 10 entries, looks like the memory is all zeroes in the empty slots. Total 84 bytes used for shop definition.
-    */
-
     for (int i = 0; i < fieldData.shops.size(); ++i)
     {
         rng.seed(makeKey(game->getSeed(), lastFieldID, i));
@@ -72,7 +69,12 @@ void RandomizeShops::onShopOpened()
             uint32_t itemType = game->read<uint32_t>(itemOffset + 0);
             uint16_t itemID = game->read<uint16_t>(itemOffset + 4);
 
+            // Price offset is different based on item or materia.
+            uintptr_t priceOffset = 0;
+            uint32_t newPrice = 0;
             uint16_t newItemID = itemID;
+
+            // Materia
             if (itemType == 1)
             {
                 newItemID = randomizeShopMateria(itemID);
@@ -80,6 +82,9 @@ void RandomizeShops::onShopOpened()
                 std::string oldMateriaName = GameData::getMateriaName((uint8_t)itemID);
                 std::string newMateriaName = GameData::getMateriaName((uint8_t)newItemID);
                 LOG("Randomized materia in shop %d: %s changed to: %s", shopID, oldMateriaName.c_str(), newMateriaName.c_str());
+
+                priceOffset = ShopOffsets::MateriaPricesStart + (newItemID * 4);
+                newPrice = game->read<uint32_t>(ShopOffsets::MateriaPricesStart + (itemID * 4));
             }
             else
             {
@@ -88,9 +93,21 @@ void RandomizeShops::onShopOpened()
                 std::string oldItemName = GameData::getNameFromFieldScriptID(itemID);
                 std::string newItemName = GameData::getNameFromFieldScriptID(newItemID);
                 LOG("Randomized item in shop %d: %s changed to: %s", shopID, oldItemName.c_str(), newItemName.c_str());
+
+                priceOffset = ShopOffsets::PricesStart + (newItemID * 4);
+                newPrice = game->read<uint32_t>(ShopOffsets::PricesStart + (itemID * 4));
             }
 
-            game->write<uint16_t>(itemOffset + 4, newItemID);
+            if (priceOffset > 0)
+            {
+                game->write<uint16_t>(itemOffset + 4, newItemID);
+
+                if (keepPrices)
+                {
+                    // We reuse the existing price for the randomized item by overwriting the value with the original.
+                    game->write<uint32_t>(priceOffset, newPrice);
+                }
+            }
         }
     }
 }

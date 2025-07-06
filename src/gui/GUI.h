@@ -20,6 +20,9 @@ public:
 
     void onKeyCallback(int key, int scancode, int action, int mods);
 
+    void pushIconFont();
+    void popIconFont();
+
 private:
     GLFWwindow* window;
 };

@@ -1,4 +1,5 @@
 #include "DuckStation.h"
+#include "game/GameManager.h"
 #include "game/MemoryOffsets.h"
 #include "utilities/Logging.h"
 
@@ -24,14 +25,6 @@ bool isPossiblePointer(uintptr_t value)
 
     return true;
 }
-
-// Offsets and values that seem to be consistent between runs of FF7. Helpful to confirm we found the right address.
-#define MEMCHECK_COUNT 3
-std::pair<uintptr_t, uint32_t> memChecks[MEMCHECK_COUNT] = {
-    {0x08, 54525960}, 
-    {0x80, 1008336896}, 
-    {0x84, 660212864} 
-};
 
 // DuckStation dynamically allocates the heap space for the PS1 ram, and it keeps two variables that track that
 // allocation, g_ram and g_unprotected_ram. Those two variables are defined globally and declared in the same
@@ -59,9 +52,7 @@ uintptr_t DuckStation::getPS1MemoryOffset()
     MEMORY_BASIC_INFORMATION mbi;
     SIZE_T bytesRead;
     std::vector<uint8_t> buffer;
-
-    // Count the number of pointers pointing to a particular address.
-    std::unordered_map<uintptr_t, int> addressCounter;
+    uintptr_t candidate;
 
     while (startAddr < endAddr)
     {
@@ -83,9 +74,8 @@ uintptr_t DuckStation::getPS1MemoryOffset()
                 // we get fewer false positives by counting within the block.
                 std::unordered_map<uintptr_t, int> subAddressCounter;
 
-                for (size_t i = 0; i + sizeof(uintptr_t) <= bytesRead; ++i)
+                for (size_t i = 0; i + sizeof(uintptr_t) <= bytesRead; i += sizeof(uintptr_t))
                 {
-                    uintptr_t candidate;
                     memcpy(&candidate, &buffer[i], sizeof(uintptr_t));
 
                     if (isPossiblePointer(candidate))
@@ -98,41 +88,16 @@ uintptr_t DuckStation::getPS1MemoryOffset()
                 {
                     if (pair.second == 2)
                     {
-                        addressCounter[pair.first] += 2;
+                        if (verifyPS1MemoryOffset(pair.first))
+                        {
+                            return pair.first;
+                        }
                     }
                 }
             }
         }
 
         startAddr += mbi.RegionSize;
-    }
-
-    uint32_t checkValue = 0;
-    for (const auto& pair : addressCounter)
-    {
-        // We're operating under the assumption there is only ever two pointers in the exes memory space that point to the PS1 ram.
-        if (pair.second == 2)
-        {
-            int checksPassed = 0;
-
-            // Run through the memchecks to make sure we found the right memory space.
-            for (int i = 0; i < MEMCHECK_COUNT; ++i)
-            {
-                if (ReadProcessMemory(processHandle, (LPCVOID)(pair.first + memChecks[i].first), &checkValue, sizeof(checkValue), nullptr))
-                {
-                    if (checkValue == memChecks[i].second)
-                    {
-                        checksPassed++;
-                    }
-                }
-            }
-
-            // We take the first result that passes all checks because that seems to select the right answer in practice.
-            if (checksPassed == MEMCHECK_COUNT)
-            {
-                return pair.first;
-            }
-        }
     }
 
     return 0;

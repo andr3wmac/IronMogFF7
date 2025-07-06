@@ -1,6 +1,7 @@
 #include "Emulator.h"
 #include "CustomEmulator.h"
 #include "DuckStation.h"
+#include "BizHawk.h"
 #include "utilities/Logging.h"
 #include "utilities/Utilities.h"
 
@@ -11,6 +12,12 @@
 #include <windows.h>
 #include <tlhelp32.h>
 #include <psapi.h>
+
+std::vector<std::pair<uintptr_t, uint32_t>> Emulator::ps1MemoryChecks = {
+    {0x08, 54525960},
+    {0x80, 1008336896},
+    {0x84, 660212864}
+};
 
 // Case insensitive string search
 bool lowercaseContainsString(const std::string& haystack, const std::string& needle) 
@@ -34,6 +41,11 @@ Emulator* Emulator::getEmulatorFromProcessName(std::string processName)
     if (lowercaseContainsString(processName, "duckstation"))
     {
         return new DuckStation();
+    }
+
+    if (lowercaseContainsString(processName, "emuhawk"))
+    {
+        return new BizHawk();
     }
 
     return nullptr;
@@ -109,4 +121,30 @@ bool Emulator::write(uintptr_t offset, void* inValue, size_t size)
     }
 
     return true;
+}
+
+bool Emulator::verifyPS1MemoryOffset(uintptr_t offset)
+{
+    int checksPassed = 0;
+    uint32_t checkValue = 0;
+
+    // Run through the memchecks to make sure we found the right memory space.
+    for (int i = 0; i < Emulator::ps1MemoryChecks.size(); ++i)
+    {
+        if (ReadProcessMemory(processHandle, (LPCVOID)(offset + Emulator::ps1MemoryChecks[i].first), &checkValue, sizeof(checkValue), nullptr))
+        {
+            if (checkValue == Emulator::ps1MemoryChecks[i].second)
+            {
+                checksPassed++;
+            }
+        }
+    }
+
+    // We take the first result that passes all checks because that seems to select the right answer in practice.
+    if (checksPassed == Emulator::ps1MemoryChecks.size())
+    {
+        return true;
+    }
+
+    return false;
 }
