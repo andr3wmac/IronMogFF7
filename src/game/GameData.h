@@ -7,6 +7,12 @@
 
 #define SHOP_ITEM_MAX 10
 
+struct FieldMusicData
+{
+    uint32_t offset = 0;
+    uint8_t id = 0;
+};
+
 struct FieldItemData
 {
     uint32_t offset = 0;
@@ -30,12 +36,20 @@ struct FieldShop
 struct FieldData
 {
     std::string name = "";
+    std::vector<FieldMusicData> music;
     std::vector<FieldItemData> items;
     std::vector<FieldItemData> materia;
     std::vector<FieldMessage> messages;
     std::vector<FieldShop> shops;
 
     bool isValid() { return name != ""; }
+};
+
+struct WorldMapEntrance
+{
+    uint32_t offset = 0;
+    uint16_t fieldID = 0;
+    uint16_t fieldArg = 0;
 };
 
 class GameData
@@ -69,6 +83,8 @@ public:
     static std::unordered_map<uint8_t, std::string> materiaNames;
 
     static std::unordered_map<uint16_t, FieldData> fieldData;
+
+    static std::vector<WorldMapEntrance> worldMapEntrances;
 };
 
 #define ADD_ACCESSORY(ID, NAME) accessoryNames[ID] = NAME;
@@ -78,6 +94,9 @@ public:
 #define ADD_MATERIA(ID, NAME) materiaNames[ID] = NAME;
 
 #define ADD_FIELD(FIELD_ID, NAME) fieldData[FIELD_ID] = {NAME};
+
+#define ADD_FIELD_MUSIC(FIELD_ID, OFFSET, MUSIC_ID) \
+    { fieldData[FIELD_ID].music.push_back({OFFSET, MUSIC_ID}); }
 
 #define ADD_FIELD_ITEM(FIELD_ID, OFFSET, ITEM_ID, QUANTITY) \
     { fieldData[FIELD_ID].items.push_back({OFFSET, ITEM_ID, QUANTITY}); }
@@ -90,3 +109,5 @@ public:
 
 #define ADD_FIELD_SHOP(FIELD_ID, OFFSET, SHOP_ID) \
     { fieldData[FIELD_ID].shops.push_back({OFFSET, SHOP_ID}); }
+
+#define ADD_WORLDMAP_ENTRANCE(OFFSET, FIELD_ID, FIELD_ARG) worldMapEntrances.push_back({OFFSET, FIELD_ID, FIELD_ARG});

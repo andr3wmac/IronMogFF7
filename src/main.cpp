@@ -1,3 +1,5 @@
+#include "audio/AudioManager.h"
+#include "extras/Extra.h"
 #include "gui/GUI.h"
 #include "gui/IconsFontAwesome5.h"
 #include "game/GameData.h"
@@ -111,8 +113,18 @@ void runGameManager()
     game->setup(hexStringToUint32(seedValue));
 
     MemorySearch search(game);
-    std::vector<uint8_t> searchEskill = { 0xAA, 0x55, 0xAA };
-    std::vector<uintptr_t> results = search.search(searchEskill);
+    //std::vector<uint8_t> searchWorldMap = { 0x10, 0x01, 0x01, 0x00, 0x10, 0x01, 0x00, 0x00, 0x18, 0x03 };
+    //std::vector<uintptr_t> results = search.search(searchWorldMap);
+
+    std::vector<uint8_t> searchMusic = { 0x41, 0x4B, 0x41, 0x4F };
+    std::vector<uintptr_t> results = search.search(searchMusic);
+
+    //std::vector<uint8_t> searchMusic = { 0x1D, 0x00 };
+    //std::vector<uintptr_t> results = search.search(searchMusic);
+    //Utilities::saveVectorToFile<uintptr_t>(results, "currentMusicSearch.bin");
+
+    //std::vector<uintptr_t> previousResults = Utilities::loadVectorFromFile<uintptr_t>("currentMusicSearch.bin");
+    //std::vector<uintptr_t> results = search.checkAddresses(previousResults, { 0x08, 0x00 });
 
     managerRunning = true;
     while (managerRunning.load())
@@ -150,6 +162,8 @@ void detach()
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 {
+    AudioManager::initialize();
+    //AudioManager::playCustomSound();
     GameData::loadGameData();
 
     GUI gui;
@@ -159,6 +173,8 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 
     while (true)
     {
+        //AudioManager::testUpdate();
+
         if (gui.wasWindowClosed())
         {
             break;
@@ -248,8 +264,41 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
                         }
                     }
                 }
+                ImGui::Spacing();
             }
             ImGui::EndDisabled();
+
+            // Note: extras can be changed during gameplay
+            ImGui::SeparatorText("Extras");
+            {
+                int extraIndex = 0;
+                for (auto& extra : Extra::getList())
+                {
+                    ImGui::Checkbox(extra->name.c_str(), &extra->enabled);
+
+                    if (extra->hasSettings())
+                    {
+                        ImGui::SameLine();
+
+                        std::string extraID = "ExtraSettings" + std::to_string(extraIndex);
+                        ImGui::PushID(extraID.c_str());
+                        if (ImGui::Button(ICON_FA_COG))
+                        {
+                            extra->settingsVisible = !extra->settingsVisible;
+                        }
+                        ImGui::PopID();
+                        extraIndex++;
+
+                        if (extra->settingsVisible)
+                        {
+                            ImGui::Indent(25.0f);
+                            extra->onSettingsGUI();
+                            ImGui::Unindent(25.0f);
+                        }
+                    }
+                }
+            }
+
             ImGui::EndChild();
             ImGui::Spacing();
 

@@ -2,6 +2,9 @@
 
 #include <string>
 #include <vector>
+#include <fstream>
+#include <chrono>
+#include <unordered_map>
 
 class Utilities
 {
@@ -19,6 +22,35 @@ public:
         char buffer[9]; // 8 hex digits + null terminator
         snprintf(buffer, sizeof(buffer), "%08X", seed);
         return std::string(buffer);
+    }
+
+    template<typename T>
+    static void saveArrayToFile(const T* arr, const size_t size, const std::string& filename)
+    {
+        static_assert(std::is_trivially_copyable<T>::value, "Type must be trivially copyable");
+
+        std::ofstream out(filename, std::ios::binary);
+        if (!out) throw std::runtime_error("Failed to open file for writing.");
+
+        out.write(reinterpret_cast<const char*>(&size), sizeof(size));
+        out.write(reinterpret_cast<const char*>(arr), size * sizeof(T));
+    }
+
+    template<typename T>
+    static T* loadArrayFromFile(const std::string& filename)
+    {
+        static_assert(std::is_trivially_copyable<T>::value, "Type must be trivially copyable");
+
+        std::ifstream in(filename, std::ios::binary);
+        if (!in) throw std::runtime_error("Failed to open file for reading.");
+
+        size_t size = 0;
+        in.read(reinterpret_cast<char*>(&size), sizeof(size));
+
+        T* arr = new T[size];
+        in.read(reinterpret_cast<char*>(arr), size * sizeof(T));
+
+        return arr;
     }
 
     template<typename T>
@@ -49,5 +81,61 @@ public:
         in.read(reinterpret_cast<char*>(vec.data()), size * sizeof(T));
 
         return vec;
+    }
+
+    static inline std::string trim(const std::string& str) 
+    {
+        const char* whitespace = " \t\n\r";
+        const auto start = str.find_first_not_of(whitespace);
+        if (start == std::string::npos) return "";
+        const auto end = str.find_last_not_of(whitespace);
+        return str.substr(start, end - start + 1);
+    }
+
+    // Loads key/value pair config file, like a simpler ini format
+    static std::unordered_map<std::string, std::string> loadConfig(const std::string& filename) 
+    {
+        std::unordered_map<std::string, std::string> config;
+        std::ifstream file(filename);
+        std::string line;
+
+        if (!file.is_open()) 
+        {
+            return config;
+        }
+
+        while (std::getline(file, line)) 
+        {
+            // Ignore comments and empty lines
+            line = trim(line);
+            if (line.empty() || line[0] == '#') continue;
+
+            auto delimiterPos = line.find('=');
+            if (delimiterPos == std::string::npos) continue;
+
+            std::string key = trim(line.substr(0, delimiterPos));
+            std::string value = trim(line.substr(delimiterPos + 1));
+            config[key] = value;
+        }
+
+        return config;
+    }
+
+    static std::string replaceExtension(const std::string& filename, const std::string& from, const std::string& to)
+    {
+        std::string result = filename;
+
+        if (result.size() >= from.size() &&
+            result.compare(result.size() - from.size(), from.size(), from) == 0) {
+            result.replace(result.size() - from.size(), from.size(), to);
+        }
+
+        return result;
+    }
+
+    static uint64_t getTimeMS() 
+    {
+        using namespace std::chrono;
+        return duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count();
     }
 };

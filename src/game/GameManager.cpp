@@ -1,4 +1,5 @@
 ﻿#include "GameManager.h"
+#include "extras/Extra.h"
 #include "game/GameData.h"
 #include "game/MemoryOffsets.h"
 #include "rules/Rule.h"
@@ -97,6 +98,16 @@ void GameManager::setup(uint32_t inputSeed)
         rule->setManager(this);
         rule->setup();
     }
+
+    for (Extra* extra : Extra::getList())
+    {
+        if (!extra->enabled)
+        {
+            continue;
+        }
+        extra->setManager(this);
+        extra->setup();
+    }
 }
 
 void GameManager::loadSaveData()
@@ -140,7 +151,19 @@ void GameManager::update()
         loadSaveData();
         onStart.Invoke();
         hasStarted = true;
+        lastFrameUpdateTime = Utilities::getTimeMS();
     }
+
+    // We assume if 200ms has passed without the frame number advancing that the emulator is paused
+    uint64_t currentTime = Utilities::getTimeMS();
+    if (currentTime - lastFrameUpdateTime > 200 && !emulatorPaused)
+    {
+        emulatorPaused = true;
+        onEmulatorPaused.Invoke();
+        LOG("Emulator paused.");
+    }
+
+    onUpdate.Invoke();
     
     if (newGameModule != gameModule)
     {
@@ -208,6 +231,15 @@ void GameManager::update()
     if (newFrameNumber != frameNumber)
     {
         frameNumber = newFrameNumber;
+        lastFrameUpdateTime = currentTime;
+
+        if (emulatorPaused)
+        {
+            LOG("Emulator resumed.");
+            onEmulatorResumed.Invoke();
+            emulatorPaused = false;
+        }
+        
         onFrame.Invoke(newFrameNumber);
     }
 }
@@ -372,6 +404,18 @@ bool GameManager::isFieldDataLoaded()
         FieldMessage& message = fieldData.messages[i];
         uint8_t opCode = read<uint8_t>(FieldScriptOffsets::ScriptStart + message.offset);
         if (opCode != 0x40)
+        {
+            return false;
+        }
+    }
+
+    for (int i = 0; i < fieldData.music.size(); ++i)
+    {
+        FieldMusicData& music = fieldData.music[i];
+        uintptr_t musicIDOffset = FieldScriptOffsets::ScriptStart + music.offset + 4;
+
+        uint8_t musicID = read<uint8_t>(musicIDOffset);
+        if (music.id != musicID)
         {
             return false;
         }

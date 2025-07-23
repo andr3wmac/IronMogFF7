@@ -10,6 +10,7 @@ std::unordered_map<uint8_t, std::string> GameData::weaponNames;
 std::unordered_map<uint8_t, std::string> GameData::materiaNames;
 
 std::unordered_map<uint16_t, FieldData> GameData::fieldData;
+std::vector<WorldMapEntrance> GameData::worldMapEntrances;
 
 std::string GameData::getAccessoryName(uint8_t id)
 {

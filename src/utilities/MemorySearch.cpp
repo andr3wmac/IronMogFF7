@@ -1,4 +1,5 @@
 #include "MemorySearch.h"
+#include "utilities/Utilities.h"
 
 const uintptr_t PS1RAMSize = 0x200000; // 2 MB
 
@@ -143,4 +144,20 @@ std::vector<uintptr_t> MemorySearch::checkAddresses(const std::vector<uintptr_t>
     }
 
     return results;
+}
+
+void MemorySearch::saveMemoryState(std::string outputFilePath)
+{
+    if (game == nullptr)
+    {
+        return;
+    }
+
+    // Copy PS1 RAM into temporary storage
+    if (!game->read(0, PS1RAMSize, RAMData))
+    {
+        return;
+    }
+
+    Utilities::saveArrayToFile<uint8_t>(RAMData, PS1RAMSize, outputFilePath);
 }

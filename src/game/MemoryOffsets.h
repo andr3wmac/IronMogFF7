@@ -9,6 +9,7 @@ struct GameOffsets
 {
     CONST_PTR FrameNumber       = 0x51568;
     CONST_PTR FieldID           = 0x9A05C;
+    CONST_PTR MusicID           = 0x9A14E;
     CONST_PTR CurrentModule     = 0x9C560; 
     CONST_PTR PartyIDList       = 0x9CBDC; // 3 Bytes in a row.
     CONST_PTR Inventory         = 0x9CBE0; // 320 item list, 2 byte ids.
