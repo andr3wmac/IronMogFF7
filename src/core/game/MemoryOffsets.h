@@ -14,6 +14,8 @@ struct GameOffsets
     CONST_PTR PartyIDList       = 0x9CBDC; // 3 Bytes in a row.
     CONST_PTR Inventory         = 0x9CBE0; // 320 item list, 2 byte ids.
     CONST_PTR MateriaInventory  = 0x9C360; // 200 item list, 4 byte ids.
+    CONST_PTR InGameTime        = 0x9D264; // 32-bit integer, in seconds
+    CONST_PTR GameProgress      = 0x9D288; 
     CONST_PTR PauseMenuOptions  = 0x9D2A6; // Bitmask of options enabled in the menu.
 };
 
@@ -199,6 +201,6 @@ struct ShopOffsets
     // Items, Weapons, Armor, Accessories.
     CONST_PTR PricesStart = 0x1D6854;
 
-    // All material prices are stored in uint32_t
+    // All materia prices are stored in uint32_t
     CONST_PTR MateriaPricesStart = 0x1D6E54;
 };

@@ -1,6 +1,6 @@
 #include "RandomizeESkills.h"
-#include "game/MemoryOffsets.h"
-#include "utilities/Logging.h"
+#include "core/game/MemoryOffsets.h"
+#include "core/utilities/Logging.h"
 #include <random>
 
 REGISTER_RULE("Randomize E.Skills", RandomizeESkills)
@@ -56,7 +56,7 @@ void RandomizeESkills::onBattleEnter()
             }
         }
 
-        // Armor Material Slots
+        // Armor Materia Slots
         for (int i = 0; i < 8; ++i)
         {
             uintptr_t materiaOffset = characterOffset + CharacterDataOffsets::ArmorMateria[i];

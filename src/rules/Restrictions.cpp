@@ -1,5 +1,5 @@
 #include "Restrictions.h"
-#include "game/MemoryOffsets.h"
+#include "core/game/MemoryOffsets.h"
 #include <set>
 
 std::set<uint8_t> bannedMateria;

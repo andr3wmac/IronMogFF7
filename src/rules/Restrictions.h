@@ -1,6 +1,6 @@
 #pragma once
 
-#include "game/GameManager.h"
+#include "core/game/GameManager.h"
 
 class Restrictions
 {

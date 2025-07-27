@@ -28,3 +28,4 @@ class Event
 
 #define BIND_EVENT(EVENT, FUNC) EVENT.AddListener(std::bind(&FUNC, this));
 #define BIND_EVENT_ONE_ARG(EVENT, FUNC) EVENT.AddListener(std::bind(&FUNC, this, std::placeholders::_1));
+#define BIND_EVENT_TWO_ARG(EVENT, FUNC) EVENT.AddListener(std::bind(&FUNC, this, std::placeholders::_1, std::placeholders::_2));

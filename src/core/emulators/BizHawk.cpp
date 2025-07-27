@@ -1,7 +1,7 @@
 #include "BizHawk.h"
-#include "game/GameManager.h"
-#include "game/MemoryOffsets.h"
-#include "utilities/Logging.h"
+#include "core/game/GameManager.h"
+#include "core/game/MemoryOffsets.h"
+#include "core/utilities/Logging.h"
 
 #define NOMINMAX
 #include <windows.h>

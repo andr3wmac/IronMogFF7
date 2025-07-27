@@ -1,5 +1,5 @@
 #include "GameData.h"
-#include "game/MemoryOffsets.h"
+#include "core/game/MemoryOffsets.h"
 
 static FieldData gInvalidField = { "" };
 

@@ -1,7 +1,7 @@
 #include "RandomizeFieldItems.h"
-#include "game/GameData.h"
-#include "game/MemoryOffsets.h"
-#include "utilities/Logging.h"
+#include "core/game/GameData.h"
+#include "core/game/MemoryOffsets.h"
+#include "core/utilities/Logging.h"
 
 #include <algorithm>
 #include <random>
@@ -78,9 +78,9 @@ void RandomizeFieldItems::onFieldChanged(uint16_t fieldID)
         FieldItemData& materia = fieldData.materia[i];
         uintptr_t idOffset = FieldScriptOffsets::ScriptStart + materia.offset + FieldScriptOffsets::MateriaID;
 
-        uint8_t oldMaterialID = game->read<uint8_t>(idOffset);
+        uint8_t oldMateriaID = game->read<uint8_t>(idOffset);
 
-        if (oldMaterialID != materia.id)
+        if (oldMateriaID != materia.id)
         {
             // Data isn't loaded yet.
             continue;
@@ -96,7 +96,7 @@ void RandomizeFieldItems::onFieldChanged(uint16_t fieldID)
         FieldItemData newMateria = randomizedMateria[randomKey];
         game->write<uint8_t>(idOffset, (uint8_t)newMateria.id);
 
-        std::string oldMateriaName = GameData::getMateriaName(oldMaterialID);
+        std::string oldMateriaName = GameData::getMateriaName(oldMateriaID);
         std::string newMateriaName = GameData::getMateriaName((uint8_t)newMateria.id);
         LOG("Randomized materia on field %d: %s changed to: %s", fieldID, oldMateriaName.c_str(), newMateriaName.c_str());
 

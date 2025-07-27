@@ -1,7 +1,7 @@
 #include "Permadeath.h"
-#include "game/MemoryOffsets.h"
-#include "utilities/Flags.h"
-#include "utilities/Logging.h"
+#include "core/game/MemoryOffsets.h"
+#include "core/utilities/Flags.h"
+#include "core/utilities/Logging.h"
 
 REGISTER_RULE("Permadeath", Permadeath)
 

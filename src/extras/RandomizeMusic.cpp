@@ -1,9 +1,9 @@
 #include "RandomizeMusic.h"
-#include "audio/AudioManager.h"
-#include "game/GameData.h"
-#include "game/MemoryOffsets.h"
-#include "utilities/Logging.h"
-#include "utilities/Utilities.h"
+#include "core/audio/AudioManager.h"
+#include "core/game/GameData.h"
+#include "core/game/MemoryOffsets.h"
+#include "core/utilities/Logging.h"
+#include "core/utilities/Utilities.h"
 
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -145,7 +145,7 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
 
         static std::mt19937 rng(std::random_device{}());
         std::uniform_int_distribution<size_t> dist(0, tracks.size() - 1);
-        int selectedMusic = dist(rng);
+        size_t selectedMusic = dist(rng);
 
         Track& track = tracks[selectedMusic];
         LOG("Playing: %s", track.path.c_str());

@@ -1,5 +1,5 @@
 #include "MemorySearch.h"
-#include "utilities/Utilities.h"
+#include "core/utilities/Utilities.h"
 
 const uintptr_t PS1RAMSize = 0x200000; // 2 MB
 

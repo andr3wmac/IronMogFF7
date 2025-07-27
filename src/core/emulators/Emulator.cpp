@@ -2,8 +2,8 @@
 #include "CustomEmulator.h"
 #include "DuckStation.h"
 #include "BizHawk.h"
-#include "utilities/Logging.h"
-#include "utilities/Utilities.h"
+#include "core/utilities/Logging.h"
+#include "core/utilities/Utilities.h"
 
 #include <iostream>
 #include <algorithm>

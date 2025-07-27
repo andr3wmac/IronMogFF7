@@ -1,9 +1,11 @@
 #pragma once
 
+#include <chrono>
+#include <fstream>
+#include <iomanip>
+#include <sstream>
 #include <string>
 #include <vector>
-#include <fstream>
-#include <chrono>
 #include <unordered_map>
 
 class Utilities
@@ -22,6 +24,14 @@ public:
         char buffer[9]; // 8 hex digits + null terminator
         snprintf(buffer, sizeof(buffer), "%08X", seed);
         return std::string(buffer);
+    }
+
+    static inline uint32_t hexStringToSeed(const std::string& hex)
+    {
+        uint32_t seed;
+        std::istringstream iss(hex);
+        iss >> std::hex >> seed;
+        return seed;
     }
 
     template<typename T>
@@ -137,5 +147,18 @@ public:
     {
         using namespace std::chrono;
         return duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count();
+    }
+
+    static std::string formatTime(uint32_t seconds) 
+    {
+        uint32_t hours = seconds / 3600;
+        uint32_t minutes = (seconds % 3600) / 60;
+        uint32_t secs = seconds % 60;
+
+        std::ostringstream oss;
+        oss << std::setw(2) << std::setfill('0') << hours << ":"
+            << std::setw(2) << std::setfill('0') << minutes << ":"
+            << std::setw(2) << std::setfill('0') << secs;
+        return oss.str();
     }
 };

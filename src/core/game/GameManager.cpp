@@ -1,10 +1,10 @@
 ﻿#include "GameManager.h"
+#include "core/game/GameData.h"
+#include "core/game/MemoryOffsets.h"
+#include "core/utilities/Logging.h"
+#include "core/utilities/Utilities.h"
 #include "extras/Extra.h"
-#include "game/GameData.h"
-#include "game/MemoryOffsets.h"
 #include "rules/Rule.h"
-#include "utilities/Logging.h"
-#include "utilities/Utilities.h"
 
 #include <thread>
 #include <chrono>

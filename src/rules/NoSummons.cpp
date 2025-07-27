@@ -1,8 +1,8 @@
 #include "NoSummons.h"
-#include "game/GameData.h"
-#include "game/MemoryOffsets.h"
+#include "core/game/GameData.h"
+#include "core/game/MemoryOffsets.h"
+#include "core/utilities/Logging.h"
 #include "rules/Restrictions.h"
-#include "utilities/Logging.h"
 
 REGISTER_RULE("No Summons", NoSummons)
 

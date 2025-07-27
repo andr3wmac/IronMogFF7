@@ -1,5 +1,5 @@
 #include "NoLimitBreaks.h"
-#include "game/MemoryOffsets.h"
+#include "core/game/MemoryOffsets.h"
 
 REGISTER_RULE("No Limit Breaks", NoLimitBreaks)
 

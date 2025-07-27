@@ -1,9 +1,9 @@
 #include "RandomizeShops.h"
-#include "gui/GUI.h"
-#include "game/GameData.h"
-#include "game/MemoryOffsets.h"
+#include "core/gui/GUI.h"
+#include "core/game/GameData.h"
+#include "core/game/MemoryOffsets.h"
+#include "core/utilities/Logging.h"
 #include "rules/Restrictions.h"
-#include "utilities/Logging.h"
 
 #include <imgui.h>
 

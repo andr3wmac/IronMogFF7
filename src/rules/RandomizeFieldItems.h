@@ -1,6 +1,6 @@
 #pragma once
 #include "Rule.h"
-#include "game/GameData.h"
+#include "core/game/GameData.h"
 #include <cstdint>
 
 class RandomizeFieldItems : public Rule

@@ -1,0 +1,182 @@
+#include "App.h"
+#include "rules/Restrictions.h"
+#include "core/utilities/Logging.h"
+#include "core/utilities/MemorySearch.h"
+#include "core/utilities/Utilities.h"
+
+#include <imgui.h>
+#include <random>
+
+void App::run()
+{
+    gui.initialize();
+    BIND_EVENT_TWO_ARG(gui.onKeyPress, App::onKeyPress);
+    generateSeed();
+
+    // Load images
+    logo.loadFromFile("img/logo.png");
+
+    while (true)
+    {
+        if (gui.wasWindowClosed())
+        {
+            break;
+        }
+
+        if (!gui.beginFrame())
+        {
+            continue;
+        }
+
+        ImGui::Begin("IronMogFF7", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize);
+        {
+            switch (currentPanel)
+            {
+                case 0:
+                    drawMainPanel();
+                    break;
+
+                case 1:
+                    drawStatusPanel();
+                    break;
+
+                case 2:
+                    drawDebugPanel();
+                    break;
+            }
+        }
+        ImGui::End();
+
+        gui.endFrame();
+    }
+
+    gui.destroy();
+}
+
+void App::attach()
+{
+    if (managerThread != nullptr)
+    {
+        return;
+    }
+
+    managerThread = new std::thread(&App::runGameManager, this);
+}
+
+void App::detach()
+{
+    connectionState = 0;
+    connectionStatus = "Not Attached";
+
+    if (managerThread == nullptr || !managerRunning.load())
+    {
+        return;
+    }
+
+    managerRunning = false;
+    managerThread->join();
+    delete managerThread;
+    managerThread = nullptr;
+}
+
+void App::runGameManager()
+{
+    if (game != nullptr)
+    {
+        delete game;
+        game = nullptr;
+    }
+
+    game = new GameManager();
+    BIND_EVENT(game->onStart, App::onStart);
+
+    connectionState = 1;
+    connectionStatus = "Attaching to Emulator..";
+
+    bool connected = false;
+
+    if (selectedEmulatorIdx == 0)
+    {
+        connectionStatus = "Attaching to DuckStation..";
+        std::string targetProcess = "duckstation-qt-x64-ReleaseLTCG.exe";
+        connected = game->attachToEmulator(targetProcess);
+    }
+    if (selectedEmulatorIdx == 1)
+    {
+        connectionStatus = "Attaching to BizHawk..";
+        std::string targetProcess = "EmuHawk.exe";
+        connected = game->attachToEmulator(targetProcess);
+    }
+    if (selectedEmulatorIdx == 2)
+    {
+        uintptr_t customAddress = Utilities::parseAddress(processMemoryOffset);
+        connected = game->attachToEmulator(runningProcesses[selectedProcessIdx], customAddress);
+    }
+
+    if (connected)
+    {
+        connectionState = 2;
+        connectionStatus = "Attached to emulator.";
+    }
+    else
+    {
+        connectionState = 0;
+        connectionStatus = "Failed to attach to emulator.";
+    }
+
+    // Reset any global restrictions as we might be using a different set of rules on this run.
+    Restrictions::reset();
+
+    game->setup(Utilities::hexStringToSeed(seedValue));
+
+    MemorySearch search(game);
+    //std::vector<uint8_t> searchWorldMap = { 0x10, 0x01, 0x01, 0x00, 0x10, 0x01, 0x00, 0x00, 0x18, 0x03 };
+    //std::vector<uintptr_t> results = search.search(searchWorldMap);
+
+    std::vector<uint8_t> searchMusic = { 0x41, 0x4B, 0x41, 0x4F };
+    std::vector<uintptr_t> results = search.search(searchMusic);
+
+    //std::vector<uint8_t> searchMusic = { 0x1D, 0x00 };
+    //std::vector<uintptr_t> results = search.search(searchMusic);
+    //Utilities::saveVectorToFile<uintptr_t>(results, "currentMusicSearch.bin");
+
+    //std::vector<uintptr_t> previousResults = Utilities::loadVectorFromFile<uintptr_t>("currentMusicSearch.bin");
+    //std::vector<uintptr_t> results = search.checkAddresses(previousResults, { 0x08, 0x00 });
+
+    managerRunning = true;
+    while (managerRunning.load())
+    {
+        game->update();
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+}
+
+void App::generateSeed()
+{
+    std::random_device rd;
+    uint32_t seed = (static_cast<uint32_t>(rd()) << 16) ^ rd();
+    snprintf(seedValue, sizeof(seedValue), "%08X", seed);
+    LOG("Seed generated: %s", seedValue);
+}
+
+void App::onKeyPress(int key, int mods)
+{
+    // Ctrl + D
+    if (key == 68 && (mods & 2))
+    {
+        if (currentPanel == 0)
+        {
+            currentPanel = 2;
+        }
+        else if (currentPanel == 2)
+        {
+            currentPanel = 0;
+        }
+    }
+}
+
+void App::onStart()
+{
+    uint32_t chosenSeed = game->getSeed();
+    snprintf(seedValue, 9, "%08X", chosenSeed);
+}

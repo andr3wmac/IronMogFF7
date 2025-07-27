@@ -1,7 +1,7 @@
 #pragma once
 
-#include "emulators/Emulator.h"
-#include "utilities/Event.h"
+#include "core/emulators/Emulator.h"
+#include "core/utilities/Event.h"
 #include <string>
 #include <array>
 
