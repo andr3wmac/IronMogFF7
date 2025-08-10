@@ -3,6 +3,7 @@
 #include "core/gui/IconsFontAwesome5.h"
 #include "core/utilities/Utilities.h"
 #include "extras/Extra.h"
+#include "rules/Permadeath.h"
 #include "rules/Rule.h"
 
 #include <imgui.h>
@@ -171,7 +172,7 @@ void App::drawMainPanel()
     ImGui::Indent(210.0f);
     if (ImGui::Button("Status", ImVec2(120, 0)))
     {
-
+        currentPanel = 1;
     }
 
     ImGui::Unindent(150.0f);
@@ -179,7 +180,34 @@ void App::drawMainPanel()
 
 void App::drawStatusPanel()
 {
+    Permadeath* permadeathRule = (Permadeath*)game->getRule("Permadeath");
+    uint16_t phsVisMask = game->read<uint16_t>(GameOffsets::PHSVisibilityMask);
 
+    const int imgWidth = 46;
+    const int imgHeight = 53;
+
+    for (int i = 0; i < 9; ++i)
+    {
+        uint8_t characterID = CharacterDataOffsets::CharacterIDs[i];
+        
+        float iconAlpha = 0.25f;
+        if (Utilities::isBitSet(phsVisMask, i))
+        {
+            iconAlpha = 1.0f;
+        }
+
+        ImVec2 p = ImGui::GetCursorScreenPos();
+        gui.drawImage(characterPortraits[i], imgWidth, imgHeight, iconAlpha);
+        ImGui::SameLine();
+
+        if (permadeathRule != nullptr)
+        {
+            if (permadeathRule->isCharacterDead(characterID))
+            {
+                ImGui::GetWindowDrawList()->AddImage((ImTextureID)deadIcon.textureID, p, ImVec2(p.x + imgWidth, p.y + imgHeight), ImVec2(0, 0), ImVec2(1, 1));
+            }
+        }
+    }
 }
 
 void App::drawDebugPanel()
@@ -211,4 +239,26 @@ void App::drawDebugPanel()
     uint16_t musicID = game->read<uint16_t>(GameOffsets::MusicID);
     std::string musicText = "Music: " + std::to_string(musicID);
     ImGui::Text(musicText.c_str());
+
+    // Field ID
+    uint16_t fieldID = game->read<uint16_t>(GameOffsets::FieldID);
+    std::string fieldText = "Field ID: " + std::to_string(fieldID);
+    ImGui::Text(fieldText.c_str());
+
+    // Position Position
+    int position[3];
+    if (game->getGameModule() == GameModule::World)
+    {
+        position[0] = game->read<int>(WorldOffsets::WorldX);
+        position[1] = game->read<int>(WorldOffsets::WorldY);
+        position[2] = game->read<int>(WorldOffsets::WorldZ);
+    }
+    else 
+    {
+        position[0] = game->read<int>(FieldOffsets::FieldX);
+        position[1] = game->read<int>(FieldOffsets::FieldY);
+        position[2] = game->read<int>(FieldOffsets::FieldZ);
+    }
+    std::string positionText = "Position: " + std::to_string(position[0]) + ", " + std::to_string(position[1]) + ", " + std::to_string(position[2]);
+    ImGui::Text(positionText.c_str());
 }

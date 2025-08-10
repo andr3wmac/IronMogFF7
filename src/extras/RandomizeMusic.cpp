@@ -5,6 +5,7 @@
 #include "core/utilities/Logging.h"
 #include "core/utilities/Utilities.h"
 
+#include <imgui.h>
 #include <filesystem>
 namespace fs = std::filesystem;
 
@@ -38,6 +39,20 @@ void RandomizeMusic::setup()
     BIND_EVENT_ONE_ARG(game->onFieldChanged, RandomizeMusic::onFieldChanged);
 
     previousMusicID = UnsetMusicID;
+}
+
+void RandomizeMusic::onSettingsGUI()
+{
+    constexpr float min = 0.0f;
+    constexpr float max = 1.0f;
+
+    ImGui::SliderScalar("Volume", ImGuiDataType_Float, &currentVolume, &min, &max, "%.3lf");
+
+    if (currentVolume != previousVolume)
+    {
+        AudioManager::setMusicVolume(currentVolume);
+        previousVolume = currentVolume;
+    }
 }
 
 void RandomizeMusic::onStart()
@@ -95,15 +110,8 @@ void RandomizeMusic::onEmulatorResumed()
 
 void RandomizeMusic::onFrame(uint32_t frameNumber)
 {
-    if (game->getGameModule() == GameModule::Battle)
-    {
-        uint32_t battleMusicHeader = game->read<uint32_t>(0x1D0000);
-        if (battleMusicHeader == AKAOHeader)
-        {
-            game->write<uint32_t>(0x1D0000 + 16, 0);
-            LOG("KILLED FANFARE MUSIC!");
-        }
-    }
+    // Keep in game music volume locked to 0
+    game->write<uint16_t>(GameOffsets::MusicVolume, 0);
 
     uint16_t musicID = game->read<uint16_t>(GameOffsets::MusicID);
     if (musicID != previousMusicID)
@@ -155,32 +163,7 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
 
 void RandomizeMusic::onFieldChanged(uint16_t fieldID)
 {
-    FieldData fieldData = GameData::getField(fieldID);
-    if (!fieldData.isValid())
-    {
-        return;
-    }
 
-    for (int i = 0; i < fieldData.music.size(); ++i)
-    {
-        FieldMusicData& music = fieldData.music[i];
-        uintptr_t musicOffset = FieldScriptOffsets::ScriptStart + music.offset;
-        uintptr_t musicIDOffset = musicOffset + 4;
-
-        uint32_t musicHeader = game->read<uint32_t>(musicOffset);
-        uint8_t musicID = game->read<uint8_t>(musicIDOffset);
-
-        if (music.id == 0 || music.id == 1)
-        {
-            continue;
-        }
-
-        if (musicHeader == AKAOHeader && music.id == musicID)
-        {
-            game->write<uint32_t>(musicIDOffset + 12, 0);
-            LOG("KILLED MUSIC! %d %d", fieldID, musicID);
-        }
-    }
 }
 
 Track RandomizeMusic::loadTrack(std::string path)

@@ -84,6 +84,19 @@ bool GameManager::isRuleEnabled(std::string ruleName)
     return false;
 }
 
+Rule* GameManager::getRule(std::string ruleName)
+{
+    for (Rule* rule : Rule::getList())
+    {
+        if (rule->enabled && rule->name == ruleName)
+        {
+            return rule;
+        }
+    }
+
+    return nullptr;
+}
+
 void GameManager::setup(uint32_t inputSeed)
 {
     // Note: seed may change after loading a save file, so its important to not utilize it in rule setup.
@@ -216,6 +229,16 @@ void GameManager::update()
             onFieldChanged.Invoke(fieldID);
             waitingForFieldData = false;
         }
+    }
+
+    if (gameModule == GameModule::World)
+    {
+        // When exiting onto the world map field ID is updated to your exit location
+        // We don't trigger the onFieldChanged event for this but its important we update
+        // this value in case we re-enter the field we just left.
+        uint16_t newFieldID = read<uint16_t>(GameOffsets::FieldID);
+        fieldID = newFieldID;
+        waitingForFieldData = false;
     }
 
     if (gameModule == GameModule::Menu)
@@ -416,6 +439,30 @@ bool GameManager::isFieldDataLoaded()
 
         uint8_t musicID = read<uint8_t>(musicIDOffset);
         if (music.id != musicID)
+        {
+            return false;
+        }
+    }
+
+    for (int i = 0; i < fieldData.musicOps.size(); ++i)
+    {
+        FieldMusicOp& op = fieldData.musicOps[i];
+        uintptr_t opOffset = FieldScriptOffsets::ScriptStart + op.offset;
+
+        uint8_t opCode = read<uint8_t>(opOffset + 4);
+        if (opCode != op.opCode)
+        {
+            return false;
+        }
+    }
+
+    for (int i = 0; i < fieldData.worldExits.size(); ++i)
+    {
+        FieldWorldExit& exit = fieldData.worldExits[i];
+        uintptr_t exitOffset = FieldScriptOffsets::TriggersStart + exit.offset;
+
+        uint16_t fieldID = read<uint8_t>(exitOffset);
+        if (fieldID != exit.fieldID)
         {
             return false;
         }

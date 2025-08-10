@@ -57,6 +57,11 @@ bool AudioManager::playMusic(std::string path, uint64_t start, uint64_t loopStar
     return true;
 }
 
+void AudioManager::setMusicVolume(float volume)
+{
+    ma_engine_set_volume(&gAudioEngine, volume);
+}
+
 void AudioManager::pauseMusic()
 {
     ma_sound_stop(&gCurrentMusic);

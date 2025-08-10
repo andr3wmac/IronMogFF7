@@ -8,6 +8,7 @@
 struct GameOffsets
 {
     CONST_PTR FrameNumber       = 0x51568;
+    CONST_PTR MusicVolume       = 0x62F5E;
     CONST_PTR FieldID           = 0x9A05C;
     CONST_PTR MusicID           = 0x9A14E;
     CONST_PTR CurrentModule     = 0x9C560; 
@@ -17,6 +18,7 @@ struct GameOffsets
     CONST_PTR InGameTime        = 0x9D264; // 32-bit integer, in seconds
     CONST_PTR GameProgress      = 0x9D288; 
     CONST_PTR PauseMenuOptions  = 0x9D2A6; // Bitmask of options enabled in the menu.
+    CONST_PTR PHSVisibilityMask = 0x9D78A;
 };
 
 struct GameModule
@@ -38,12 +40,26 @@ struct FieldOffsets
 struct FieldScriptOffsets
 {
     CONST_PTR ScriptStart = 0x115000;
+    CONST_PTR TriggersStart = 0x114FF6;
 
     CONST_PTR ItemID = 0x02;
     CONST_PTR ItemQuantity = 0x04;
 
     // TODO: get the real number
     CONST_PTR MateriaID = 0x03;
+};
+
+struct WorldOffsets
+{
+    CONST_PTR WorldX = 0xE56FC;
+    CONST_PTR WorldY = 0xE5700;
+    CONST_PTR WorldZ = 0xE5704;
+
+    // Add offset from GameData to get to memory address.
+    CONST_PTR ScriptStart = 0xD0B6A;
+
+    // Subtract this from a desired memory address, then divide by two to get the value to use in jump instruction.
+    CONST_PTR JumpStart = 0xD09EC;
 };
 
 // Character data exists for each of the cast of playabale characters and these stats are all saved onto memory card.
@@ -62,6 +78,7 @@ struct CharacterDataOffsets
     CONST_PTR Cid       = 0x9CB58;
 
     CONST_PTR Characters[] = { Cloud, Barret, Tifa, Aerith, RedXIII, Yuffie, CaitSith, Vincent, Cid };
+    CONST_U8 CharacterIDs[] = { 0, 1, 2, 3, 4, 5, 9, 10, 11 };
 
     CONST_PTR ID                = 0x00;
     CONST_PTR Level             = 0x01;
@@ -98,6 +115,7 @@ inline uintptr_t getCharacterDataOffset(uint8_t characterID)
         case 5:     return CharacterDataOffsets::Yuffie;
         case 9:     return CharacterDataOffsets::CaitSith;
         case 10:    return CharacterDataOffsets::Vincent;
+        case 11:    return CharacterDataOffsets::Cid;
     }
 
     return CharacterDataOffsets::Cloud;

@@ -17,6 +17,7 @@ public:
     bool attachToEmulator(std::string processName, uintptr_t memoryAddress);
 
     bool isRuleEnabled(std::string ruleName);
+    Rule* getRule(std::string ruleName);
 
     void setup(uint32_t inputSeed);
     void loadSaveData();

@@ -2,6 +2,7 @@
 #include "rules/Restrictions.h"
 #include "core/utilities/Logging.h"
 #include "core/utilities/MemorySearch.h"
+#include "core/utilities/ScriptUtilities.h"
 #include "core/utilities/Utilities.h"
 
 #include <imgui.h>
@@ -15,6 +16,18 @@ void App::run()
 
     // Load images
     logo.loadFromFile("img/logo.png");
+    characterPortraits.resize(9);
+    characterPortraits[0].loadFromFile("img/cloud.png");
+    characterPortraits[1].loadFromFile("img/barret.png");
+    characterPortraits[2].loadFromFile("img/tifa.png");
+    characterPortraits[3].loadFromFile("img/aerith.png");
+    characterPortraits[4].loadFromFile("img/red.png");
+    characterPortraits[5].loadFromFile("img/yuffie.png");
+    characterPortraits[6].loadFromFile("img/caitsith.png");
+    characterPortraits[7].loadFromFile("img/vincent.png");
+    characterPortraits[8].loadFromFile("img/cid.png");
+
+    deadIcon.loadFromFile("img/dead.png");
 
     while (true)
     {
@@ -128,20 +141,6 @@ void App::runGameManager()
     Restrictions::reset();
 
     game->setup(Utilities::hexStringToSeed(seedValue));
-
-    MemorySearch search(game);
-    //std::vector<uint8_t> searchWorldMap = { 0x10, 0x01, 0x01, 0x00, 0x10, 0x01, 0x00, 0x00, 0x18, 0x03 };
-    //std::vector<uintptr_t> results = search.search(searchWorldMap);
-
-    std::vector<uint8_t> searchMusic = { 0x41, 0x4B, 0x41, 0x4F };
-    std::vector<uintptr_t> results = search.search(searchMusic);
-
-    //std::vector<uint8_t> searchMusic = { 0x1D, 0x00 };
-    //std::vector<uintptr_t> results = search.search(searchMusic);
-    //Utilities::saveVectorToFile<uintptr_t>(results, "currentMusicSearch.bin");
-
-    //std::vector<uintptr_t> previousResults = Utilities::loadVectorFromFile<uintptr_t>("currentMusicSearch.bin");
-    //std::vector<uintptr_t> results = search.checkAddresses(previousResults, { 0x08, 0x00 });
 
     managerRunning = true;
     while (managerRunning.load())

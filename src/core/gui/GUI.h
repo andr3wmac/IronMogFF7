@@ -17,7 +17,7 @@ public:
     void endFrame();
 
     bool wasWindowClosed();
-    void drawImage(GUIImage& image, int width, int height);
+    void drawImage(GUIImage& image, int width, int height, float alpha = 1.0f);
 
     void pushIconFont();
     void popIconFont();

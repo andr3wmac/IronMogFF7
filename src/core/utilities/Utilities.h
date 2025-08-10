@@ -161,4 +161,17 @@ public:
             << std::setw(2) << std::setfill('0') << secs;
         return oss.str();
     }
+
+    template<typename T>
+    static bool isBitSet(T value, unsigned int bitIndex) 
+    {
+        static_assert(std::is_integral<T>::value, "isBitSet requires an integral type");
+
+        if (bitIndex >= sizeof(T) * 8) 
+        {
+            return false;
+        }
+
+        return (value & (T(1) << bitIndex)) != 0;
+    }
 };

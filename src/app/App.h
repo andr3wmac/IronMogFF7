@@ -23,6 +23,8 @@ public:
 protected:
     GUI gui;
     GUIImage logo;
+    std::vector<GUIImage> characterPortraits;
+    GUIImage deadIcon;
     int currentPanel = 0;
 
     GameManager* game = nullptr;

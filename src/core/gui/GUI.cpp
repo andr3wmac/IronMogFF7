@@ -235,9 +235,16 @@ bool GUI::wasWindowClosed()
     return glfwWindowShouldClose(window);
 }
 
-void GUI::drawImage(GUIImage& image, int width, int height)
+void GUI::drawImage(GUIImage& image, int width, int height, float alpha)
 {
-    ImGui::Image((ImTextureID)image.textureID, ImVec2((float)width, (float)height));
+    if (alpha < 1.0f)
+    {
+        ImGui::ImageWithBg((ImTextureID)image.textureID, ImVec2((float)width, (float)height), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, alpha));
+    }
+    else 
+    {
+        ImGui::Image((ImTextureID)image.textureID, ImVec2((float)width, (float)height));
+    }
 }
 
 void GUI::onKeyCallback(int key, int scancode, int action, int mods)

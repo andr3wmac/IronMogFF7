@@ -18,6 +18,8 @@ class RandomizeMusic : public Extra
 {
 public:
     void setup() override;
+    bool hasSettings() override { return true; }
+    void onSettingsGUI() override;
 
 private:
     void onStart();
@@ -28,6 +30,8 @@ private:
 
     Track loadTrack(std::string path);
 
+    float currentVolume = 1.0f;
+    float previousVolume = 1.0f;
     uint16_t previousMusicID = 0;
     std::unordered_map<std::string, std::vector<Track>> musicMap;
 };
