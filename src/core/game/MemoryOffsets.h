@@ -143,7 +143,7 @@ struct PlayerOffsets
     CONST_PTR MaxMP         = 0x16;
 
     CONST_PTR LimitBreakDisplay = 0x1B;
-    CONST_PTR EnemySkillMenu    = 0x5B;
+    CONST_PTR EnemySkillMenu    = 0x348; // List of 24 8-byte entries.
 };
 
 struct BattleCharacterOffsets

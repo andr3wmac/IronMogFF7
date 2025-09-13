@@ -432,30 +432,6 @@ bool GameManager::isFieldDataLoaded()
         }
     }
 
-    for (int i = 0; i < fieldData.music.size(); ++i)
-    {
-        FieldMusicData& music = fieldData.music[i];
-        uintptr_t musicIDOffset = FieldScriptOffsets::ScriptStart + music.offset + 4;
-
-        uint8_t musicID = read<uint8_t>(musicIDOffset);
-        if (music.id != musicID)
-        {
-            return false;
-        }
-    }
-
-    for (int i = 0; i < fieldData.musicOps.size(); ++i)
-    {
-        FieldMusicOp& op = fieldData.musicOps[i];
-        uintptr_t opOffset = FieldScriptOffsets::ScriptStart + op.offset;
-
-        uint8_t opCode = read<uint8_t>(opOffset + 4);
-        if (opCode != op.opCode)
-        {
-            return false;
-        }
-    }
-
     for (int i = 0; i < fieldData.worldExits.size(); ++i)
     {
         FieldWorldExit& exit = fieldData.worldExits[i];

@@ -146,6 +146,20 @@ std::vector<uintptr_t> MemorySearch::checkAddresses(const std::vector<uintptr_t>
     return results;
 }
 
+void MemorySearch::loadMemoryState(std::string inputFilePath, uintptr_t startRange, uintptr_t endRange)
+{
+    if (game == nullptr)
+    {
+        return;
+    }
+
+    uint8_t* data = Utilities::loadArrayFromFile<uint8_t>(inputFilePath);
+    for (uintptr_t addr = startRange; addr <= endRange; addr++)
+    {
+        game->write<uint8_t>(addr, data[addr]);
+    }
+}
+
 void MemorySearch::saveMemoryState(std::string outputFilePath)
 {
     if (game == nullptr)

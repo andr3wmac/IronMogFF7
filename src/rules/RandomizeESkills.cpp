@@ -1,4 +1,5 @@
 #include "RandomizeESkills.h"
+#include "core/game/GameData.h"
 #include "core/game/MemoryOffsets.h"
 #include "core/utilities/Logging.h"
 #include <random>
@@ -10,20 +11,25 @@ REGISTER_RULE("Randomize E.Skills", RandomizeESkills)
 // new enemy skill was learned during the fight, and then we take its index and selecte from
 // a randomized mapping and flip that bit instead, resulting in a different e.skill learned.
 
-// TODO: I'd really like to see this work in battle so you don't end up being able to use the
-// unrandomized enemy skill in that fight. Can't seem to locate how the menu is controlled
-// while in battle though.
+// We also monitor each player's e.skill menu list during battle and disable a newly learned
+// eskill and enable the randomly selected one.
+
+// TODO: it would be cool if we could change the text thats displayed when the skill is learned.
+
+// Value found in each empty eskill menu slot
+#define ESKILL_EMPTY 562949953421567
 
 void RandomizeESkills::setup()
 {
     BIND_EVENT(game->onStart, RandomizeESkills::onStart);
     BIND_EVENT(game->onBattleEnter, RandomizeESkills::onBattleEnter);
     BIND_EVENT(game->onBattleExit, RandomizeESkills::onBattleExit);
+    BIND_EVENT_ONE_ARG(game->onFrame, RandomizeESkills::onFrame);
 }
 
 void RandomizeESkills::onStart()
 {
-    // Generate a shuffled remapping of eskills based on game seed.
+    // Generate a shuffled remapping of e.skills based on game seed.
 
     eSkillMapping.resize(24);
     for (int i = 0; i < 24; ++i) 
@@ -67,6 +73,16 @@ void RandomizeESkills::onBattleEnter()
             {
                 trackedMateria.push_back({ materiaOffset, materiaID });
             }
+        }
+    }
+
+    // Read current state of e.skill values when entering the battle.
+    for (int p = 0; p < 3; ++p)
+    {
+        for (int i = 0; i < 24; ++i)
+        {
+            uintptr_t offset = PlayerOffsets::Players[p] + PlayerOffsets::EnemySkillMenu + (8 * i);
+            previousESkillValues[(p * 24) + i] = game->read<uint64_t>(offset);
         }
     }
 }
@@ -116,5 +132,52 @@ void RandomizeESkills::onBattleExit()
 
             game->write<uint32_t>(mat.offset, newMateriaID);
         }
+    }
+}
+
+void RandomizeESkills::onFrame(uint32_t frameNumber)
+{
+    if (game->getGameModule() != GameModule::Battle)
+    {
+        return;
+    }
+
+    // Loop through each player and each e.skill to see if its changed since last frame.
+    for (int p = 0; p < 3; ++p)
+    {
+        for (int i = 0; i < 24; ++i)
+        {
+            uintptr_t offset = PlayerOffsets::Players[p] + PlayerOffsets::EnemySkillMenu + (i * 8);
+            uint64_t curValue = game->read<uint64_t>(offset);
+            uint64_t prevValue = previousESkillValues[(p * 24) + i];
+
+            if (curValue != prevValue && curValue == GameData::eSkills[i].battleData)
+            {
+                // Disable newly learned eskill
+                setESkillBattleMenu(p, i, false);
+
+                // Enable randomized one
+                int randomizedESkill = eSkillMapping[i];
+                setESkillBattleMenu(p, randomizedESkill, true);
+
+                LOG("Randomized Enemy Skill from %d to %d", i, randomizedESkill);
+            }
+        }
+    }
+}
+
+void RandomizeESkills::setESkillBattleMenu(int playerIndex, int eSkillIndex, bool enabled)
+{
+    uintptr_t offset = PlayerOffsets::Players[playerIndex] + PlayerOffsets::EnemySkillMenu + (eSkillIndex * 8);
+
+    if (enabled)
+    {
+        game->write<uint64_t>(offset, GameData::eSkills[eSkillIndex].battleData);
+        previousESkillValues[(playerIndex * 24) + eSkillIndex] = GameData::eSkills[eSkillIndex].battleData;
+    }
+    else 
+    {
+        game->write<uint64_t>(offset, ESKILL_EMPTY);
+        previousESkillValues[(playerIndex * 24) + eSkillIndex] = ESKILL_EMPTY;
     }
 }

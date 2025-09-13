@@ -8,6 +8,7 @@ std::unordered_map<uint8_t, std::string> GameData::armorNames;
 std::unordered_map<uint8_t, std::string> GameData::itemNames;
 std::unordered_map<uint8_t, std::string> GameData::weaponNames;
 std::unordered_map<uint8_t, std::string> GameData::materiaNames;
+std::vector<ESkill> GameData::eSkills;
 
 std::unordered_map<uint16_t, FieldData> GameData::fieldData;
 std::vector<WorldMapEntrance> GameData::worldMapEntrances;

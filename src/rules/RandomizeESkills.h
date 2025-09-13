@@ -17,7 +17,12 @@ private:
     void onStart();
     void onBattleEnter();
     void onBattleExit();
+    void onFrame(uint32_t frameNumber);
 
+    void setESkillBattleMenu(int playerIndex, int eSkillIndex, bool enabled);
+
+    uint64_t previousESkillValues[72];
+    uint64_t eSkillEmptyValue;
     std::vector<int> eSkillMapping;
     std::vector<TrackedMateria> trackedMateria;
 };
