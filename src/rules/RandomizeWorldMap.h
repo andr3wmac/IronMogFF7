@@ -8,6 +8,8 @@ class RandomizeWorldMap : public Rule
 {
 public:
     void setup() override;
+    bool hasDebugGUI() override { return true; }
+    void onDebugGUI() override;
 
 private:
     int lastClosestIndex = -1;

@@ -174,4 +174,26 @@ public:
 
         return (value & (T(1) << bitIndex)) != 0;
     }
+
+    static uint64_t makeKey(uint32_t seed, uint16_t fieldID, uint8_t index)
+    {
+        uint32_t fieldKey = (uint32_t(fieldID) << 16 | index);
+        uint64_t combined = (uint64_t(fieldKey) << 32) | seed;
+
+        // Mix bits to spread entropy
+        combined ^= combined >> 33;
+        combined *= 0xff51afd7ed558ccd;
+        combined ^= combined >> 33;
+        combined *= 0xc4ceb9fe1a85ec53;
+        combined ^= combined >> 33;
+
+        return combined;
+    }
+
+    static float getDistance(int x1, int y1, int x2, int y2)
+    {
+        int64_t dx = static_cast<int64_t>(x2) - x1;
+        int64_t dy = static_cast<int64_t>(y2) - y1;
+        return std::sqrt(static_cast<float>(dx * dx + dy * dy));
+    }
 };

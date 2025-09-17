@@ -12,6 +12,7 @@ void NoSummons::setup()
     BIND_EVENT(game->onShopOpened, NoSummons::onShopOpened);
 
     // Ban all summon materia, this will prevent them from being chosen by any randomizers.
+    Restrictions::banMateria(20); // W-Summon
     Restrictions::banMateria(74); // Choco/Mog
     Restrictions::banMateria(75); // Shiva
     Restrictions::banMateria(76); // Ifrit

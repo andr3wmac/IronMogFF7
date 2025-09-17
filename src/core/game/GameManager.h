@@ -26,6 +26,7 @@ public:
 
     // Returns a byte representing what module the game is. eg Field, Battle, World, etc
     uint8_t getGameModule() { return gameModule; }
+    uint16_t getGameMoment();
     bool inBattle();
     bool inMenu();
     uint16_t getFieldID() { return fieldID; }

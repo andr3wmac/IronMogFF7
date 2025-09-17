@@ -303,6 +303,11 @@ std::array<uint32_t, 200> GameManager::getPartyMateria()
     return results;
 }
 
+uint16_t GameManager::getGameMoment()
+{
+    return read<uint16_t>(GameOffsets::GameMoment);
+}
+
 bool GameManager::inBattle()
 {
     return gameModule == GameModule::Battle && !waitingForBattleData;

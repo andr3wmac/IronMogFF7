@@ -230,6 +230,11 @@ void App::drawDebugPanel()
     std::string igtText = "In Game Time: " + Utilities::formatTime(igt);
     ImGui::Text(igtText.c_str());
 
+    // Game Moment
+    uint16_t moment = game->getGameMoment();
+    std::string momentText = "Game Moment: " + std::to_string(moment);
+    ImGui::Text(momentText.c_str());
+
     // Module ID
     uint8_t gameModule = game->read<uint8_t>(GameOffsets::CurrentModule);
     std::string moduleText = "Module: " + std::to_string(gameModule);
@@ -245,20 +250,53 @@ void App::drawDebugPanel()
     std::string fieldText = "Field ID: " + std::to_string(fieldID);
     ImGui::Text(fieldText.c_str());
 
-    // Position Position
+    // Player Position
     int position[3];
     if (game->getGameModule() == GameModule::World)
     {
         position[0] = game->read<int>(WorldOffsets::WorldX);
         position[1] = game->read<int>(WorldOffsets::WorldY);
         position[2] = game->read<int>(WorldOffsets::WorldZ);
+
+        std::string positionText = "Position: " + std::to_string(position[0]) + ", " + std::to_string(position[1]) + ", " + std::to_string(position[2]);
+        ImGui::Text(positionText.c_str());
     }
     else 
     {
         position[0] = game->read<int>(FieldOffsets::FieldX);
         position[1] = game->read<int>(FieldOffsets::FieldY);
         position[2] = game->read<int>(FieldOffsets::FieldZ);
+
+        float fx = position[0] / 4096.0f;
+        float fy = position[1] / 4096.0f;
+        float fz = position[2] / 4096.0f;
+
+        std::string positionText = "Position: " + std::to_string(fx) + ", " + std::to_string(fy) + ", " + std::to_string(fz);
+        ImGui::Text(positionText.c_str());
     }
-    std::string positionText = "Position: " + std::to_string(position[0]) + ", " + std::to_string(position[1]) + ", " + std::to_string(position[2]);
-    ImGui::Text(positionText.c_str());
+
+    if (ImGui::Button("Disable Encounters"))
+    {
+        game->write<uint8_t>(0x9AC2F, 0xFF);
+    }
+
+    if (ImGui::Button("Add 10000 Gil"))
+    {
+        uint32_t gil = game->read<uint32_t>(0x9D260);
+        game->write<uint32_t>(0x9D260, gil + 10000);
+    }
+
+    int ruleIndex = 0;
+    for (auto& rule : Rule::getList())
+    {
+        if (!rule->hasDebugGUI())
+        {
+            continue;
+        }
+
+        if (ImGui::CollapsingHeader(rule->name.c_str()))
+        {
+            rule->onDebugGUI();
+        }
+    }
 }

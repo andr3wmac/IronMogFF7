@@ -2,7 +2,9 @@
 #include "core/game/GameData.h"
 #include "core/game/MemoryOffsets.h"
 #include "core/utilities/Logging.h"
+#include "core/utilities/Utilities.h"
 
+#include <imgui.h>
 #include <random>
 
 REGISTER_RULE("Randomize World Map", RandomizeWorldMap)
@@ -14,11 +16,53 @@ void RandomizeWorldMap::setup()
     BIND_EVENT_ONE_ARG(game->onFieldChanged, RandomizeWorldMap::onFieldChanged);
 }
 
+void RandomizeWorldMap::onDebugGUI()
+{
+    if (game->getGameModule() != GameModule::World)
+    {
+        ImGui::Text("Not currently on world map.");
+        return;
+    }
+
+    // Display closest entrance
+    {
+        int worldX = game->read<int>(WorldOffsets::WorldX);
+        int worldZ = game->read<int>(WorldOffsets::WorldZ);
+
+        // Find nearest entrance to the player
+        float closestDistance = FLT_MAX;
+        int closestIndex = -1;
+        for (int i = 0; i < GameData::worldMapEntrances.size(); ++i)
+        {
+            // Skip Zolom entrance
+            if (i == 29)
+            {
+                continue;
+            }
+
+            WorldMapEntrance& entrance = GameData::worldMapEntrances[i];
+            float dist = Utilities::getDistance(worldX, worldZ, entrance.centerX, entrance.centerZ);
+
+            if (dist < closestDistance)
+            {
+                closestDistance = dist;
+                closestIndex = i;
+            }
+        }
+
+        WorldMapEntrance& closestEntrance = GameData::worldMapEntrances[closestIndex];
+        std::string debugText = "Closest Entrance " + std::to_string(closestIndex) + " Field ID: " + std::to_string(closestEntrance.fieldID);
+        ImGui::Text(debugText.c_str());
+    }
+}
+
 void RandomizeWorldMap::onStart()
 {
     // We break entrances up into groups and randomize among them
     // to prevent randomizing to places you can't get to.
     entranceGroups.push_back({ 0x01, 0x02, 0x03, 0x04 });   // Midgar, Kalm, Chocobo Ranch, Mithril Mine
+    entranceGroups.push_back({ 0x05, 0x06, 0x07 }); // Mithril Mine, Fort Condor, Junon
+    entranceGroups.push_back({ 0x0D, 0x0E }); // Costa Del Sol, North Corel
 
     randomizedEntrances.clear();
     for (int i = 0; i < GameData::worldMapEntrances.size(); ++i)
@@ -58,13 +102,11 @@ void RandomizeWorldMap::onStart()
             LOG("World Map Entrance %d (%d) -> %d (%d)", entrance1.fieldID, groupKeys[j], entrance2.fieldID, groupValues[j]);
         }
     }
-}
 
-float getDistance(int x1, int y1, int x2, int y2) 
-{
-    int64_t dx = static_cast<int64_t>(x2) - x1;
-    int64_t dy = static_cast<int64_t>(y2) - y1;
-    return std::sqrt(static_cast<float>(dx * dx + dy * dy));
+    // Hack: disable the dead zolom scene to simplify things
+    uint8_t seenZolom = game->read<uint8_t>(0x9D457);
+    seenZolom |= (1u << 3);
+    game->write<uint8_t>(0x9D457, seenZolom);
 }
 
 uint16_t getJumpAddress(uintptr_t memAddress)
@@ -91,8 +133,14 @@ void RandomizeWorldMap::onFrame(uint32_t frameNumber)
     int closestIndex = -1;
     for (int i = 0; i < GameData::worldMapEntrances.size(); ++i)
     {
+        // Skip Zolom entrance
+        if (i == 29)
+        {
+            continue;
+        }
+
         WorldMapEntrance& entrance = GameData::worldMapEntrances[i];
-        float dist = getDistance(worldX, worldZ, entrance.centerX, entrance.centerZ);
+        float dist = Utilities::getDistance(worldX, worldZ, entrance.centerX, entrance.centerZ);
 
         if (dist < closestDistance)
         {
@@ -115,9 +163,9 @@ void RandomizeWorldMap::onFrame(uint32_t frameNumber)
             if (lastClosestIndex >= 0)
             {
                 WorldMapEntrance& oldEntrance = GameData::worldMapEntrances[lastClosestIndex];
-                uintptr_t oldEentScriptStart = WorldOffsets::ScriptStart + oldEntrance.offset;
-                game->write<uint16_t>(oldEentScriptStart, lastCmd0);
-                game->write<uint16_t>(oldEentScriptStart + 2, lastCmd1);
+                uintptr_t oldEntScriptStart = WorldOffsets::ScriptStart + oldEntrance.offset;
+                game->write<uint16_t>(oldEntScriptStart, lastCmd0);
+                game->write<uint16_t>(oldEntScriptStart + 2, lastCmd1);
             }
 
             // Only overwrite the script if we actually got a random index, otherwise it'll spinlock.
@@ -126,7 +174,6 @@ void RandomizeWorldMap::onFrame(uint32_t frameNumber)
             if (randomEntIndex != closestIndex)
             {
                 uintptr_t randEntScriptStart = WorldOffsets::ScriptStart + randEntrance.offset;
-                LOG("JUMP TO ADDRESS: %d", randEntScriptStart);
                 uint16_t jumpValue = getJumpAddress(randEntScriptStart);
                 game->write<uint16_t>(entScriptStart, 0x200);
                 game->write<uint16_t>(entScriptStart + 2, jumpValue);

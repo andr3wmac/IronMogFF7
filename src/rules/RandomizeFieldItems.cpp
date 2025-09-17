@@ -2,8 +2,11 @@
 #include "core/game/GameData.h"
 #include "core/game/MemoryOffsets.h"
 #include "core/utilities/Logging.h"
+#include "core/utilities/Utilities.h"
+#include "rules/Restrictions.h"
 
 #include <algorithm>
+#include <imgui.h>
 #include <random>
 
 REGISTER_RULE("Randomize Field Items", RandomizeFieldItems)
@@ -11,7 +14,51 @@ REGISTER_RULE("Randomize Field Items", RandomizeFieldItems)
 void RandomizeFieldItems::setup()
 {
     BIND_EVENT(game->onStart, RandomizeFieldItems::onStart);
+    BIND_EVENT_ONE_ARG(game->onFrame, RandomizeFieldItems::onFrame);
     BIND_EVENT_ONE_ARG(game->onFieldChanged, RandomizeFieldItems::onFieldChanged);
+}
+
+void RandomizeFieldItems::onDebugGUI()
+{
+    if (game->getGameModule() != GameModule::Field)
+    {
+        ImGui::Text("Not currently in field.");
+        return;
+    }
+    
+    // Display field items and their values
+    {
+        FieldData fieldData = GameData::getField(game->getFieldID());
+        if (!fieldData.isValid())
+        {
+            return;
+        }
+
+        for (int i = 0; i < fieldData.items.size(); ++i)
+        {
+            FieldItemData& item = fieldData.items[i];
+            uintptr_t itemIDOffset = FieldScriptOffsets::ScriptStart + item.offset + FieldScriptOffsets::ItemID;
+            uintptr_t itemQuantityOffset = FieldScriptOffsets::ScriptStart + item.offset + FieldScriptOffsets::ItemQuantity;
+
+            uint16_t oldItemID = game->read<uint16_t>(itemIDOffset);
+            uint8_t oldItemQuantity = game->read<uint8_t>(itemQuantityOffset);
+
+            std::string debugText = "Item Orig: " + std::to_string(item.id) + " (" + std::to_string(item.quantity) + ") ";
+            debugText += "Cur: " + std::to_string(oldItemID) + " (" + std::to_string(oldItemQuantity) + ")";
+            ImGui::Text(debugText.c_str());
+        }
+
+        for (int i = 0; i < fieldData.materia.size(); ++i)
+        {
+            FieldItemData& materia = fieldData.materia[i];
+            uintptr_t idOffset = FieldScriptOffsets::ScriptStart + materia.offset + FieldScriptOffsets::MateriaID;
+
+            uint8_t oldMateriaID = game->read<uint8_t>(idOffset);
+
+            std::string debugText = "Materia Orig: " + std::to_string(materia.id) + " Cur: " + std::to_string(oldMateriaID);
+            ImGui::Text(debugText.c_str());
+        }
+    }
 }
 
 void RandomizeFieldItems::onStart()
@@ -24,90 +71,20 @@ uint32_t makeKey(uint16_t fieldID, uint8_t index)
     return (uint32_t(fieldID) << 16 | index);
 }
 
+void RandomizeFieldItems::onFrame(uint32_t frameNumber)
+{
+    // HACK: Every 60 frames we reapply the randomization. This handles a particular situation
+    // where the game will update the game moment and then reload the same field. Since the field
+    // ID doesn't change we don't detect it, but it reloads the scripts and overwrites our changes.
+    if (frameNumber % 60 == 0)
+    {
+        apply();
+    }
+}
+
 void RandomizeFieldItems::onFieldChanged(uint16_t fieldID)
 {
-    FieldData fieldData = GameData::getField(fieldID);
-    if (!fieldData.isValid())
-    {
-        return;
-    }
-
-    // Randomize items
-    for (int i = 0; i < fieldData.items.size(); ++i)
-    {
-        FieldItemData& item = fieldData.items[i];
-        uintptr_t itemIDOffset = FieldScriptOffsets::ScriptStart + item.offset + FieldScriptOffsets::ItemID;
-        uintptr_t itemQuantityOffset = FieldScriptOffsets::ScriptStart + item.offset + FieldScriptOffsets::ItemQuantity;
-
-        uint16_t oldItemID = game->read<uint16_t>(itemIDOffset);
-        uint8_t oldItemQuantity = game->read<uint8_t>(itemQuantityOffset);
-
-        if (oldItemID != item.id || oldItemQuantity != item.quantity)
-        {
-            // Data isn't loaded yet.
-            continue;
-        }
-
-        uint32_t randomKey = makeKey(fieldID, i);
-        if (randomizedItems.count(randomKey) == 0)
-        {
-            continue;
-        }
-
-        // Select a different item from the already randomized table and overwrite.
-        FieldItemData newItem = randomizedItems[randomKey];
-        game->write<uint16_t>(itemIDOffset, newItem.id);
-        game->write<uint8_t>(itemQuantityOffset, newItem.quantity);
-
-        std::string oldItemName = GameData::getNameFromFieldScriptID(oldItemID);
-        std::string newItemName = GameData::getNameFromFieldScriptID(newItem.id);
-        LOG("Randomized item on field %d: %s (%d) changed to: %s (%d)", fieldID, oldItemName.c_str(), oldItemQuantity, newItemName.c_str(), newItem.quantity);
-
-        // Overwrite the popup message
-        int msgIndex = game->findPickUpMessage(oldItemName, item.offset);
-        if (msgIndex >= 0)
-        {
-            FieldMessage& fieldMsg = fieldData.messages[msgIndex];
-            game->writeString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength, newItemName);
-        }
-    }
-
-    // Randomize materia
-    for (int i = 0; i < fieldData.materia.size(); ++i)
-    {
-        FieldItemData& materia = fieldData.materia[i];
-        uintptr_t idOffset = FieldScriptOffsets::ScriptStart + materia.offset + FieldScriptOffsets::MateriaID;
-
-        uint8_t oldMateriaID = game->read<uint8_t>(idOffset);
-
-        if (oldMateriaID != materia.id)
-        {
-            // Data isn't loaded yet.
-            continue;
-        }
-
-        uint32_t randomKey = makeKey(fieldID, i);
-        if (randomizedMateria.count(randomKey) == 0)
-        {
-            continue;
-        }
-
-        // Select a different item from the already randomized table and overwrite.
-        FieldItemData newMateria = randomizedMateria[randomKey];
-        game->write<uint8_t>(idOffset, (uint8_t)newMateria.id);
-
-        std::string oldMateriaName = GameData::getMateriaName(oldMateriaID);
-        std::string newMateriaName = GameData::getMateriaName((uint8_t)newMateria.id);
-        LOG("Randomized materia on field %d: %s changed to: %s", fieldID, oldMateriaName.c_str(), newMateriaName.c_str());
-
-        // Overwrite the popup message
-        int msgIndex = game->findPickUpMessage(oldMateriaName, materia.offset);
-        if (msgIndex >= 0)
-        {
-            FieldMessage& fieldMsg = fieldData.messages[msgIndex];
-            game->writeString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength, newMateriaName);
-        }
-    }
+    apply();
 }
 
 // Generate a map of fieldID and item index to the item data then shuffle those pairings
@@ -152,8 +129,6 @@ void RandomizeFieldItems::generateRandomizedItems()
 
         for (size_t i = 0; i < field.materia.size(); ++i)
         {
-            // TODO: Check for banned materia
-
             allMateria.push_back({ field.materia[i], { fieldID, i } });
         }
     }
@@ -179,4 +154,101 @@ void RandomizeFieldItems::generateRandomizedItems()
     }
 
     // TODO: generate spoiler log information here?
+}
+
+void RandomizeFieldItems::apply()
+{
+    FieldData fieldData = GameData::getField(game->getFieldID());
+    if (!fieldData.isValid())
+    {
+        return;
+    }
+
+    // Randomize items
+    for (int i = 0; i < fieldData.items.size(); ++i)
+    {
+        FieldItemData& item = fieldData.items[i];
+        uintptr_t itemIDOffset = FieldScriptOffsets::ScriptStart + item.offset + FieldScriptOffsets::ItemID;
+        uintptr_t itemQuantityOffset = FieldScriptOffsets::ScriptStart + item.offset + FieldScriptOffsets::ItemQuantity;
+
+        uint16_t oldItemID = game->read<uint16_t>(itemIDOffset);
+        uint8_t oldItemQuantity = game->read<uint8_t>(itemQuantityOffset);
+
+        if (oldItemID != item.id || oldItemQuantity != item.quantity)
+        {
+            // Data isn't loaded yet or has already been randomized.
+            continue;
+        }
+
+        // Do not randomize Battery in Wall Market.
+        if (fieldData.id == 196 && item.id == 85)
+        {
+            continue;
+        }
+
+        uint32_t randomKey = makeKey(fieldData.id, i);
+        if (randomizedItems.count(randomKey) == 0)
+        {
+            continue;
+        }
+
+        // Select a different item from the already randomized table and overwrite.
+        FieldItemData newItem = randomizedItems[randomKey];
+        game->write<uint16_t>(itemIDOffset, newItem.id);
+        game->write<uint8_t>(itemQuantityOffset, newItem.quantity);
+
+        std::string oldItemName = GameData::getNameFromFieldScriptID(oldItemID);
+        std::string newItemName = GameData::getNameFromFieldScriptID(newItem.id);
+        LOG("Randomized item on field %d: %s (%d) changed to: %s (%d)", fieldData.id, oldItemName.c_str(), oldItemQuantity, newItemName.c_str(), newItem.quantity);
+
+        // Overwrite the popup message
+        int msgIndex = game->findPickUpMessage(oldItemName, item.offset);
+        if (msgIndex >= 0)
+        {
+            FieldMessage& fieldMsg = fieldData.messages[msgIndex];
+            game->writeString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength, newItemName);
+        }
+    }
+
+    // Randomize materia
+    for (int i = 0; i < fieldData.materia.size(); ++i)
+    {
+        FieldItemData& materia = fieldData.materia[i];
+        uintptr_t idOffset = FieldScriptOffsets::ScriptStart + materia.offset + FieldScriptOffsets::MateriaID;
+
+        uint8_t oldMateriaID = game->read<uint8_t>(idOffset);
+
+        if (oldMateriaID != materia.id)
+        {
+            // Data isn't loaded yet.
+            continue;
+        }
+
+        uint32_t randomKey = makeKey(fieldData.id, i);
+        if (randomizedMateria.count(randomKey) == 0)
+        {
+            continue;
+        }
+
+        // Select a different item from the already randomized table and overwrite.
+        uint16_t newMateriaID = randomizedMateria[randomKey].id;
+        if (Restrictions::isMateriaBanned((uint8_t)newMateriaID))
+        {
+            std::mt19937_64 rng64(Utilities::makeKey(game->getSeed(), fieldData.id, (uint8_t)newMateriaID));
+            newMateriaID = GameData::getRandomMateria(rng64);
+        }
+        game->write<uint8_t>(idOffset, (uint8_t)newMateriaID);
+
+        std::string oldMateriaName = GameData::getMateriaName(oldMateriaID);
+        std::string newMateriaName = GameData::getMateriaName((uint8_t)newMateriaID);
+        LOG("Randomized materia on field %d: %s changed to: %s", fieldData.id, oldMateriaName.c_str(), newMateriaName.c_str());
+
+        // Overwrite the popup message
+        int msgIndex = game->findPickUpMessage(oldMateriaName, materia.offset);
+        if (msgIndex >= 0)
+        {
+            FieldMessage& fieldMsg = fieldData.messages[msgIndex];
+            game->writeString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength, newMateriaName);
+        }
+    }
 }

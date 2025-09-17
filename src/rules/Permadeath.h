@@ -3,6 +3,13 @@
 #include <cstdint>
 #include <set>
 
+struct PermadeathExemption
+{
+    uint16_t minGameMoment = 0;
+    uint16_t maxGameMoment = UINT16_MAX;
+    std::set<uint16_t> fieldIDs;
+};
+
 class Permadeath : public Rule
 {
 public:
@@ -14,7 +21,9 @@ public:
     }
 
 private:
-    void onFrame(uint32_t frameNumber);
-
+    std::vector<PermadeathExemption> exemptions;
     std::set<uint8_t> deadCharacterIDs;
+
+    void onFrame(uint32_t frameNumber);
+    bool isExempt(uint16_t fieldID);
 };
