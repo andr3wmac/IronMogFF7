@@ -18,6 +18,9 @@ struct FieldItemData
     uint32_t offset = 0;
     uint16_t id = 0;
     uint8_t quantity = 0;
+    int16_t x = 0;
+    int16_t y = 0;
+    int16_t z = 0;
 };
 
 struct FieldMessage
@@ -42,6 +45,7 @@ struct FieldWorldExit
 
 struct FieldData
 {
+    uint16_t id = 0;
     std::string name = "";
     std::vector<FieldItemData> items;
     std::vector<FieldItemData> materia;
@@ -56,6 +60,7 @@ struct WorldMapEntrance
 {
     uint32_t offset = 0;
     uint16_t fieldID = 0;
+    std::string fieldName = "";
     uint32_t centerX = 0;
     uint32_t centerZ = 0;
 };
@@ -75,7 +80,7 @@ public:
     static uint16_t getRandomArmor(std::mt19937_64& rng);
     static uint16_t getRandomItem(std::mt19937_64& rng);
     static uint16_t getRandomWeapon(std::mt19937_64& rng);
-    static uint16_t getRandomMateria(std::mt19937_64& rng);
+    static uint16_t getRandomMateria(std::mt19937_64& rng, bool excludeBanned = true);
 
     static FieldData getField(uint16_t id);
     static std::string getNameFromFieldScriptID(uint16_t fieldScriptID);
@@ -103,10 +108,10 @@ public:
 #define ADD_MATERIA(ID, NAME) materiaNames[ID] = NAME;
 #define ADD_ESKILL(NAME, BATTLE_DATA) GameData::eSkills.push_back({NAME, BATTLE_DATA});
 
-#define ADD_FIELD(FIELD_ID, NAME) fieldData[FIELD_ID] = {NAME};
+#define ADD_FIELD(FIELD_ID, NAME) fieldData[FIELD_ID] = {FIELD_ID, NAME};
 
-#define ADD_FIELD_ITEM(FIELD_ID, OFFSET, ITEM_ID, QUANTITY) \
-    { GameData::fieldData[FIELD_ID].items.push_back({OFFSET, ITEM_ID, QUANTITY}); }
+#define ADD_FIELD_ITEM(FIELD_ID, OFFSET, ITEM_ID, QUANTITY, ITEM_X, ITEM_Y, ITEM_Z) \
+    { GameData::fieldData[FIELD_ID].items.push_back({OFFSET, ITEM_ID, QUANTITY, ITEM_X, ITEM_Y, ITEM_Z}); }
 
 #define ADD_FIELD_MATERIA(FIELD_ID, OFFSET, MAT_ID) \
     { GameData::fieldData[FIELD_ID].materia.push_back({OFFSET, MAT_ID, 1}); }
@@ -120,4 +125,4 @@ public:
 #define ADD_FIELD_WORLD_EXIT(FIELD_ID, OFFSET, INDEX, TARGET_FIELD_ID) \
     { GameData::fieldData[FIELD_ID].worldExits.push_back({OFFSET, INDEX, TARGET_FIELD_ID}); }
 
-#define ADD_WORLDMAP_ENTRANCE(OFFSET, FIELD_ID, CENTER_X, CENTER_Z) GameData::worldMapEntrances.push_back({OFFSET, FIELD_ID, CENTER_X, CENTER_Z});
+#define ADD_WORLDMAP_ENTRANCE(OFFSET, FIELD_ID, FIELD_NAME, CENTER_X, CENTER_Z) GameData::worldMapEntrances.push_back({OFFSET, FIELD_ID, FIELD_NAME, CENTER_X, CENTER_Z});

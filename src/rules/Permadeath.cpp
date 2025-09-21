@@ -7,6 +7,7 @@ REGISTER_RULE("Permadeath", Permadeath)
 
 void Permadeath::setup()
 {
+    BIND_EVENT(game->onStart, Permadeath::onStart);
     BIND_EVENT_ONE_ARG(game->onFrame, Permadeath::onFrame);
 
     // Kalm Flashback
@@ -20,6 +21,17 @@ void Permadeath::setup()
             kalmExemption.fieldIDs.insert(i);
         }
     }
+
+    // Golden Saucer Arena
+    {
+        PermadeathExemption& saucerArena = exemptions.emplace_back();
+        saucerArena.fieldIDs.insert(502);
+    }
+}
+
+void Permadeath::onStart()
+{
+    deadCharacterIDs.clear();
 }
 
 void Permadeath::onFrame(uint32_t frameNumber)

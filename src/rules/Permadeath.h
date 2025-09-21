@@ -24,6 +24,7 @@ private:
     std::vector<PermadeathExemption> exemptions;
     std::set<uint8_t> deadCharacterIDs;
 
+    void onStart();
     void onFrame(uint32_t frameNumber);
     bool isExempt(uint16_t fieldID);
 };

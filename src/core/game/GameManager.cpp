@@ -251,6 +251,16 @@ void GameManager::update()
     }
 
     uint32_t newFrameNumber = read<uint32_t>(GameOffsets::FrameNumber);
+
+    // A jump in frame number likely indicates a load game or load save state.
+    int frameDifference = std::abs((int)newFrameNumber - (int)frameNumber);
+    if (frameDifference > 10)
+    {
+        LOG("Load detected, reloading rules.");
+        loadSaveData();
+        onStart.Invoke();
+    }
+
     if (newFrameNumber != frameNumber)
     {
         frameNumber = newFrameNumber;

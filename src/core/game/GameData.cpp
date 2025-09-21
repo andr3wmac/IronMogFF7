@@ -1,7 +1,8 @@
 #include "GameData.h"
 #include "core/game/MemoryOffsets.h"
+#include "rules/Restrictions.h"
 
-static FieldData gInvalidField = { "" };
+static FieldData gInvalidField = { 0, "" };
 
 std::unordered_map<uint8_t, std::string> GameData::accessoryNames;
 std::unordered_map<uint8_t, std::string> GameData::armorNames;
@@ -123,8 +124,27 @@ uint16_t GameData::getRandomWeapon(std::mt19937_64& rng)
     return keys[dist(rng)];
 }
 
-uint16_t GameData::getRandomMateria(std::mt19937_64& rng)
+uint16_t GameData::getRandomMateria(std::mt19937_64& rng, bool excludeBanned)
 {
+    if (excludeBanned)
+    {
+        static std::vector<uint16_t> keysWithoutBanned;
+        if (keysWithoutBanned.empty())
+        {
+            for (const auto& pair : GameData::materiaNames)
+            {
+                if (Restrictions::isMateriaBanned(pair.first))
+                {
+                    continue;
+                }
+                keysWithoutBanned.push_back(pair.first);
+            }
+        }
+
+        std::uniform_int_distribution<size_t> dist(0, keysWithoutBanned.size() - 1);
+        return keysWithoutBanned[dist(rng)];
+    }
+
     static std::vector<uint16_t> keys;
     if (keys.empty()) 
     {

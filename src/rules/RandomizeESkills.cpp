@@ -29,8 +29,9 @@ void RandomizeESkills::setup()
 
 void RandomizeESkills::onStart()
 {
-    // Generate a shuffled remapping of e.skills based on game seed.
+    trackedMateria.clear();
 
+    // Generate a shuffled remapping of e.skills based on game seed.
     eSkillMapping.resize(24);
     for (int i = 0; i < 24; ++i) 
     {
@@ -133,6 +134,8 @@ void RandomizeESkills::onBattleExit()
             game->write<uint32_t>(mat.offset, newMateriaID);
         }
     }
+
+    trackedMateria.clear();
 }
 
 void RandomizeESkills::onFrame(uint32_t frameNumber)

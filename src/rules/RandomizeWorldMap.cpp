@@ -51,20 +51,52 @@ void RandomizeWorldMap::onDebugGUI()
         }
 
         WorldMapEntrance& closestEntrance = GameData::worldMapEntrances[closestIndex];
-        std::string debugText = "Closest Entrance " + std::to_string(closestIndex) + " Field ID: " + std::to_string(closestEntrance.fieldID);
-        ImGui::Text(debugText.c_str());
+        std::string closestText = "Closest Entrance: " + closestEntrance.fieldName + " (" + std::to_string(closestEntrance.fieldID) + ")";
+        ImGui::Text(closestText.c_str());
+
+        uint16_t randomEntIndex = getRandomEntrance(closestIndex);
+        WorldMapEntrance& randomizedEntrance = GameData::worldMapEntrances[randomEntIndex];
+        std::string randomizedText = "Randomized to: " + randomizedEntrance.fieldName + " (" + std::to_string(randomizedEntrance.fieldID) + ")";
+        ImGui::Text(randomizedText.c_str());
+
+        int groupIndex = -1;
+        for (int i = 0; i < entranceGroups.size(); ++i)
+        {
+            std::set<uint16_t>& group = entranceGroups[i];
+            if (group.count(closestEntrance.fieldID) > 0)
+            {
+                groupIndex = i;
+                break;
+            }
+        }
+        std::string groupText = "Group: " + std::to_string(groupIndex);
+        ImGui::Text(groupText.c_str());
     }
 }
 
 void RandomizeWorldMap::onStart()
 {
+    // Clear state
+    lastClosestIndex = -1;
+    lastCmd0 = 0;
+    lastCmd1 = 0;
+    entranceGroups.clear();
+    randomizedEntrances.clear();
+
     // We break entrances up into groups and randomize among them
     // to prevent randomizing to places you can't get to.
-    entranceGroups.push_back({ 0x01, 0x02, 0x03, 0x04 });   // Midgar, Kalm, Chocobo Ranch, Mithril Mine
-    entranceGroups.push_back({ 0x05, 0x06, 0x07 }); // Mithril Mine, Fort Condor, Junon
-    entranceGroups.push_back({ 0x0D, 0x0E }); // Costa Del Sol, North Corel
+    // - Zolom field is excluded because its not worth the effort to make it work right.
+    // - Corel Desert needs the buggy to access which gets weird so its excluded.
 
-    randomizedEntrances.clear();
+    entranceGroups.push_back({ 0x01, 0x02, 0x03, 0x04 });   // Midgar, Kalm, Chocobo Ranch, Mithril Mine
+    entranceGroups.push_back({ 0x05, 0x06, 0x07 });         // Mithril Mine, Fort Condor, 0x39
+    entranceGroups.push_back({ 0x0D, 0x0E });               // Costa Del Sol, Mount Corel
+    entranceGroups.push_back({ 0x0A, 0x0F, 0x11, 0x12 });   // Weapon Seller, North Corel, Gongaga, Cosmo Canyon
+    entranceGroups.push_back({ 0x14, 0x2E });               // Rocket Town, Mount Nibel
+    entranceGroups.push_back({ 0x08, 0x17, 0x19 });         // Temple of Ancients, Wutai, Bone Village
+    entranceGroups.push_back({ 0x0B, 0x1C });               // Mideel, Mystery House
+    entranceGroups.push_back({ 0x0C, 0x16, 0x18, 0x1D });   // Materia Caves
+
     for (int i = 0; i < GameData::worldMapEntrances.size(); ++i)
     {
         randomizedEntrances[i] = i;
@@ -184,7 +216,7 @@ void RandomizeWorldMap::onFrame(uint32_t frameNumber)
             lastCmd1 = cmd1;
 
             WorldMapEntrance& origEntrance = GameData::worldMapEntrances[closestIndex];
-            LOG("Randomized entrance %d to %d", origEntrance.fieldID, randEntrance.fieldID);
+            LOG("Randomized world map entrance %d to %d", origEntrance.fieldID, randEntrance.fieldID);
         }
     }
 }

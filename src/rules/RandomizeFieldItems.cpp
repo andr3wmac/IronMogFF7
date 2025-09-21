@@ -93,6 +93,7 @@ void RandomizeFieldItems::onFieldChanged(uint16_t fieldID)
 void RandomizeFieldItems::generateRandomizedItems()
 {
     randomizedItems.clear();
+    randomizedMateria.clear();
 
     // Sort the field IDs to get a deterministic order
     std::vector<uint32_t> sortedFieldIDs;
@@ -194,6 +195,13 @@ void RandomizeFieldItems::apply()
 
         // Select a different item from the already randomized table and overwrite.
         FieldItemData newItem = randomizedItems[randomKey];
+
+        // It's possible we randomized to the same item already there.
+        if (newItem.id == oldItemID)
+        {
+            continue;
+        }
+
         game->write<uint16_t>(itemIDOffset, newItem.id);
         game->write<uint8_t>(itemQuantityOffset, newItem.quantity);
 
@@ -217,7 +225,6 @@ void RandomizeFieldItems::apply()
         uintptr_t idOffset = FieldScriptOffsets::ScriptStart + materia.offset + FieldScriptOffsets::MateriaID;
 
         uint8_t oldMateriaID = game->read<uint8_t>(idOffset);
-
         if (oldMateriaID != materia.id)
         {
             // Data isn't loaded yet.
@@ -232,6 +239,13 @@ void RandomizeFieldItems::apply()
 
         // Select a different item from the already randomized table and overwrite.
         uint16_t newMateriaID = randomizedMateria[randomKey].id;
+
+        // It's possible we randomized to the same materia already there.
+        if (newMateriaID == oldMateriaID)
+        {
+            continue;
+        }
+
         if (Restrictions::isMateriaBanned((uint8_t)newMateriaID))
         {
             std::mt19937_64 rng64(Utilities::makeKey(game->getSeed(), fieldData.id, (uint8_t)newMateriaID));
