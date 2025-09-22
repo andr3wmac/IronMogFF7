@@ -77,8 +77,8 @@ struct CharacterDataOffsets
     CONST_PTR Vincent   = 0x9CAD4;
     CONST_PTR Cid       = 0x9CB58;
 
-    CONST_PTR Characters[] = { Cloud, Barret, Tifa, Aerith, RedXIII, Yuffie, CaitSith, Vincent, Cid };
-    CONST_U8 CharacterIDs[] = { 0, 1, 2, 3, 4, 5, 9, 10, 11 };
+    CONST_PTR Characters[] = { Cloud, Barret, Tifa, Aerith, RedXIII, Yuffie, Cid, CaitSith, Vincent };
+    CONST_U8 CharacterIDs[] = { 0, 1, 2, 3, 4, 5, 8, 9, 10 };
 
     CONST_PTR ID                = 0x00;
     CONST_PTR Level             = 0x01;
@@ -98,6 +98,7 @@ struct CharacterDataOffsets
     CONST_PTR CurrentLimitBar   = 0x0F;
     CONST_PTR Name              = 0x10;
     CONST_PTR CurrentHP         = 0x2C;
+    CONST_PTR MaxHP             = 0x38;
 
     CONST_PTR WeaponMateria[] = { 0x40, 0x44, 0x48, 0x4C, 0x50, 0x54, 0x58, 0x5C };
     CONST_PTR ArmorMateria[]  = { 0x60, 0x64, 0x68, 0x6C, 0x70, 0x74, 0x78, 0x7C };
@@ -113,9 +114,9 @@ inline uintptr_t getCharacterDataOffset(uint8_t characterID)
         case 3:     return CharacterDataOffsets::Aerith;
         case 4:     return CharacterDataOffsets::RedXIII;
         case 5:     return CharacterDataOffsets::Yuffie;
+        case 8:     return CharacterDataOffsets::Cid;
         case 9:     return CharacterDataOffsets::CaitSith;
         case 10:    return CharacterDataOffsets::Vincent;
-        case 11:    return CharacterDataOffsets::Cid;
     }
 
     return CharacterDataOffsets::Cloud;

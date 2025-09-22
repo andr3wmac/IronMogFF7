@@ -21,6 +21,7 @@ private:
 
     void setESkillBattleMenu(int playerIndex, int eSkillIndex, bool enabled);
 
+    bool battleEntered = false;
     uint64_t previousESkillValues[72];
     std::vector<int> eSkillMapping;
     std::vector<TrackedMateria> trackedMateria;

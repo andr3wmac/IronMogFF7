@@ -27,6 +27,12 @@ void Permadeath::setup()
         PermadeathExemption& saucerArena = exemptions.emplace_back();
         saucerArena.fieldIDs.insert(502);
     }
+
+    // Fort Condor Battle
+    {
+        PermadeathExemption& fortCondorBattle = exemptions.emplace_back();
+        fortCondorBattle.fieldIDs.insert(356);
+    }
 }
 
 void Permadeath::onStart()

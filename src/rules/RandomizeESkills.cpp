@@ -29,6 +29,7 @@ void RandomizeESkills::setup()
 
 void RandomizeESkills::onStart()
 {
+    battleEntered = false;
     trackedMateria.clear();
 
     // Generate a shuffled remapping of e.skills based on game seed.
@@ -86,6 +87,8 @@ void RandomizeESkills::onBattleEnter()
             previousESkillValues[(p * 24) + i] = game->read<uint64_t>(offset);
         }
     }
+
+    battleEntered = true;
 }
 
 std::vector<int> getFlippedBits(uint32_t before, uint32_t after) 
@@ -136,11 +139,12 @@ void RandomizeESkills::onBattleExit()
     }
 
     trackedMateria.clear();
+    battleEntered = false;
 }
 
 void RandomizeESkills::onFrame(uint32_t frameNumber)
 {
-    if (game->getGameModule() != GameModule::Battle)
+    if (game->getGameModule() != GameModule::Battle || !battleEntered)
     {
         return;
     }
