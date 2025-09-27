@@ -15,7 +15,7 @@ Inspired by IronMon and IronMario 64, IronMog FF7 is a modification for Final Fa
 
 # Extras
 
-- Randomize Music
+- Randomized Music
 
 # How To Play
 
