@@ -80,6 +80,7 @@ void RandomizeWorldMap::onStart()
     lastClosestIndex = -1;
     lastCmd0 = 0;
     lastCmd1 = 0;
+    lastGameMoment = game->getGameMoment();
     entranceGroups.clear();
     randomizedEntrances.clear();
 
@@ -131,7 +132,7 @@ void RandomizeWorldMap::onStart()
             WorldMapEntrance& entrance1 = GameData::worldMapEntrances[groupKeys[j]];
             WorldMapEntrance& entrance2 = GameData::worldMapEntrances[groupValues[j]];
 
-            LOG("World Map Entrance %d (%d) -> %d (%d)", entrance1.fieldID, groupKeys[j], entrance2.fieldID, groupValues[j]);
+            LOG("World Map Entrance %s (%d) -> %s (%d)", entrance1.fieldName.c_str(), entrance1.fieldID, entrance2.fieldName.c_str(), entrance2.fieldID);
         }
     }
 
@@ -141,16 +142,21 @@ void RandomizeWorldMap::onStart()
     game->write<uint8_t>(0x9D457, seenZolom);
 }
 
-uint16_t getJumpAddress(uintptr_t memAddress)
-{
-    uintptr_t jumpStart = memAddress - WorldOffsets::JumpStart;
-    uint16_t jumpValue = (uint16_t)jumpStart / 2;
-
-    return jumpValue;
-}
-
 void RandomizeWorldMap::onFrame(uint32_t frameNumber)
 {
+    uint16_t currentGameMoment = game->getGameMoment();
+    if (lastGameMoment < 1299 && currentGameMoment == 1299)
+    {
+        // When we get the submarine its going to put us into an area where we 
+        // may not be able to get to the highwind due to world map randomization.
+        // To get around this we move the highwind to be next to junon.
+
+        uintptr_t offset = SavemapOffsets::Start + SavemapOffsets::BuggyHighwindPosition;
+        game->write<uint32_t>(offset + 0, 1931124268);
+        game->write<uint32_t>(offset + 4, 81415094);
+    }
+    lastGameMoment = currentGameMoment;
+
     if (game->getGameModule() != GameModule::World)
     {
         lastClosestIndex = -1;

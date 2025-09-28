@@ -20,7 +20,7 @@ void App::drawMainPanel()
 
     ImGui::Spacing();
     ImGui::BeginChild("##ScrollBox", ImVec2(0, 300));
-    ImGui::BeginDisabled(connectionState > 0);
+    ImGui::BeginDisabled(connectionState > 0 && connectionState < 3);
     {
         ImGui::SeparatorText("Game");
         {
@@ -134,7 +134,7 @@ void App::drawMainPanel()
     const ImVec2 p = ImGui::GetCursorScreenPos();
     ImDrawList* drawList = ImGui::GetWindowDrawList();
 
-    if (connectionState == 0)
+    if (connectionState == 0 || connectionState == 3)
     {
         drawList->AddCircleFilled(ImVec2(p.x + 135, p.y + 10), 5.0f, dotRed);
     }
@@ -147,7 +147,7 @@ void App::drawMainPanel()
         drawList->AddCircleFilled(ImVec2(p.x + 135, p.y + 10), 5.0f, dotGreen);
     }
 
-    if (connectionState == 0)
+    if (connectionState == 0 || connectionState == 3)
     {
         if (ImGui::Button("Attach", ImVec2(120, 0)))
         {
@@ -249,6 +249,15 @@ void App::drawDebugPanel()
     uint16_t fieldID = game->read<uint16_t>(GameOffsets::FieldID);
     std::string fieldText = "Field ID: " + std::to_string(fieldID);
     ImGui::Text(fieldText.c_str());
+
+    // Party Members
+    {
+        uint8_t party0 = game->read<uint8_t>(GameOffsets::PartyIDList + 0);
+        uint8_t party1 = game->read<uint8_t>(GameOffsets::PartyIDList + 1);
+        uint8_t party2 = game->read<uint8_t>(GameOffsets::PartyIDList + 2);
+        std::string partyText = "Party: " + std::to_string(party0) + " " + std::to_string(party1) + " " + std::to_string(party2);
+        ImGui::Text(partyText.c_str());
+    }
 
     // Player Position
     int position[3];

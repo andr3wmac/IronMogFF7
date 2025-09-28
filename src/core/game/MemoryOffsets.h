@@ -62,6 +62,13 @@ struct WorldOffsets
     CONST_PTR JumpStart = 0xD09EC;
 };
 
+// Converts a memory address into a jump address that world scripts can use
+inline uint16_t getJumpAddress(uintptr_t memAddress)
+{
+    uintptr_t jumpStart = memAddress - WorldOffsets::JumpStart;
+    return (uint16_t)(jumpStart / 2);
+}
+
 // Character data exists for each of the cast of playabale characters and these stats are all saved onto memory card.
 // When you enter a battle, relevant fields from this are copied into Battle Allies, etc
 // Therefore, changing Current HP on character data while in a battle has no effect.
@@ -77,8 +84,8 @@ struct CharacterDataOffsets
     CONST_PTR Vincent   = 0x9CAD4;
     CONST_PTR Cid       = 0x9CB58;
 
-    CONST_PTR Characters[] = { Cloud, Barret, Tifa, Aerith, RedXIII, Yuffie, Cid, CaitSith, Vincent };
-    CONST_U8 CharacterIDs[] = { 0, 1, 2, 3, 4, 5, 8, 9, 10 };
+    CONST_PTR Characters[] = { Cloud, Barret, Tifa, Aerith, RedXIII, Yuffie, CaitSith, Vincent, Cid };
+    CONST_U8 CharacterIDs[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
 
     CONST_PTR ID                = 0x00;
     CONST_PTR Level             = 0x01;
@@ -108,15 +115,15 @@ inline uintptr_t getCharacterDataOffset(uint8_t characterID)
 {
     switch (characterID)
     {
-        case 0:     return CharacterDataOffsets::Cloud;
-        case 1:     return CharacterDataOffsets::Barret;
-        case 2:     return CharacterDataOffsets::Tifa;
-        case 3:     return CharacterDataOffsets::Aerith;
-        case 4:     return CharacterDataOffsets::RedXIII;
-        case 5:     return CharacterDataOffsets::Yuffie;
-        case 8:     return CharacterDataOffsets::Cid;
-        case 9:     return CharacterDataOffsets::CaitSith;
-        case 10:    return CharacterDataOffsets::Vincent;
+        case 0: return CharacterDataOffsets::Cloud;
+        case 1: return CharacterDataOffsets::Barret;
+        case 2: return CharacterDataOffsets::Tifa;
+        case 3: return CharacterDataOffsets::Aerith;
+        case 4: return CharacterDataOffsets::RedXIII;
+        case 5: return CharacterDataOffsets::Yuffie;
+        case 6: return CharacterDataOffsets::CaitSith;
+        case 7: return CharacterDataOffsets::Vincent;
+        case 8: return CharacterDataOffsets::Cid;
     }
 
     return CharacterDataOffsets::Cloud;
@@ -126,7 +133,6 @@ struct PlayerOffsets
 {
     CONST_PTR Players[] = { 0x9D84C, 0x9DC8C, 0x9E0CC };
 
-    CONST_PTR CharacterID   = 0x00;
     CONST_PTR CoverChance   = 0x01;
     CONST_PTR Strength      = 0x02;
     CONST_PTR Vitality      = 0x03;
@@ -145,6 +151,7 @@ struct PlayerOffsets
 
     CONST_PTR LimitBreakDisplay = 0x1B;
     CONST_PTR EnemySkillMenu    = 0x348; // List of 24 8-byte entries.
+    CONST_PTR CharacterID       = 0x420;
 };
 
 struct BattleCharacterOffsets
@@ -222,4 +229,11 @@ struct ShopOffsets
 
     // All materia prices are stored in uint32_t
     CONST_PTR MateriaPricesStart = 0x1D6E54;
+};
+
+struct SavemapOffsets
+{
+    CONST_PTR Start = 0x9C6E4;
+
+    CONST_PTR BuggyHighwindPosition = 0x0F74;
 };

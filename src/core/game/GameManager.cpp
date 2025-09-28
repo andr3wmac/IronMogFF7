@@ -157,6 +157,7 @@ void GameManager::update()
     if (newGameModule == 0)
     {
         // At main menu
+        hasStarted = false;
         return;
     }
     else if (!hasStarted)
@@ -355,10 +356,10 @@ bool GameManager::isBattleDataLoaded()
             }
 
             uintptr_t characterOffset = getCharacterDataOffset(id);
-            uint16_t worldHP = read<uint16_t>(characterOffset + CharacterDataOffsets::CurrentHP);
-            uint16_t battleHP = read<uint16_t>(BattleCharacterOffsets::Allies[i] + BattleCharacterOffsets::CurrentHP);
+            uint16_t worldMaxHP = read<uint16_t>(characterOffset + CharacterDataOffsets::MaxHP);
+            uint16_t battleMaxHP = read<uint16_t>(BattleCharacterOffsets::Allies[i] + BattleCharacterOffsets::MaxHP);
 
-            if (worldHP == battleHP)
+            if (worldMaxHP == battleMaxHP)
             {
                 verifiedPlayers++;
             }

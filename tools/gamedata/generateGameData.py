@@ -118,15 +118,15 @@ def outputOther(gen, discPath, version):
     gen.write_line("ADD_ESKILL(\"Beta\", 7696581403404);", 4)
     gen.write_line("ADD_ESKILL(\"Aqualung\", 7696581403149);", 4)
     gen.write_line("ADD_ESKILL(\"Trine\", 7696581399566);", 4)
-    gen.write_line("ADD_ESKILL(\"Magic Breath\", 570646534834959);", 4)
+    gen.write_line("ADD_ESKILL(\"Magic Breath\", 7696581413647);", 4)
     gen.write_line("ADD_ESKILL(\"????\", 3298534884112);", 4)
     gen.write_line("ADD_ESKILL(\"Goblin Punch\", 3298534883345);", 4)
     gen.write_line("ADD_ESKILL(\"Chocobuckle\", 3298534884114);", 4)
     gen.write_line("ADD_ESKILL(\"L5 Death\", 7696581400083);", 4)
     gen.write_line("ADD_ESKILL(\"Death Sentence\", 3298534885908);", 4)
     gen.write_line("ADD_ESKILL(\"Roulette\", 218802813928981);", 4)
-    gen.write_line("ADD_ESKILL(\"Shadow Flare\", 566248488330262);", 4)
-    gen.write_line("ADD_ESKILL(\"Pandora’s Box\", 570646534843927);", 4)
+    gen.write_line("ADD_ESKILL(\"Shadow Flare\", 3298534908950);", 4)
+    gen.write_line("ADD_ESKILL(\"Pandora’s Box\", 7696581422615);", 4)
     gen.write_line("")
 
 def unpack_ushort(byteA, byteB):

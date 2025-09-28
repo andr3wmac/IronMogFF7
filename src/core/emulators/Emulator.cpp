@@ -14,7 +14,6 @@
 #include <psapi.h>
 
 std::vector<std::pair<uintptr_t, uint32_t>> Emulator::ps1MemoryChecks = {
-    {0x08, 54525960},
     {0x80, 1008336896},
     {0x84, 660212864}
 };

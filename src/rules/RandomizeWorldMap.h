@@ -15,6 +15,7 @@ private:
     int lastClosestIndex = -1;
     uint16_t lastCmd0 = 0;
     uint16_t lastCmd1 = 0;
+    uint16_t lastGameMoment = 0;
 
     void onStart();
     void onFrame(uint32_t frameNumber);

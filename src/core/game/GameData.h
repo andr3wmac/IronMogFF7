@@ -6,6 +6,7 @@
 #include <random>
 
 #define SHOP_ITEM_MAX 10
+#define ESKILL_EMPTY 562949953421567
 
 struct ESkill
 {

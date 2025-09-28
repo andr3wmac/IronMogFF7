@@ -1,4 +1,5 @@
 #include "MemorySearch.h"
+#include "core/utilities/Logging.h"
 #include "core/utilities/Utilities.h"
 
 const uintptr_t PS1RAMSize = 0x200000; // 2 MB
@@ -99,6 +100,50 @@ std::vector<uintptr_t> MemorySearch::searchForCloseValues(uint8_t first, uint8_t
                 results.push_back(lastFirstPosition);
             }
         }
+    }
+
+    return results;
+}
+
+std::vector<uintptr_t> MemorySearch::searchForClosePositions(int posX, int posY, int posZ, int maxDistance)
+{
+    std::vector<uintptr_t> results;
+
+    if (game == nullptr)
+    {
+        return results;
+    }
+
+    // Copy PS1 RAM into temporary storage
+    if (!game->read(0, PS1RAMSize, RAMData))
+    {
+        return results;
+    }
+
+    size_t positionStride = sizeof(uint32_t) * 3; // XYZ
+    for (uintptr_t i = 0; i < (PS1RAMSize - positionStride); ++i)
+    {
+        uint32_t x;
+        int32_t y;
+        uint32_t z;
+        memcpy(&x, &RAMData[i], sizeof(uint32_t));
+        memcpy(&y, &RAMData[i + 4], sizeof(int32_t));
+        memcpy(&z, &RAMData[i + 8], sizeof(uint32_t));
+
+        if (std::abs(posX - (int)x) > maxDistance || std::abs(posY - y) > maxDistance || std::abs(posZ - (int)z) > maxDistance)
+        {
+            continue;
+        }
+
+        if (x == posX && y == posY && z == posZ)
+        {
+            // Skip exact matches for now.
+            continue;
+        }
+
+        LOG("Potential Match: %d %d %d at %d", x, y, z, i);
+
+        results.push_back(i);
     }
 
     return results;

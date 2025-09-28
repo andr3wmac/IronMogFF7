@@ -2,7 +2,11 @@
 #include "core/game/GameData.h"
 #include "core/game/MemoryOffsets.h"
 #include "core/utilities/Logging.h"
+
+#include <imgui.h>
 #include <random>
+#include <set>
+#include <unordered_set>
 
 REGISTER_RULE("Randomize E.Skills", RandomizeESkills)
 
@@ -16,9 +20,6 @@ REGISTER_RULE("Randomize E.Skills", RandomizeESkills)
 
 // TODO: it would be cool if we could change the text thats displayed when the skill is learned.
 
-// Value found in each empty eskill menu slot
-#define ESKILL_EMPTY 562949953421567
-
 void RandomizeESkills::setup()
 {
     BIND_EVENT(game->onStart, RandomizeESkills::onStart);
@@ -27,10 +28,33 @@ void RandomizeESkills::setup()
     BIND_EVENT_ONE_ARG(game->onFrame, RandomizeESkills::onFrame);
 }
 
+void RandomizeESkills::onDebugGUI()
+{
+    if (game->getGameModule() != GameModule::Battle)
+    {
+        ImGui::Text("Not currently in battle.");
+        return;
+    }
+
+    for (int p = 0; p < 3; ++p)
+    {
+        std::string playerText = "Player " + std::to_string(p);
+        ImGui::Text(playerText.c_str());
+
+        for (int i = 0; i < 24; ++i)
+        {
+            uintptr_t offset = PlayerOffsets::Players[p] + PlayerOffsets::EnemySkillMenu + (i * 8);
+            uint64_t curValue = game->read<uint64_t>(offset);
+            std::string eSkillText = " " + std::to_string(curValue);
+            ImGui::Text(eSkillText.c_str());
+        }
+    }
+}
+
 void RandomizeESkills::onStart()
 {
     battleEntered = false;
-    trackedMateria.clear();
+    trackedPlayers.clear();
 
     // Generate a shuffled remapping of e.skills based on game seed.
     eSkillMapping.resize(24);
@@ -45,11 +69,21 @@ void RandomizeESkills::onStart()
 
 void RandomizeESkills::onBattleEnter()
 {
-    trackedMateria.clear();
+    trackedPlayers.clear();
 
-    for (int c = 0; c < 9; ++c)
+    std::array<uint8_t, 3> partyIDs = game->getPartyIDs();
+    for (int p = 0; p < 3; ++p)
     {
-        uintptr_t characterOffset = CharacterDataOffsets::Characters[c];
+        if (partyIDs[p] == 0xFF)
+        {
+            continue;
+        }
+
+        uintptr_t characterOffset = getCharacterDataOffset(partyIDs[p]);
+        bool hasESkillMateria = false;
+
+        TrackedPlayer player;
+        player.index = p;
 
         // Weapon Materia Slots
         for (int i = 0; i < 8; ++i)
@@ -60,7 +94,8 @@ void RandomizeESkills::onBattleEnter()
             // Check if its Enemy Skill Materia
             if ((materiaID & 0xFF) == 0x2C)
             {
-                trackedMateria.push_back({ materiaOffset, materiaID });
+                player.trackedMateria.push_back({ materiaOffset, materiaID });
+                hasESkillMateria = true;
             }
         }
 
@@ -73,20 +108,26 @@ void RandomizeESkills::onBattleEnter()
             // Check if its Enemy Skill Materia
             if ((materiaID & 0xFF) == 0x2C)
             {
-                trackedMateria.push_back({ materiaOffset, materiaID });
+                player.trackedMateria.push_back({ materiaOffset, materiaID });
+                hasESkillMateria = true;
             }
+        }
+
+        if (hasESkillMateria)
+        {
+            trackedPlayers.push_back(player);
         }
     }
 
     // Read current state of e.skill values when entering the battle.
-    for (int p = 0; p < 3; ++p)
-    {
-        for (int i = 0; i < 24; ++i)
-        {
-            uintptr_t offset = PlayerOffsets::Players[p] + PlayerOffsets::EnemySkillMenu + (8 * i);
-            previousESkillValues[(p * 24) + i] = game->read<uint64_t>(offset);
-        }
-    }
+    //for (int p = 0; p < 3; ++p)
+    //{
+    //    for (int i = 0; i < 24; ++i)
+    //    {
+    //        uintptr_t offset = PlayerOffsets::Players[p] + PlayerOffsets::EnemySkillMenu + (8 * i);
+    //        previousESkillValues[(p * 24) + i] = game->read<uint64_t>(offset);
+    //    }
+    //}
 
     battleEntered = true;
 }
@@ -114,31 +155,32 @@ std::vector<int> getFlippedBits(uint32_t before, uint32_t after)
 
 void RandomizeESkills::onBattleExit()
 {
-    for (int i = 0; i < trackedMateria.size(); ++i)
+    for (TrackedPlayer& player : trackedPlayers)
     {
-        TrackedMateria& mat = trackedMateria[i];
-        uint32_t currentMateriaID = game->read<uint32_t>(mat.offset);
-
-        if (currentMateriaID != mat.materiaID)
+        for (TrackedMateria& mat : player.trackedMateria)
         {
-            std::vector<int> learnedESkills = getFlippedBits(mat.materiaID, currentMateriaID);
-            uint32_t newMateriaID = mat.materiaID;
-
-            for (int j = 0; j < learnedESkills.size(); ++j)
+            uint32_t currentMateriaID = game->read<uint32_t>(mat.offset);
+            if (currentMateriaID != mat.materiaID)
             {
-                int randomizedESkill = eSkillMapping[learnedESkills[j]];
-                int bitPosition = randomizedESkill + 8;
+                std::vector<int> learnedESkills = getFlippedBits(mat.materiaID, currentMateriaID);
+                uint32_t newMateriaID = mat.materiaID;
 
-                newMateriaID ^= (1u << bitPosition);
+                for (int i = 0; i < learnedESkills.size(); ++i)
+                {
+                    int randomizedESkill = eSkillMapping[learnedESkills[i]];
+                    int bitPosition = randomizedESkill + 8;
 
-                LOG("Randomized Enemy Skill from %d to %d", learnedESkills[j], randomizedESkill);
+                    newMateriaID ^= (1u << bitPosition);
+
+                    LOG("Randomized Enemy Skill from %d to %d", learnedESkills[i], randomizedESkill);
+                }
+
+                game->write<uint32_t>(mat.offset, newMateriaID);
             }
-
-            game->write<uint32_t>(mat.offset, newMateriaID);
         }
     }
 
-    trackedMateria.clear();
+    trackedPlayers.clear();
     battleEntered = false;
 }
 
@@ -150,22 +192,33 @@ void RandomizeESkills::onFrame(uint32_t frameNumber)
     }
 
     // Loop through each player and each e.skill to see if its changed since last frame.
-    for (int p = 0; p < 3; ++p)
+    for (TrackedPlayer& player : trackedPlayers)
     {
+        if (!player.menuLoaded)
+        {
+            player.menuLoaded = isESkillMenuLoaded(player);
+            if (!player.menuLoaded)
+            {
+                continue;
+            }
+
+            LOG("Player %d ESkill menu fully loaded.", player.index);
+        }
+
         for (int i = 0; i < 24; ++i)
         {
-            uintptr_t offset = PlayerOffsets::Players[p] + PlayerOffsets::EnemySkillMenu + (i * 8);
+            uintptr_t offset = PlayerOffsets::Players[player.index] + PlayerOffsets::EnemySkillMenu + (i * 8);
             uint64_t curValue = game->read<uint64_t>(offset);
-            uint64_t prevValue = previousESkillValues[(p * 24) + i];
+            uint64_t prevValue = player.previousESkillValues[i];
 
             if (curValue != prevValue && curValue == GameData::eSkills[i].battleData)
             {
                 // Disable newly learned eskill
-                setESkillBattleMenu(p, i, false);
+                setESkillBattleMenu(player, i, false);
 
                 // Enable randomized one
                 int randomizedESkill = eSkillMapping[i];
-                setESkillBattleMenu(p, randomizedESkill, true);
+                setESkillBattleMenu(player, randomizedESkill, true);
 
                 LOG("Randomized Enemy Skill from %d to %d", i, randomizedESkill);
             }
@@ -173,18 +226,43 @@ void RandomizeESkills::onFrame(uint32_t frameNumber)
     }
 }
 
-void RandomizeESkills::setESkillBattleMenu(int playerIndex, int eSkillIndex, bool enabled)
+bool RandomizeESkills::isESkillMenuLoaded(TrackedPlayer& player)
 {
-    uintptr_t offset = PlayerOffsets::Players[playerIndex] + PlayerOffsets::EnemySkillMenu + (eSkillIndex * 8);
+    std::unordered_set<uint64_t> validESkillValues;
+    for (int i = 0; i < 24; ++i) 
+    {
+        validESkillValues.insert(GameData::eSkills[i].battleData);
+    }
+    validESkillValues.insert(ESKILL_EMPTY);
+
+    int verifiedValues = 0;
+    for (int i = 0; i < 24; ++i)
+    {
+        uintptr_t offset = PlayerOffsets::Players[player.index] + PlayerOffsets::EnemySkillMenu + (i * 8);
+        uint64_t curValue = game->read<uint64_t>(offset);
+
+        if (validESkillValues.count(curValue) > 0)
+        {
+            player.previousESkillValues[i] = curValue;
+            verifiedValues++;
+        }
+    }
+
+    return verifiedValues == 24;
+}
+
+void RandomizeESkills::setESkillBattleMenu(TrackedPlayer& player, int eSkillIndex, bool enabled)
+{
+    uintptr_t offset = PlayerOffsets::Players[player.index] + PlayerOffsets::EnemySkillMenu + (eSkillIndex * 8);
 
     if (enabled)
     {
         game->write<uint64_t>(offset, GameData::eSkills[eSkillIndex].battleData);
-        previousESkillValues[(playerIndex * 24) + eSkillIndex] = GameData::eSkills[eSkillIndex].battleData;
+        player.previousESkillValues[eSkillIndex] = GameData::eSkills[eSkillIndex].battleData;
     }
     else 
     {
         game->write<uint64_t>(offset, ESKILL_EMPTY);
-        previousESkillValues[(playerIndex * 24) + eSkillIndex] = ESKILL_EMPTY;
+        player.previousESkillValues[eSkillIndex] = ESKILL_EMPTY;
     }
 }

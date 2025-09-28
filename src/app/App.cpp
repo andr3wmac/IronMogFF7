@@ -70,7 +70,17 @@ void App::attach()
 {
     if (managerThread != nullptr)
     {
-        return;
+        if (connectionState == 3)
+        {
+            managerRunning = false;
+            managerThread->join();
+            delete managerThread;
+            managerThread = nullptr;
+        }
+        else 
+        {
+            return;
+        }
     }
 
     managerThread = new std::thread(&App::runGameManager, this);
@@ -133,8 +143,9 @@ void App::runGameManager()
     }
     else
     {
-        connectionState = 0;
+        connectionState = 3;
         connectionStatus = "Failed to attach to emulator.";
+        return;
     }
 
     // Reset any global restrictions as we might be using a different set of rules on this run.
