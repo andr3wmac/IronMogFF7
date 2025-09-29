@@ -19,18 +19,21 @@ void App::drawMainPanel()
     gui.drawImage(logo, logo.width / 2, logo.height / 2);
 
     ImGui::Spacing();
-    ImGui::BeginChild("##ScrollBox", ImVec2(0, 300));
-    ImGui::BeginDisabled(connectionState > 0 && connectionState < 3);
+    ImGui::BeginChild("##ScrollBox", ImVec2(0, APP_WINDOW_HEIGHT - 250));
+    ImGui::BeginDisabled(connectionState > ConnectionState::NotConnected && connectionState < ConnectionState::Error);
     {
         ImGui::SeparatorText("Game");
         {
             ImGui::Text("Emulator:");
             ImGui::SameLine();
 
-            if (ImGui::Combo("##EmulatorList", &selectedEmulatorIdx, emulators, IM_ARRAYSIZE(emulators)))
+            int emulatorIndex = (int)selectedEmulatorType;
+            if (ImGui::Combo("##EmulatorList", &emulatorIndex, emulators, IM_ARRAYSIZE(emulators)))
             {
+                selectedEmulatorType = (EmulatorType)emulatorIndex;
+
                 // Update list of processes if Custom is selected.
-                if (selectedEmulatorIdx == 2)
+                if (selectedEmulatorType == EmulatorType::Custom)
                 {
                     runningProcesses = Utilities::getRunningProcesses();
                     runningProcessesCStr.clear();
@@ -41,7 +44,7 @@ void App::drawMainPanel()
                 }
             }
 
-            if (selectedEmulatorIdx == 2)
+            if (selectedEmulatorType == EmulatorType::Custom)
             {
                 ImGui::Text("Process:");
                 ImGui::SameLine();
@@ -131,23 +134,84 @@ void App::drawMainPanel()
     ImGui::EndChild();
     ImGui::Spacing();
 
+    drawBottomPanel();
+}
+
+void App::drawStatusPanel()
+{
+    gui.drawImage(logo, logo.width / 2, logo.height / 2);
+
+    ImGui::Spacing();
+    ImGui::BeginChild("##ScrollBox", ImVec2(0, APP_WINDOW_HEIGHT - 250));
+    {
+        if (connectionState == ConnectionState::Connected)
+        {
+            // Permadeath Character Portraits
+            {
+                Permadeath* permadeathRule = (Permadeath*)game->getRule("Permadeath");
+                uint16_t phsVisMask = game->read<uint16_t>(GameOffsets::PHSVisibilityMask);
+
+                const int imgWidth = 46;
+                const int imgHeight = 53;
+
+                for (int i = 0; i < 9; ++i)
+                {
+                    uint8_t characterID = CharacterDataOffsets::CharacterIDs[i];
+
+                    float iconAlpha = 0.25f;
+                    if (Utilities::isBitSet(phsVisMask, i))
+                    {
+                        iconAlpha = 1.0f;
+                    }
+
+                    ImVec2 p = ImGui::GetCursorScreenPos();
+                    gui.drawImage(characterPortraits[i], imgWidth, imgHeight, iconAlpha);
+                    ImGui::SameLine();
+
+                    if (permadeathRule != nullptr)
+                    {
+                        if (permadeathRule->isCharacterDead(characterID))
+                        {
+                            ImGui::GetWindowDrawList()->AddImage((ImTextureID)deadIcon.textureID, p, ImVec2(p.x + imgWidth, p.y + imgHeight), ImVec2(0, 0), ImVec2(1, 1));
+                        }
+                    }
+                }
+            }
+
+            ImGui::Spacing();
+            ImGui::Spacing();
+
+            // In Game Time
+            uint32_t igt = game->read<uint32_t>(GameOffsets::InGameTime);
+            std::string igtText = "In Game Time: " + Utilities::formatTime(igt);
+            ImGui::Text(igtText.c_str());
+        }
+    }
+    ImGui::EndChild();
+    ImGui::Spacing();
+
+    drawBottomPanel();
+}
+
+void App::drawBottomPanel()
+{
     const ImVec2 p = ImGui::GetCursorScreenPos();
     ImDrawList* drawList = ImGui::GetWindowDrawList();
 
-    if (connectionState == 0 || connectionState == 3)
+    if (connectionState == ConnectionState::NotConnected || connectionState == ConnectionState::Error)
     {
         drawList->AddCircleFilled(ImVec2(p.x + 135, p.y + 10), 5.0f, dotRed);
     }
-    if (connectionState == 1)
+    if (connectionState == ConnectionState::Connecting)
     {
         drawList->AddCircleFilled(ImVec2(p.x + 135, p.y + 10), 5.0f, dotYellow);
     }
-    if (connectionState == 2)
+    if (connectionState == ConnectionState::Connected)
     {
         drawList->AddCircleFilled(ImVec2(p.x + 135, p.y + 10), 5.0f, dotGreen);
     }
 
-    if (connectionState == 0 || connectionState == 3)
+    if (connectionState == ConnectionState::NotConnected || connectionState == ConnectionState::Error)
     {
         if (ImGui::Button("Attach", ImVec2(120, 0)))
         {
@@ -156,7 +220,7 @@ void App::drawMainPanel()
     }
     else
     {
-        ImGui::BeginDisabled(connectionState == 1);
+        ImGui::BeginDisabled(connectionState == ConnectionState::Connecting);
         if (ImGui::Button("Detach", ImVec2(120, 0)))
         {
             detach();
@@ -170,44 +234,25 @@ void App::drawMainPanel()
 
     ImGui::SameLine();
     ImGui::Indent(210.0f);
-    if (ImGui::Button("Status", ImVec2(120, 0)))
+
+    if (currentPanel == Panels::Main)
     {
-        currentPanel = 1;
+        ImGui::BeginDisabled(connectionState != ConnectionState::Connected);
+        if (ImGui::Button("Status", ImVec2(120, 0)))
+        {
+            currentPanel = Panels::Status;
+        }
+        ImGui::EndDisabled();
+    }
+    else if (currentPanel == Panels::Status)
+    {
+        if (ImGui::Button("Config", ImVec2(120, 0)))
+        {
+            currentPanel = Panels::Main;
+        }
     }
 
     ImGui::Unindent(150.0f);
-}
-
-void App::drawStatusPanel()
-{
-    Permadeath* permadeathRule = (Permadeath*)game->getRule("Permadeath");
-    uint16_t phsVisMask = game->read<uint16_t>(GameOffsets::PHSVisibilityMask);
-
-    const int imgWidth = 46;
-    const int imgHeight = 53;
-
-    for (int i = 0; i < 9; ++i)
-    {
-        uint8_t characterID = CharacterDataOffsets::CharacterIDs[i];
-        
-        float iconAlpha = 0.25f;
-        if (Utilities::isBitSet(phsVisMask, i))
-        {
-            iconAlpha = 1.0f;
-        }
-
-        ImVec2 p = ImGui::GetCursorScreenPos();
-        gui.drawImage(characterPortraits[i], imgWidth, imgHeight, iconAlpha);
-        ImGui::SameLine();
-
-        if (permadeathRule != nullptr)
-        {
-            if (permadeathRule->isCharacterDead(characterID))
-            {
-                ImGui::GetWindowDrawList()->AddImage((ImTextureID)deadIcon.textureID, p, ImVec2(p.x + imgWidth, p.y + imgHeight), ImVec2(0, 0), ImVec2(1, 1));
-            }
-        }
-    }
 }
 
 void App::drawDebugPanel()
@@ -215,7 +260,7 @@ void App::drawDebugPanel()
     std::string connectionText = "Connection: " + connectionStatus;
     ImGui::Text(connectionText.c_str());
     
-    if (connectionState != 2)
+    if (connectionState != ConnectionState::Connected)
     {
         return;
     }
@@ -291,8 +336,8 @@ void App::drawDebugPanel()
 
     if (ImGui::Button("Add 10000 Gil"))
     {
-        uint32_t gil = game->read<uint32_t>(0x9D260);
-        game->write<uint32_t>(0x9D260, gil + 10000);
+        uint32_t gil = game->read<uint32_t>(GameOffsets::Gil);
+        game->write<uint32_t>(GameOffsets::Gil, gil + 10000);
     }
 
     int ruleIndex = 0;

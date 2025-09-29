@@ -10,7 +10,9 @@
 
 void App::run()
 {
-    gui.initialize();
+    processMemoryOffset[0] = '\0';
+
+    gui.initialize(APP_WINDOW_WIDTH, APP_WINDOW_HEIGHT, "IronMog FF7 " APP_VERSION_STRING);
     BIND_EVENT_TWO_ARG(gui.onKeyPress, App::onKeyPress);
     generateSeed();
 
@@ -45,15 +47,15 @@ void App::run()
         {
             switch (currentPanel)
             {
-                case 0:
+                case Panels::Main:
                     drawMainPanel();
                     break;
 
-                case 1:
+                case Panels::Status:
                     drawStatusPanel();
                     break;
 
-                case 2:
+                case Panels::Debug:
                     drawDebugPanel();
                     break;
             }
@@ -70,7 +72,7 @@ void App::attach()
 {
     if (managerThread != nullptr)
     {
-        if (connectionState == 3)
+        if (connectionState == ConnectionState::Error)
         {
             managerRunning = false;
             managerThread->join();
@@ -88,7 +90,7 @@ void App::attach()
 
 void App::detach()
 {
-    connectionState = 0;
+    connectionState = ConnectionState::NotConnected;
     connectionStatus = "Not Attached";
 
     if (managerThread == nullptr || !managerRunning.load())
@@ -113,24 +115,24 @@ void App::runGameManager()
     game = new GameManager();
     BIND_EVENT(game->onStart, App::onStart);
 
-    connectionState = 1;
+    connectionState = ConnectionState::Connecting;
     connectionStatus = "Attaching to Emulator..";
 
     bool connected = false;
 
-    if (selectedEmulatorIdx == 0)
+    if (selectedEmulatorType == EmulatorType::DuckStation)
     {
         connectionStatus = "Attaching to DuckStation..";
         std::string targetProcess = "duckstation-qt-x64-ReleaseLTCG.exe";
         connected = game->attachToEmulator(targetProcess);
     }
-    if (selectedEmulatorIdx == 1)
+    if (selectedEmulatorType == EmulatorType::BizHawk)
     {
         connectionStatus = "Attaching to BizHawk..";
         std::string targetProcess = "EmuHawk.exe";
         connected = game->attachToEmulator(targetProcess);
     }
-    if (selectedEmulatorIdx == 2)
+    if (selectedEmulatorType == EmulatorType::Custom)
     {
         uintptr_t customAddress = Utilities::parseAddress(processMemoryOffset);
         connected = game->attachToEmulator(runningProcesses[selectedProcessIdx], customAddress);
@@ -138,12 +140,12 @@ void App::runGameManager()
 
     if (connected)
     {
-        connectionState = 2;
+        connectionState = ConnectionState::Connected;
         connectionStatus = "Attached to emulator.";
     }
     else
     {
-        connectionState = 3;
+        connectionState = ConnectionState::Error;
         connectionStatus = "Failed to attach to emulator.";
         return;
     }
@@ -174,13 +176,13 @@ void App::onKeyPress(int key, int mods)
     // Ctrl + D
     if (key == 68 && (mods & 2))
     {
-        if (currentPanel == 0)
+        if (currentPanel == Panels::Main)
         {
-            currentPanel = 2;
+            currentPanel = Panels::Debug;
         }
-        else if (currentPanel == 2)
+        else if (currentPanel == Panels::Debug)
         {
-            currentPanel = 0;
+            currentPanel = Panels::Main;
         }
     }
 }

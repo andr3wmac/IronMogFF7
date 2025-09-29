@@ -92,7 +92,7 @@ void setupStyle()
     colors[ImGuiCol_ModalWindowDimBg]       = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
 }
 
-bool GUI::initialize()
+bool GUI::initialize(int width, int height, const char* windowTitle)
 {
     glfwSetErrorCallback(glfw_error_callback);
     if (!glfwInit())
@@ -111,7 +111,7 @@ bool GUI::initialize()
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
     // Create window with graphics context
-    window = glfwCreateWindow(497, 550, "IronMog FF7 v0.1", nullptr, nullptr);
+    window = glfwCreateWindow(width, height, windowTitle, nullptr, nullptr);
     if (window == nullptr)
     {
         return false;

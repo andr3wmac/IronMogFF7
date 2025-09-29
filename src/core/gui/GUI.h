@@ -10,7 +10,7 @@ class GUI
 public:
     Event<int, int> onKeyPress;
 
-    bool initialize();
+    bool initialize(int width, int height, const char* windowTitle);
     void destroy();
 
     bool beginFrame();
