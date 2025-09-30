@@ -1,9 +1,10 @@
 #include "RandomizeShops.h"
-#include "gui/GUI.h"
-#include "game/GameData.h"
-#include "game/MemoryOffsets.h"
+#include "core/gui/GUI.h"
+#include "core/game/GameData.h"
+#include "core/game/MemoryOffsets.h"
+#include "core/utilities/Logging.h"
+#include "core/utilities/Utilities.h"
 #include "rules/Restrictions.h"
-#include "utilities/Logging.h"
 
 #include <imgui.h>
 
@@ -19,21 +20,6 @@ void RandomizeShops::onSettingsGUI()
 {
     ImGui::Checkbox("Keep Prices", &keepPrices);
     ImGui::SetItemTooltip("Keep shop prices the same as the original items.");
-}
-
-uint64_t makeKey(uint32_t seed, uint16_t fieldID, uint8_t index)
-{
-    uint32_t fieldKey = (uint32_t(fieldID) << 16 | index);
-    uint64_t combined = (uint64_t(fieldKey) << 32) | seed;
-
-    // Mix bits to spread entropy
-    combined ^= combined >> 33;
-    combined *= 0xff51afd7ed558ccd;
-    combined ^= combined >> 33;
-    combined *= 0xc4ceb9fe1a85ec53;
-    combined ^= combined >> 33;
-
-    return combined;
 }
 
 void RandomizeShops::onFieldChanged(uint16_t fieldID)
@@ -57,7 +43,7 @@ void RandomizeShops::onShopOpened()
 
     for (int i = 0; i < fieldData.shops.size(); ++i)
     {
-        rng.seed(makeKey(game->getSeed(), lastFieldID, i));
+        rng.seed(Utilities::makeKey(game->getSeed(), lastFieldID, i));
 
         uint8_t shopID = fieldData.shops[i].shopID;
         uintptr_t shopOffset = ShopOffsets::ShopStart + (84 * shopID);
@@ -150,20 +136,5 @@ uint16_t RandomizeShops::randomizeShopItem(uint16_t itemID)
 
 uint16_t RandomizeShops::randomizeShopMateria(uint16_t materiaID)
 {
-    uint16_t selectedID = materiaID;
-
-    while (true)
-    {
-        selectedID = GameData::getRandomMateria(rng);
-        if (!Restrictions::isMateriaBanned((uint8_t)selectedID))
-        {
-            break;
-        }
-        else 
-        {
-            LOG("Skipped banned materia: %d", selectedID);
-        }
-    }
-
-    return selectedID;
+    return GameData::getRandomMateria(rng);
 }

@@ -1,5 +1,5 @@
 #include "NoLimitBreaks.h"
-#include "game/MemoryOffsets.h"
+#include "core/game/MemoryOffsets.h"
 
 REGISTER_RULE("No Limit Breaks", NoLimitBreaks)
 
@@ -17,6 +17,7 @@ void NoLimitBreaks::onFrame(uint32_t frameNumber)
     game->write<uint8_t>(CharacterDataOffsets::Aerith   + CharacterDataOffsets::CurrentLimitBar, 0);
     game->write<uint8_t>(CharacterDataOffsets::RedXIII  + CharacterDataOffsets::CurrentLimitBar, 0);
     game->write<uint8_t>(CharacterDataOffsets::Yuffie   + CharacterDataOffsets::CurrentLimitBar, 0);
+    game->write<uint8_t>(CharacterDataOffsets::Cid      + CharacterDataOffsets::CurrentLimitBar, 0);
     game->write<uint8_t>(CharacterDataOffsets::CaitSith + CharacterDataOffsets::CurrentLimitBar, 0);
     game->write<uint8_t>(CharacterDataOffsets::Vincent  + CharacterDataOffsets::CurrentLimitBar, 0);
 

@@ -11,6 +11,11 @@ Inspired by IronMon and IronMario 64, IronMog FF7 is a modification for Final Fa
 - Randomized Enemy Drops
 - Randomized Field Items
 - Randomized Shops
+- Randomized World Map
+
+# Extras
+
+- Randomized Music
 
 # How To Play
 

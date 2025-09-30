@@ -1,7 +1,7 @@
 #include "RandomizeEnemyDrops.h"
-#include "game/GameData.h"
-#include "game/MemoryOffsets.h"
-#include "utilities/Logging.h"
+#include "core/game/GameData.h"
+#include "core/game/MemoryOffsets.h"
+#include "core/utilities/Logging.h"
 
 #include <random>
 

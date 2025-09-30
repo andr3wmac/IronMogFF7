@@ -1,6 +1,6 @@
 #pragma once
 
-#include "game/GameManager.h"
+#include "core/game/GameManager.h"
 
 class Rule
 {
@@ -8,10 +8,13 @@ public:
     bool enabled = true;
     std::string name = "";
     bool settingsVisible = false;
+    bool debugVisible = false;
 
     virtual void setup() {}
     virtual bool hasSettings() { return false; }
     virtual void onSettingsGUI() { }
+    virtual bool hasDebugGUI() { return false; }
+    virtual void onDebugGUI() { }
 
     void setManager(GameManager* gameManager)
     {

@@ -1,17 +1,54 @@
 #include "Permadeath.h"
-#include "game/MemoryOffsets.h"
-#include "utilities/Flags.h"
-#include "utilities/Logging.h"
+#include "core/game/MemoryOffsets.h"
+#include "core/utilities/Flags.h"
+#include "core/utilities/Logging.h"
 
 REGISTER_RULE("Permadeath", Permadeath)
 
 void Permadeath::setup()
 {
+    BIND_EVENT(game->onStart, Permadeath::onStart);
     BIND_EVENT_ONE_ARG(game->onFrame, Permadeath::onFrame);
+
+    // Kalm Flashback
+    {
+        PermadeathExemption& kalmExemption = exemptions.emplace_back();
+        kalmExemption.maxGameMoment = 384;
+        kalmExemption.fieldIDs.insert(277);
+        kalmExemption.fieldIDs.insert(278);
+        for (int i = 311; i <= 321; ++i)
+        {
+            kalmExemption.fieldIDs.insert(i);
+        }
+    }
+
+    // Golden Saucer Arena
+    {
+        PermadeathExemption& saucerArena = exemptions.emplace_back();
+        saucerArena.fieldIDs.insert(502);
+    }
+
+    // Fort Condor Battle
+    {
+        PermadeathExemption& fortCondorBattle = exemptions.emplace_back();
+        fortCondorBattle.fieldIDs.insert(356);
+    }
+}
+
+void Permadeath::onStart()
+{
+    deadCharacterIDs.clear();
 }
 
 void Permadeath::onFrame(uint32_t frameNumber)
 {
+    uint16_t fieldID = game->getFieldID();
+    if (isExempt(fieldID))
+    {
+        // We don't enforce permadeath in scripted scenes where deaths can occur.
+        return;
+    }
+
     std::array<uint8_t, 3> partyIDs = game->getPartyIDs();
     for (int i = 0; i < 3; ++i)
     {
@@ -59,4 +96,24 @@ void Permadeath::onFrame(uint32_t frameNumber)
             }
         }
     }
+}
+
+bool Permadeath::isExempt(uint16_t fieldID)
+{
+    uint16_t gameMoment = game->getGameMoment();
+    for (int i = 0; i < exemptions.size(); ++i)
+    {
+        PermadeathExemption& exemption = exemptions[i];
+        if (gameMoment < exemption.minGameMoment || gameMoment > exemption.maxGameMoment)
+        {
+            continue;
+        }
+
+        if (exemption.fieldIDs.count(fieldID) > 0)
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
