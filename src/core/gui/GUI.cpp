@@ -172,6 +172,24 @@ bool GUI::initialize(int width, int height, const char* windowTitle)
     // Setup style
     setupStyle();
 
+    // Window icon
+    {
+        const char* iconPath = "img/icon.png";
+
+        GLFWimage images[1];
+        images[0].pixels = stbi_load(iconPath, &images[0].width, &images[0].height, 0, 4); // RGBA
+
+        if (images[0].pixels) 
+        {
+            glfwSetWindowIcon(window, 1, images);
+            stbi_image_free(images[0].pixels);
+        }
+        else 
+        {
+            fprintf(stderr, "Failed to load icon: %s\n", iconPath);
+        }
+    }
+
     return true;
 }
 

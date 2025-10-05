@@ -21,15 +21,20 @@ public:
     bool hasSettings() override { return true; }
     void onSettingsGUI() override;
 
+    bool isPlaying();
+    std::string getCurrentlyPlaying();
+
 private:
     void onStart();
     void onEmulatorPaused();
     void onEmulatorResumed();
     void onFrame(uint32_t frameNumber);
 
+    void scanMusicFolder();
     Track loadTrack(std::string path);
 
     bool disabled = false;
+    std::string currentSong = "";
     float currentVolume = 1.0f;
     float previousVolume = 1.0f;
     uint16_t previousMusicID = 0;

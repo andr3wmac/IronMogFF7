@@ -58,60 +58,29 @@ void RandomizeMusic::onSettingsGUI()
     }
 }
 
+bool RandomizeMusic::isPlaying()
+{
+    if (disabled)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+std::string RandomizeMusic::getCurrentlyPlaying()
+{
+    if (disabled)
+    {
+        return "";
+    }
+
+    return currentSong;
+}
+
 void RandomizeMusic::onStart()
 {
-    // Scan music folder
-    const std::string basePath = "music";
-
-    if (!fs::exists(basePath) || !fs::is_directory(basePath)) 
-    {
-        LOG("Randomize Music Error: music directory does not exist.");
-        disabled = true;
-        return;
-    }
-
-    bool foundMusic = false;
-    for (const std::string& name : MusicList)
-    {
-        if (name == "none" || name == "nothing")
-        {
-            continue;
-        }
-
-        fs::path subdir = fs::path(basePath) / name;
-
-        if (!fs::exists(subdir) || !fs::is_directory(subdir))
-        {
-            continue;
-        }
-
-        for (const auto& entry : fs::directory_iterator(subdir)) 
-        {
-            if (!entry.is_regular_file())
-            {
-                continue;
-            }
-
-            std::string ext = entry.path().extension().string();
-            for (char& c : ext) c = std::tolower(c);
-
-            if (ext == ".mp3" || ext == ".wav") 
-            {
-                musicMap[name].push_back(loadTrack(entry.path().string()));
-                foundMusic = true;
-            }
-        }
-    }
-
-    if (foundMusic)
-    {
-        disabled = false;
-    }
-    else
-    {
-        LOG("Randomize Music Error: no music was found.");
-        disabled = true;
-    }
+    scanMusicFolder();
 }
 
 void RandomizeMusic::onEmulatorPaused()
@@ -148,17 +117,6 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
     if (musicID != previousMusicID)
     {
         LOG("MUSIC CHANGED FROM %d TO %d", previousMusicID, musicID);
-
-        if (previousMusicID == UnsetMusicID)
-        {
-            // If the music is currently UnsetMusicID then this is the first time we're reading
-            // the music variable. If this is a new game, the first music will be 0 which is nothing.
-            // If this isn't a new game then we can't gaurantee the music was killed in the game itself
-            // so we avoid playing anything to dodge playing music over music.
-            previousMusicID = musicID;
-            return;
-        }
-
         previousMusicID = musicID;
 
         // 0 and 1 are nothing so if thats switched to we need to pause any running tracks.
@@ -187,8 +145,68 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
         size_t selectedMusic = dist(rng);
 
         Track& track = tracks[selectedMusic];
-        LOG("Playing: %s", track.path.c_str());
+
+        std::filesystem::path p(track.path);
+        currentSong = p.stem().string();
+
         AudioManager::playMusic(track.path, track.start, track.loopStart, track.loopEnd);
+        LOG("Playing: %s", track.path.c_str());
+    }
+}
+
+void RandomizeMusic::scanMusicFolder()
+{
+    // Scan music folder
+    const std::string basePath = "music";
+
+    if (!fs::exists(basePath) || !fs::is_directory(basePath))
+    {
+        LOG("Randomize Music Error: music directory does not exist.");
+        disabled = true;
+        return;
+    }
+
+    bool foundMusic = false;
+    for (const std::string& name : MusicList)
+    {
+        if (name == "none" || name == "nothing")
+        {
+            continue;
+        }
+
+        fs::path subdir = fs::path(basePath) / name;
+
+        if (!fs::exists(subdir) || !fs::is_directory(subdir))
+        {
+            continue;
+        }
+
+        for (const auto& entry : fs::directory_iterator(subdir))
+        {
+            if (!entry.is_regular_file())
+            {
+                continue;
+            }
+
+            std::string ext = entry.path().extension().string();
+            for (char& c : ext) c = std::tolower(c);
+
+            if (ext == ".mp3" || ext == ".wav")
+            {
+                musicMap[name].push_back(loadTrack(entry.path().string()));
+                foundMusic = true;
+            }
+        }
+    }
+
+    if (foundMusic)
+    {
+        disabled = false;
+    }
+    else
+    {
+        LOG("Randomize Music Error: no music was found.");
+        disabled = true;
     }
 }
 

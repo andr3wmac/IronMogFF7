@@ -97,6 +97,32 @@ Rule* GameManager::getRule(std::string ruleName)
     return nullptr;
 }
 
+bool GameManager::isExtraEnabled(std::string extraName)
+{
+    for (Extra* extra : Extra::getList())
+    {
+        if (extra->enabled && extra->name == extraName)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+Extra* GameManager::getExtra(std::string extraName)
+{
+    for (Extra* extra : Extra::getList())
+    {
+        if (extra->enabled && extra->name == extraName)
+        {
+            return extra;
+        }
+    }
+
+    return nullptr;
+}
+
 void GameManager::setup(uint32_t inputSeed)
 {
     // Note: seed may change after loading a save file, so its important to not utilize it in rule setup.

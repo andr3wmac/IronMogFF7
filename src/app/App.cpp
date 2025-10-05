@@ -47,12 +47,12 @@ void App::run()
         {
             switch (currentPanel)
             {
-                case Panels::Main:
-                    drawMainPanel();
+                case Panels::Settings:
+                    drawSettingsPanel();
                     break;
 
-                case Panels::Status:
-                    drawStatusPanel();
+                case Panels::Tracker:
+                    drawTrackerPanel();
                     break;
 
                 case Panels::Debug:
@@ -176,13 +176,13 @@ void App::onKeyPress(int key, int mods)
     // Ctrl + D
     if (key == 68 && (mods & 2))
     {
-        if (currentPanel == Panels::Main)
+        if (currentPanel == Panels::Settings)
         {
             currentPanel = Panels::Debug;
         }
         else if (currentPanel == Panels::Debug)
         {
-            currentPanel = Panels::Main;
+            currentPanel = Panels::Settings;
         }
     }
 }

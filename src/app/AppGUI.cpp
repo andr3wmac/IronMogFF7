@@ -3,6 +3,7 @@
 #include "core/gui/IconsFontAwesome5.h"
 #include "core/utilities/Utilities.h"
 #include "extras/Extra.h"
+#include "extras/RandomizeMusic.h"
 #include "rules/Permadeath.h"
 #include "rules/Rule.h"
 
@@ -14,7 +15,7 @@ static ImColor dotRed(1.0f, 0.0f, 0.0f, 1.0f);
 static ImColor dotYellow(1.0f, 1.0f, 0.0f, 1.0f);
 static ImColor dotGreen(0.0f, 1.0f, 0.0f, 1.0f);
 
-void App::drawMainPanel()
+void App::drawSettingsPanel()
 {
     gui.drawImage(logo, logo.width / 2, logo.height / 2);
 
@@ -137,7 +138,7 @@ void App::drawMainPanel()
     drawBottomPanel();
 }
 
-void App::drawStatusPanel()
+void App::drawTrackerPanel()
 {
     gui.drawImage(logo, logo.width / 2, logo.height / 2);
 
@@ -185,6 +186,18 @@ void App::drawStatusPanel()
             uint32_t igt = game->read<uint32_t>(GameOffsets::InGameTime);
             std::string igtText = "In Game Time: " + Utilities::formatTime(igt);
             ImGui::Text(igtText.c_str());
+
+            // Current Song
+            if (game->isExtraEnabled("Randomize Music"))
+            {
+                RandomizeMusic* musicRando = (RandomizeMusic*)game->getExtra("Randomize Music");
+                if (musicRando->isPlaying())
+                {
+                    std::string currentSong = musicRando->getCurrentlyPlaying();
+                    std::string currentSongText = "Current Song: " + currentSong;
+                    ImGui::Text(currentSongText.c_str());
+                }
+            }
         }
     }
     ImGui::EndChild();
@@ -235,20 +248,20 @@ void App::drawBottomPanel()
     ImGui::SameLine();
     ImGui::Indent(210.0f);
 
-    if (currentPanel == Panels::Main)
+    if (currentPanel == Panels::Settings)
     {
         ImGui::BeginDisabled(connectionState != ConnectionState::Connected);
-        if (ImGui::Button("Status", ImVec2(120, 0)))
+        if (ImGui::Button("Tracker", ImVec2(120, 0)))
         {
-            currentPanel = Panels::Status;
+            currentPanel = Panels::Tracker;
         }
         ImGui::EndDisabled();
     }
-    else if (currentPanel == Panels::Status)
+    else if (currentPanel == Panels::Tracker)
     {
-        if (ImGui::Button("Config", ImVec2(120, 0)))
+        if (ImGui::Button("Settings", ImVec2(120, 0)))
         {
-            currentPanel = Panels::Main;
+            currentPanel = Panels::Settings;
         }
     }
 

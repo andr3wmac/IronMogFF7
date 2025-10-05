@@ -6,6 +6,7 @@
 #include <array>
 
 class Rule;
+class Extra;
 
 class GameManager
 {
@@ -18,6 +19,8 @@ public:
 
     bool isRuleEnabled(std::string ruleName);
     Rule* getRule(std::string ruleName);
+    bool isExtraEnabled(std::string extraName);
+    Extra* getExtra(std::string extraName);
 
     void setup(uint32_t inputSeed);
     void loadSaveData();
