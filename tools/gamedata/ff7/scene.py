@@ -84,12 +84,44 @@ def decodeScript(data):
 
     return instructions
 
+class Enemy:
+    def __init__(self, data, japanese):
+
+        if japanese:
+            self.maxStringSize = 0x10
+        else:
+            self.maxStringSize = 0x20
+
+        self.name = ff7.decodeKernelText(data[0:self.maxStringSize], japanese)
+        self.level = data[self.maxStringSize]
+
+class Formation:
+    def __init__(self, battleSetupData, formationData):
+        # location: 2 bytes at offset 0
+        self.location = struct.unpack_from("<H", battleSetupData, 0)[0]
+
+        # flags: 2 bytes at offset 0x10
+        self.flags = struct.unpack_from("<H", battleSetupData, 0x10)[0]
+
+        formationEnemySize = 0x10
+        self.enemyIDs = []
+        for i in range(6):
+            enemyID = struct.unpack_from("<H", formationData, i * formationEnemySize)[0]
+            self.enemyIDs.append(enemyID)
+
+    def canEscape(self):
+        return (self.flags & 0x04) != 0
 
 # Battle scene
 class Scene:
     def __init__(self, data, index):
         self.data = data
         self.index = index
+
+        self.battleSetupsOffset = 0x08
+        self.battleSetupSize = 0x14
+        self.formationsOffset = 0x0118
+        self.formationSize = 0x60
 
         if len(data) == 0x1c50:
 
@@ -115,9 +147,37 @@ class Scene:
         # Extract enemy scripts
         self.enemyScripts = self.extractScripts(self.aiDataOffset, 3, len(data))
 
+        self.enemyID0 = struct.unpack_from("<H", data, 0x00)[0]
+        self.enemyID1 = struct.unpack_from("<H", data, 0x02)[0]
+        self.enemyID2 = struct.unpack_from("<H", data, 0x04)[0]
+
     # Return the binary scene data
     def getData(self):
         return self.data
+
+    def getFormations(self):
+        formations = []
+
+        for i in range(4):
+            battleSetupOffset = self.battleSetupsOffset + i * self.battleSetupSize
+            battleSetupData = self.data[battleSetupOffset:battleSetupOffset + self.battleSetupSize]
+
+            formationOffset = self.formationsOffset + i * self.formationSize
+            formationData = self.data[formationOffset:formationOffset + self.formationSize]
+
+            formations.append(Formation(battleSetupData, formationData))
+
+        return formations
+    
+    def getEnemies(self, japanese = False):
+        enemies = []
+
+        for i in range(3):
+            offset = self.enemyDataOffset + i * self.enemyDataSize
+            enemy = Enemy(self.data[offset:offset + self.enemyDataSize], japanese)
+            enemies.append(enemy)
+
+        return enemies
 
     # Extract entity scripts from binary scene data.
     # Returns a list of numEntities lists of 16 scripts, each script being a

@@ -3,6 +3,9 @@
 #include <iomanip>
 #include <sstream>
 
+#define NOMINMAX
+#include <Windows.h>
+
 Logger logger("logs");
 
 Logger::Logger(const std::string& directory) 

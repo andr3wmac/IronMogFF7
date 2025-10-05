@@ -119,16 +119,6 @@ void RandomizeESkills::onBattleEnter()
         }
     }
 
-    // Read current state of e.skill values when entering the battle.
-    //for (int p = 0; p < 3; ++p)
-    //{
-    //    for (int i = 0; i < 24; ++i)
-    //    {
-    //        uintptr_t offset = PlayerOffsets::Players[p] + PlayerOffsets::EnemySkillMenu + (8 * i);
-    //        previousESkillValues[(p * 24) + i] = game->read<uint64_t>(offset);
-    //    }
-    //}
-
     battleEntered = true;
 }
 

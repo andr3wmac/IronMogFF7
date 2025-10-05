@@ -4,7 +4,6 @@
 #include <fstream>
 #include <ctime>
 #include <cstdarg>
-#include <Windows.h>
 
 class Logger {
 public:

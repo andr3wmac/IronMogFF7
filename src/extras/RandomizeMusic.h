@@ -26,10 +26,10 @@ private:
     void onEmulatorPaused();
     void onEmulatorResumed();
     void onFrame(uint32_t frameNumber);
-    void onFieldChanged(uint16_t fieldID);
 
     Track loadTrack(std::string path);
 
+    bool disabled = false;
     float currentVolume = 1.0f;
     float previousVolume = 1.0f;
     uint16_t previousMusicID = 0;

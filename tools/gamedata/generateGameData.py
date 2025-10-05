@@ -286,6 +286,48 @@ def outputWorldMap(gen, discPath, version):
     gen.write_line("ADD_WORLDMAP_ENTRANCE(0x5d10, 0x3A, \"Forgotten Capital\", 162051, 81137);", 4)
     gen.write_line("")
 
+def outputBattles(gen, discPath, version):
+    sceneBin = ff7.scene.Archive(ff7.retrieveFile(discPath, "BATTLE", "SCENE.BIN"))
+
+    # Process all scenes
+    for i in range(sceneBin.numScenes()):
+        scene = sceneBin.getScene(i)
+
+        hasValidEnemies = False
+        enemyLevels = ""
+        enemies = scene.getEnemies(ff7.isJapanese(version))
+        for enemy in enemies:
+            if len(enemy.name) >= 2 and ord(enemy.name[0]) == 0x00EA and ord(enemy.name[1]) == 0x00FA:
+                hasValidEnemies = False
+                break
+
+            if (enemy.name != "" and enemy.level != 255):
+                enemyLevels += ", " + str(enemy.level)
+                hasValidEnemies = True
+            else:
+                enemyLevels += ", 255"
+        
+        if not hasValidEnemies:
+            continue
+
+        gen.write_line("ADD_BATTLE_SCENE(" + str(i) + ", " + str(scene.enemyID0) + ", " + str(scene.enemyID1) + ", " + str(scene.enemyID2) + enemyLevels + ");", 4)
+
+        formations = scene.getFormations()
+        formationIndex = 0
+        for formation in formations:
+            formationID = (i * 4) + formationIndex
+
+            noEscape = "false"
+            if not formation.canEscape():
+                noEscape = "true"
+
+            enemyIDs = ", ".join(map(str, formation.enemyIDs))
+            gen.write_line("ADD_BATTLE_FORMATION(" + str(formationID) + ", " + str(i) + ", " + noEscape + ", " + enemyIDs + ");", 4)
+            formationIndex += 1
+            
+
+    gen.write_line("")
+
 discPath = sys.argv[1]
 
 if not os.path.isdir(discPath):
@@ -302,6 +344,7 @@ outputInventory(gen, discPath, version)
 outputOther(gen, discPath, version)
 outputFields(gen, discPath, version)
 outputWorldMap(gen, discPath, version)
+outputBattles(gen, discPath, version)
 
 gen.write_footer()
 gen.close_file()

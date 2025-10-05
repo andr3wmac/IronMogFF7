@@ -11,7 +11,6 @@ namespace fs = std::filesystem;
 
 REGISTER_EXTRA("Randomize Music", RandomizeMusic)
 
-const uint32_t AKAOHeader = 0x4F414B41; // The letters 'AKAO'
 const uint16_t UnsetMusicID = 65535;
 
 const std::vector<std::string> MusicList = {
@@ -36,13 +35,17 @@ void RandomizeMusic::setup()
     BIND_EVENT(game->onEmulatorPaused, RandomizeMusic::onEmulatorPaused);
     BIND_EVENT(game->onEmulatorResumed, RandomizeMusic::onEmulatorResumed);
     BIND_EVENT_ONE_ARG(game->onFrame, RandomizeMusic::onFrame);
-    BIND_EVENT_ONE_ARG(game->onFieldChanged, RandomizeMusic::onFieldChanged);
 
     previousMusicID = UnsetMusicID;
 }
 
 void RandomizeMusic::onSettingsGUI()
 {
+    if (disabled)
+    {
+        ImGui::Text("No music found, randomization disabled.");
+    }
+
     constexpr float min = 0.0f;
     constexpr float max = 1.0f;
 
@@ -62,10 +65,12 @@ void RandomizeMusic::onStart()
 
     if (!fs::exists(basePath) || !fs::is_directory(basePath)) 
     {
-        LOG("Music directory does not exist.");
+        LOG("Randomize Music Error: music directory does not exist.");
+        disabled = true;
         return;
     }
 
+    bool foundMusic = false;
     for (const std::string& name : MusicList)
     {
         if (name == "none" || name == "nothing")
@@ -93,23 +98,49 @@ void RandomizeMusic::onStart()
             if (ext == ".mp3" || ext == ".wav") 
             {
                 musicMap[name].push_back(loadTrack(entry.path().string()));
+                foundMusic = true;
             }
         }
+    }
+
+    if (foundMusic)
+    {
+        disabled = false;
+    }
+    else
+    {
+        LOG("Randomize Music Error: no music was found.");
+        disabled = true;
     }
 }
 
 void RandomizeMusic::onEmulatorPaused()
 {
+    if (disabled)
+    {
+        return;
+    }
+
     AudioManager::pauseMusic();
 }
 
 void RandomizeMusic::onEmulatorResumed()
 {
+    if (disabled)
+    {
+        return;
+    }
+
     AudioManager::resumeMusic();
 }
 
 void RandomizeMusic::onFrame(uint32_t frameNumber)
 {
+    if (disabled)
+    {
+        return;
+    }
+
     // Keep in game music volume locked to 0
     game->write<uint16_t>(GameOffsets::MusicVolume, 0);
 
@@ -159,11 +190,6 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
         LOG("Playing: %s", track.path.c_str());
         AudioManager::playMusic(track.path, track.start, track.loopStart, track.loopEnd);
     }
-}
-
-void RandomizeMusic::onFieldChanged(uint16_t fieldID)
-{
-
 }
 
 Track RandomizeMusic::loadTrack(std::string path)

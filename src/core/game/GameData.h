@@ -66,6 +66,20 @@ struct WorldMapEntrance
     uint32_t centerZ = 0;
 };
 
+struct BattleFormation
+{
+    uint16_t id = 0;
+    bool noEscape = false;
+    int enemyIDs[6];
+};
+
+struct BattleScene
+{
+    int enemyIDs[3];
+    int enemyLevels[3];
+    std::vector<BattleFormation> formations;
+};
+
 class GameData
 {
 public:
@@ -95,11 +109,11 @@ public:
     static std::unordered_map<uint8_t, std::string> itemNames;
     static std::unordered_map<uint8_t, std::string> weaponNames;
     static std::unordered_map<uint8_t, std::string> materiaNames;
+
     static std::vector<ESkill> eSkills;
-
     static std::unordered_map<uint16_t, FieldData> fieldData;
-
     static std::vector<WorldMapEntrance> worldMapEntrances;
+    static std::unordered_map<uint8_t, BattleScene> battleScenes;
 };
 
 #define ADD_ACCESSORY(ID, NAME) accessoryNames[ID] = NAME;
@@ -127,3 +141,7 @@ public:
     { GameData::fieldData[FIELD_ID].worldExits.push_back({OFFSET, INDEX, TARGET_FIELD_ID}); }
 
 #define ADD_WORLDMAP_ENTRANCE(OFFSET, FIELD_ID, FIELD_NAME, CENTER_X, CENTER_Z) GameData::worldMapEntrances.push_back({OFFSET, FIELD_ID, FIELD_NAME, CENTER_X, CENTER_Z});
+
+#define ADD_BATTLE_SCENE(SCENE_ID, ENEMY_ID0, ENEMY_ID1, ENEMY_ID2, ENEMY_LEVEL0, ENEMY_LEVEL1, ENEMY_LEVEL2) GameData::battleScenes[SCENE_ID] = {{ENEMY_ID0, ENEMY_ID1, ENEMY_ID2}, {ENEMY_LEVEL0, ENEMY_LEVEL1, ENEMY_LEVEL2}};
+
+#define ADD_BATTLE_FORMATION(FORMATION_ID, SCENE_ID, NO_ESCAPE, ...) GameData::battleScenes[SCENE_ID].formations.push_back({FORMATION_ID, NO_ESCAPE, {__VA_ARGS__}});
