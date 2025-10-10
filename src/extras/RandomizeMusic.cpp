@@ -116,8 +116,19 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
     uint16_t musicID = game->read<uint16_t>(GameOffsets::MusicID);
     if (musicID != previousMusicID)
     {
-        LOG("MUSIC CHANGED FROM %d TO %d", previousMusicID, musicID);
+        // We track our previous selections and don't reroll field music when exiting battles.
+        bool usePreviousTrackSelection = false;
+        uint8_t currentGameModule = game->getGameModule();
+        if (previousGameModule != currentGameModule)
+        {
+            if (previousGameModule == GameModule::Battle && currentGameModule != GameModule::Battle)
+            {
+                usePreviousTrackSelection = true;
+            }
+        }
+
         previousMusicID = musicID;
+        previousGameModule = currentGameModule;
 
         // 0 and 1 are nothing so if thats switched to we need to pause any running tracks.
         if (musicID == 0 || musicID == 1)
@@ -138,14 +149,19 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
             return;
         }
 
+        // Randomly select a track from the choices for this music ID
         std::vector<Track> tracks = musicMap[MusicList[musicID]];
-
         static std::mt19937 rng(std::random_device{}());
         std::uniform_int_distribution<size_t> dist(0, tracks.size() - 1);
         size_t selectedMusic = dist(rng);
 
-        Track& track = tracks[selectedMusic];
+        if (usePreviousTrackSelection)
+        {
+            selectedMusic = previousTrackSelection[musicID];
+        }
+        previousTrackSelection[musicID] = selectedMusic;
 
+        Track& track = tracks[selectedMusic];
         std::filesystem::path p(track.path);
         currentSong = p.stem().string();
 
@@ -213,7 +229,6 @@ void RandomizeMusic::scanMusicFolder()
 Track RandomizeMusic::loadTrack(std::string path)
 {
     Track track;
-
     track.path = path;
 
     std::string cfgFilename = Utilities::replaceExtension(path, ".mp3", ".cfg");
