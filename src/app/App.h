@@ -72,4 +72,7 @@ protected:
 
     void onKeyPress(int key, int mods);
     void onStart();
+
+    // Debug Panel variables
+    char debugWarpFieldID[5];
 };

@@ -29,7 +29,7 @@ from . import scene
 from . import world
 from . import data
 from . import cd
-
+from . import bcx
 
 def _enum(**enums):
     return type('Enum', (), enums)

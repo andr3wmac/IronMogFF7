@@ -283,9 +283,10 @@ void GameManager::update()
     int frameDifference = std::abs((int)newFrameNumber - (int)frameNumber);
     if (frameDifference > 10)
     {
-        LOG("Load detected, reloading rules.");
-        loadSaveData();
-        onStart.Invoke();
+        uint64_t timeGap = currentTime - lastFrameUpdateTime;
+        LOG("Load detected, reloading rules %d", timeGap);
+        //loadSaveData();
+        //onStart.Invoke();
     }
 
     if (newFrameNumber != frameNumber)

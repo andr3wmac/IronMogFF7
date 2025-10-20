@@ -353,7 +353,21 @@ void App::drawDebugPanel()
         game->write<uint32_t>(GameOffsets::Gil, gil + 10000);
     }
 
-    int ruleIndex = 0;
+    if (ImGui::CollapsingHeader("Warp To"))
+    {
+        ImGui::Indent(25.0f);
+
+        ImGui::InputText("##DebugWarpFieldID", debugWarpFieldID, 10);
+        if (ImGui::Button("Warp"))
+        {
+            uint16_t warpFieldID = atoi(debugWarpFieldID);
+            game->write<uint16_t>(0x9ABF6, warpFieldID);
+            game->write<uint8_t>(0x9ABF5, 1);
+        }
+
+        ImGui::Unindent(25.0f);
+    }
+
     for (auto& rule : Rule::getList())
     {
         if (!rule->hasDebugGUI())
@@ -363,7 +377,24 @@ void App::drawDebugPanel()
 
         if (ImGui::CollapsingHeader(rule->name.c_str()))
         {
+            ImGui::Indent(25.0f);
             rule->onDebugGUI();
+            ImGui::Unindent(25.0f);
+        }
+    }
+
+    for (auto& extra : Extra::getList())
+    {
+        if (!extra->hasDebugGUI())
+        {
+            continue;
+        }
+
+        if (ImGui::CollapsingHeader(extra->name.c_str()))
+        {
+            ImGui::Indent(25.0f);
+            extra->onDebugGUI();
+            ImGui::Unindent(25.0f);
         }
     }
 }

@@ -207,12 +207,15 @@ def outputFields(gen, discPath, version):
             if (mnemonic == "mes"):
                 string = fieldStrings[values[3]]
 
+                # We use the Turtle Paradise newsletter for in game hints
+                if ("Turtle Paradise" in string or "Turtles Paradise" in string or "Turtle's Paradise" in string) and ("No." in string or "Number" in string):
+                    stroffset, strlen = fieldOffsets[values[3]]
+                    gen.write_line("ADD_FIELD_MESSAGE(" + fieldID + ", " + f"0x{addr:X}" + ", " + f"0x{stroffset:X}" + ", " + str(strlen) + ");", 4)
+
                 # Ensures the string contains an item/materia/etc name wrapped in quotes
                 match = next((word for word in gen.item_names if f'"{word}"' in string), None)
                 if match:
-                    #print(match + ": " + string)
                     stroffset, strlen = fieldOffsets[values[3]]
-                    #print(str(stroffset) + " " + str(strlen) + ": " + string)
                     gen.write_line("ADD_FIELD_MESSAGE(" + fieldID + ", " + f"0x{addr:X}" + ", " + f"0x{stroffset:X}" + ", " + str(strlen) + ");", 4)
                 
                 #print(values)
@@ -236,6 +239,13 @@ def outputFields(gen, discPath, version):
 
                 gen.write_line("ADD_FIELD_WORLD_EXIT(" + fieldID + ", " + f"0x{final_offset:X}" + ", " + str(door_index) + ", " + f"0x{door.fieldID:X}" + ");", 4)
             door_index += 1
+
+        # Field Models
+        modelSection = mapData.getModelSection()
+        globalModelIDs = []
+        for model in modelSection.models:
+            globalModelIDs.append(model.globalModelID)
+        gen.write_line("ADD_FIELD_MODELS(" + fieldID + ", " + ", ".join(str(x) for x in globalModelIDs) + ");", 4)    
 
     gen.write_line("")
 
@@ -324,7 +334,19 @@ def outputBattles(gen, discPath, version):
             enemyIDs = ", ".join(map(str, formation.enemyIDs))
             gen.write_line("ADD_BATTLE_FORMATION(" + str(formationID) + ", " + str(i) + ", " + noEscape + ", " + enemyIDs + ");", 4)
             formationIndex += 1
-            
+
+    gen.write_line("")
+
+def outputModels(gen, discPath, version):
+    modelNames = ["BALLET", "CID", "CLOUD", "EARITH", "KETCY", "RED", "TIFA", "VINCENT", "YUFI"]
+
+    for modelName in modelNames:
+        cloudBCX = ff7.bcx.loadBcx(ff7.retrieveFile(discPath, "FIELD", modelName + ".BCX"))
+
+        model = cloudBCX["model"]
+        for i in range(0, len(model["parts"])):
+            part = model["parts"][i]
+            gen.write_line("ADD_MODEL_PART(\"" + modelName + "\", " + str(i) + ", " + str(len(part["quad_color_tex"])) + ", " + str(len(part["tri_color_tex"])) + ", " + str(len(part["quad_mono_tex"])) + ", " + str(len(part["tri_mono_tex"])) + ", " + str(len(part["tri_mono"])) + ", " + str(len(part["quad_mono"])) + ", " + str(len(part["tri_color"])) + ", " + str(len(part["quad_color"])) + ");", 4)
 
     gen.write_line("")
 
@@ -345,6 +367,7 @@ outputOther(gen, discPath, version)
 outputFields(gen, discPath, version)
 outputWorldMap(gen, discPath, version)
 outputBattles(gen, discPath, version)
+outputModels(gen, discPath, version)
 
 gen.write_footer()
 gen.close_file()

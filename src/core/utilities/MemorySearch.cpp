@@ -149,6 +149,57 @@ std::vector<uintptr_t> MemorySearch::searchForClosePositions(int posX, int posY,
     return results;
 }
 
+std::vector<uintptr_t> MemorySearch::searchForPolygons()
+{
+    std::vector<uintptr_t> results;
+
+    if (game == nullptr)
+    {
+        return results;
+    }
+
+    // Copy PS1 RAM into temporary storage
+    if (!game->read(0, PS1RAMSize, RAMData))
+    {
+        return results;
+    }
+
+    for (uintptr_t i = 0; i < (PS1RAMSize - 36); ++i)
+    {
+        uint32_t word0;
+        memcpy(&word0, &RAMData[i], sizeof(uint32_t));
+        uint8_t cmd0 = (word0 >> 24) & 0xFF;
+
+        // polygon, gouraud, tri
+        if (cmd0 == 0x30)
+        {
+            uint32_t word1;
+            memcpy(&word1, &RAMData[i + 28], sizeof(uint32_t));
+            uint8_t cmd1 = (word1 >> 24) & 0xFF;
+
+            if (cmd1 == 0x30 || cmd1 == 0x38)
+            {
+                results.push_back(i);
+            }
+        }
+
+        // polygon, gouraud, quad 
+        if (cmd0 == 0x38)
+        {
+            uint32_t word1;
+            memcpy(&word1, &RAMData[i + 36], sizeof(uint32_t));
+            uint8_t cmd1 = (word1 >> 24) & 0xFF;
+
+            if (cmd1 == 0x30 || cmd1 == 0x38)
+            {
+                results.push_back(i);
+            }
+        }
+    }
+
+    return results;
+}
+
 std::vector<uintptr_t> MemorySearch::checkAddresses(const std::vector<uintptr_t>& addresses, const std::vector<uint8_t>& searchBytes)
 {
     std::vector<uintptr_t> results;
