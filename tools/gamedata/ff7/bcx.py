@@ -1,3 +1,5 @@
+# Based on: https://forums.qhimm.com/index.php?topic=8969.msg122920#msg122920
+
 import sys, struct, array, math, os, zlib
 
 bcxMap = {}
@@ -58,11 +60,9 @@ def loadLzs(f):
 
     return obuf.tobytes()
 
-def loadFieldBin(name):
+def loadFieldBin(f):
     # read compressed data
-    f = open(name, "rb")
     buf = f.read()
-    f.close()
     
     (size,) = struct.unpack_from("<I", buf, 0)
 
@@ -76,6 +76,7 @@ def loadFieldBin(name):
   
 def readModel(data, num_bones, offset_skeleton, num_parts, offset_parts):
     model = {}
+    poly_count = 0
     
     skeleton = []
     for i in range(num_bones):
@@ -212,10 +213,14 @@ def readModel(data, num_bones, offset_skeleton, num_parts, offset_parts):
             quad_color.append(poly)
             cur_poly += 0x14
         part["quad_color"] = quad_color
+
+        part["poly_count"] = len(quad_color_tex) + len(tri_color_tex) + len(quad_mono_tex) + len(tri_mono_tex) + len(tri_mono) + len(quad_mono) + len(tri_color) + len(quad_color)
+        poly_count += part["poly_count"]
         
         parts.append(part)
                 
     model["parts"] = parts
+    model["poly_count"] = poly_count
             
     return model
     
@@ -294,7 +299,7 @@ def loadBcx(file):
     
     return object
     
-def loadBsx(file):
+def loadBsx(file, bcxMap):
     # get compressed file
     data = loadLzs(file)
     (size, header_offset) = struct.unpack_from("<II", data, 0)
@@ -306,21 +311,29 @@ def loadBsx(file):
     for i in range(num_models):
         model_offset = header_offset + 0x10 + i * 0x30
         (model_id,u2,u3,offset_skeleton,u4,u5,u6,u7,u8,u9,u10,u11,u12,u13,u14,u15,u16,u17,u18,u19,u20,num_bones,u22,u23,u24,u25,u26,u27,u28,u29,u30,u31,u32,num_parts,u34,u35,u36,u37,u38,u39,u40,u41,u42,u43,u44,num_animations) = struct.unpack_from("<HBBHBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB", data, model_offset)
-        # print (model_id,u2,u3,offset_skeleton,u4,u5,u6,u7,u8,u9,u10,u11,u12,u13,u14,u15,u16,u17,u18,u19,u20,num_bones,u22,u23,u24,u25,u26,u27,u28,u29,u30,u31,u32,num_parts,u34,u35,u36,u37,u38,u39,u40,u41,u42,u43,u44,num_animations)
+        #print (model_id,u2,u3,offset_skeleton,u4,u5,u6,u7,u8,u9,u10,u11,u12,u13,u14,u15,u16,u17,u18,u19,u20,num_bones,u22,u23,u24,u25,u26,u27,u28,u29,u30,u31,u32,num_parts,u34,u35,u36,u37,u38,u39,u40,u41,u42,u43,u44,num_animations)
         offset_skeleton += model_offset
         offset_parts = offset_skeleton + num_bones * 4
         offset_animations = offset_parts + num_parts * 32
 
         if model_id == 0x0100:
-            object = loadBcx(bcxMap["cloud"])
+            object = bcxMap["cloud"]
+        elif model_id == 0x0201:
+            object = bcxMap["earith"]
         elif model_id == 0x0302:
-            object = loadBcx(bcxMap["ballet"])
+            object = bcxMap["ballet"]
         elif model_id == 0x0403:
-            object = loadBcx(bcxMap["tifa"])
+            object = bcxMap["tifa"]
+        elif model_id == 0x0504:
+            object = bcxMap["red"]
         elif model_id == 0x0605:
-            object = loadBcx(bcxMap["cid"])
+            object = bcxMap["cid"]
         elif model_id == 0x0706:
-            object = loadBcx(bcxMap["yufi"])
+            object = bcxMap["yufi"]
+        elif model_id == 0x0807:
+            object = bcxMap["ketcy"]
+        elif model_id == 0x0908:
+            object = bcxMap["vincent"]    
         elif num_parts > 0:
             object = {}
             object["model"] = readModel(data, num_bones, offset_skeleton, num_parts, offset_parts)
@@ -329,6 +342,8 @@ def loadBsx(file):
             print("unknown model id: %x" % model_id)
         
         object["animations"].extend(readAnimations(data, num_animations, offset_animations))
+        object["model_id"] = model_id
+        object["model_index"] = i
         
         object_list.append(object)
 
