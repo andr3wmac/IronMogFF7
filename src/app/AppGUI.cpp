@@ -361,8 +361,8 @@ void App::drawDebugPanel()
         if (ImGui::Button("Warp"))
         {
             uint16_t warpFieldID = atoi(debugWarpFieldID);
-            game->write<uint16_t>(0x9ABF6, warpFieldID);
-            game->write<uint8_t>(0x9ABF5, 1);
+            game->write<uint16_t>(GameOffsets::FieldWarpID, warpFieldID);
+            game->write<uint8_t>(GameOffsets::FieldWarpTrigger, 1);
         }
 
         ImGui::Unindent(25.0f);

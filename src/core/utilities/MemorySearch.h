@@ -19,6 +19,14 @@ public:
     void loadMemoryState(std::string inputFilePath, uintptr_t startRange, uintptr_t endRange);
     void saveMemoryState(std::string outputFilePath);
 
+    template<typename T>
+    std::vector<uintptr_t> searchValue(T value)
+    {
+        std::vector<uint8_t> bytes(sizeof(T));
+        std::memcpy(bytes.data(), &value, sizeof(T));
+        return search(bytes);
+    }
+
 private:
     GameManager* game;
     uint8_t* RAMData;

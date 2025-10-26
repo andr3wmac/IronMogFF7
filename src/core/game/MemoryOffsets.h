@@ -11,6 +11,9 @@ struct GameOffsets
     CONST_PTR MusicVolume       = 0x62F5E;  // uint16_t controlling global music volume
     CONST_PTR FieldID           = 0x9A05C;  // uint16_t
     CONST_PTR MusicID           = 0x9A14E;  // uint16_t id of currently playing music
+    CONST_PTR FieldWarpTrigger  = 0x9ABF5;  // uint8_t, set to 1 to warp to field warp ID below
+    CONST_PTR FieldWarpID       = 0x9ABF6;  // uint16_t
+    CONST_PTR ScreenFade        = 0x9AC42;  // uint16_t, 0 - 256 how much screen is faded for loading transition
     CONST_PTR CurrentModule     = 0x9C560;  // uint8_t
     CONST_PTR PartyIDList       = 0x9CBDC;  // 3 uint8_t in a row.
     CONST_PTR Inventory         = 0x9CBE0;  // 320 item list, uint16_t ids.
@@ -40,11 +43,11 @@ struct FieldOffsets
 
 struct FieldScriptOffsets
 {
-    CONST_PTR ScriptStart = 0x115000;
     CONST_PTR TriggersStart = 0x114FF6;
+    CONST_PTR ScriptStart   = 0x115000;
 
-    CONST_PTR ItemID = 0x02;        // uint16_t
-    CONST_PTR ItemQuantity = 0x04;  // uint8_t
+    CONST_PTR ItemID        = 0x02; // uint16_t
+    CONST_PTR ItemQuantity  = 0x04; // uint8_t
 
     // TODO: get the real number
     CONST_PTR MateriaID = 0x03;     // uint8_t

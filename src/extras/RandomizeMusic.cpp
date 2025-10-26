@@ -159,7 +159,7 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
         {
             selectedMusic = previousTrackSelection[musicID];
         }
-        previousTrackSelection[musicID] = selectedMusic;
+        previousTrackSelection[musicID] = (uint16_t)selectedMusic;
 
         Track& track = tracks[selectedMusic];
         std::filesystem::path p(track.path);
