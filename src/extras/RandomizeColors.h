@@ -1,5 +1,6 @@
 #pragma once
 #include "extras/Extra.h"
+#include "core/utilities/Utilities.h"
 #include <cstdint>
 #include <unordered_map>
 
@@ -15,7 +16,11 @@ private:
     void onFieldChanged(uint16_t fieldID);
     void onFrame(uint32_t frameNumber);
 
-    int frameWait = 0;
+    std::vector<Utilities::Color> randomColors;
+
+    bool waitingForField = false;
+    int lastFieldID = -1;
+    int lastFieldFade = 0;
 
     // Debug variables
     char debugStartNum[20];

@@ -7,83 +7,182 @@
 
 ModelEditor::ModelEditor(GameManager* gameManager)
 {
-    game = gameManager;
+    game            = gameManager;
+    bufferAddress   = 1284000;
+    bufferSize      = 400000;
+
+    for (auto kv : GameData::models)
+    {
+        int polyCount = 0;
+
+        for (ModelPart& part : kv.second.parts)
+        {
+            polyCount += part.quadColorTex;
+            polyCount += part.triColorTex;
+            polyCount += part.quadMonoTex;
+            polyCount += part.triMonoTex;
+            polyCount += part.triMono;
+            polyCount += part.quadMono;
+            polyCount += part.triColor;
+            polyCount += part.quadColor;
+        }
+        
+        modelPolyCounts[kv.first] = polyCount;
+    }
 }
 
-bool ModelEditor::findModel(std::string modelName)
+ModelEditor::~ModelEditor()
 {
-    uintptr_t startAddress = 1284000;
-    size_t searchArea = 200000;
-    size_t uintCount = searchArea / 4;
-
-    if (searchData == nullptr)
+    if (buffer != nullptr)
     {
-        searchData = new uint32_t[uintCount];
+        delete[] buffer;
+    }
+}
+
+void ModelEditor::findModels()
+{
+    openModels.clear();
+
+    size_t uintCount = bufferSize / 4;
+    if (buffer == nullptr)
+    {
+        buffer = new uint32_t[uintCount];
     }
 
-    game->read(startAddress, searchArea, (uint8_t*)searchData);
+    game->read(bufferAddress, bufferSize, (uint8_t*)buffer);
 
-    std::vector<uintptr_t> addresses;
+    int polygonCount = 0;
+    int startPolyIndex = 0;
 
-    for (int i = 0; i < uintCount; ++i)
+    for (int i = 0; i < uintCount;)
     {
-        uint32_t data0 = searchData[i];
+        uint32_t data0 = buffer[i];
         uint8_t cmd0 = (data0 >> 24) & 0xFF;
+
+        // polygon, gouraud, quad, textured
+        if (cmd0 == 0x3C)
+        {
+            if (polygonCount == 0) startPolyIndex = i;
+            i += 13;
+            polygonCount++;
+            continue;
+        }
+
+        // polygon, gouraud, tri, textured
+        if (cmd0 == 0x34)
+        {
+            if (polygonCount == 0) startPolyIndex = i;
+            i += 10;
+            polygonCount++;
+            continue;
+        }
 
         // polygon, gouraud, tri
         if (cmd0 == 0x30)
         {
-            uint32_t word1 = searchData[i + 7];
-            uint8_t cmd1 = (word1 >> 24) & 0xFF;
-
-            if (cmd1 == 0x30 || cmd1 == 0x38)
-            {
-                addresses.push_back(startAddress + (i * 4));
-            }
+            if (polygonCount == 0) startPolyIndex = i;
+            i += 7;
+            polygonCount++;
+            continue;
         }
 
         // polygon, gouraud, quad 
         if (cmd0 == 0x38)
         {
-            uint32_t word1 = searchData[i + 9];
-            uint8_t cmd1 = (word1 >> 24) & 0xFF;
+            if (polygonCount == 0) startPolyIndex = i;
+            i += 9;
+            polygonCount++;
+            continue;
+        }
 
-            if (cmd1 == 0x30 || cmd1 == 0x38)
+        if (polygonCount > 100)
+        {
+            for (auto kv : modelPolyCounts)
             {
-                addresses.push_back(startAddress + (i * 4));
+                if ((kv.second * 2) == polygonCount)
+                {
+                    if (openModel(startPolyIndex, kv.first))
+                    {
+                        LOG("Opened model: %s %d %d", kv.first.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount);
+                        break;
+                    }
+                    else 
+                    {
+                        LOG("Failed to open model: %s %d %d", kv.first.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount);
+                    }
+                }
+
+                // This can occur due to false positives in the initial search where theres an extra poly
+                // on the front or back of the buffer due to bad luck
+                if ((kv.second * 2) == polygonCount - 1)
+                {
+                    // First we see if its one on the end of the buffer
+                    if (openModel(startPolyIndex, kv.first))
+                    {
+                        LOG("Opened model: %s %d %d", kv.first.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount - 1);
+                        break;
+                    }
+                    else
+                    {
+                        // Assume its one on the front of the buffer and skip past it
+                        ModelEditorPoly poly;
+                        int readSize = readPoly(startPolyIndex, poly);
+
+                        if (openModel(startPolyIndex + readSize, kv.first))
+                        {
+                            LOG("Opened model: %s %d %d", kv.first.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount - 1);
+                            break;
+                        }
+                        else
+                        {
+                            LOG("Failed to open model: %s %d %d", kv.first.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount);
+                        }
+                    }
+                }
             }
         }
-    }
 
-    for (int i = 0; i < addresses.size(); ++i)
-    {
-        if (openModel(addresses[i], modelName))
+        if (polygonCount > 0 && polygonCount < 4)
         {
-            LOG("Found model at: %d", addresses[i]);
-            return true;
+            // This prevents making big jumps from false positives.
+            i = startPolyIndex;
         }
-    }
 
-    return false;
+        polygonCount = 0;
+        i++;
+    }
 }
 
-bool ModelEditor::openModel(uintptr_t address, std::string modelName)
+std::vector<std::string> ModelEditor::getOpenModelNames()
+{
+    std::vector<std::string> keys;
+    keys.reserve(openModels.size());
+
+    for (const auto& [key, _] : openModels)
+    {
+        keys.push_back(key);
+    }
+
+    return keys;
+}
+
+bool ModelEditor::openModel(int bufferIdx, std::string modelName)
 {
     if (GameData::models.count(modelName) == 0)
     {
         return false;
     }
 
-    //readAllPolys(address, 1000);
-
     Model& model = GameData::models[modelName];
-    parts.clear();
+    
+    std::vector<ModelEditorPart> pendingParts;
 
-    uintptr_t curAddr = address;
+    int curIdx = bufferIdx;
     for (ModelPart& part : model.parts)
     {
         ModelEditorPart editorPart;
 
+        // Model parts are double buffered
         for (int bufferIdx = 0; bufferIdx < 2; ++bufferIdx)
         {
             std::vector<ModelEditorPoly> readPolys;
@@ -91,53 +190,53 @@ bool ModelEditor::openModel(uintptr_t address, std::string modelName)
             for (int i = 0; i < part.quadColorTex; ++i)
             {
                 ModelEditorPoly poly;
-                size_t readSize = readPoly(curAddr, poly);
+                int readSize = readPoly(curIdx, poly);
                 if (readSize == 0 || poly.textured == false)
                 {
                     return false;
                 }
 
                 readPolys.push_back(poly);
-                curAddr += readSize;
+                curIdx += readSize;
             }
 
             for (int i = 0; i < part.triColorTex; ++i)
             {
                 ModelEditorPoly poly;
-                size_t readSize = readPoly(curAddr, poly);
+                int readSize = readPoly(curIdx, poly);
                 if (readSize == 0 || poly.textured == false)
                 {
                     return false;
                 }
 
                 readPolys.push_back(poly);
-                curAddr += readSize;
+                curIdx += readSize;
             }
 
             for (int i = 0; i < part.triColor; ++i)
             {
                 ModelEditorPoly poly;
-                size_t readSize = readPoly(curAddr, poly);
+                int readSize = readPoly(curIdx, poly);
                 if (readSize == 0)
                 {
                     return false;
                 }
 
                 readPolys.push_back(poly);
-                curAddr += readSize;
+                curIdx += readSize;
             }
 
             for (int i = 0; i < part.quadColor; ++i)
             {
                 ModelEditorPoly poly;
-                size_t readSize = readPoly(curAddr, poly);
+                int readSize = readPoly(curIdx, poly);
                 if (readSize == 0)
                 {
                     return false;
                 }
 
                 readPolys.push_back(poly);
-                curAddr += readSize;
+                curIdx += readSize;
             }
 
             if (bufferIdx == 0)
@@ -153,57 +252,86 @@ bool ModelEditor::openModel(uintptr_t address, std::string modelName)
             }
         }
 
-        parts.push_back(editorPart);
+        pendingParts.push_back(editorPart);
     }
+
+    ModelEditorModel& editorModel = openModels[modelName];
+    editorModel.parts.insert(editorModel.parts.end(), pendingParts.begin(), pendingParts.end());
 
     return true;
 }
 
-void ModelEditor::setPartColor(int partIndex, uint8_t red, uint8_t green, uint8_t blue)
+void ModelEditor::setPartColor(std::string modelName, int partIndex, Utilities::Color color, const std::set<int>& excludedPolys)
 {
-    if (partIndex >= parts.size())
+    if (openModels.count(modelName) == 0)
     {
         return;
     }
 
-    ModelEditorPart& part = parts[partIndex];
+    ModelEditorModel& editorModel = openModels[modelName];
+
+    if (partIndex >= editorModel.parts.size())
+    {
+        return;
+    }
+
+    ModelEditorPart& part = editorModel.parts[partIndex];
+
     for (int i = 0; i < part.polys.size(); ++i)
     {
+        if (excludedPolys.count(i) > 0)
+        {
+            continue;
+        }
+
         ModelEditorPoly& poly = part.polys[i];
        
-        for (int v = 0; v < poly.vertices.size(); ++v)
+        for (int v = 0; v < poly.vertexColors.size(); ++v)
         {
-            uintptr_t colorAddrA = poly.bufferAddressA + (v * poly.stride);
-            uintptr_t colorAddrB = poly.bufferAddressB + (v * poly.stride);
+            uintptr_t colorAddrA = poly.bufferAddressA + (v * poly.vertexStride);
+            uintptr_t colorAddrB = poly.bufferAddressB + (v * poly.vertexStride);
 
-            game->write<uint8_t>(colorAddrA + 0, red);
-            game->write<uint8_t>(colorAddrB + 0, red);
-            game->write<uint8_t>(colorAddrA + 1, green);
-            game->write<uint8_t>(colorAddrB + 1, green);
-            game->write<uint8_t>(colorAddrA + 2, blue);
-            game->write<uint8_t>(colorAddrB + 2, blue);
+            game->write<uint8_t>(colorAddrA + 0, color.r);
+            game->write<uint8_t>(colorAddrB + 0, color.r);
+            game->write<uint8_t>(colorAddrA + 1, color.g);
+            game->write<uint8_t>(colorAddrB + 1, color.g);
+            game->write<uint8_t>(colorAddrA + 2, color.b);
+            game->write<uint8_t>(colorAddrB + 2, color.b);
         }
     }
 }
 
-void ModelEditor::setPartTint(int partIndex, uint8_t red, uint8_t green, uint8_t blue)
+void ModelEditor::tintPart(std::string modelName, int partIndex, Utilities::Color color, const std::set<int>& excludedPolys)
 {
-    if (partIndex >= parts.size())
+    if (openModels.count(modelName) == 0)
     {
         return;
     }
 
-    ModelEditorPart& part = parts[partIndex];
+    ModelEditorModel& editorModel = openModels[modelName];
+
+    if (partIndex >= editorModel.parts.size())
+    {
+        return;
+    }
+
+    ModelEditorPart& part = editorModel.parts[partIndex];
+
     for (int i = 0; i < part.polys.size(); ++i)
     {
+        if (excludedPolys.count(i) > 0)
+        {
+            continue;
+        }
+
         ModelEditorPoly& poly = part.polys[i];
 
-        for (int v = 0; v < poly.vertices.size(); ++v)
+        for (int v = 0; v < poly.vertexColors.size(); ++v)
         {
-            uintptr_t colorAddrA = poly.bufferAddressA + (v * poly.stride);
-            uintptr_t colorAddrB = poly.bufferAddressB + (v * poly.stride);
+            uintptr_t colorAddrA = poly.bufferAddressA + (v * poly.vertexStride);
+            uintptr_t colorAddrB = poly.bufferAddressB + (v * poly.vertexStride);
 
-            ModelEditorVertex tinted = tintVertexColor(poly.vertices[v], { red, green, blue });
+            Utilities::Color tinted = tintVertexColor(poly.vertexColors[v], { color.r, color.g, color.b });
 
             game->write<uint8_t>(colorAddrA + 0, tinted.r);
             game->write<uint8_t>(colorAddrB + 0, tinted.r);
@@ -215,7 +343,91 @@ void ModelEditor::setPartTint(int partIndex, uint8_t red, uint8_t green, uint8_t
     }
 }
 
-ModelEditor::ModelEditorVertex ModelEditor::tintVertexColor(const ModelEditorVertex& src, const ModelEditorVertex& tint)
+void ModelEditor::tintPolys(std::string modelName, int partIndex, Utilities::Color color, const std::set<int>& includedPolys)
+{
+    if (openModels.count(modelName) == 0)
+    {
+        return;
+    }
+
+    ModelEditorModel& editorModel = openModels[modelName];
+
+    if (partIndex >= editorModel.parts.size())
+    {
+        return;
+    }
+
+    ModelEditorPart& part = editorModel.parts[partIndex];
+
+    for (int i = 0; i < part.polys.size(); ++i)
+    {
+        if (includedPolys.count(i) == 0)
+        {
+            continue;
+        }
+
+        ModelEditorPoly& poly = part.polys[i];
+
+        for (int v = 0; v < poly.vertexColors.size(); ++v)
+        {
+            uintptr_t colorAddrA = poly.bufferAddressA + (v * poly.vertexStride);
+            uintptr_t colorAddrB = poly.bufferAddressB + (v * poly.vertexStride);
+
+            Utilities::Color tinted = tintVertexColor(poly.vertexColors[v], { color.r, color.g, color.b });
+
+            game->write<uint8_t>(colorAddrA + 0, tinted.r);
+            game->write<uint8_t>(colorAddrB + 0, tinted.r);
+            game->write<uint8_t>(colorAddrA + 1, tinted.g);
+            game->write<uint8_t>(colorAddrB + 1, tinted.g);
+            game->write<uint8_t>(colorAddrA + 2, tinted.b);
+            game->write<uint8_t>(colorAddrB + 2, tinted.b);
+        }
+    }
+}
+
+void ModelEditor::tintPolyRange(std::string modelName, int partIndex, Utilities::Color color, uint32_t polyStart, uint32_t polyEnd)
+{
+    if (openModels.count(modelName) == 0)
+    {
+        return;
+    }
+
+    ModelEditorModel& editorModel = openModels[modelName];
+
+    if (partIndex >= editorModel.parts.size())
+    {
+        return;
+    }
+
+    ModelEditorPart& part = editorModel.parts[partIndex];
+
+    for (uint32_t i = polyStart; i <= polyEnd; ++i)
+    {
+        if (i >= part.polys.size())
+        {
+            break;
+        }
+
+        ModelEditorPoly& poly = part.polys[i];
+
+        for (int v = 0; v < poly.vertexColors.size(); ++v)
+        {
+            uintptr_t colorAddrA = poly.bufferAddressA + (v * poly.vertexStride);
+            uintptr_t colorAddrB = poly.bufferAddressB + (v * poly.vertexStride);
+
+            Utilities::Color tinted = tintVertexColor(poly.vertexColors[v], { color.r, color.g, color.b });
+
+            game->write<uint8_t>(colorAddrA + 0, tinted.r);
+            game->write<uint8_t>(colorAddrB + 0, tinted.r);
+            game->write<uint8_t>(colorAddrA + 1, tinted.g);
+            game->write<uint8_t>(colorAddrB + 1, tinted.g);
+            game->write<uint8_t>(colorAddrA + 2, tinted.b);
+            game->write<uint8_t>(colorAddrB + 2, tinted.b);
+        }
+    }
+}
+
+Utilities::Color ModelEditor::tintVertexColor(const Utilities::Color& src, const Utilities::Color& tint)
 {
     // Convert to grayscale (perceptual luminance)
     float gray = 0.299f * src.r + 0.587f * src.g + 0.114f * src.b;
@@ -233,19 +445,18 @@ ModelEditor::ModelEditorVertex ModelEditor::tintVertexColor(const ModelEditorVer
     return { clamp8(rf), clamp8(gf), clamp8(bf) };
 }
 
-size_t ModelEditor::readPoly(uintptr_t address, ModelEditorPoly& polyOut)
+int ModelEditor::readPoly(int bufferIdx, ModelEditorPoly& polyOut)
 {
-    polyOut.bufferAddressA = address;
+    if (buffer == nullptr)
+    {
+        return 0;
+    }
 
-    uintptr_t curAddr = address;
-    uintptr_t startAddr = curAddr;
+    polyOut.bufferAddressA = bufferAddress + (bufferIdx * 4);
 
-    uint32_t word0 = game->read<uint32_t>(curAddr);
+    int curIdx = bufferIdx;
 
-    ModelEditorVertex vert0;
-    vert0.r = word0 & 0xFF;              // bits 7..0
-    vert0.g = (word0 >> 8) & 0xFF;       // bits 15..8
-    vert0.b = (word0 >> 16) & 0xFF;      // bits 23..16
+    uint32_t word0 = buffer[curIdx];
     uint8_t cmd  = (word0 >> 24) & 0xFF; // bits 31..24
 
     uint8_t polygon_render  = (cmd >> 5) & 0b111; // bits 31-29
@@ -255,128 +466,75 @@ size_t ModelEditor::readPoly(uintptr_t address, ModelEditorPoly& polyOut)
     uint8_t semi_transp     = (cmd >> 1) & 0b1;   // bit 25
     uint8_t raw_tex_mod     = cmd & 0b1;          // bit 24
 
-    if (polygon_render != 1)
+    if (polygon_render != 1 || gouraud_flag != 1)
     {
         //LOG("Unknown command. Skipping...");
         return 0;
     }
 
-    if (gouraud_flag != 1)
-    {
-        //LOG("Unknown primitive. Skipping...");
-        return 0;
-    }
-
     polyOut.textured = textured_flag == 1;
-    polyOut.stride = 8 + (textured_flag * 4);
+    polyOut.vertexStride = 8 + (textured_flag * 4);
 
     // Vert0 XXXXYYYY
-    curAddr += 8;
+    Utilities::Color vert0;
+    vert0.r = word0 & 0xFF;              // bits 7..0
+    vert0.g = (word0 >> 8) & 0xFF;       // bits 15..8
+    vert0.b = (word0 >> 16) & 0xFF;      // bits 23..16
+    curIdx += 2;
     if (textured_flag == 1)
     {
         // Vert0 UV
-        curAddr += 4;
+        curIdx++;
     }
-    polyOut.vertices.push_back(vert0);
+    polyOut.vertexColors.push_back(vert0);
 
     // Vert1 RRGGBB00, XXXXYYYY
-    uint32_t word1 = game->read<uint32_t>(curAddr);
-    ModelEditorVertex vert1;
+    uint32_t word1 = buffer[curIdx];
+    Utilities::Color vert1;
     vert1.r = word1 & 0xFF;
     vert1.g = (word1 >> 8) & 0xFF;
     vert1.b = (word1 >> 16) & 0xFF;
-    curAddr += 8;
+    curIdx += 2;
     if (textured_flag == 1)
     {
         // Vert0 ClutVVUU
-        curAddr += 4;
+        curIdx++;
     }
-    polyOut.vertices.push_back(vert1);
+    polyOut.vertexColors.push_back(vert1);
 
     // Vert2 RRGGBB00, XXXXYYYY
-    uint32_t word2 = game->read<uint32_t>(curAddr);
-    ModelEditorVertex vert2;
+    uint32_t word2 = buffer[curIdx];
+    Utilities::Color vert2;
     vert2.r = word2 & 0xFF;
     vert2.g = (word2 >> 8) & 0xFF;
     vert2.b = (word2 >> 16) & 0xFF;
-    curAddr += 8;
+    curIdx += 2;
     if (textured_flag == 1)
     {
         // Vert2 ClutVVUU
-        curAddr += 4;
+        curIdx++;
     }
-    polyOut.vertices.push_back(vert2);
+    polyOut.vertexColors.push_back(vert2);
 
     if (quad_flag == 1)
     {
         // Vert3 RRGGBB00, XXXXYYYY
-        uint32_t word3 = game->read<uint32_t>(curAddr);
-        ModelEditorVertex vert3;
+        uint32_t word3 = buffer[curIdx];
+        Utilities::Color vert3;
         vert3.r = word3 & 0xFF;
         vert3.g = (word3 >> 8) & 0xFF;
         vert3.b = (word3 >> 16) & 0xFF;
-        curAddr += 8;
+        curIdx += 2;
         if (textured_flag == 1)
         {
             // Vert3 ClutVVUU
-            curAddr += 4;
+            curIdx++;
         }
-        polyOut.vertices.push_back(vert3);
+        polyOut.vertexColors.push_back(vert3);
     }
 
     // Not sure what the extra 4 bytes is on the end of every command buffer entry
-    curAddr += 4;
+    curIdx++;
 
-    return curAddr - address;
-}
-
-void ModelEditor::readAllPolys(uintptr_t address, int maxReadPolys)
-{
-    uintptr_t curAddr = address;
-
-    for (int i = 0; i < maxReadPolys; ++i)
-    {
-        ModelEditorPoly poly;
-        size_t readSize = readPoly(curAddr, poly);
-
-        if (readSize == 0)
-        {
-            return;
-        }
-
-        if (poly.vertices.size() == 3)
-        {
-            ModelEditorVertex& v0 = poly.vertices[0];
-            ModelEditorVertex& v1 = poly.vertices[1];
-            ModelEditorVertex& v2 = poly.vertices[2];
-
-            if (poly.textured)
-            {
-                LOG("Tri Tex %d: %d %d %d, %d %d %d, %d %d %d", curAddr, v0.r, v0.g, v0.b, v1.r, v1.g, v1.b, v2.r, v2.g, v2.b);
-            }
-            else 
-            {
-                LOG("Tri %d: %d %d %d, %d %d %d, %d %d %d", curAddr, v0.r, v0.g, v0.b, v1.r, v1.g, v1.b, v2.r, v2.g, v2.b);
-            }
-        }
-
-        if (poly.vertices.size() == 4)
-        {
-            ModelEditorVertex& v0 = poly.vertices[0];
-            ModelEditorVertex& v1 = poly.vertices[1];
-            ModelEditorVertex& v2 = poly.vertices[2];
-            ModelEditorVertex& v3 = poly.vertices[3];
-
-            if (poly.textured)
-            {
-                LOG("Quad Tex %d: %d %d %d, %d %d %d, %d %d %d, %d %d %d", curAddr, v0.r, v0.g, v0.b, v1.r, v1.g, v1.b, v2.r, v2.g, v2.b, v3.r, v3.g, v3.b);
-            }
-            else
-            {
-                LOG("Quad %d: %d %d %d, %d %d %d, %d %d %d, %d %d %d", curAddr, v0.r, v0.g, v0.b, v1.r, v1.g, v1.b, v2.r, v2.g, v2.b, v3.r, v3.g, v3.b);
-            }
-        }
-
-        curAddr += readSize;
-    }
+    return curIdx - bufferIdx;
 }
