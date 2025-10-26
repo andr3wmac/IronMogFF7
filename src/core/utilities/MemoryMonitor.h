@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/game/GameManager.h"
+#include <set>
 #include <string>
 #include <vector>
 
@@ -27,6 +28,11 @@ public:
         delete[] regionData[1];
     }
 
+    void addIgnoreAddresses(std::vector<uintptr_t>& addresses)
+    {
+        ignoreAddresses.insert(addresses.begin(), addresses.end());
+    }
+
     void onUpdate()
     {
         if (firstUpdate)
@@ -50,6 +56,11 @@ public:
 
             if (previousDataTyped[0] != latestDataTyped[0])
             {
+                if (ignoreAddresses.count(i) > 0)
+                {
+                    continue;
+                }
+
                 monitorFunc(previousDataTyped[0], latestDataTyped[0], i);
             }
         }
@@ -65,5 +76,6 @@ private:
     int prevDataIdx = 1;
     bool firstUpdate = false;
 
+    std::set<uintptr_t> ignoreAddresses;
     std::function<void(T, T, int)> monitorFunc;
 };

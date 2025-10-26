@@ -252,18 +252,6 @@ bool GUI::wasWindowClosed()
     return glfwWindowShouldClose(window);
 }
 
-void GUI::drawImage(GUIImage& image, int width, int height, float alpha)
-{
-    if (alpha < 1.0f)
-    {
-        ImGui::ImageWithBg((ImTextureID)image.textureID, ImVec2((float)width, (float)height), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, alpha));
-    }
-    else 
-    {
-        ImGui::Image((ImTextureID)image.textureID, ImVec2((float)width, (float)height));
-    }
-}
-
 void GUI::onKeyCallback(int key, int scancode, int action, int mods)
 {
     if (action == GLFW_PRESS)
@@ -329,4 +317,53 @@ bool GUIImage::loadFromFile(const char* file_name)
     bool ret = loadFromMemory(file_data, file_size);
     IM_FREE(file_data);
     return ret;
+}
+
+void GUI::drawImage(GUIImage& image, int width, int height, float alpha)
+{
+    if (alpha < 1.0f)
+    {
+        ImGui::ImageWithBg((ImTextureID)image.textureID, ImVec2((float)width, (float)height), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), ImVec4(1, 1, 1, alpha));
+    }
+    else
+    {
+        ImGui::Image((ImTextureID)image.textureID, ImVec2((float)width, (float)height));
+    }
+}
+
+void GUI::drawColorGrid(std::vector<Utilities::Color>& colors, std::function<void(int, Utilities::Color)> onClickCallback, float boxSize, float spacing, int colorsPerRow)
+{
+    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    ImVec2 startPos = ImGui::GetCursorScreenPos();
+
+    for (size_t i = 0; i < colors.size(); ++i)
+    {
+        ImU32 color = IM_COL32(colors[i].r, colors[i].g, colors[i].b, 255);
+
+        // compute position in grid
+        int row = static_cast<int>(i / colorsPerRow);
+        int col = static_cast<int>(i % colorsPerRow);
+        ImVec2 p0 = ImVec2(startPos.x + col * (boxSize + spacing), startPos.y + row * (boxSize + spacing));
+        ImVec2 p1 = ImVec2(p0.x + boxSize, p0.y + boxSize);
+
+        // draw filled rect
+        drawList->AddRectFilled(p0, p1, color);
+        drawList->AddRect(p0, p1, IM_COL32(60, 60, 60, 255)); // border
+
+        // Make an invisible button for interaction
+        ImGui::SetCursorScreenPos(p0);
+        ImGui::InvisibleButton(("color" + std::to_string(i)).c_str(), ImVec2(boxSize, boxSize));
+
+        if (ImGui::IsItemClicked())
+        {
+            if (onClickCallback)
+            {
+                onClickCallback((int)i, colors[i]);
+            }
+        }
+    }
+
+    // advance cursor so the next ImGui item doesn't overlap
+    int totalRows = static_cast<int>((colors.size() + colorsPerRow - 1) / colorsPerRow);
+    ImGui::Dummy(ImVec2(0.0f, totalRows * (boxSize + spacing)));
 }
