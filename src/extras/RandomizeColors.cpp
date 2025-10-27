@@ -311,6 +311,36 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
                 modelEditor.tintPart(modelName, 14, moogleColor);
                 modelEditor.tintPart(modelName, 15, moogleColor);
             }
+
+            if (modelName == "YUFI")
+            {
+                std::vector<Utilities::Color> randomColors = randomModelColors[modelName];
+                Utilities::Color& shirtColor = randomColors[0];
+                Utilities::Color& pantsColor = randomColors[1];
+
+                modelEditor.tintPart(modelName, 1, shirtColor, { 12, 13, 14, 15, 16, 17, 35, 36, 37, 38, 39, 40 });
+                modelEditor.tintPart(modelName, 3, shirtColor);
+                modelEditor.tintPart(modelName, 4, shirtColor);
+
+                modelEditor.tintPart(modelName, 0, pantsColor);
+                modelEditor.tintPart(modelName, 11, pantsColor, { 7, 8, 9, 10 });
+                modelEditor.tintPart(modelName, 14, pantsColor, { 7, 8, 9, 10 });
+
+                // Shield
+                modelEditor.tintPolyRange(modelName, 5, pantsColor, 17, 26);
+                modelEditor.tintPart(modelName, 6, pantsColor);
+            }
+
+            if (modelName == "VINCENT")
+            {
+                std::vector<Utilities::Color> randomColors = randomModelColors[modelName];
+                Utilities::Color& capeColor = randomColors[0];
+
+                modelEditor.tintPart(modelName, 1, capeColor, { 11, 23, 24, 25, 26, 27, 28, 29, 30, 31 });
+                modelEditor.tintPart(modelName, 4, capeColor);
+                modelEditor.tintPart(modelName, 5, capeColor, { 12, 13, 14, 15, 16 });
+                modelEditor.tintPart(modelName, 8, capeColor, { 12, 13, 14, 15, 16 });
+            }
         }
 
         waitingForField = false;
