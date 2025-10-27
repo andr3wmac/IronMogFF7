@@ -95,6 +95,8 @@ struct ModelPart
 
 struct Model
 {
+    std::string name = "";
+    int polyCount = 0;
     std::vector<ModelPart> parts;
 
     static inline std::string getModelNameFromID(uint8_t modelID)
@@ -185,4 +187,4 @@ public:
 
 #define ADD_BATTLE_FORMATION(FORMATION_ID, SCENE_ID, NO_ESCAPE, ...) GameData::battleScenes[SCENE_ID].formations.push_back({FORMATION_ID, NO_ESCAPE, {__VA_ARGS__}});
 
-#define ADD_MODEL_PART(MODEL_NAME, PART_INDEX, ...) GameData::models[MODEL_NAME].parts.push_back({__VA_ARGS__});
+#define ADD_MODEL(MODEL_NAME, POLY_COUNT, ...) { GameData::models[MODEL_NAME] = { MODEL_NAME, POLY_COUNT, __VA_ARGS__ }; }

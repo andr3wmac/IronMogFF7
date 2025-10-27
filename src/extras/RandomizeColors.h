@@ -1,5 +1,6 @@
 #pragma once
 #include "extras/Extra.h"
+#include "core/utilities/ModelEditor.h"
 #include "core/utilities/Utilities.h"
 #include <cstdint>
 #include <unordered_map>
@@ -16,7 +17,8 @@ private:
     void onFieldChanged(uint16_t fieldID);
     void onFrame(uint32_t frameNumber);
 
-    std::vector<Utilities::Color> randomColors;
+    ModelEditor modelEditor;
+    std::unordered_map<std::string, std::vector<Utilities::Color>> randomModelColors;
 
     bool waitingForField = false;
     int lastFieldID = -1;

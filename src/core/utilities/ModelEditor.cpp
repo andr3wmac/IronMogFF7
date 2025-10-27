@@ -5,30 +5,11 @@
 
 #include <string>
 
-ModelEditor::ModelEditor(GameManager* gameManager)
+ModelEditor::ModelEditor()
 {
-    game            = gameManager;
-    bufferAddress   = 1284000;
-    bufferSize      = 400000;
-
-    for (auto kv : GameData::models)
-    {
-        int polyCount = 0;
-
-        for (ModelPart& part : kv.second.parts)
-        {
-            polyCount += part.quadColorTex;
-            polyCount += part.triColorTex;
-            polyCount += part.quadMonoTex;
-            polyCount += part.triMonoTex;
-            polyCount += part.triMono;
-            polyCount += part.quadMono;
-            polyCount += part.triColor;
-            polyCount += part.quadColor;
-        }
-        
-        modelPolyCounts[kv.first] = polyCount;
-    }
+    game            = nullptr;
+    bufferAddress   = 0;
+    bufferSize      = 0;
 }
 
 ModelEditor::~ModelEditor()
@@ -37,6 +18,15 @@ ModelEditor::~ModelEditor()
     {
         delete[] buffer;
     }
+}
+
+void ModelEditor::setup(GameManager* gameManager)
+{
+    game            = gameManager;
+    bufferAddress   = 1284000;
+    bufferSize      = 400000;
+
+    openModels.clear();
 }
 
 void ModelEditor::findModels()
@@ -97,29 +87,31 @@ void ModelEditor::findModels()
 
         if (polygonCount > 100)
         {
-            for (auto kv : modelPolyCounts)
+            for (auto kv : GameData::models)
             {
-                if ((kv.second * 2) == polygonCount)
+                Model& model = GameData::models[kv.first];
+
+                if ((model.polyCount * 2) == polygonCount)
                 {
-                    if (openModel(startPolyIndex, kv.first))
+                    if (openModel(startPolyIndex, model))
                     {
-                        LOG("Opened model: %s %d %d", kv.first.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount);
+                        LOG("Opened model: %s %d %d", model.name.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount);
                         break;
                     }
                     else 
                     {
-                        LOG("Failed to open model: %s %d %d", kv.first.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount);
+                        LOG("Failed to open model: %s %d %d", model.name.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount);
                     }
                 }
 
                 // This can occur due to false positives in the initial search where theres an extra poly
                 // on the front or back of the buffer due to bad luck
-                if ((kv.second * 2) == polygonCount - 1)
+                if ((model.polyCount * 2) == polygonCount - 1)
                 {
                     // First we see if its one on the end of the buffer
-                    if (openModel(startPolyIndex, kv.first))
+                    if (openModel(startPolyIndex, model))
                     {
-                        LOG("Opened model: %s %d %d", kv.first.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount - 1);
+                        LOG("Opened model: %s %d %d", model.name.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount - 1);
                         break;
                     }
                     else
@@ -128,14 +120,14 @@ void ModelEditor::findModels()
                         ModelEditorPoly poly;
                         int readSize = readPoly(startPolyIndex, poly);
 
-                        if (openModel(startPolyIndex + readSize, kv.first))
+                        if (openModel(startPolyIndex + readSize, model))
                         {
-                            LOG("Opened model: %s %d %d", kv.first.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount - 1);
+                            LOG("Opened model: %s %d %d", model.name.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount - 1);
                             break;
                         }
                         else
                         {
-                            LOG("Failed to open model: %s %d %d", kv.first.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount);
+                            LOG("Failed to open model: %s %d %d", model.name.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount);
                         }
                     }
                 }
@@ -166,24 +158,17 @@ std::vector<std::string> ModelEditor::getOpenModelNames()
     return keys;
 }
 
-bool ModelEditor::openModel(int bufferIdx, std::string modelName)
+bool ModelEditor::openModel(int bufferIdx, const Model& model)
 {
-    if (GameData::models.count(modelName) == 0)
-    {
-        return false;
-    }
-
-    Model& model = GameData::models[modelName];
-    
     std::vector<ModelEditorPart> pendingParts;
 
     int curIdx = bufferIdx;
-    for (ModelPart& part : model.parts)
+    for (const ModelPart& part : model.parts)
     {
         ModelEditorPart editorPart;
 
         // Model parts are double buffered
-        for (int bufferIdx = 0; bufferIdx < 2; ++bufferIdx)
+        for (int bufferCopy = 0; bufferCopy < 2; ++bufferCopy)
         {
             std::vector<ModelEditorPoly> readPolys;
 
@@ -235,11 +220,12 @@ bool ModelEditor::openModel(int bufferIdx, std::string modelName)
                     return false;
                 }
 
+
                 readPolys.push_back(poly);
                 curIdx += readSize;
             }
 
-            if (bufferIdx == 0)
+            if (bufferCopy == 0)
             {
                 editorPart.polys = readPolys;
             }
@@ -255,7 +241,7 @@ bool ModelEditor::openModel(int bufferIdx, std::string modelName)
         pendingParts.push_back(editorPart);
     }
 
-    ModelEditorModel& editorModel = openModels[modelName];
+    ModelEditorModel& editorModel = openModels[model.name];
     editorModel.parts.insert(editorModel.parts.end(), pendingParts.begin(), pendingParts.end());
 
     return true;
@@ -263,7 +249,7 @@ bool ModelEditor::openModel(int bufferIdx, std::string modelName)
 
 void ModelEditor::setPartColor(std::string modelName, int partIndex, Utilities::Color color, const std::set<int>& excludedPolys)
 {
-    if (openModels.count(modelName) == 0)
+    if (game == nullptr || openModels.count(modelName) == 0)
     {
         return;
     }
@@ -303,7 +289,7 @@ void ModelEditor::setPartColor(std::string modelName, int partIndex, Utilities::
 
 void ModelEditor::tintPart(std::string modelName, int partIndex, Utilities::Color color, const std::set<int>& excludedPolys)
 {
-    if (openModels.count(modelName) == 0)
+    if (game == nullptr || openModels.count(modelName) == 0)
     {
         return;
     }
@@ -345,7 +331,7 @@ void ModelEditor::tintPart(std::string modelName, int partIndex, Utilities::Colo
 
 void ModelEditor::tintPolys(std::string modelName, int partIndex, Utilities::Color color, const std::set<int>& includedPolys)
 {
-    if (openModels.count(modelName) == 0)
+    if (game == nullptr || openModels.count(modelName) == 0)
     {
         return;
     }
@@ -387,7 +373,7 @@ void ModelEditor::tintPolys(std::string modelName, int partIndex, Utilities::Col
 
 void ModelEditor::tintPolyRange(std::string modelName, int partIndex, Utilities::Color color, uint32_t polyStart, uint32_t polyEnd)
 {
-    if (openModels.count(modelName) == 0)
+    if (game == nullptr || openModels.count(modelName) == 0)
     {
         return;
     }

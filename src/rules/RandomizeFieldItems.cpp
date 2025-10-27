@@ -31,6 +31,7 @@ void RandomizeFieldItems::onDebugGUI()
         FieldData fieldData = GameData::getField(game->getFieldID());
         if (!fieldData.isValid())
         {
+            ImGui::Text("Invalid field.");
             return;
         }
 
@@ -228,6 +229,12 @@ void RandomizeFieldItems::apply()
         if (oldMateriaID != materia.id)
         {
             // Data isn't loaded yet.
+            continue;
+        }
+
+        // Don't randomize Chocobo Lure at the Chocobo Ranch
+        if (fieldData.id == 345 && materia.id == 9)
+        {
             continue;
         }
 

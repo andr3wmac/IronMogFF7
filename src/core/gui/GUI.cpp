@@ -331,7 +331,7 @@ void GUI::drawImage(GUIImage& image, int width, int height, float alpha)
     }
 }
 
-void GUI::drawColorGrid(std::vector<Utilities::Color>& colors, std::function<void(int, Utilities::Color)> onClickCallback, float boxSize, float spacing, int colorsPerRow)
+void GUI::drawColorGrid(const std::string& name, std::vector<Utilities::Color>& colors, std::function<void(int, Utilities::Color)> onClickCallback, float boxSize, float spacing, int colorsPerRow)
 {
     ImDrawList* drawList = ImGui::GetWindowDrawList();
     ImVec2 startPos = ImGui::GetCursorScreenPos();
@@ -352,7 +352,7 @@ void GUI::drawColorGrid(std::vector<Utilities::Color>& colors, std::function<voi
 
         // Make an invisible button for interaction
         ImGui::SetCursorScreenPos(p0);
-        ImGui::InvisibleButton(("color" + std::to_string(i)).c_str(), ImVec2(boxSize, boxSize));
+        ImGui::InvisibleButton((name + ".color" + std::to_string(i)).c_str(), ImVec2(boxSize, boxSize));
 
         if (ImGui::IsItemClicked())
         {
@@ -364,6 +364,6 @@ void GUI::drawColorGrid(std::vector<Utilities::Color>& colors, std::function<voi
     }
 
     // advance cursor so the next ImGui item doesn't overlap
-    int totalRows = static_cast<int>((colors.size() + colorsPerRow - 1) / colorsPerRow);
-    ImGui::Dummy(ImVec2(0.0f, totalRows * (boxSize + spacing)));
+    //int totalRows = static_cast<int>((colors.size() + colorsPerRow - 1) / colorsPerRow);
+    //ImGui::Dummy(ImVec2(0.0f, totalRows * (boxSize + spacing)));
 }

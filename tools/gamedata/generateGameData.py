@@ -154,7 +154,6 @@ def outputFields(gen, discPath, version):
 
         fieldID = fieldIDTable[map.lower()]
         gen.write_line("ADD_FIELD(" + fieldID + ", \"" + map.lower() + "\");", 4)
-        #print("FIELD: " + map.lower())
 
         last_x = 0
         last_y = 0
@@ -341,12 +340,17 @@ def outputModels(gen, discPath, version):
     modelNames = ["BALLET", "CID", "CLOUD", "EARITH", "KETCY", "RED", "TIFA", "VINCENT", "YUFI"]
 
     for modelName in modelNames:
-        cloudBCX = ff7.bcx.loadBcx(ff7.retrieveFile(discPath, "FIELD", modelName + ".BCX"))
+        modelBCX = ff7.bcx.loadBcx(ff7.retrieveFile(discPath, "FIELD", modelName + ".BCX"))
 
-        model = cloudBCX["model"]
+        model = modelBCX["model"]
+        parts_strings = []
         for i in range(0, len(model["parts"])):
             part = model["parts"][i]
-            gen.write_line("ADD_MODEL_PART(\"" + modelName + "\", " + str(i) + ", " + str(len(part["quad_color_tex"])) + ", " + str(len(part["tri_color_tex"])) + ", " + str(len(part["quad_mono_tex"])) + ", " + str(len(part["tri_mono_tex"])) + ", " + str(len(part["tri_mono"])) + ", " + str(len(part["quad_mono"])) + ", " + str(len(part["tri_color"])) + ", " + str(len(part["quad_color"])) + ");", 4)
+            model_part_string = "{" + str(len(part["quad_color_tex"])) + ", " + str(len(part["tri_color_tex"])) + ", " + str(len(part["quad_mono_tex"])) + ", " + str(len(part["tri_mono_tex"])) + ", " + str(len(part["tri_mono"])) + ", " + str(len(part["quad_mono"])) + ", " + str(len(part["tri_color"])) + ", " + str(len(part["quad_color"])) + "}"
+            parts_strings.append(model_part_string)
+
+        parts_string = ", ".join(parts_strings)
+        gen.write_line("ADD_MODEL(\"" + modelName + "\", " + str(model["poly_count"]) + ", {" + parts_string +  "});", 4)
 
     gen.write_line("")
 

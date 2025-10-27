@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/game/GameData.h"
 #include "core/game/GameManager.h"
 #include "core/utilities/Utilities.h"
 
@@ -28,15 +29,23 @@ class ModelEditor
     };
 
 public:
-    ModelEditor(GameManager* gameManager);
+    ModelEditor();
     ~ModelEditor();
 
+    void setup(GameManager* gameManager);
     void findModels();
     std::vector<std::string> getOpenModelNames();
 
+    // Overwrites a parts color entirely without any regard for its original color.
     void setPartColor(std::string modelName, int partIndex, Utilities::Color color, const std::set<int>& excludedPolys = std::set<int>());
+
+    // Applies a tint to an entire part minus any polys in excludedPolys.
     void tintPart(std::string modelName, int partIndex, Utilities::Color color, const std::set<int>& excludedPolys = std::set<int>());
+
+    // Applies a tint to all the polys in a part specified by includedPolys.
     void tintPolys(std::string modelName, int partIndex, Utilities::Color color, const std::set<int>& includedPolys);
+
+    // Applies a tint to all the polys in a part within the range of polyStart to polyEnd, inclusive.
     void tintPolyRange(std::string modelName, int partIndex, Utilities::Color color, uint32_t polyStart, uint32_t polyEnd);
 
 protected:
@@ -46,10 +55,9 @@ protected:
     uintptr_t bufferAddress = 0;
     size_t bufferSize = 0;
 
-    bool openModel(int bufferIdx, std::string modelName);
+    bool openModel(int bufferIdx, const Model& model);
     int readPoly(int bufferIdx, ModelEditorPoly& polyOut);
     Utilities::Color tintVertexColor(const Utilities::Color& src, const Utilities::Color& tint);
     
-    std::unordered_map<std::string, int> modelPolyCounts;
     std::unordered_map<std::string, ModelEditorModel> openModels;
 };
