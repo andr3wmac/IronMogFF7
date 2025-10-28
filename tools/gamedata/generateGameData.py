@@ -352,6 +352,9 @@ def outputModels(gen, discPath, version):
         parts_string = ", ".join(parts_strings)
         gen.write_line("ADD_MODEL(\"" + modelName + "\", " + str(model["poly_count"]) + ", {" + parts_string +  "});", 4)
 
+    # Clouds model is slightly different on the world map for some reason, this was extracted from memory.
+    gen.write_line("ADD_MODEL(\"CLOUD_WORLD\", 378, {{0, 0, 0, 0, 0, 0, 12, 6}, {0, 0, 0, 0, 0, 0, 6, 27}, {2, 4 + 2, 0, 0, 0, 0, 148 + 2, 12 + 1}, {0, 0, 0, 0, 0, 0, 10, 9}, {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 0, 0, 0, 0, 0, 6}, {0, 0, 0, 0, 0, 0, 10, 9}, {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 0, 0, 0, 0, 0, 6}, {0, 0, 0, 0, 0, 0, 8, 4}, {0, 0, 0, 0, 0, 0, 4, 14}, {0, 0, 0, 0, 0, 0, 2, 7}, {0, 0, 0, 0, 0, 0, 8, 4}, {0, 0, 0, 0, 0, 0, 4, 14}, {0, 0, 0, 0, 0, 0, 2, 7}});", 4)
+
     gen.write_line("")
 
 discPath = sys.argv[1]

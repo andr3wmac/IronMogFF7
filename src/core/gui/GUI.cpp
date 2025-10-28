@@ -256,7 +256,7 @@ void GUI::onKeyCallback(int key, int scancode, int action, int mods)
 {
     if (action == GLFW_PRESS)
     {
-        onKeyPress.Invoke(key, mods);
+        onKeyPress.invoke(key, mods);
     }
 }
 

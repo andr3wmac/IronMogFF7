@@ -1,7 +1,6 @@
 # Based on: https://forums.qhimm.com/index.php?topic=8969.msg122920#msg122920
 
 import sys, struct, array, math, os, zlib
-
 import ff7
 
 from OpenGL.GL import *
@@ -9,6 +8,8 @@ from OpenGL.GLU import *
 from OpenGL.GL.ARB.texture_rectangle import *
 from OpenGL.GL.ARB.multitexture import *
 
+import imgui
+from imgui.integrations.pygame import PygameRenderer
 import pygame
 from pygame.locals import *
 
@@ -38,8 +39,12 @@ class OpenGLObject:
         self.focus_part = -1
         self.focus_poly = -1
         model = object["model"]
+        self.parts_visible = []
+        self.polys_visible = []
         for idx, part in enumerate(model["parts"]):
             self.part_map[part["bone_index"]] = idx
+            self.parts_visible.append(True)
+            self.polys_visible.append([True] * part["poly_count"])
 
     def getPart(self, idx):
         model = self.object["model"]
@@ -76,7 +81,7 @@ class OpenGLObject:
             self.focus_poly = -1
         print("Focus Poly: " + str(self.focus_poly))
 
-    def drawPart(self, part, is_focus_part):
+    def drawPart(self, part, polys_visible):
 
         # Packing order:
         # quadColorTex;
@@ -95,7 +100,7 @@ class OpenGLObject:
         # quadColorTex;
         glBegin(GL_QUADS)
         for quad in part["quad_color_tex"]:
-            if is_focus_part and self.focus_poly > -1 and not poly_index == self.focus_poly:
+            if not polys_visible[poly_index]:
                 poly_index += 1
                 continue
             for i in range(4):
@@ -112,7 +117,7 @@ class OpenGLObject:
         # triColorTex;
         glBegin(GL_TRIANGLES)
         for tri in part["tri_color_tex"]:
-            if is_focus_part and self.focus_poly > -1 and not poly_index == self.focus_poly:
+            if not polys_visible[poly_index]:
                 poly_index += 1
                 continue
             for i in range(3):
@@ -129,7 +134,7 @@ class OpenGLObject:
         # quadMonoTex
         glBegin(GL_QUADS)
         for quad in part["quad_mono_tex"]:
-            if is_focus_part and self.focus_poly > -1 and not poly_index == self.focus_poly:
+            if not polys_visible[poly_index]:
                 poly_index += 1
                 continue
             col = quad[4]
@@ -146,7 +151,7 @@ class OpenGLObject:
         # triMonoTex
         glBegin(GL_TRIANGLES)
         for tri in part["tri_mono_tex"]:
-            if is_focus_part and self.focus_poly > -1 and not poly_index == self.focus_poly:
+            if not polys_visible[poly_index]:
                 poly_index += 1
                 continue
             col = tri[3]
@@ -166,7 +171,7 @@ class OpenGLObject:
         # triMono
         glBegin(GL_TRIANGLES)
         for tri in part["tri_mono"]:
-            if is_focus_part and self.focus_poly > -1 and not poly_index == self.focus_poly:
+            if not polys_visible[poly_index]:
                 poly_index += 1
                 continue
             col = tri[3]
@@ -181,7 +186,7 @@ class OpenGLObject:
         # quadMono
         glBegin(GL_QUADS)
         for quad in part["quad_mono"]:
-            if is_focus_part and self.focus_poly > -1 and not poly_index == self.focus_poly:
+            if not polys_visible[poly_index]:
                 poly_index += 1
                 continue
             col = quad[4]
@@ -196,7 +201,7 @@ class OpenGLObject:
         # triColor
         glBegin(GL_TRIANGLES)
         for tri in part["tri_color"]:
-            if is_focus_part and self.focus_poly > -1 and not poly_index == self.focus_poly:
+            if not polys_visible[poly_index]:
                 poly_index += 1
                 continue
             for i in range(3):
@@ -211,7 +216,7 @@ class OpenGLObject:
         # quadColor
         glBegin(GL_QUADS)
         for quad in part["quad_color"]:
-            if is_focus_part and self.focus_poly > -1 and not poly_index == self.focus_poly:
+            if not polys_visible[poly_index]:
                 poly_index += 1
                 continue
             for i in range(4):
@@ -336,17 +341,40 @@ class OpenGLObject:
             glTranslatef(translation_x, translation_y, translation_z)
 
             if bone[2]:
-                if self.focus_part > -1:
-                    if self.part_map[idx] == self.focus_part:
-                        self.drawPart(model["parts"][self.part_map[idx]], True)
-                else:
-                    if not self.part_map[idx] == self.exclude_part:
-                        self.drawPart(model["parts"][self.part_map[idx]], False)
+                part_idx = self.part_map[idx]
+                if self.parts_visible[self.part_map[idx]]:
+                    self.drawPart(model["parts"][part_idx], self.polys_visible[part_idx])
 
         while parent[-1] != -1:
             parent.pop()
             glPopMatrix()
         
+def draw_parts_ui(parts_visible, polys_visible):
+    """
+    parts_visible: list[bool]  -> visibility of each part
+    polys_visible: list[list[bool]] -> per-part poly visibilities
+    """
+    for part_idx, part_visible in enumerate(parts_visible):
+        if imgui.tree_node(f"Part {part_idx}"):
+            changed, new_part_visible = imgui.checkbox(f"Visible##part_{part_idx}", part_visible)
+            parts_visible[part_idx] = new_part_visible
+
+            if not part_visible and new_part_visible:
+                polys_visible[part_idx] = [True] * len(polys_visible[part_idx])
+
+            # If part is visible, show its polys
+            if new_part_visible:
+                for poly_idx, poly_visible in enumerate(polys_visible[part_idx]):
+                    # Unique ID per part + poly
+                    changed, new_poly_visible = imgui.checkbox(
+                        f"Poly {poly_idx}##part_{part_idx}_poly_{poly_idx}", poly_visible
+                    )
+                    polys_visible[part_idx][poly_idx] = new_poly_visible
+            else:
+                # If the part is hidden, set all polys to hidden too
+                polys_visible[part_idx] = [False] * len(polys_visible[part_idx])
+
+            imgui.tree_pop()
     
 def main(*argv):
     pygame.init()
@@ -355,6 +383,14 @@ def main(*argv):
     height = 960
 
     screen = pygame.display.set_mode((width, height), HWSURFACE|DOUBLEBUF|OPENGL)
+    pygame.display.set_caption("FF7 Field Model Viewer")
+
+    # setup imgui
+    imgui.create_context()
+    impl = PygameRenderer()
+
+    io = imgui.get_io()
+    io.display_size = (width, height)
 
     glViewport(0, 0, 1280, height)
     glMatrixMode(GL_PROJECTION)
@@ -457,6 +493,8 @@ def main(*argv):
                     key_left = False
                 elif event.key == pygame.K_RIGHT:
                     key_right = False
+            impl.process_event(event)
+        impl.process_inputs()
                     
         if key_up:
             rot_x += 1.0
@@ -467,7 +505,9 @@ def main(*argv):
             rot_y += 1.0
         elif key_right:
             rot_y -= 1.0
-            
+
+        imgui.new_frame()
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)        
 
         glMatrixMode(GL_PROJECTION)
@@ -482,6 +522,16 @@ def main(*argv):
 
         object.draw()
     
+        imgui.set_next_window_position(0, 00)  # below menu bar
+        imgui.set_next_window_size(250, imgui.get_io().display_size.y)
+
+        imgui.begin("Visibility", False, imgui.WINDOW_NO_MOVE | imgui.WINDOW_NO_RESIZE)
+        draw_parts_ui(object.parts_visible, object.polys_visible)
+        imgui.end()
+
+        imgui.render()
+        impl.render(imgui.get_draw_data())
+
         clock.tick(60)
         pygame.display.flip()
 

@@ -16,6 +16,7 @@ private:
     void onStart();
     void onFieldChanged(uint16_t fieldID);
     void onFrame(uint32_t frameNumber);
+    void applyColors();
 
     ModelEditor modelEditor;
     std::unordered_map<std::string, std::vector<Utilities::Color>> randomModelColors;
@@ -23,6 +24,8 @@ private:
     bool waitingForField = false;
     int lastFieldID = -1;
     int lastFieldFade = 0;
+
+    bool waitingForWorld = false;
 
     // Debug variables
     char debugStartNum[20];

@@ -416,12 +416,15 @@ void ModelEditor::tintPolyRange(std::string modelName, int partIndex, Utilities:
 Utilities::Color ModelEditor::tintVertexColor(const Utilities::Color& src, const Utilities::Color& tint)
 {
     // Convert to grayscale (perceptual luminance)
-    float gray = 0.299f * src.r + 0.587f * src.g + 0.114f * src.b;
+    float gray = (0.299f * src.r + 0.587f * src.g + 0.114f * src.b) / 255.0f;
 
-    // Multiply by tint color (normalized 0–1)
-    float rf = gray * (tint.r / 255.0f);
-    float gf = gray * (tint.g / 255.0f);
-    float bf = gray * (tint.b / 255.0f);
+    // Boost the darks in the gray so the tint color comes out more
+    gray = pow(gray, 0.5f);
+
+    // Multiply by tint color
+    float rf = gray * tint.r;
+    float gf = gray * tint.g;
+    float bf = gray * tint.b;
 
     // Clamp and convert back to 8-bit
     auto clamp8 = [](float v) -> uint8_t {
