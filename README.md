@@ -22,7 +22,7 @@ Inspired by IronMon and IronMario 64, IronMog FF7 is a modification for Final Fa
 | Extra | Description |
 | ---- | --- |
 | Randomized Colors | Playable characters’ clothing colors are randomized. |
-| Randomized Music | Music tracks are randomized and can include music from other games. This feature requires additional setup steps, described [here](#music-randomization). |
+| Randomized Music | Music tracks are randomized and can include music from other games. This feature requires additional setup steps, described [here](music/README.md). |
 
 # How to Play
 - Download the latest IronMog FF7 build from the Releases page
@@ -37,6 +37,3 @@ Currently only Windows platforms are supported and Microsoft Visual Studio 2022 
 - Run `GenerateProjectFiles.bat`
 - Open the generated `IronMogFF7.sln`
 - Build
-
-# Music Randomization
-Due not wanting to include copywritten music on github music randomization requires obtaining or building a music folder of mp3s yourself.
