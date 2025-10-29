@@ -12,11 +12,20 @@
 
 REGISTER_EXTRA("Randomize Colors", RandomizeColors)
 
+// Give each model 16 colors each to future proof against later changes
 #define COLORS_PER_MODEL 16
+
+// This was found using the PatternMemoryMonitor looking for decreasing values when leaving a field
+// and going onto the world map. I thought this was a screen fade value because it jumps to 34 then
+// decreases down to 0 however when we leave the northern crater it actually doesn't jump in value
+// until we land the airship, then it goes down to 0. It works for our use case but I don't know what
+// it actually is.
+#define WORLD_TRIGGER_ADDR 0x9C65C
 
 void RandomizeColors::setup()
 {
     BIND_EVENT(game->onStart, RandomizeColors::onStart);
+    BIND_EVENT_ONE_ARG(game->onModuleChanged, RandomizeColors::onModuleChanged);
     BIND_EVENT_ONE_ARG(game->onFieldChanged, RandomizeColors::onFieldChanged);
     BIND_EVENT_ONE_ARG(game->onFrame, RandomizeColors::onFrame);
 
@@ -28,15 +37,13 @@ void RandomizeColors::setup()
 
 void RandomizeColors::onDebugGUI()
 {
-    if (game->getGameModule() != GameModule::World)
-    {
-       // ImGui::Text("Not currently on world map.");
-        //return;
-    }
+    uint16_t fieldTrigger = game->read<uint16_t>(GameOffsets::ScreenFade);
+    std::string fieldTriggerStr = "Field Trigger: " + std::to_string(fieldTrigger);
+    ImGui::Text(fieldTriggerStr.c_str());
 
-    uint16_t fieldFade = game->read<uint16_t>(GameOffsets::ScreenFade);
-    std::string fieldFadeStr = "Screen Fade: " + std::to_string(fieldFade);
-    ImGui::Text(fieldFadeStr.c_str());
+    uint8_t worldTrigger = game->read<uint8_t>(WORLD_TRIGGER_ADDR);
+    std::string worldTriggerStr = "World Trigger: " + std::to_string(worldTrigger);
+    ImGui::Text(worldTriggerStr.c_str());
 
     if (ImGui::Button("Force Update", ImVec2(120, 0)))
     {
@@ -130,7 +137,7 @@ Utilities::Color getRandomColor(std::mt19937& rng)
 
 void RandomizeColors::onStart()
 {
-    lastFieldFade = 0;
+    lastFieldTrigger = 0;
     lastFieldID = -1;
     waitingForField = true;
 
@@ -147,10 +154,20 @@ void RandomizeColors::onStart()
     }
 }
 
+void RandomizeColors::onModuleChanged(uint8_t newModule)
+{
+    if (newModule == GameModule::World)
+    {
+        uint8_t worldTrigger = game->read<uint8_t>(0x9C65C);
+        lastWorldTrigger = worldTrigger;
+        waitingForWorld = true;
+    }
+}
+
 void RandomizeColors::onFieldChanged(uint16_t fieldID)
 {
-    uint16_t fieldFade = game->read<uint16_t>(GameOffsets::ScreenFade);
-    lastFieldFade = fieldFade;
+    uint16_t fieldTrigger = game->read<uint16_t>(GameOffsets::ScreenFade);
+    lastFieldTrigger = fieldTrigger;
     waitingForField = true;
 }
 
@@ -158,11 +175,11 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
 {
     if (game->getGameModule() == GameModule::Field && waitingForField)
     {
-        uint16_t fieldFade = game->read<uint16_t>(GameOffsets::ScreenFade);
+        uint16_t fieldTrigger = game->read<uint16_t>(GameOffsets::ScreenFade);
 
         // Update if we've hit peak fade out and started coming back down
         // or if the last field is unset.
-        bool shouldUpdate = (lastFieldFade == 0x100 && fieldFade < lastFieldFade);
+        bool shouldUpdate = (lastFieldTrigger == 0x100 && fieldTrigger < lastFieldTrigger);
         shouldUpdate |= (lastFieldID == -1);
 
         if (shouldUpdate)
@@ -174,14 +191,25 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
             lastFieldID = game->getFieldID();
         }
 
-        lastFieldFade = fieldFade;
+        lastFieldTrigger = fieldTrigger;
     }
 
     if (game->getGameModule() == GameModule::World && waitingForWorld)
     {
-        modelEditor.findModels();
-        applyColors();
-        waitingForWorld = false;
+        uint8_t worldTrigger = game->read<uint8_t>(WORLD_TRIGGER_ADDR);
+        
+        // Update if the world trigger value was higher than 10 and is now 
+        // lower than 10. In practice this seems to be enough buffer to ensure
+        // the model has been loaded.
+        if (lastWorldTrigger >= 10 && worldTrigger < 10)
+        {
+            modelEditor.findModels();
+            applyColors();
+
+            waitingForWorld = false;
+        }
+
+        lastWorldTrigger = worldTrigger;
     }
 }
 

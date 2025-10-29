@@ -14,6 +14,7 @@ public:
 
 private:
     void onStart();
+    void onModuleChanged(uint8_t newModule);
     void onFieldChanged(uint16_t fieldID);
     void onFrame(uint32_t frameNumber);
     void applyColors();
@@ -23,9 +24,10 @@ private:
 
     bool waitingForField = false;
     int lastFieldID = -1;
-    int lastFieldFade = 0;
+    int lastFieldTrigger = 0;
 
     bool waitingForWorld = false;
+    int lastWorldTrigger = 0;
 
     // Debug variables
     char debugStartNum[20];
