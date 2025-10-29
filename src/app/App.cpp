@@ -1,7 +1,9 @@
 #include "App.h"
 #include "rules/Restrictions.h"
 #include "core/utilities/Logging.h"
+#include "core/utilities/MemoryMonitor.h"
 #include "core/utilities/MemorySearch.h"
+#include "core/utilities/ModelEditor.h"
 #include "core/utilities/ScriptUtilities.h"
 #include "core/utilities/Utilities.h"
 
@@ -11,6 +13,7 @@
 void App::run()
 {
     processMemoryOffset[0] = '\0';
+    debugWarpFieldID[0] = '\0';
 
     gui.initialize(APP_WINDOW_WIDTH, APP_WINDOW_HEIGHT, "IronMog FF7 " APP_VERSION_STRING);
     BIND_EVENT_TWO_ARG(gui.onKeyPress, App::onKeyPress);

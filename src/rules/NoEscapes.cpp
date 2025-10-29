@@ -1,7 +1,5 @@
 #include "NoEscapes.h"
-#include "core/game/GameData.h"
 #include "core/game/MemoryOffsets.h"
-#include "core/utilities/Logging.h"
 #include "rules/Restrictions.h"
 
 REGISTER_RULE("No Escapes", NoEscapes)

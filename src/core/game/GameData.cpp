@@ -14,6 +14,7 @@ std::vector<ESkill> GameData::eSkills;
 std::unordered_map<uint16_t, FieldData> GameData::fieldData;
 std::vector<WorldMapEntrance> GameData::worldMapEntrances;
 std::unordered_map<uint8_t, BattleScene> GameData::battleScenes;
+std::unordered_map<std::string, Model> GameData::models;
 
 std::string GameData::getAccessoryName(uint8_t id)
 {

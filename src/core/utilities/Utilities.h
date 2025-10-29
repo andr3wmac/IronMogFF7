@@ -11,6 +11,11 @@
 class Utilities
 {
 public:
+    struct Color
+    {
+        uint8_t r, g, b;
+    };
+
     // Process related utility functions
     static uint32_t getProcessIDByName(const std::string& processName);
     static uintptr_t getProcessBaseAddress(void* processHandle);

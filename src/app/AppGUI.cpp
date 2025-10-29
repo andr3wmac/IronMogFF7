@@ -17,7 +17,7 @@ static ImColor dotGreen(0.0f, 1.0f, 0.0f, 1.0f);
 
 void App::drawSettingsPanel()
 {
-    gui.drawImage(logo, logo.width / 2, logo.height / 2);
+    GUI::drawImage(logo, logo.width / 2, logo.height / 2);
 
     ImGui::Spacing();
     ImGui::BeginChild("##ScrollBox", ImVec2(0, APP_WINDOW_HEIGHT - 250));
@@ -140,7 +140,7 @@ void App::drawSettingsPanel()
 
 void App::drawTrackerPanel()
 {
-    gui.drawImage(logo, logo.width / 2, logo.height / 2);
+    GUI::drawImage(logo, logo.width / 2, logo.height / 2);
 
     ImGui::Spacing();
     ImGui::BeginChild("##ScrollBox", ImVec2(0, APP_WINDOW_HEIGHT - 250));
@@ -166,7 +166,7 @@ void App::drawTrackerPanel()
                     }
 
                     ImVec2 p = ImGui::GetCursorScreenPos();
-                    gui.drawImage(characterPortraits[i], imgWidth, imgHeight, iconAlpha);
+                    GUI::drawImage(characterPortraits[i], imgWidth, imgHeight, iconAlpha);
                     ImGui::SameLine();
 
                     if (permadeathRule != nullptr)
@@ -342,18 +342,40 @@ void App::drawDebugPanel()
         ImGui::Text(positionText.c_str());
     }
 
-    if (ImGui::Button("Disable Encounters"))
+    if (ImGui::CollapsingHeader("Cheats"))
     {
-        game->write<uint8_t>(0x9AC2F, 0xFF);
+        ImGui::Indent(25.0f);
+
+        if (ImGui::Button("Disable Encounters"))
+        {
+            game->write<uint8_t>(0x9AC2F, 0xFF);
+        }
+
+        if (ImGui::Button("Add 10000 Gil"))
+        {
+            uint32_t gil = game->read<uint32_t>(GameOffsets::Gil);
+            game->write<uint32_t>(GameOffsets::Gil, gil + 10000);
+        }
+
+        ImGui::Unindent(25.0f);
     }
 
-    if (ImGui::Button("Add 10000 Gil"))
+    if (ImGui::CollapsingHeader("Warp"))
     {
-        uint32_t gil = game->read<uint32_t>(GameOffsets::Gil);
-        game->write<uint32_t>(GameOffsets::Gil, gil + 10000);
+        ImGui::Indent(25.0f);
+
+        ImGui::InputText("##DebugWarpFieldID", debugWarpFieldID, 10);
+        ImGui::SameLine();
+        if (ImGui::Button("Warp To Field"))
+        {
+            uint16_t warpFieldID = atoi(debugWarpFieldID);
+            game->write<uint16_t>(GameOffsets::FieldWarpID, warpFieldID);
+            game->write<uint8_t>(GameOffsets::FieldWarpTrigger, 1);
+        }
+
+        ImGui::Unindent(25.0f);
     }
 
-    int ruleIndex = 0;
     for (auto& rule : Rule::getList())
     {
         if (!rule->hasDebugGUI())
@@ -363,7 +385,24 @@ void App::drawDebugPanel()
 
         if (ImGui::CollapsingHeader(rule->name.c_str()))
         {
+            ImGui::Indent(25.0f);
             rule->onDebugGUI();
+            ImGui::Unindent(25.0f);
+        }
+    }
+
+    for (auto& extra : Extra::getList())
+    {
+        if (!extra->hasDebugGUI())
+        {
+            continue;
+        }
+
+        if (ImGui::CollapsingHeader(extra->name.c_str()))
+        {
+            ImGui::Indent(25.0f);
+            extra->onDebugGUI();
+            ImGui::Unindent(25.0f);
         }
     }
 }

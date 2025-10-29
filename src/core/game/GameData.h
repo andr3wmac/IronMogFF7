@@ -53,6 +53,7 @@ struct FieldData
     std::vector<FieldMessage> messages;
     std::vector<FieldShop> shops;
     std::vector<FieldWorldExit> worldExits;
+    std::vector<uint8_t> modelIDs;
 
     bool isValid() { return name != ""; }
 };
@@ -78,6 +79,42 @@ struct BattleScene
     int enemyIDs[3];
     int enemyLevels[3];
     std::vector<BattleFormation> formations;
+};
+
+struct ModelPart
+{
+    int quadColorTex;
+    int triColorTex;
+    int quadMonoTex;
+    int triMonoTex;
+    int triMono;
+    int quadMono;
+    int triColor;
+    int quadColor;
+};
+
+struct Model
+{
+    std::string name = "";
+    int polyCount = 0;
+    std::vector<ModelPart> parts;
+
+    static inline std::string getModelNameFromID(uint8_t modelID)
+    {
+        switch (modelID)
+        {
+            case 1: return "CLOUD";
+            case 2: return "EARITH";
+            case 3: return "BALLET";
+            case 4: return "TIFA";
+            case 5: return "RED";
+            case 6: return "CID";
+            case 7: return "YUFI";
+            case 8: return "KETCY";
+            case 9: return "VINCENT";
+        }
+        return "";
+    }
 };
 
 class GameData
@@ -114,6 +151,7 @@ public:
     static std::unordered_map<uint16_t, FieldData> fieldData;
     static std::vector<WorldMapEntrance> worldMapEntrances;
     static std::unordered_map<uint8_t, BattleScene> battleScenes;
+    static std::unordered_map<std::string, Model> models;
 };
 
 #define ADD_ACCESSORY(ID, NAME) accessoryNames[ID] = NAME;
@@ -140,8 +178,13 @@ public:
 #define ADD_FIELD_WORLD_EXIT(FIELD_ID, OFFSET, INDEX, TARGET_FIELD_ID) \
     { GameData::fieldData[FIELD_ID].worldExits.push_back({OFFSET, INDEX, TARGET_FIELD_ID}); }
 
+#define ADD_FIELD_MODELS(FIELD_ID, ...) \
+    { GameData::fieldData[FIELD_ID].modelIDs = {__VA_ARGS__}; }
+
 #define ADD_WORLDMAP_ENTRANCE(OFFSET, FIELD_ID, FIELD_NAME, CENTER_X, CENTER_Z) GameData::worldMapEntrances.push_back({OFFSET, FIELD_ID, FIELD_NAME, CENTER_X, CENTER_Z});
 
 #define ADD_BATTLE_SCENE(SCENE_ID, ENEMY_ID0, ENEMY_ID1, ENEMY_ID2, ENEMY_LEVEL0, ENEMY_LEVEL1, ENEMY_LEVEL2) GameData::battleScenes[SCENE_ID] = {{ENEMY_ID0, ENEMY_ID1, ENEMY_ID2}, {ENEMY_LEVEL0, ENEMY_LEVEL1, ENEMY_LEVEL2}};
 
 #define ADD_BATTLE_FORMATION(FORMATION_ID, SCENE_ID, NO_ESCAPE, ...) GameData::battleScenes[SCENE_ID].formations.push_back({FORMATION_ID, NO_ESCAPE, {__VA_ARGS__}});
+
+#define ADD_MODEL(MODEL_NAME, POLY_COUNT, ...) { GameData::models[MODEL_NAME] = { MODEL_NAME, POLY_COUNT, __VA_ARGS__ }; }

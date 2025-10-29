@@ -53,6 +53,7 @@ public:
     Event<> onEmulatorPaused;
     Event<> onEmulatorResumed;
     Event<int> onFrame;
+    Event<uint8_t> onModuleChanged;
     Event<> onBattleEnter;
     Event<> onBattleExit;
     Event<uint16_t> onFieldChanged;

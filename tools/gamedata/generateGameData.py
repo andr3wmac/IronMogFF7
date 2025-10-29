@@ -154,7 +154,6 @@ def outputFields(gen, discPath, version):
 
         fieldID = fieldIDTable[map.lower()]
         gen.write_line("ADD_FIELD(" + fieldID + ", \"" + map.lower() + "\");", 4)
-        #print("FIELD: " + map.lower())
 
         last_x = 0
         last_y = 0
@@ -207,12 +206,15 @@ def outputFields(gen, discPath, version):
             if (mnemonic == "mes"):
                 string = fieldStrings[values[3]]
 
+                # We use the Turtle Paradise newsletter for in game hints
+                if ("Turtle Paradise" in string or "Turtles Paradise" in string or "Turtle's Paradise" in string) and ("No." in string or "Number" in string):
+                    stroffset, strlen = fieldOffsets[values[3]]
+                    gen.write_line("ADD_FIELD_MESSAGE(" + fieldID + ", " + f"0x{addr:X}" + ", " + f"0x{stroffset:X}" + ", " + str(strlen) + ");", 4)
+
                 # Ensures the string contains an item/materia/etc name wrapped in quotes
                 match = next((word for word in gen.item_names if f'"{word}"' in string), None)
                 if match:
-                    #print(match + ": " + string)
                     stroffset, strlen = fieldOffsets[values[3]]
-                    #print(str(stroffset) + " " + str(strlen) + ": " + string)
                     gen.write_line("ADD_FIELD_MESSAGE(" + fieldID + ", " + f"0x{addr:X}" + ", " + f"0x{stroffset:X}" + ", " + str(strlen) + ");", 4)
                 
                 #print(values)
@@ -236,6 +238,13 @@ def outputFields(gen, discPath, version):
 
                 gen.write_line("ADD_FIELD_WORLD_EXIT(" + fieldID + ", " + f"0x{final_offset:X}" + ", " + str(door_index) + ", " + f"0x{door.fieldID:X}" + ");", 4)
             door_index += 1
+
+        # Field Models
+        modelSection = mapData.getModelSection()
+        globalModelIDs = []
+        for model in modelSection.models:
+            globalModelIDs.append(model.globalModelID)
+        gen.write_line("ADD_FIELD_MODELS(" + fieldID + ", " + ", ".join(str(x) for x in globalModelIDs) + ");", 4)    
 
     gen.write_line("")
 
@@ -324,7 +333,27 @@ def outputBattles(gen, discPath, version):
             enemyIDs = ", ".join(map(str, formation.enemyIDs))
             gen.write_line("ADD_BATTLE_FORMATION(" + str(formationID) + ", " + str(i) + ", " + noEscape + ", " + enemyIDs + ");", 4)
             formationIndex += 1
-            
+
+    gen.write_line("")
+
+def outputModels(gen, discPath, version):
+    modelNames = ["BALLET", "CID", "CLOUD", "EARITH", "KETCY", "RED", "TIFA", "VINCENT", "YUFI"]
+
+    for modelName in modelNames:
+        modelBCX = ff7.bcx.loadBcx(ff7.retrieveFile(discPath, "FIELD", modelName + ".BCX"))
+
+        model = modelBCX["model"]
+        parts_strings = []
+        for i in range(0, len(model["parts"])):
+            part = model["parts"][i]
+            model_part_string = "{" + str(len(part["quad_color_tex"])) + ", " + str(len(part["tri_color_tex"])) + ", " + str(len(part["quad_mono_tex"])) + ", " + str(len(part["tri_mono_tex"])) + ", " + str(len(part["tri_mono"])) + ", " + str(len(part["quad_mono"])) + ", " + str(len(part["tri_color"])) + ", " + str(len(part["quad_color"])) + "}"
+            parts_strings.append(model_part_string)
+
+        parts_string = ", ".join(parts_strings)
+        gen.write_line("ADD_MODEL(\"" + modelName + "\", " + str(model["poly_count"]) + ", {" + parts_string +  "});", 4)
+
+    # Clouds model is slightly different on the world map for some reason, this was extracted from memory.
+    gen.write_line("ADD_MODEL(\"CLOUD_WORLD\", 378, {{0, 0, 0, 0, 0, 0, 12, 6}, {0, 0, 0, 0, 0, 0, 6, 27}, {2, 4 + 2, 0, 0, 0, 0, 148 + 2, 12 + 1}, {0, 0, 0, 0, 0, 0, 10, 9}, {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 0, 0, 0, 0, 0, 6}, {0, 0, 0, 0, 0, 0, 10, 9}, {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 0, 0, 0, 0, 0, 6}, {0, 0, 0, 0, 0, 0, 8, 4}, {0, 0, 0, 0, 0, 0, 4, 14}, {0, 0, 0, 0, 0, 0, 2, 7}, {0, 0, 0, 0, 0, 0, 8, 4}, {0, 0, 0, 0, 0, 0, 4, 14}, {0, 0, 0, 0, 0, 0, 2, 7}});", 4)
 
     gen.write_line("")
 
@@ -345,6 +374,7 @@ outputOther(gen, discPath, version)
 outputFields(gen, discPath, version)
 outputWorldMap(gen, discPath, version)
 outputBattles(gen, discPath, version)
+outputModels(gen, discPath, version)
 
 gen.write_footer()
 gen.close_file()

@@ -8,8 +8,8 @@
 
 #define APP_WINDOW_WIDTH 497
 #define APP_WINDOW_HEIGHT 632
-#define APP_VERSION 0.5
-#define APP_VERSION_STRING "v0.5"
+#define APP_VERSION 0.6
+#define APP_VERSION_STRING "v0.6"
 
 class App
 {
@@ -72,4 +72,7 @@ protected:
 
     void onKeyPress(int key, int mods);
     void onStart();
+
+    // Debug Panel variables
+    char debugWarpFieldID[5];
 };

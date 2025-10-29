@@ -189,7 +189,7 @@ void GameManager::update()
     else if (!hasStarted)
     {
         loadSaveData();
-        onStart.Invoke();
+        onStart.invoke();
         hasStarted = true;
         lastFrameUpdateTime = Utilities::getTimeMS();
     }
@@ -199,11 +199,11 @@ void GameManager::update()
     if (currentTime - lastFrameUpdateTime > 200 && !emulatorPaused)
     {
         emulatorPaused = true;
-        onEmulatorPaused.Invoke();
+        onEmulatorPaused.invoke();
         LOG("Emulator paused.");
     }
 
-    onUpdate.Invoke();
+    onUpdate.invoke();
     
     if (newGameModule != gameModule)
     {
@@ -216,7 +216,7 @@ void GameManager::update()
         // Exited battle
         if (gameModule == GameModule::Battle && newGameModule != GameModule::Battle)
         {
-            onBattleExit.Invoke();
+            onBattleExit.invoke();
         }
 
         if (gameModule == GameModule::Battle && newGameModule == GameModule::Field)
@@ -231,13 +231,14 @@ void GameManager::update()
 
         // Game module changed.
         gameModule = newGameModule;
+        onModuleChanged.invoke(gameModule);
     }
 
     if (gameModule == GameModule::Battle)
     {
         if (waitingForBattleData && isBattleDataLoaded())
         {
-            onBattleEnter.Invoke();
+            onBattleEnter.invoke();
             waitingForBattleData = false;
         }
     }
@@ -253,7 +254,7 @@ void GameManager::update()
 
         if (waitingForFieldData && isFieldDataLoaded())
         {
-            onFieldChanged.Invoke(fieldID);
+            onFieldChanged.invoke(fieldID);
             waitingForFieldData = false;
         }
     }
@@ -272,7 +273,7 @@ void GameManager::update()
     {
         if (waitingForShopData && isShopDataLoaded())
         {
-            onShopOpened.Invoke();
+            onShopOpened.invoke();
             waitingForShopData = false;
         }
     }
@@ -283,9 +284,10 @@ void GameManager::update()
     int frameDifference = std::abs((int)newFrameNumber - (int)frameNumber);
     if (frameDifference > 10)
     {
-        LOG("Load detected, reloading rules.");
-        loadSaveData();
-        onStart.Invoke();
+        uint64_t timeGap = currentTime - lastFrameUpdateTime;
+        LOG("Load detected, reloading rules %d", timeGap);
+        //loadSaveData();
+        //onStart.Invoke();
     }
 
     if (newFrameNumber != frameNumber)
@@ -296,11 +298,11 @@ void GameManager::update()
         if (emulatorPaused)
         {
             LOG("Emulator resumed.");
-            onEmulatorResumed.Invoke();
+            onEmulatorResumed.invoke();
             emulatorPaused = false;
         }
         
-        onFrame.Invoke(newFrameNumber);
+        onFrame.invoke(newFrameNumber);
     }
 }
 

@@ -7,19 +7,22 @@
 
 struct GameOffsets
 {
-    CONST_PTR FrameNumber       = 0x51568;
-    CONST_PTR MusicVolume       = 0x62F5E;
-    CONST_PTR FieldID           = 0x9A05C;
-    CONST_PTR MusicID           = 0x9A14E;
-    CONST_PTR CurrentModule     = 0x9C560; 
-    CONST_PTR PartyIDList       = 0x9CBDC; // 3 Bytes in a row.
-    CONST_PTR Inventory         = 0x9CBE0; // 320 item list, 2 byte ids.
-    CONST_PTR MateriaInventory  = 0x9C360; // 200 item list, 4 byte ids.
-    CONST_PTR Gil               = 0x9D260;
-    CONST_PTR InGameTime        = 0x9D264; // 32-bit integer, in seconds
-    CONST_PTR GameMoment        = 0x9D288;
-    CONST_PTR PauseMenuOptions  = 0x9D2A6; // Bitmask of options enabled in the menu.
-    CONST_PTR PHSVisibilityMask = 0x9D78A;
+    CONST_PTR FrameNumber       = 0x51568;  // uint32_t
+    CONST_PTR MusicVolume       = 0x62F5E;  // uint16_t controlling global music volume
+    CONST_PTR FieldID           = 0x9A05C;  // uint16_t
+    CONST_PTR MusicID           = 0x9A14E;  // uint16_t id of currently playing music
+    CONST_PTR FieldWarpTrigger  = 0x9ABF5;  // uint8_t, set to 1 to warp to field warp ID below
+    CONST_PTR FieldWarpID       = 0x9ABF6;  // uint16_t
+    CONST_PTR ScreenFade        = 0x9AC42;  // uint16_t, 0 - 256 how much screen is faded for loading transition
+    CONST_PTR CurrentModule     = 0x9C560;  // uint8_t
+    CONST_PTR PartyIDList       = 0x9CBDC;  // 3 uint8_t in a row.
+    CONST_PTR Inventory         = 0x9CBE0;  // 320 item list, uint16_t ids.
+    CONST_PTR MateriaInventory  = 0x9C360;  // 200 item list, uint32_t ids.
+    CONST_PTR Gil               = 0x9D260;  // uint32_t party gil
+    CONST_PTR InGameTime        = 0x9D264;  // uint32_t in seconds
+    CONST_PTR GameMoment        = 0x9D288;  // uint16_t
+    CONST_PTR PauseMenuOptions  = 0x9D2A6;  // uint16_t bitmask of options enabled in the menu.
+    CONST_PTR PHSVisibilityMask = 0x9D78A;  // uint16_t bitmask of which characters are on PHS
 };
 
 struct GameModule
@@ -33,28 +36,28 @@ struct GameModule
 
 struct FieldOffsets
 {
-    CONST_PTR FieldX = 0x74EB0;
-    CONST_PTR FieldY = 0x74EB4;
-    CONST_PTR FieldZ = 0x74EB8;
+    CONST_PTR FieldX = 0x74EB0; // int32_t
+    CONST_PTR FieldY = 0x74EB4; // int32_t
+    CONST_PTR FieldZ = 0x74EB8; // int32_t
 };
 
 struct FieldScriptOffsets
 {
-    CONST_PTR ScriptStart = 0x115000;
     CONST_PTR TriggersStart = 0x114FF6;
+    CONST_PTR ScriptStart   = 0x115000;
 
-    CONST_PTR ItemID = 0x02;
-    CONST_PTR ItemQuantity = 0x04;
+    CONST_PTR ItemID        = 0x02; // uint16_t
+    CONST_PTR ItemQuantity  = 0x04; // uint8_t
 
     // TODO: get the real number
-    CONST_PTR MateriaID = 0x03;
+    CONST_PTR MateriaID = 0x03;     // uint8_t
 };
 
 struct WorldOffsets
 {
-    CONST_PTR WorldX = 0xE56FC;
-    CONST_PTR WorldY = 0xE5700;
-    CONST_PTR WorldZ = 0xE5704;
+    CONST_PTR WorldX = 0xE56FC; // int32_t
+    CONST_PTR WorldY = 0xE5700; // int32_t
+    CONST_PTR WorldZ = 0xE5704; // int32_t
 
     // Add offset from GameData to get to memory address.
     CONST_PTR ScriptStart = 0xD0B6A;
@@ -150,8 +153,8 @@ struct PlayerOffsets
     CONST_PTR CurrentMP     = 0x14;
     CONST_PTR MaxMP         = 0x16;
 
-    CONST_PTR LimitBreakDisplay = 0x1B;
-    CONST_PTR EnemySkillMenu    = 0x348; // List of 24 8-byte entries.
+    CONST_PTR LimitBreakDisplay = 0x1B;     // uint8_t
+    CONST_PTR EnemySkillMenu    = 0x348;    // List of 24 8-byte entries.
     CONST_PTR CharacterID       = 0x420;
 };
 
