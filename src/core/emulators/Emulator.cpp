@@ -97,6 +97,8 @@ bool Emulator::attach(std::string processName)
         return false;
     }
 
+    LOG("Successfully attached to emulator at: 0x%X", ps1BaseAddress);
+
     return true;
 }
 

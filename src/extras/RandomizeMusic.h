@@ -34,6 +34,7 @@ private:
     Track loadTrack(std::string path);
 
     bool disabled = false;
+    bool overrideMusic = false;
     std::string currentSong = "";
     float currentVolume = 1.0f;
     float previousVolume = 1.0f;

@@ -12,6 +12,7 @@ namespace fs = std::filesystem;
 REGISTER_EXTRA("Randomize Music", RandomizeMusic)
 
 const uint16_t UnsetMusicID = 65535;
+const uint16_t FullVolume = 0x7F;
 
 const std::vector<std::string> MusicList = {
     "none", "nothing", "oa", "ob", "dun2", "guitar2", "fanfare", "makoro", "bat",
@@ -111,7 +112,10 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
     }
 
     // Keep in game music volume locked to 0
-    game->write<uint16_t>(GameOffsets::MusicVolume, 0);
+    if (overrideMusic)
+    {
+        game->write<uint16_t>(GameOffsets::MusicVolume, 0);
+    }
 
     uint16_t musicID = game->read<uint16_t>(GameOffsets::MusicID);
     if (musicID != previousMusicID)
@@ -137,15 +141,13 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
             return;
         }
 
-        if (musicID >= MusicList.size())
+        if (musicID >= MusicList.size() || musicMap.count(MusicList[musicID]) == 0)
         {
+            // No songs available for this music ID, stop overriding and let the game take over.
+            overrideMusic = false;
+            game->write<uint16_t>(GameOffsets::MusicVolume, FullVolume);
             AudioManager::pauseMusic();
-            return;
-        }
-
-        if (musicMap.count(MusicList[musicID]) == 0)
-        {
-            AudioManager::pauseMusic();
+            LOG("Resuming in game music.");
             return;
         }
 
@@ -167,6 +169,9 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
 
         AudioManager::playMusic(track.path, track.start, track.loopStart, track.loopEnd);
         LOG("Playing: %s", track.path.c_str());
+
+        overrideMusic = true;
+        game->write<uint16_t>(GameOffsets::MusicVolume, 0);
     }
 }
 
