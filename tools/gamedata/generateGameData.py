@@ -337,25 +337,56 @@ def outputBattles(gen, discPath, version):
     gen.write_line("")
 
 def outputModels(gen, discPath, version):
+    # Field Models
     modelNames = ["BALLET", "CID", "CLOUD", "EARITH", "KETCY", "RED", "TIFA", "VINCENT", "YUFI"]
-
     for modelName in modelNames:
-        modelBCX = ff7.bcx.loadBcx(ff7.retrieveFile(discPath, "FIELD", modelName + ".BCX"))
+        model = ff7.models.loadModelFromBCX(ff7.retrieveFile(discPath, "FIELD", modelName + ".BCX"))
 
-        model = modelBCX["model"]
         parts_strings = []
-        for i in range(0, len(model["parts"])):
-            part = model["parts"][i]
-            model_part_string = "{" + str(len(part["quad_color_tex"])) + ", " + str(len(part["tri_color_tex"])) + ", " + str(len(part["quad_mono_tex"])) + ", " + str(len(part["tri_mono_tex"])) + ", " + str(len(part["tri_mono"])) + ", " + str(len(part["quad_mono"])) + ", " + str(len(part["tri_color"])) + ", " + str(len(part["quad_color"])) + "}"
+        for i in range(0, len(model.parts)):
+            part = model.parts[i]
+            model_part_string = "{" + str(len(part.quad_color_tex)) + ", " + str(len(part.tri_color_tex)) + ", " + str(len(part.quad_mono_tex)) + ", " + str(len(part.tri_mono_tex)) + ", " + str(len(part.tri_mono)) + ", " + str(len(part.quad_mono)) + ", " + str(len(part.tri_color)) + ", " + str(len(part.quad_color)) + "}"
             parts_strings.append(model_part_string)
 
         parts_string = ", ".join(parts_strings)
-        gen.write_line("ADD_MODEL(\"" + modelName + "\", " + str(model["poly_count"]) + ", {" + parts_string +  "});", 4)
+        gen.write_line("ADD_MODEL(\"" + modelName + "\", " + str(model.poly_count) + ", {" + parts_string +  "});", 4)
 
     # Clouds model is slightly different on the world map for some reason, this was extracted from memory.
     gen.write_line("ADD_MODEL(\"CLOUD_WORLD\", 378, {{0, 0, 0, 0, 0, 0, 12, 6}, {0, 0, 0, 0, 0, 0, 6, 27}, {2, 4 + 2, 0, 0, 0, 0, 148 + 2, 12 + 1}, {0, 0, 0, 0, 0, 0, 10, 9}, {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 0, 0, 0, 0, 0, 6}, {0, 0, 0, 0, 0, 0, 10, 9}, {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 0, 0, 0, 0, 0, 6}, {0, 0, 0, 0, 0, 0, 8, 4}, {0, 0, 0, 0, 0, 0, 4, 14}, {0, 0, 0, 0, 0, 0, 2, 7}, {0, 0, 0, 0, 0, 0, 8, 4}, {0, 0, 0, 0, 0, 0, 4, 14}, {0, 0, 0, 0, 0, 0, 2, 7}});", 4)
-
     gen.write_line("")
+
+    # Battle Models
+    battleModelNames = ["BARRETT", "CID", "CLOUD", "EARITH", "KETCY", "RED13", "TIFA", "VINSENT", "YUFI"]
+
+    # These were determined with memory inspection at runtime. Part of it is skeleton data, but the rest is unknown for now.
+    battleModelHeaderSizes = {
+        "BARRETT":  636, 
+        "CID":      668,
+        "CLOUD":    652,
+        "EARITH":   712,
+        "KETCY":    812, 
+        "RED13":    804,
+        "TIFA":     700, 
+        "VINSENT":  840,
+        "YUFI":     688
+    }
+
+    for modelName in battleModelNames:
+        battleModel = ff7.models.loadModelFromLZS(ff7.retrieveFile(discPath, "ENEMY6", modelName + ".LZS"))
+
+        part_strings = []
+        for part in battleModel.parts:
+            totalSize = 0
+            totalSize += 4 + len(part.vertices) * 8
+            totalSize += 4 + len(part.tri_mono_tex) * 16
+            totalSize += 4 + len(part.quad_mono_tex) * 20
+            totalSize += 4 + len(part.tri_color) * 20
+            totalSize += 4 + len(part.quad_color) * 24
+
+            part_strings.append("{" + str(totalSize) + ", " + str(len(part.vertices)) + ", " + str(len(part.tri_mono_tex)) + ", " + str(len(part.quad_mono_tex)) + ", " + str(len(part.tri_color)) + ", " + str(len(part.quad_color)) + "}")
+            
+        parts_string = ", ".join(part_strings)
+        gen.write_line("ADD_BATTLE_MODEL(\"" + modelName + "\", " + str(battleModelHeaderSizes[modelName]) + ", {" + parts_string + "});", 4)
 
 discPath = sys.argv[1]
 
