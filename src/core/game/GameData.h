@@ -83,14 +83,14 @@ struct BattleScene
 
 struct ModelPart
 {
-    int quadColorTex;
-    int triColorTex;
-    int quadMonoTex;
-    int triMonoTex;
-    int triMono;
-    int quadMono;
-    int triColor;
-    int quadColor;
+    int quadColorTex = 0;
+    int triColorTex  = 0;
+    int quadMonoTex  = 0;
+    int triMonoTex   = 0;
+    int triMono      = 0;
+    int quadMono     = 0;
+    int triColor     = 0;
+    int quadColor    = 0;
 };
 
 struct Model
@@ -115,6 +115,23 @@ struct Model
         }
         return "";
     }
+};
+
+struct BattleModelPart
+{
+    int sizeInBytes = 0;
+    int vertexCount = 0;
+    int triMonoTex  = 0;
+    int quadMonoTex = 0;
+    int triColor    = 0;
+    int quadColor   = 0;
+};
+
+struct BattleModel
+{
+    std::string name = "";
+    int headerSize = 0;
+    std::vector<BattleModelPart> parts;
 };
 
 class GameData
@@ -152,6 +169,7 @@ public:
     static std::vector<WorldMapEntrance> worldMapEntrances;
     static std::unordered_map<uint8_t, BattleScene> battleScenes;
     static std::unordered_map<std::string, Model> models;
+    static std::unordered_map<std::string, BattleModel> battleModels;
 };
 
 #define ADD_ACCESSORY(ID, NAME) accessoryNames[ID] = NAME;
@@ -188,3 +206,4 @@ public:
 #define ADD_BATTLE_FORMATION(FORMATION_ID, SCENE_ID, NO_ESCAPE, ...) GameData::battleScenes[SCENE_ID].formations.push_back({FORMATION_ID, NO_ESCAPE, {__VA_ARGS__}});
 
 #define ADD_MODEL(MODEL_NAME, POLY_COUNT, ...) { GameData::models[MODEL_NAME] = { MODEL_NAME, POLY_COUNT, __VA_ARGS__ }; }
+#define ADD_BATTLE_MODEL(MODEL_NAME, ...) { GameData::battleModels[MODEL_NAME] = { MODEL_NAME, __VA_ARGS__ }; }

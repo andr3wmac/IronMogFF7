@@ -385,7 +385,7 @@ bool GameManager::isBattleDataLoaded()
 
             uintptr_t characterOffset = getCharacterDataOffset(id);
             uint16_t worldMaxHP = read<uint16_t>(characterOffset + CharacterDataOffsets::MaxHP);
-            uint16_t battleMaxHP = read<uint16_t>(BattleCharacterOffsets::Allies[i] + BattleCharacterOffsets::MaxHP);
+            uint16_t battleMaxHP = read<uint16_t>(BattleOffsets::Allies[i] + BattleOffsets::MaxHP);
 
             if (worldMaxHP == battleMaxHP)
             {

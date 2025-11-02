@@ -16,6 +16,7 @@ private:
     void onStart();
     void onModuleChanged(uint8_t newModule);
     void onFieldChanged(uint16_t fieldID);
+    void onBattleEnter();
     void onFrame(uint32_t frameNumber);
     void applyColors();
 
@@ -28,6 +29,9 @@ private:
 
     bool waitingForWorld = false;
     int lastWorldTrigger = 0;
+
+    bool waitingForBattle = false;
+    int lastBattleTrigger = 0;
 
     // Debug variables
     char debugStartNum[20];

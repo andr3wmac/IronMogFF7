@@ -22,17 +22,16 @@ ModelEditor::~ModelEditor()
 
 void ModelEditor::setup(GameManager* gameManager)
 {
-    game            = gameManager;
-    bufferAddress   = 1284000;
-    bufferSize      = 400000;
-
+    game = gameManager;
+    bufferSize = 400000;
     openModels.clear();
 }
 
-void ModelEditor::findModels()
+void ModelEditor::findFieldModels()
 {
     openModels.clear();
 
+    bufferAddress = 1284000;
     size_t uintCount = bufferSize / 4;
     if (buffer == nullptr)
     {
@@ -93,7 +92,7 @@ void ModelEditor::findModels()
 
                 if ((model.polyCount * 2) == polygonCount)
                 {
-                    if (openModel(startPolyIndex, model))
+                    if (openFieldModel(startPolyIndex, model))
                     {
                         LOG("Opened model: %s %d %d", model.name.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount);
                         break;
@@ -109,7 +108,7 @@ void ModelEditor::findModels()
                 if ((model.polyCount * 2) == polygonCount - 1)
                 {
                     // First we see if its one on the end of the buffer
-                    if (openModel(startPolyIndex, model))
+                    if (openFieldModel(startPolyIndex, model))
                     {
                         LOG("Opened model: %s %d %d", model.name.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount - 1);
                         break;
@@ -120,7 +119,7 @@ void ModelEditor::findModels()
                         ModelEditorPoly poly;
                         int readSize = readPoly(startPolyIndex, poly);
 
-                        if (openModel(startPolyIndex + readSize, model))
+                        if (openFieldModel(startPolyIndex + readSize, model))
                         {
                             LOG("Opened model: %s %d %d", model.name.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount - 1);
                             break;
@@ -145,6 +144,45 @@ void ModelEditor::findModels()
     }
 }
 
+void ModelEditor::openBattleModels()
+{
+    openModels.clear();
+
+    bufferAddress = BattleOffsets::AllyModels[0];
+    //bufferSize = 184320; // Each ally model gets 61440 bytes
+    size_t uintCount = bufferSize / 4;
+    if (buffer == nullptr)
+    {
+        buffer = new uint32_t[uintCount];
+    }
+
+    game->read(bufferAddress, bufferSize, (uint8_t*)buffer);
+    int bufferIdx = 0;
+
+    std::array<uint8_t, 3> partyIDs = game->getPartyIDs();
+    for (int i = 0; i < partyIDs.size(); ++i)
+    {
+        uint8_t& id = partyIDs[i];
+        if (id == 0xFF)
+        {
+            continue;
+        }
+
+        const BattleModel& model = GameData::battleModels[getCharacterName(id)];
+        bufferIdx = (BattleOffsets::AllyModels[i] - BattleOffsets::AllyModels[0]) / 4;
+        bufferIdx += model.headerSize / 4;
+
+        if (openBattleModel(bufferIdx, model))
+        {
+            LOG("Opened battle model: %s %d", model.name.c_str(), bufferAddress + (bufferIdx * 4));
+        }
+        else
+        {
+            LOG("Failed to open battle model: %s", model.name.c_str());
+        }
+    }
+}
+
 std::vector<std::string> ModelEditor::getOpenModelNames()
 {
     std::vector<std::string> keys;
@@ -158,7 +196,7 @@ std::vector<std::string> ModelEditor::getOpenModelNames()
     return keys;
 }
 
-bool ModelEditor::openModel(int bufferIdx, const Model& model)
+bool ModelEditor::openFieldModel(int bufferIdx, const Model& model)
 {
     std::vector<ModelEditorPart> pendingParts;
 
@@ -244,6 +282,123 @@ bool ModelEditor::openModel(int bufferIdx, const Model& model)
     ModelEditorModel& editorModel = openModels[model.name];
     editorModel.parts.insert(editorModel.parts.end(), pendingParts.begin(), pendingParts.end());
 
+    return true;
+}
+
+bool ModelEditor::openBattleModel(int bufferIdx, const BattleModel& model)
+{
+    std::vector<ModelEditorPart> pendingParts;
+    for (const BattleModelPart& battlePart : model.parts)
+    {
+        ModelEditorPart editorPart;
+
+        uint16_t vertexCount = (buffer[bufferIdx] & 0xFFFF) / 8;
+        if (vertexCount != battlePart.vertexCount)
+        {
+            return false;
+        }
+        int vertexDataSize = 4 + (battlePart.vertexCount * 8);
+        bufferIdx += (vertexDataSize / 4);
+
+        // Tri Mono Tex
+        uint16_t triMonoTex = (buffer[bufferIdx] & 0xFFFF);
+        if (triMonoTex != battlePart.triMonoTex)
+        {
+            return false;
+        }
+        bufferIdx += 1;
+        for (int i = 0; i < battlePart.triMonoTex; ++i)
+        {
+            ModelEditorPoly poly;
+            poly.bufferAddressA = bufferAddress + (bufferIdx * 4);
+            poly.bufferAddressB = poly.bufferAddressA;
+            poly.textured = true;
+            editorPart.polys.push_back(poly);
+            bufferIdx += 4; // 16 bytes
+        }
+
+        // Quad Mono Tex
+        uint16_t quadMonoTex = (buffer[bufferIdx] & 0xFFFF);
+        if (quadMonoTex != battlePart.quadMonoTex)
+        {
+            return false;
+        }
+        bufferIdx += 1;
+        for (int i = 0; i < battlePart.quadMonoTex; ++i)
+        {
+            ModelEditorPoly poly;
+            poly.bufferAddressA = bufferAddress + (bufferIdx * 4);
+            poly.bufferAddressB = poly.bufferAddressA;
+            poly.textured = true;
+            editorPart.polys.push_back(poly);
+            bufferIdx += 5; // 20 bytes
+        }
+
+        // Tri Color
+        uint16_t triColor = (buffer[bufferIdx] & 0xFFFF);
+        if (triColor != battlePart.triColor)
+        {
+            return false;
+        }
+        bufferIdx += 1;
+        for (int i = 0; i < battlePart.triColor; ++i)
+        {
+            ModelEditorPoly poly;
+            poly.bufferAddressA = bufferAddress + (bufferIdx * 4) + (2 * 4);
+            poly.bufferAddressB = poly.bufferAddressA;
+            poly.textured = true;
+            poly.vertexStride = 4;
+
+            for (int j = 0; j < 3; ++j)
+            {
+                uint32_t data = buffer[bufferIdx + 2 + j];
+
+                Utilities::Color color;
+                color.r = data & 0xFF;
+                color.g = (data >> 8) & 0xFF;
+                color.b = (data >> 16) & 0xFF;
+                poly.vertexColors.push_back(color);
+            }
+
+            editorPart.polys.push_back(poly);
+            bufferIdx += 5; // 20 bytes
+        }
+
+        // Quad Color
+        uint16_t quadColor = (buffer[bufferIdx] & 0xFFFF);
+        if (quadColor != battlePart.quadColor)
+        {
+            return false;
+        }
+        bufferIdx += 1;
+        for (int i = 0; i < battlePart.quadColor; ++i)
+        {
+            ModelEditorPoly poly;
+            poly.bufferAddressA = bufferAddress + (bufferIdx * 4) + (2 * 4);
+            poly.bufferAddressB = poly.bufferAddressA;
+            poly.textured = true;
+            poly.vertexStride = 4;
+
+            for (int j = 0; j < 4; ++j)
+            {
+                uint32_t data = buffer[bufferIdx + 2 + j];
+
+                Utilities::Color color;
+                color.r = data & 0xFF;
+                color.g = (data >> 8) & 0xFF;
+                color.b = (data >> 16) & 0xFF;
+                poly.vertexColors.push_back(color);
+            }
+
+            editorPart.polys.push_back(poly);
+            bufferIdx += 6; // 24 bytes
+        }
+
+        pendingParts.push_back(editorPart);
+    }
+
+    ModelEditorModel& editorModel = openModels[model.name];
+    editorModel.parts.insert(editorModel.parts.end(), pendingParts.begin(), pendingParts.end());
     return true;
 }
 

@@ -67,7 +67,7 @@ void Permadeath::onFrame(uint32_t frameNumber)
 
             if (game->inBattle())
             {
-                Flags<uint16_t> statusFlags = game->read<uint16_t>(BattleCharacterOffsets::Allies[i] + BattleCharacterOffsets::Status);
+                Flags<uint16_t> statusFlags = game->read<uint16_t>(BattleOffsets::Allies[i] + BattleOffsets::Status);
                 isDead = statusFlags.isSet(StatusFlags::Dead);
             }
             else 
@@ -92,7 +92,7 @@ void Permadeath::onFrame(uint32_t frameNumber)
             if (game->inBattle())
             {
                 game->write<uint16_t>(PlayerOffsets::Players[i] + PlayerOffsets::CurrentHP, 0);
-                game->write<uint16_t>(BattleCharacterOffsets::Allies[i] + BattleCharacterOffsets::Status, StatusFlags::Dead);
+                game->write<uint16_t>(BattleOffsets::Allies[i] + BattleOffsets::Status, StatusFlags::Dead);
             }
         }
     }

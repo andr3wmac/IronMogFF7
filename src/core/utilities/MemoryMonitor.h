@@ -5,6 +5,9 @@
 #include <string>
 #include <vector>
 
+// Monitors a given memory range for any changes to values of type T. Will then call monitorFunc to allow 
+// you to inspect them in some way. Useful when you're looking for a value that changes into another 
+// between save states or after pressing a button.
 template<typename T>
 class MemoryMonitor
 {

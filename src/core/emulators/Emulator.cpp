@@ -2,6 +2,7 @@
 #include "CustomEmulator.h"
 #include "DuckStation.h"
 #include "BizHawk.h"
+#include "core/game/MemoryOffsets.h"
 #include "core/utilities/Logging.h"
 #include "core/utilities/Utilities.h"
 
@@ -89,7 +90,7 @@ bool Emulator::attach(std::string processName)
     ps1BaseAddress = getPS1MemoryOffset();
 
     // This is just to ensure we actually attached to the right memory. This will fail if the offset is wrong.
-    uintptr_t fieldXOffset = 0x74EB0;
+    uintptr_t fieldXOffset = FieldOffsets::FieldX;
     int32_t fieldX = 0;
     if (!ReadProcessMemory(processHandle, (LPCVOID)(ps1BaseAddress + fieldXOffset), &fieldX, sizeof(fieldX), nullptr))
     {
@@ -98,7 +99,6 @@ bool Emulator::attach(std::string processName)
     }
 
     LOG("Successfully attached to emulator at: 0x%X", ps1BaseAddress);
-
     return true;
 }
 

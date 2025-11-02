@@ -133,6 +133,24 @@ inline uintptr_t getCharacterDataOffset(uint8_t characterID)
     return CharacterDataOffsets::Cloud;
 }
 
+inline std::string getCharacterName(uint8_t characterID)
+{
+    switch (characterID)
+    {
+        case 0: return "CLOUD";
+        case 1: return "BARRETT";
+        case 2: return "TIFA";
+        case 3: return "EARITH";
+        case 4: return "RED13";
+        case 5: return "YUFI";
+        case 6: return "KETCY";
+        case 7: return "VINSENT";
+        case 8: return "CID";
+    }
+
+    return "CLOUD";
+}
+
 struct PlayerOffsets
 {
     CONST_PTR Players[] = { 0x9D84C, 0x9DC8C, 0x9E0CC };
@@ -158,7 +176,7 @@ struct PlayerOffsets
     CONST_PTR CharacterID       = 0x420;
 };
 
-struct BattleCharacterOffsets
+struct BattleOffsets
 {
     // Battle Character Data Length = 104 bytes
     CONST_PTR Allies[] = { 0xF83E0, 0xF8448, 0xF84B0 };
@@ -173,10 +191,11 @@ struct BattleCharacterOffsets
     CONST_PTR ID        = 0x24;
     CONST_PTR CurrentHP = 0x2C;
     CONST_PTR MaxHP     = 0x30;
+    CONST_PTR Gil       = 0x58;
+    CONST_PTR Exp       = 0x5C;
 
-    // TODO: what do these do for allies?
-    CONST_PTR Gil = 0x58;
-    CONST_PTR Exp = 0x5C;
+    // Graphics Data
+    CONST_PTR AllyModels[] = { 0x103200, 0x112200, 0x121200 };
 };
 
 // Note: It looks like every formation can have a maximum of 3 enemies, but those enemies can be used multiple times.

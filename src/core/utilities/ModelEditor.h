@@ -33,7 +33,8 @@ public:
     ~ModelEditor();
 
     void setup(GameManager* gameManager);
-    void findModels();
+    void findFieldModels();
+    void openBattleModels();
     std::vector<std::string> getOpenModelNames();
 
     // Overwrites a parts color entirely without any regard for its original color.
@@ -55,7 +56,9 @@ protected:
     uintptr_t bufferAddress = 0;
     size_t bufferSize = 0;
 
-    bool openModel(int bufferIdx, const Model& model);
+    bool openFieldModel(int bufferIdx, const Model& model);
+    bool openBattleModel(int bufferIdx, const BattleModel& model);
+
     int readPoly(int bufferIdx, ModelEditorPoly& polyOut);
     Utilities::Color tintVertexColor(const Utilities::Color& src, const Utilities::Color& tint);
     
