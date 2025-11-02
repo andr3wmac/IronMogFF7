@@ -17,42 +17,8 @@ from pygame.locals import *
 bcxMap = {}
 normals = []
 
-def vecDot(a,b):
-    return a[0]*b[0]+a[1]*b[1]+a[2]*b[2]
-
-def vecNormal(a):
-    lenSqr = vecDot(a,a)
-    if lenSqr > 0.0:
-        ool = 1.0 / math.sqrt(lenSqr)
-        return (a[0] * ool, a[1] * ool, a[2] * ool)
-    else:
-        return (0,0,0)
-    
-# Ray–Triangle Intersection (Möller–Trumbore)
-def ray_triangle_intersect(ray_origin, ray_dir, v0, v1, v2):
-    EPSILON = 1e-8
-    edge1 = v1 - v0
-    edge2 = v2 - v0
-    h = np.cross(ray_dir, edge2)
-    a = np.dot(edge1, h)
-    if -EPSILON < a < EPSILON:
-        return None  # Parallel
-    f = 1.0 / a
-    s = ray_origin - v0
-    u = f * np.dot(s, h)
-    if u < 0.0 or u > 1.0:
-        return None
-    q = np.cross(s, edge1)
-    v = f * np.dot(ray_dir, q)
-    if v < 0.0 or u + v > 1.0:
-        return None
-    t = f * np.dot(edge2, q)
-    if t > EPSILON:
-        return t  # Intersection distance
-    return None
-
 # Unproject mouse to 3D ray
-def get_ray_from_mouse(mx, my, width, height, modelview, projection):
+def getRayFromMouse(mx, my, width, height, modelview, projection):
     # Convert to NDC
     x = 2.0 * mx / width - 1.0
     y = 1.0 - 2.0 * my / height
@@ -92,6 +58,7 @@ class OpenGLObject:
         self.part_map = {}
         self.parts_visible = []
         self.polys_visible = []
+
         for idx, part in enumerate(model.parts):
             self.part_map[part.bone_index] = idx
             self.parts_visible.append(True)
@@ -107,24 +74,71 @@ class OpenGLObject:
     def clickTriangle(self, ray_origin, ray_dir):
         closest_t = float('inf')
         hit_triangle = None
-        for tri in self.model.triangles:
-            if not self.polys_visible[tri[3]][tri[4]]:
-                continue
 
-            t = ray_triangle_intersect(ray_origin, ray_dir, np.array(tri[0]), np.array(tri[1]), np.array(tri[2]))
-            if t and t < closest_t:
-                closest_t = t
-                hit_triangle = tri
+        # Skip skeleton related functions if no animations are in the model
+        if len(self.model.animations) == 0:
+            for idx, bone in enumerate(self.model.skeleton):
+                if bone[2]:
+                    part_idx = self.part_map[idx]
+                    if self.parts_visible[self.part_map[idx]]:
+                        for tri in self.model.parts[part_idx].triangles:
+                            if self.polys_visible[part_idx][tri[4]]:
+                                t = ff7.utils.rayTriangleIntersect(ray_origin, ray_dir, np.array(tri[0]), np.array(tri[1]), np.array(tri[2]))
+                                if t and t < closest_t:
+                                    closest_t = t
+                                    hit_triangle = tri
+        else:
+            animation = self.model.animations[self.animation]
+            self.time = (self.time + 1) % len(animation[0])
+            
+            parent = [-1]
+            transform = [ff7.utils.rotateXMatrix(180)]
+
+            for idx, bone in enumerate(self.model.skeleton):
+                ((translation_x, translation_y, translation_z), (rotation_x, rotation_y, rotation_z)) = animation[idx][self.time]
+
+                while parent[-1] != bone[1]:
+                    parent.pop()
+                    transform.pop()
+
+                parent.append(idx)
+
+                M = np.eye(4)
+                M = M @ ff7.utils.translateMatrix(0, 0, bone[0])
+                M = M @ ff7.utils.rotateYMatrix(rotation_y)
+                M = M @ ff7.utils.rotateXMatrix(rotation_x)
+                M = M @ ff7.utils.rotateZMatrix(rotation_z)
+                M = M @ ff7.utils.translateMatrix(translation_x, translation_y, translation_z)
+
+                current = transform[-1].copy() @ M
+                transform.append(current)
+
+                if bone[2]:
+                    part_idx = self.part_map[idx]
+                    if self.parts_visible[self.part_map[idx]]:
+                        for tri in self.model.parts[part_idx].triangles:
+                            if self.polys_visible[part_idx][tri[4]]:
+                                v0 = ff7.utils.transformPoint(current, np.array(tri[0]))
+                                v1 = ff7.utils.transformPoint(current, np.array(tri[1]))
+                                v2 = ff7.utils.transformPoint(current, np.array(tri[2]))
+
+                                t = ff7.utils.rayTriangleIntersect(ray_origin, ray_dir, v0, v1, v2)
+                                if t and t < closest_t:
+                                    closest_t = t
+                                    hit_triangle = tri
+
+            while parent[-1] != -1:
+                parent.pop()
+                transform.pop()
 
         if not hit_triangle == None:
-            print("Hit triangle: " + str(hit_triangle))
             self.polys_visible[hit_triangle[3]][hit_triangle[4]] = False
 
     def drawPart(self, part, polys_visible):
         glEnable(GL_TEXTURE_2D)
         poly_index = 0
 
-        # quadColorTex;
+        # quadColorTex
         glBegin(GL_QUADS)
         for quad in part.quad_color_tex:
             if not polys_visible[poly_index]:
@@ -141,7 +155,7 @@ class OpenGLObject:
             poly_index += 1
         glEnd()
 
-        # triColorTex;
+        # triColorTex
         glBegin(GL_TRIANGLES)
         for tri in part.tri_color_tex:
             if not polys_visible[poly_index]:
@@ -381,11 +395,22 @@ class OpenGLObject:
                 parent.pop()
                 glPopMatrix()
         
-def draw_parts_ui(parts_visible, polys_visible):
+def drawPartsUI(parts_visible, polys_visible):
     """
     parts_visible: list[bool]  -> visibility of each part
     polys_visible: list[list[bool]] -> per-part poly visibilities
     """
+
+    if imgui.button("Show All"):
+        for part_idx, part_visible in enumerate(parts_visible):
+            polys_visible[part_idx] = [True] * len(polys_visible[part_idx])
+
+    imgui.same_line()
+
+    if imgui.button("Hide All"):
+        for part_idx, part_visible in enumerate(parts_visible):
+            polys_visible[part_idx] = [False] * len(polys_visible[part_idx])
+
     for part_idx, part_visible in enumerate(parts_visible):
         if imgui.tree_node(f"Part {part_idx}"):
             changed, new_part_visible = imgui.checkbox(f"Visible##part_{part_idx}", part_visible)
@@ -408,7 +433,7 @@ def draw_parts_ui(parts_visible, polys_visible):
 
             imgui.tree_pop()
     
-def draw_grid(size=2000, step=100):
+def drawGrid(size=2000, step=100):
     glDisable(GL_LIGHTING)
     glColor3f(0.4, 0.4, 0.4)
     glBegin(GL_LINES)
@@ -431,7 +456,7 @@ def draw_grid(size=2000, step=100):
     glVertex3f(0, 0, size)
     glEnd()
 
-def draw_debug_ray(origin, direction, length=1000.0, color=(1.0, 0.0, 0.0)):
+def drawDebugRay(origin, direction, length=1000.0, color=(1.0, 0.0, 0.0)):
     glDisable(GL_LIGHTING)  # Optional, so color shows clearly
     glColor3f(*color)
     glBegin(GL_LINES)
@@ -440,7 +465,7 @@ def draw_debug_ray(origin, direction, length=1000.0, color=(1.0, 0.0, 0.0)):
     glVertex3f(*end_point)
     glEnd()
 
-def setup_imgui_style():
+def setupImguiStyle():
     style = imgui.get_style()
     colors = style.colors
 
@@ -527,7 +552,7 @@ def main(*argv):
 
     io = imgui.get_io()
     io.display_size = (width, height)
-    setup_imgui_style()
+    setupImguiStyle()
 
     glViewport(0, 0, 1280, height)
     glMatrixMode(GL_PROJECTION)
@@ -567,7 +592,7 @@ def main(*argv):
     normals = []
     for i in range(240):
         n = struct.unpack_from("<hhh", fieldBin, 0x3f520 + i * 8)
-        normals.append(vecNormal(n))
+        normals.append(ff7.utils.vecNormal(n))
 
     # Determine what type of file we're dealing with
     fileExt = os.path.splitext(os.path.basename(fileName))[1].lower()
@@ -576,7 +601,7 @@ def main(*argv):
     elif fileExt == ".bsx":
         data = ff7.models.loadModelsFromBSX(ff7.retrieveFile(discPath, "FIELD", fileName))
     elif fileExt == ".lzs":
-        data = [ff7.models.loadModelFromLZS(ff7.retrieveFile(discPath, "ENEMY6", fileName))]
+        data = [ff7.models.loadModelFromLZS(ff7.retrieveFile(discPath, "", fileName))]
     else:
         print("Unsupported file extension: " + fileExt)
         return
@@ -650,7 +675,7 @@ def main(*argv):
             elif event.type == MOUSEBUTTONDOWN and not io.want_capture_mouse:
                 mx, my = event.pos
                 if event.button == 1:       # Left click
-                    ray_origin, ray_dir = get_ray_from_mouse(mx, my, width, height, modelview, projection)
+                    ray_origin, ray_dir = getRayFromMouse(mx, my, width, height, modelview, projection)
                     object.clickTriangle(ray_origin, ray_dir)
                     last_ray_origin = ray_origin
                     last_ray_dir = ray_dir
@@ -736,7 +761,7 @@ def main(*argv):
         #print(modelview)
 
         # Draw Grid
-        draw_grid()
+        drawGrid()
 
         # Draw Model
         glPushMatrix()
@@ -747,14 +772,14 @@ def main(*argv):
         glPopMatrix()
 
         #if last_ray_origin is not None:
-        #    draw_debug_ray(last_ray_origin, last_ray_dir, length=1000.0, color=(1, 0, 0))
+        #    drawDebugRay(last_ray_origin, last_ray_dir, length=1000.0, color=(1, 0, 0))
 
         # Draw UI
         imgui.set_next_window_position(0, 00)  # below menu bar
         imgui.set_next_window_size(250, imgui.get_io().display_size.y)
 
         imgui.begin("Visibility", False, imgui.WINDOW_NO_MOVE | imgui.WINDOW_NO_RESIZE)
-        draw_parts_ui(object.parts_visible, object.polys_visible)
+        drawPartsUI(object.parts_visible, object.polys_visible)
         imgui.end()
 
         imgui.render()

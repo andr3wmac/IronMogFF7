@@ -1,7 +1,7 @@
 # Based on: https://forums.qhimm.com/index.php?topic=8969.msg122920#msg122920
 
 import sys, struct, array, math, os, zlib
-from . import lzss
+from . import lzss, utils
 
 class ModelPart:
     def __init__(self):
@@ -19,13 +19,16 @@ class ModelPart:
         self.tri_color = []
         self.quad_color = []
 
+        # Utility array of all polys collapsed into triangles.
+        self.triangles = []
+
 class Model:
     def __init__(self):
         self.poly_count = 0
+        self.bone_count = 0
         self.parts = []
         self.skeleton = []
         self.animations = []
-        self.triangles = []
 
     def loadModelFromBCX(self, data, num_bones, offset_skeleton, num_parts, offset_parts):
         for i in range(num_bones):
@@ -182,10 +185,12 @@ class Model:
             self.animations.append(animation)
 
     def loadModelFromLZS(self, data, ptr):
-        numBones = struct.unpack_from("<L", data, ptr)[0]
+        self.bone_count = struct.unpack_from("<L", data, ptr)[0]
         rootBone = struct.unpack_from("<Q", data, ptr + 4)[0]
 
-        for b in range(numBones):
+        self.skeleton.append((0, -1, False))
+
+        for b in range(self.bone_count):
             parentBone, boneLength, offsetToBoneObject = struct.unpack_from("<HhL", data, ptr + 12 + (8 * b))
             self.skeleton.append((boneLength, parentBone, offsetToBoneObject != 0))
 
@@ -195,7 +200,7 @@ class Model:
             boneObjectPtr = ptr + offsetToBoneObject
 
             part = ModelPart()
-            part.bone_index = b
+            part.bone_index = b + 1 # Add one because of addition of root bone
             
             # Load Vertices
             vertexPoolSize = struct.unpack_from("<L", data, boneObjectPtr)[0]
@@ -232,7 +237,7 @@ class Model:
                 part.tri_mono_tex.append(poly)
                 boneObjectPtr += 16
 
-                self.triangles.append([part.vertices[int(ai / 8)], part.vertices[int(bi / 8)], part.vertices[int(ci / 8)], part_index, poly_index])
+                part.triangles.append([part.vertices[int(ai / 8)], part.vertices[int(bi / 8)], part.vertices[int(ci / 8)], part_index, poly_index])
                 poly_index += 1
 
             num_quad_mono_tex, texQuadFlags = struct.unpack_from("<HH", data, boneObjectPtr)
@@ -253,8 +258,8 @@ class Model:
                 part.quad_mono_tex.append(poly)
                 boneObjectPtr += 20
 
-                self.triangles.append([part.vertices[int(ai / 8)], part.vertices[int(bi / 8)], part.vertices[int(ci / 8)], part_index, poly_index])
-                self.triangles.append([part.vertices[int(ai / 8)], part.vertices[int(ci / 8)], part.vertices[int(di / 8)], part_index, poly_index])
+                part.triangles.append([part.vertices[int(ai / 8)], part.vertices[int(bi / 8)], part.vertices[int(ci / 8)], part_index, poly_index])
+                part.triangles.append([part.vertices[int(ai / 8)], part.vertices[int(ci / 8)], part.vertices[int(di / 8)], part_index, poly_index])
                 poly_index += 1
 
             num_tri_color, colTriFlags = struct.unpack_from("<HH", data, boneObjectPtr)
@@ -266,7 +271,7 @@ class Model:
                 part.tri_color.append(poly)
                 boneObjectPtr += 20
 
-                self.triangles.append([part.vertices[int(ai / 8)], part.vertices[int(bi / 8)], part.vertices[int(ci / 8)], part_index, poly_index])
+                part.triangles.append([part.vertices[int(ai / 8)], part.vertices[int(bi / 8)], part.vertices[int(ci / 8)], part_index, poly_index])
                 poly_index += 1
 
             num_quad_color, colQuadFlags = struct.unpack_from("<HH", data, boneObjectPtr)
@@ -278,8 +283,8 @@ class Model:
                 part.quad_color.append(poly)
                 boneObjectPtr += 24
 
-                self.triangles.append([part.vertices[int(ai / 8)], part.vertices[int(bi / 8)], part.vertices[int(ci / 8)], part_index, poly_index])
-                self.triangles.append([part.vertices[int(ai / 8)], part.vertices[int(ci / 8)], part.vertices[int(di / 8)], part_index, poly_index])
+                part.triangles.append([part.vertices[int(ai / 8)], part.vertices[int(bi / 8)], part.vertices[int(ci / 8)], part_index, poly_index])
+                part.triangles.append([part.vertices[int(ai / 8)], part.vertices[int(ci / 8)], part.vertices[int(di / 8)], part_index, poly_index])
                 poly_index += 1
 
             part.poly_count = len(part.quad_color_tex) + len(part.tri_color_tex) + len(part.quad_mono_tex) + len(part.tri_mono_tex) + len(part.tri_mono) + len(part.quad_mono) + len(part.tri_color) + len(part.quad_color)
@@ -287,52 +292,62 @@ class Model:
             
             self.parts.append(part)
 
-def loadLzs(f):
-    # read compressed data
-    buf = f.read()
-    
-    (size,) = struct.unpack_from("<I", buf, 0)
-    if size + 4 != len(buf):
-        del buf
-        return None
+        # Battle and Field models treat bone length differently, field translates by bone length and then draws model, where as 
+        # battle seems to want to draw model then translate by bone length. To accommodate both we push the lengths down the
+        # chain by making each child take its parents length.
+        newSkeleton = []
+        for bone in self.skeleton:
+            parent = bone[1]
+            if parent == -1:
+                newSkeleton.append((0, -1, False))
+                continue
+            newSkeleton.append((self.skeleton[parent][0], parent, bone[2]))
 
-    ibuf = array.array("B", buf)
-    obuf = array.array("B")
-    
-    # decompress;
-    iofs = 4
-    cmd = 0
-    bit = 0
-    while iofs < len(ibuf):
-        if bit == 0:
-            cmd = ibuf[iofs]
-            bit = 8
-            iofs += 1
-        if cmd & 1:
-            obuf.append(ibuf[iofs])
-            iofs += 1
-        else:
-            a = ibuf[iofs]
-            iofs += 1
-            b = ibuf[iofs]
-            iofs += 1
-            o = a | ((b & 0xF0) << 4)
-            l = (b & 0xF) + 3;
+        self.skeleton = newSkeleton
 
-            rofs = len(obuf) - ((len(obuf) - 18 - o) & 0xFFF)
-            for j in range(l):
-                if rofs < 0:
-                    obuf.append(0)
-                else:
-                    obuf.append(obuf[rofs])
-                rofs += 1
-        cmd >>= 1
-        bit -= 1
+    def loadAnimationsFromLZS(self, data, ptr):
+        numFrames, animLength, animKey = struct.unpack_from("<HHB", data, ptr)
+        bit_start = (ptr + 5) * 8
 
-    return obuf.tobytes()
+        root_x = utils.getIntFromBits(data, 16, bit_start + 0)
+        root_y = -utils.getIntFromBits(data, 16, bit_start + 16)
+        root_z = utils.getIntFromBits(data, 16, bit_start + 32)
+        bit_start += 48
+
+        animation = []
+
+        for b in range(self.bone_count + 1):
+            channel = []
+            stride = 12 - animKey
+            alpha = utils.getIntFromBits(data, stride, bit_start + 0)
+            beta = utils.getIntFromBits(data, stride, bit_start + (1 * stride))
+            gamma = utils.getIntFromBits(data, stride, bit_start + (2 * stride))
+            bit_start += 3 * stride
+
+            alpha = alpha * math.pow(2, animKey)
+            beta = beta * math.pow(2, animKey)
+            gamma = gamma * math.pow(2, animKey)
+
+            translation_x = 0
+            translation_y = 0
+            translation_z = 0
+
+            if (b == 0):
+                translation_x = root_x
+                translation_y = -root_y
+                translation_z = root_z
+
+            rotation_x = (alpha / math.pow(2, stride)) * 360.0
+            rotation_y = (beta / math.pow(2, stride)) * 360.0
+            rotation_z = (gamma / math.pow(2, stride)) * 360.0
+
+            channel.append(((translation_x, translation_y, translation_z), (rotation_x, rotation_y, rotation_z)))
+            animation.append(channel)
+
+        self.animations.append(animation)
 
 def loadModelFromBCX(file):
-    data = loadLzs(file)
+    data = utils.loadLzs(file)
     (size, header_offset) = struct.unpack_from("<II", data, 0)
     assert(size == len(data))
     (u1, num_bones, num_parts, num_animations, u2, u3, u4, offset_skeleton) = struct.unpack_from("<HBBB19sHHI", data, header_offset)
@@ -346,8 +361,7 @@ def loadModelFromBCX(file):
     return model
     
 def loadModelsFromBSX(file, bcxMap):
-    # get compressed file
-    data = loadLzs(file)
+    data = utils.loadLzs(file)
     (size, header_offset) = struct.unpack_from("<II", data, 0)
     assert(size == len(data))
 
@@ -393,23 +407,22 @@ def loadModelsFromBSX(file, bcxMap):
     return modelList
 
 def loadModelFromLZS(file):
-    # decompress the file
     cmpData = file.read()
     compressedSize = struct.unpack_from("<L", cmpData)[0]
     data = bytearray(lzss.decompress(cmpData[4:4 + compressedSize]))
 
-    # We only want the main model data section for now which is section 0
-    numSections = struct.unpack_from("<L", data, 0)[0]
-    ptr = struct.unpack_from("<L", data, 4)[0]
+    # Section 0 is model data and Section 2 is animation data
+    model_ptr = struct.unpack_from("<L", data, 4)[0]
+    anim_ptr = struct.unpack_from("<L", data, 12)[0]
 
     model = Model()
-    model.loadModelFromLZS(data, ptr)
+    model.loadModelFromLZS(data, model_ptr)
+    model.loadAnimationsFromLZS(data, anim_ptr)
+
     return model
 
 def loadFieldBin(f):
-    # read compressed data
     buf = f.read()
-    
     (size,) = struct.unpack_from("<I", buf, 0)
 
     # decompress
