@@ -35,6 +35,7 @@ public:
     void setup(GameManager* gameManager);
     void findFieldModels();
     void openBattleModels();
+    bool areBattleModelsLoaded();
     std::vector<std::string> getOpenModelNames();
 
     // Overwrites a parts color entirely without any regard for its original color.

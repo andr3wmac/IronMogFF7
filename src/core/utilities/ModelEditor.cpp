@@ -169,7 +169,7 @@ void ModelEditor::openBattleModels()
         }
 
         const BattleModel& model = GameData::battleModels[getCharacterName(id)];
-        bufferIdx = (BattleOffsets::AllyModels[i] - BattleOffsets::AllyModels[0]) / 4;
+        bufferIdx = (int)(BattleOffsets::AllyModels[i] - BattleOffsets::AllyModels[0]) / 4;
         bufferIdx += model.headerSize / 4;
 
         if (openBattleModel(bufferIdx, model))
@@ -181,6 +181,43 @@ void ModelEditor::openBattleModels()
             LOG("Failed to open battle model: %s", model.name.c_str());
         }
     }
+}
+
+bool ModelEditor::areBattleModelsLoaded()
+{
+    // We want a cheap method to ensure the battle model data is loaded
+    // before we try to open the models. Our approach is to verify the 
+    // vertex count is what and where it should be for the highest index
+    // player character which will be the deepest in memory.
+
+    uintptr_t modelsStart = BattleOffsets::AllyModels[0];
+    std::array<uint8_t, 3> partyIDs = game->getPartyIDs();
+
+    uint8_t highestIndex = 0;
+    uint8_t highestID = 0;
+    for (int i = 0; i < partyIDs.size(); ++i)
+    {
+        uint8_t& id = partyIDs[i];
+        if (id == 0xFF)
+        {
+            continue;
+        }
+
+        highestIndex = i;
+        highestID = id;
+    }
+
+    const BattleModel& model = GameData::battleModels[getCharacterName(highestID)];
+    const BattleModelPart& firstPart = model.parts[0];
+
+    uint32_t vertexCountData = game->read<uint32_t>(BattleOffsets::AllyModels[highestIndex] + model.headerSize);
+    uint16_t vertexCount = (vertexCountData & 0xFFFF) / 8;
+    if (vertexCount == firstPart.vertexCount)
+    {
+        return true;
+    }
+
+    return false;
 }
 
 std::vector<std::string> ModelEditor::getOpenModelNames()

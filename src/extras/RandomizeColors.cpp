@@ -179,7 +179,6 @@ void RandomizeColors::onFieldChanged(uint16_t fieldID)
 
 void RandomizeColors::onBattleEnter()
 {
-    lastBattleTrigger = game->read<uint16_t>(BATTLE_TRIGGER_ADDR);
     waitingForBattle = true;
 }
 
@@ -228,16 +227,12 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
 
     if (gameModule == GameModule::Battle && waitingForBattle)
     {
-        uint16_t battleTrigger = game->read<uint16_t>(BATTLE_TRIGGER_ADDR);
-        
-        if (lastBattleTrigger < battleTrigger && battleTrigger > 50)
+        if (modelEditor.areBattleModelsLoaded())
         {
             modelEditor.openBattleModels();
             applyColors();
             waitingForBattle = false;
         }
-
-        lastBattleTrigger = battleTrigger;
     }
 }
 
@@ -470,6 +465,33 @@ void RandomizeColors::applyColors()
                 modelEditor.tintPart(modelName, 7, skirtColor);
                 modelEditor.tintPart(modelName, 8, skirtColor);
                 modelEditor.tintPart(modelName, 13, skirtColor);
+            }
+
+            if (modelName == "EARITH")
+            {
+                std::vector<Utilities::Color> randomColors = randomModelColors[modelName];
+                Utilities::Color& dressColor = randomColors[0];
+                Utilities::Color& jacketColor = randomColors[1];
+
+                modelEditor.tintPart(modelName, 0, dressColor);
+                modelEditor.tintPolyRange(modelName, 1, dressColor, 0, 34);
+                modelEditor.tintPolyRange(modelName, 1, dressColor, 98, 99);
+                modelEditor.tintPolyRange(modelName, 2, dressColor, 242, 250);
+                modelEditor.tintPart(modelName, 13, dressColor);
+                modelEditor.tintPolyRange(modelName, 14, dressColor, 0, 21);
+                modelEditor.tintPolys(modelName, 14, dressColor, { 23, 25, 32, 33, 34, 35, 36, 37, 38 });
+                modelEditor.tintPart(modelName, 17, dressColor);
+                modelEditor.tintPart(modelName, 18, dressColor);
+                modelEditor.tintPart(modelName, 19, dressColor);
+                modelEditor.tintPolyRange(modelName, 20, dressColor, 0, 21);
+                modelEditor.tintPolys(modelName, 20, dressColor, { 23, 25, 32, 33, 34, 35, 36, 37, 38 });
+
+                modelEditor.tintPolyRange(modelName, 1, jacketColor, 35, 83);
+                modelEditor.tintPolyRange(modelName, 1, jacketColor, 100, 104);
+                modelEditor.tintPolyRange(modelName, 7, jacketColor, 0, 17);
+                modelEditor.tintPolyRange(modelName, 7, jacketColor, 22, 29);
+                modelEditor.tintPolyRange(modelName, 10, jacketColor, 0, 17);
+                modelEditor.tintPolyRange(modelName, 10, jacketColor, 22, 29);
             }
         }
     }

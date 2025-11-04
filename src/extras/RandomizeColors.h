@@ -31,7 +31,6 @@ private:
     int lastWorldTrigger = 0;
 
     bool waitingForBattle = false;
-    int lastBattleTrigger = 0;
 
     // Debug variables
     char debugStartNum[20];
