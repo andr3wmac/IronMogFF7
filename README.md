@@ -12,8 +12,8 @@ Inspired by IronMon and IronMario 64, IronMog FF7 is a modification for Final Fa
 | No Summon Materia | Summon materia cannot be found or purchased. |
 | Permadeath Characters | If a character dies, they cannot be revived and will remain dead for the rest of the playthrough. |
 | Randomized Encounters | Field and world map encounters are randomized to any enemy formation within 5 levels of the one originally encountered. |
-| Randomized E.Skills | When you learn an Enemy Skill from an enemy, the skill you actually gain is randomized. |
 | Randomized Enemy Drops | Enemy drops and steals are randomized. |
+| Randomized E.Skills | When you learn an Enemy Skill from an enemy, the skill you actually gain is randomized. |
 | Randomized Field Items | Any items obtained from the field (such as from boxes or chests) are randomized. |
 | Randomized Shops | Shop inventories are randomized. |
 | Randomized World Map | World map entrances are shuffled — entering Kalm might take you to Midgar. |
