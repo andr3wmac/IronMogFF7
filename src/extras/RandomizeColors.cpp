@@ -493,6 +493,52 @@ void RandomizeColors::applyColors()
                 modelEditor.tintPolyRange(modelName, 10, jacketColor, 0, 17);
                 modelEditor.tintPolyRange(modelName, 10, jacketColor, 22, 29);
             }
+
+            if (modelName == "CID")
+            {
+                std::vector<Utilities::Color> randomColors = randomModelColors[modelName];
+                Utilities::Color& pantsColor = randomColors[0];
+                Utilities::Color& shirtColor = randomColors[1];
+
+                modelEditor.tintPolyRange(modelName, 0, pantsColor, 0, 29);
+                modelEditor.tintPolyRange(modelName, 0, pantsColor, 39, 40);
+                modelEditor.tintPart(modelName, 11, pantsColor);
+                modelEditor.tintPolyRange(modelName, 12, pantsColor, 4, 33);
+                modelEditor.tintPart(modelName, 15, pantsColor);
+                modelEditor.tintPolyRange(modelName, 16, pantsColor, 4, 33);
+
+                modelEditor.tintPolyRange(modelName, 1, shirtColor, 0, 63);
+                modelEditor.tintPolyRange(modelName, 1, shirtColor, 86, 93);
+                modelEditor.tintPolyRange(modelName, 1, shirtColor, 106, 129);
+                modelEditor.tintPolyRange(modelName, 1, shirtColor, 131, 132);
+                modelEditor.tintPolyRange(modelName, 3, shirtColor, 2, 25);
+                modelEditor.tintPolyRange(modelName, 3, shirtColor, 27, 44);
+                modelEditor.tintPolys(modelName, 3, shirtColor, { 0, 54 });
+                modelEditor.tintPart(modelName, 6, shirtColor);
+                modelEditor.tintPart(modelName, 7, shirtColor);
+                modelEditor.tintPolyRange(modelName, 8, shirtColor, 2, 23);
+                modelEditor.tintPolyRange(modelName, 8, shirtColor, 28, 36);
+                modelEditor.tintPolys(modelName, 8, shirtColor, { 39, 54 });
+            }
+
+            if (modelName == "KETCY")
+            {
+                std::vector<Utilities::Color> randomColors = randomModelColors[modelName];
+                Utilities::Color& moogleColor = randomColors[0];
+
+                modelEditor.tintPart(modelName, 0, moogleColor);
+                modelEditor.tintPart(modelName, 1, moogleColor);
+                modelEditor.tintPart(modelName, 2, moogleColor);
+                modelEditor.tintPart(modelName, 3, moogleColor);
+                modelEditor.tintPolyRange(modelName, 4, moogleColor, 20, 149);
+                modelEditor.tintPolyRange(modelName, 4, moogleColor, 162, 167);
+                modelEditor.tintPart(modelName, 5, moogleColor);
+                modelEditor.tintPart(modelName, 6, moogleColor);
+                modelEditor.tintPolyRange(modelName, 25, moogleColor, 14, 99);
+                modelEditor.tintPolyRange(modelName, 26, moogleColor, 26, 55);
+                modelEditor.tintPart(modelName, 27, moogleColor);
+                modelEditor.tintPart(modelName, 28, moogleColor);
+            }
         }
     }
 }
