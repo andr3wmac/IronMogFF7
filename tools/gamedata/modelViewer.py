@@ -60,7 +60,10 @@ class OpenGLObject:
         self.polys_visible = []
 
         for idx, part in enumerate(model.parts):
-            self.part_map[part.bone_index] = idx
+            if part.bone_index in self.part_map:
+                self.part_map[part.bone_index].append(idx)
+            else:
+                self.part_map[part.bone_index] = [idx]
             self.parts_visible.append(True)
             self.polys_visible.append([True] * part.poly_count)
 
@@ -79,14 +82,14 @@ class OpenGLObject:
         if len(self.model.animations) == 0:
             for idx, bone in enumerate(self.model.skeleton):
                 if bone[2]:
-                    part_idx = self.part_map[idx]
-                    if self.parts_visible[self.part_map[idx]]:
-                        for tri in self.model.parts[part_idx].triangles:
-                            if self.polys_visible[part_idx][tri[4]]:
-                                t = ff7.utils.rayTriangleIntersect(ray_origin, ray_dir, np.array(tri[0]), np.array(tri[1]), np.array(tri[2]))
-                                if t and t < closest_t:
-                                    closest_t = t
-                                    hit_triangle = tri
+                    for part_idx in self.part_map[idx]:
+                        if self.parts_visible[part_idx]:
+                            for tri in self.model.parts[part_idx].triangles:
+                                if self.polys_visible[part_idx][tri[4]]:
+                                    t = ff7.utils.rayTriangleIntersect(ray_origin, ray_dir, np.array(tri[0]), np.array(tri[1]), np.array(tri[2]))
+                                    if t and t < closest_t:
+                                        closest_t = t
+                                        hit_triangle = tri
         else:
             animation = self.model.animations[self.animation]
             self.time = (self.time + 1) % len(animation[0])
@@ -114,18 +117,18 @@ class OpenGLObject:
                 transform.append(current)
 
                 if bone[2]:
-                    part_idx = self.part_map[idx]
-                    if self.parts_visible[self.part_map[idx]]:
-                        for tri in self.model.parts[part_idx].triangles:
-                            if self.polys_visible[part_idx][tri[4]]:
-                                v0 = ff7.utils.transformPoint(current, np.array(tri[0]))
-                                v1 = ff7.utils.transformPoint(current, np.array(tri[1]))
-                                v2 = ff7.utils.transformPoint(current, np.array(tri[2]))
+                    for part_idx in self.part_map[idx]:
+                        if self.parts_visible[part_idx]:
+                            for tri in self.model.parts[part_idx].triangles:
+                                if self.polys_visible[part_idx][tri[4]]:
+                                    v0 = ff7.utils.transformPoint(current, np.array(tri[0]))
+                                    v1 = ff7.utils.transformPoint(current, np.array(tri[1]))
+                                    v2 = ff7.utils.transformPoint(current, np.array(tri[2]))
 
-                                t = ff7.utils.rayTriangleIntersect(ray_origin, ray_dir, v0, v1, v2)
-                                if t and t < closest_t:
-                                    closest_t = t
-                                    hit_triangle = tri
+                                    t = ff7.utils.rayTriangleIntersect(ray_origin, ray_dir, v0, v1, v2)
+                                    if t and t < closest_t:
+                                        closest_t = t
+                                        hit_triangle = tri
 
             while parent[-1] != -1:
                 parent.pop()
@@ -344,9 +347,9 @@ class OpenGLObject:
         if len(self.model.animations) == 0:
             for idx, bone in enumerate(self.model.skeleton):
                 if bone[2]:
-                    part_idx = self.part_map[idx]
-                    if self.parts_visible[self.part_map[idx]]:
-                        self.drawPart(self.model.parts[part_idx], self.polys_visible[part_idx])
+                    for part_idx in self.part_map[idx]:
+                        if self.parts_visible[part_idx]:
+                            self.drawPart(self.model.parts[part_idx], self.polys_visible[part_idx])
         else:
             glMatrixMode(GL_MODELVIEW)
             glRotatef(180, 1, 0, 0)
@@ -387,9 +390,10 @@ class OpenGLObject:
                 glTranslatef(translation_x, translation_y, translation_z)
 
                 if bone[2]:
-                    part_idx = self.part_map[idx]
-                    if self.parts_visible[self.part_map[idx]]:
-                        self.drawPart(self.model.parts[part_idx], self.polys_visible[part_idx])
+                    for part_idx in self.part_map[idx]:
+                        if self.parts_visible[part_idx]:
+                            self.drawPart(self.model.parts[part_idx], self.polys_visible[part_idx])
+
 
             while parent[-1] != -1:
                 parent.pop()
@@ -402,12 +406,14 @@ def drawPartsUI(parts_visible, polys_visible):
     """
 
     if imgui.button("Show All"):
+        parts_visible[:] = [True] * len(parts_visible)
         for part_idx, part_visible in enumerate(parts_visible):
             polys_visible[part_idx] = [True] * len(polys_visible[part_idx])
 
     imgui.same_line()
 
     if imgui.button("Hide All"):
+        parts_visible[:] = [False] * len(parts_visible)
         for part_idx, part_visible in enumerate(parts_visible):
             polys_visible[part_idx] = [False] * len(polys_visible[part_idx])
 
@@ -575,19 +581,8 @@ def main(*argv):
     discPath = os.path.abspath(argv[0])
     fileName = argv[1]
 
-    bcxMap = {}
-    bcxMap["cloud"]     = ff7.models.loadModelFromBCX(ff7.retrieveFile(discPath, "FIELD", "CLOUD.BCX"))
-    bcxMap["earith"]    = ff7.models.loadModelFromBCX(ff7.retrieveFile(discPath, "FIELD", "EARITH.BCX"))
-    bcxMap["ballet"]    = ff7.models.loadModelFromBCX(ff7.retrieveFile(discPath, "FIELD", "BALLET.BCX"))
-    bcxMap["tifa"]      = ff7.models.loadModelFromBCX(ff7.retrieveFile(discPath, "FIELD", "TIFA.BCX"))
-    bcxMap["red"]       = ff7.models.loadModelFromBCX(ff7.retrieveFile(discPath, "FIELD", "RED.BCX"))
-    bcxMap["cid"]       = ff7.models.loadModelFromBCX(ff7.retrieveFile(discPath, "FIELD", "CID.BCX"))
-    bcxMap["yufi"]      = ff7.models.loadModelFromBCX(ff7.retrieveFile(discPath, "FIELD", "YUFI.BCX"))
-    bcxMap["ketcy"]     = ff7.models.loadModelFromBCX(ff7.retrieveFile(discPath, "FIELD", "KETCY.BCX"))
-    bcxMap["vincent"]   = ff7.models.loadModelFromBCX(ff7.retrieveFile(discPath, "FIELD", "VINCENT.BCX"))
-
     # Normals for Field Models
-    fieldBin = ff7.models.loadFieldBin(ff7.retrieveFile(discPath, "FIELD", "FIELD.BIN"))
+    fieldBin = ff7.models.loadFieldBin(ff7.game.retrieveFile(discPath, "FIELD", "FIELD.BIN"))
     global normals
     normals = []
     for i in range(240):
@@ -597,11 +592,11 @@ def main(*argv):
     # Determine what type of file we're dealing with
     fileExt = os.path.splitext(os.path.basename(fileName))[1].lower()
     if fileExt == ".bcx":
-        data = [ff7.models.loadModelFromBCX(ff7.retrieveFile(discPath, "FIELD", fileName))]
+        data = [ff7.models.loadModelFromBCX(ff7.game.retrieveFile(discPath, "FIELD", fileName))]
     elif fileExt == ".bsx":
-        data = ff7.models.loadModelsFromBSX(ff7.retrieveFile(discPath, "FIELD", fileName))
+        data = ff7.models.loadModelsFromBSX(ff7.game.retrieveFile(discPath, "FIELD", fileName), discPath)
     elif fileExt == ".lzs":
-        data = [ff7.models.loadModelFromLZS(ff7.retrieveFile(discPath, "", fileName))]
+        data = [ff7.models.loadModelFromLZS(ff7.game.retrieveFile(discPath, "", fileName))]
     else:
         print("Unsupported file extension: " + fileExt)
         return

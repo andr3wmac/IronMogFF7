@@ -94,12 +94,12 @@ void ModelEditor::findFieldModels()
                 {
                     if (openFieldModel(startPolyIndex, model))
                     {
-                        LOG("Opened model: %s %d %d", model.name.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount);
+                        DEBUG_LOG("Opened model: %s %d %d", model.name.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount);
                         break;
                     }
                     else 
                     {
-                        LOG("Failed to open model: %s %d %d", model.name.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount);
+                        DEBUG_LOG("Failed to open model: %s %d %d", model.name.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount);
                     }
                 }
 
@@ -110,7 +110,7 @@ void ModelEditor::findFieldModels()
                     // First we see if its one on the end of the buffer
                     if (openFieldModel(startPolyIndex, model))
                     {
-                        LOG("Opened model: %s %d %d", model.name.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount - 1);
+                        DEBUG_LOG("Opened model: %s %d %d", model.name.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount - 1);
                         break;
                     }
                     else
@@ -121,12 +121,12 @@ void ModelEditor::findFieldModels()
 
                         if (openFieldModel(startPolyIndex + readSize, model))
                         {
-                            LOG("Opened model: %s %d %d", model.name.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount - 1);
+                            DEBUG_LOG("Opened model: %s %d %d", model.name.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount - 1);
                             break;
                         }
                         else
                         {
-                            LOG("Failed to open model: %s %d %d", model.name.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount);
+                            DEBUG_LOG("Failed to open model: %s %d %d", model.name.c_str(), bufferAddress + (startPolyIndex * 4), polygonCount);
                         }
                     }
                 }
@@ -174,11 +174,11 @@ void ModelEditor::openBattleModels()
 
         if (openBattleModel(bufferIdx, model))
         {
-            LOG("Opened battle model: %s %d", model.name.c_str(), bufferAddress + (bufferIdx * 4));
+            DEBUG_LOG("Opened battle model: %s %d", model.name.c_str(), bufferAddress + (bufferIdx * 4));
         }
         else
         {
-            LOG("Failed to open battle model: %s", model.name.c_str());
+            DEBUG_LOG("Failed to open battle model: %s", model.name.c_str());
         }
     }
 }
@@ -208,11 +208,18 @@ bool ModelEditor::areBattleModelsLoaded()
     }
 
     const BattleModel& model = GameData::battleModels[getCharacterName(highestID)];
-    const BattleModelPart& firstPart = model.parts[0];
 
-    uint32_t vertexCountData = game->read<uint32_t>(BattleOffsets::AllyModels[highestIndex] + model.headerSize);
+    // Check the last parts vertex count so we can gaurantee the full model is loaded.
+    uintptr_t lastPartStartAddress = BattleOffsets::AllyModels[highestIndex] + model.headerSize;
+    for (int i = 0; i < model.parts.size() - 1; ++i)
+    {
+        lastPartStartAddress += model.parts[i].sizeInBytes;
+    }
+    const BattleModelPart& lastPart = model.parts[model.parts.size() - 1];
+
+    uint32_t vertexCountData = game->read<uint32_t>(lastPartStartAddress);
     uint16_t vertexCount = (vertexCountData & 0xFFFF) / 8;
-    if (vertexCount == firstPart.vertexCount)
+    if (vertexCount == lastPart.vertexCount)
     {
         return true;
     }

@@ -32,12 +32,12 @@ class GameDataGenerator:
 
 def outputInventory(gen, discPath, version):
     # Retrieve the kernel data file
-    kernelDataFile = ff7.retrieveFile(discPath, "INIT", "KERNEL.BIN")
+    kernelDataFile = ff7.game.retrieveFile(discPath, "INIT", "KERNEL.BIN")
     kernelBin = ff7.kernel.Archive(kernelDataFile)
 
     # Extract all string lists
     for index, numStrings, compressed, transDir, transFileName in ff7.data.kernelStringData:
-        stringList = ff7.kernel.StringList(kernelBin.getFile(9, index).getData(), numStrings, ff7.isJapanese(version))
+        stringList = ff7.kernel.StringList(kernelBin.getFile(9, index).getData(), numStrings, ff7.game.isJapanese(version))
         lines = stringList.getStrings()
 
         # Item Names
@@ -139,7 +139,7 @@ def outputFields(gen, discPath, version):
     # Handle all map files
     for map in ff7.data.fieldMaps(version):
         # Get the event data
-        mapData = ff7.field.MapData(ff7.retrieveFile(discPath, "FIELD", map + ".DAT"))
+        mapData = ff7.field.MapData(ff7.game.retrieveFile(discPath, "FIELD", map + ".DAT"))
         event = mapData.getEventSection()
         code = event.scriptCode
         baseAddress = event.scriptBaseAddress
@@ -147,7 +147,7 @@ def outputFields(gen, discPath, version):
         fieldStrings = {}
         fieldOffsets = {}
         id = 0
-        for stroffset, strlen, string in event.getStringsWithOffsets(ff7.isJapanese(version)):
+        for stroffset, strlen, string in event.getStringsWithOffsets(ff7.game.isJapanese(version)):
             fieldStrings[id] = string
             fieldOffsets[id] = (stroffset, strlen)
             id += 1
@@ -296,7 +296,7 @@ def outputWorldMap(gen, discPath, version):
     gen.write_line("")
 
 def outputBattles(gen, discPath, version):
-    sceneBin = ff7.scene.Archive(ff7.retrieveFile(discPath, "BATTLE", "SCENE.BIN"))
+    sceneBin = ff7.scene.Archive(ff7.game.retrieveFile(discPath, "BATTLE", "SCENE.BIN"))
 
     # Process all scenes
     for i in range(sceneBin.numScenes()):
@@ -304,7 +304,7 @@ def outputBattles(gen, discPath, version):
 
         hasValidEnemies = False
         enemyLevels = ""
-        enemies = scene.getEnemies(ff7.isJapanese(version))
+        enemies = scene.getEnemies(ff7.game.isJapanese(version))
         for enemy in enemies:
             if len(enemy.name) >= 2 and ord(enemy.name[0]) == 0x00EA and ord(enemy.name[1]) == 0x00FA:
                 hasValidEnemies = False
@@ -336,43 +336,74 @@ def outputBattles(gen, discPath, version):
 
     gen.write_line("")
 
+def outputModel(modelName, model):
+    parts_strings = []
+    for i in range(0, len(model.parts)):
+        part = model.parts[i]
+        model_part_string = "{" + str(len(part.quad_color_tex)) + ", " + str(len(part.tri_color_tex)) + ", " + str(len(part.quad_mono_tex)) + ", " + str(len(part.tri_mono_tex)) + ", " + str(len(part.tri_mono)) + ", " + str(len(part.quad_mono)) + ", " + str(len(part.tri_color)) + ", " + str(len(part.quad_color)) + "}"
+        parts_strings.append(model_part_string)
+
+    parts_string = ", ".join(parts_strings)
+    gen.write_line("ADD_MODEL(\"" + modelName + "\", " + str(model.poly_count) + ", {" + parts_string +  "});", 4)
+
+def outputModelFromField(discPath, fieldFile, modelIndex, modelName):
+    models = ff7.models.loadModelsFromBSX(ff7.game.retrieveFile(discPath, "FIELD", fieldFile), discPath)
+    if modelIndex >= len(models):
+        print("Model index exceeds model count from field file: " + fieldFile)
+        return
+    
+    outputModel(modelName, models[modelIndex])
+
 def outputModels(gen, discPath, version):
-    # Field Models
-    modelNames = ["BALLET", "CID", "CLOUD", "EARITH", "KETCY", "RED", "TIFA", "VINCENT", "YUFI"]
-    for modelName in modelNames:
-        model = ff7.models.loadModelFromBCX(ff7.retrieveFile(discPath, "FIELD", modelName + ".BCX"))
+    # Global Models
+    modelFiles = {"BARRET":     "BALLET.BCX", 
+                  "CID":        "CID.BCX", 
+                  "CLOUD":      "CLOUD.BCX", 
+                  "AERITH":     "EARITH.BCX", 
+                  "CAITSITH":   "KETCY.BCX", 
+                  "REDXIII":    "RED.BCX", 
+                  "TIFA":       "TIFA.BCX", 
+                  "VINCENT":    "VINCENT.BCX", 
+                  "YUFFIE":     "YUFI.BCX"}
+    
+    for modelName, modelFile in modelFiles.items():
+        model = ff7.models.loadModelFromBCX(ff7.game.retrieveFile(discPath, "FIELD", modelFile))
+        outputModel(modelName, model)
 
-        parts_strings = []
-        for i in range(0, len(model.parts)):
-            part = model.parts[i]
-            model_part_string = "{" + str(len(part.quad_color_tex)) + ", " + str(len(part.tri_color_tex)) + ", " + str(len(part.quad_mono_tex)) + ", " + str(len(part.tri_mono_tex)) + ", " + str(len(part.tri_mono)) + ", " + str(len(part.quad_mono)) + ", " + str(len(part.tri_color)) + ", " + str(len(part.quad_color)) + "}"
-            parts_strings.append(model_part_string)
-
-        parts_string = ", ".join(parts_strings)
-        gen.write_line("ADD_MODEL(\"" + modelName + "\", " + str(model.poly_count) + ", {" + parts_string +  "});", 4)
+    # Field Specific Models
+    outputModelFromField(discPath, "MD8_2.BSX", 1, "AERITH_INTRO")
+    outputModelFromField(discPath, "MRKT1.BSX", 4, "CLOUD_DRESS")
 
     # Clouds model is slightly different on the world map for some reason, this was extracted from memory.
     gen.write_line("ADD_MODEL(\"CLOUD_WORLD\", 378, {{0, 0, 0, 0, 0, 0, 12, 6}, {0, 0, 0, 0, 0, 0, 6, 27}, {2, 4 + 2, 0, 0, 0, 0, 148 + 2, 12 + 1}, {0, 0, 0, 0, 0, 0, 10, 9}, {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 0, 0, 0, 0, 0, 6}, {0, 0, 0, 0, 0, 0, 10, 9}, {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 0, 0, 0, 0, 0, 6}, {0, 0, 0, 0, 0, 0, 8, 4}, {0, 0, 0, 0, 0, 0, 4, 14}, {0, 0, 0, 0, 0, 0, 2, 7}, {0, 0, 0, 0, 0, 0, 8, 4}, {0, 0, 0, 0, 0, 0, 4, 14}, {0, 0, 0, 0, 0, 0, 2, 7}});", 4)
     gen.write_line("")
 
     # Battle Models
-    battleModelNames = ["BARRETT", "CID", "CLOUD", "EARITH", "KETCY", "RED13", "TIFA", "VINSENT", "YUFI"]
+    battleModelFiles = {"BARRET":   "BARRETT.LZS", 
+                        "CID":      "CID.LZS", 
+                        "CLOUD":    "CLOUD.LZS", 
+                        "AERITH":   "EARITH.LZS",  
+                        "CAITSITH": "KETCY.LZS", 
+                        "REDXIII":  "RED13.LZS",  
+                        "TIFA":     "TIFA.LZS", 
+                        "VINCENT":  "VINSENT.LZS", 
+                        "YUFFIE":   "YUFI.LZS"}
 
     # These were determined with memory inspection at runtime. Part of it is skeleton data, but the rest is unknown for now.
     battleModelHeaderSizes = {
-        "BARRETT":  636, 
+        "BARRET":   636, 
         "CID":      668,
         "CLOUD":    652,
-        "EARITH":   712,
-        "KETCY":    812, 
-        "RED13":    804,
+        "AERITH":   712,
+        "CAITSITH": 812, 
+        "REDXIII":  804,
         "TIFA":     700, 
-        "VINSENT":  840,
-        "YUFI":     688
+        "VINCENT":  840,
+        "YUFFIE":   688
     }
 
-    for modelName in battleModelNames:
-        battleModel = ff7.models.loadModelFromLZS(ff7.retrieveFile(discPath, "ENEMY6", modelName + ".LZS"))
+    for modelName, modelFile in battleModelFiles.items():
+        battleModel = ff7.models.loadModelFromLZS(ff7.game.retrieveFile(discPath, "ENEMY6", modelFile))
 
         part_strings = []
         for part in battleModel.parts:
@@ -394,7 +425,7 @@ if not os.path.isdir(discPath):
     raise EnvironmentError("'%s' is not a directory" % discPath)
 
 # Check that this is a FF7 disc
-version, discNumber, execFileName = ff7.checkDisc(discPath)
+version, discNumber, execFileName = ff7.game.checkDisc(discPath)
 
 gen = GameDataGenerator()
 gen.open_file()

@@ -83,6 +83,12 @@ void RandomizeEncounters::generateRandomEncounterMap()
                 continue;
             }
 
+            // Don't randomize midgar zolom
+            if (formation.id == 469 || formation.id == 470)
+            {
+                continue;
+            }
+
             std::vector<uint16_t> candidateFormationIDs;
             for (const auto& candidateKv : GameData::battleScenes)
             {

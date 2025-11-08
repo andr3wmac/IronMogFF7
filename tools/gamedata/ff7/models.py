@@ -1,7 +1,7 @@
 # Based on: https://forums.qhimm.com/index.php?topic=8969.msg122920#msg122920
 
 import sys, struct, array, math, os, zlib
-from . import lzss, utils
+from . import game, lzss, utils
 
 class ModelPart:
     def __init__(self):
@@ -21,6 +21,23 @@ class ModelPart:
 
         # Utility array of all polys collapsed into triangles.
         self.triangles = []
+
+    def printInfo(self):
+        print("vertices: " + str(len(self.vertices)))
+        print("texcoords: " + str(len(self.texcoords)))
+        print("poly_count: " + str(self.poly_count))
+        print("bone_index: " + str(self.bone_index))
+
+        print("quad_color_tex: " + str(len(self.quad_color_tex)))
+        print("tri_color_tex: " + str(len(self.tri_color_tex)))
+        print("quad_mono_tex: " + str(len(self.quad_mono_tex)))
+        print("tri_mono_tex: " + str(len(self.tri_mono_tex)))
+        print("tri_mono: " + str(len(self.tri_mono)))
+        print("quad_mono: " + str(len(self.quad_mono)))
+        print("tri_color: " + str(len(self.tri_color)))
+        print("quad_color: " + str(len(self.quad_color)))
+
+        print("triangles: " + str(len(self.triangles)))
 
 class Model:
     def __init__(self):
@@ -56,6 +73,9 @@ class Model:
             cur_flags = offset_vertex + offset_flags
             cur_control = offset_vertex + offset_control
 
+            part_index = len(self.parts)
+            poly_index = 0
+
             for j in range(num_quad_color_tex):
                 control = struct.unpack_from("<B", data, cur_control)
                 cur_control += 1
@@ -65,6 +85,10 @@ class Model:
 
                 part.quad_color_tex.append(poly)
                 cur_poly += 0x18
+
+                part.triangles.append([part.vertices[av], part.vertices[bv], part.vertices[cv], part_index, poly_index])
+                part.triangles.append([part.vertices[av], part.vertices[cv], part.vertices[dv], part_index, poly_index])
+                poly_index += 1
 
             for j in range(num_tri_color_tex):
                 control = struct.unpack_from("<B", data, cur_control)
@@ -76,6 +100,9 @@ class Model:
                 part.tri_color_tex.append(poly)
                 cur_poly += 0x14
 
+                part.triangles.append([part.vertices[av], part.vertices[bv], part.vertices[cv], part_index, poly_index])
+                poly_index += 1
+
             for j in range(num_quad_mono_tex):
                 control = struct.unpack_from("<B", data, cur_control)
                 cur_control += 1
@@ -85,6 +112,10 @@ class Model:
 
                 part.quad_mono_tex.append(poly)
                 cur_poly += 0x0C
+
+                part.triangles.append([part.vertices[av], part.vertices[bv], part.vertices[cv], part_index, poly_index])
+                part.triangles.append([part.vertices[av], part.vertices[cv], part.vertices[dv], part_index, poly_index])
+                poly_index += 1
 
             for j in range(num_tri_mono_tex):
                 control = struct.unpack_from("<B", data, cur_control)
@@ -96,12 +127,18 @@ class Model:
                 part.tri_mono_tex.append(poly)
                 cur_poly += 0x0C
 
+                part.triangles.append([part.vertices[av], part.vertices[bv], part.vertices[cv], part_index, poly_index])
+                poly_index += 1
+
             for j in range(num_tri_mono):
                 (av, bv, cv, xv, r, g, b, n) = struct.unpack_from("<BBBBBBBB", data, cur_poly)
                 poly = ((av,), (bv,), (cv,), (r, g, b), n, xv)
 
                 part.tri_mono.append(poly)
                 cur_poly += 8
+
+                part.triangles.append([part.vertices[av], part.vertices[bv], part.vertices[cv], part_index, poly_index])
+                poly_index += 1
 
             for j in range(num_quad_mono):
                 (av, bv, cv, dv, r, g, b, n) = struct.unpack_from("<BBBBBBBB", data, cur_poly)
@@ -110,6 +147,10 @@ class Model:
                 part.quad_mono.append(poly)
                 cur_poly += 8
 
+                part.triangles.append([part.vertices[av], part.vertices[bv], part.vertices[cv], part_index, poly_index])
+                part.triangles.append([part.vertices[av], part.vertices[cv], part.vertices[dv], part_index, poly_index])
+                poly_index += 1
+
             for j in range(num_tri_color):
                 (av, bv, cv, xv, ar, ag, ab, an, br, bg, bb, bn, cr, cg, cb, cn) = struct.unpack_from("<BBBBBBBBBBBBBBBB", data, cur_poly)
                 poly = ((av,(ar, ag, ab), an), (bv, (br, bg, bb), bn), (cv, (cr, cg, cb), cn), xv)
@@ -117,12 +158,19 @@ class Model:
                 part.tri_color.append(poly)
                 cur_poly += 0x10
 
+                part.triangles.append([part.vertices[av], part.vertices[bv], part.vertices[cv], part_index, poly_index])
+                poly_index += 1
+
             for j in range(num_quad_color):
                 (av, bv, cv, dv, ar, ag, ab, an, br, bg, bb, bn, cr, cg, cb, cn, dr, dg, db, dn) = struct.unpack_from("<BBBBBBBBBBBBBBBBBBBB", data, cur_poly)
                 poly = ((av,(ar, ag, ab), an), (bv, (br, bg, bb), bn), (dv, (dr, dg, db), dn), (cv, (cr, cg, cb), cn))
 
                 part.quad_color.append(poly)
                 cur_poly += 0x14
+
+                part.triangles.append([part.vertices[av], part.vertices[bv], part.vertices[cv], part_index, poly_index])
+                part.triangles.append([part.vertices[av], part.vertices[cv], part.vertices[dv], part_index, poly_index])
+                poly_index += 1
 
             part.poly_count = len(part.quad_color_tex) + len(part.tri_color_tex) + len(part.quad_mono_tex) + len(part.tri_mono_tex) + len(part.tri_mono) + len(part.quad_mono) + len(part.tri_color) + len(part.quad_color)
             self.poly_count += part.poly_count
@@ -337,9 +385,9 @@ class Model:
                 translation_y = -root_y
                 translation_z = root_z
 
-            rotation_x = (alpha / math.pow(2, stride)) * 360.0
-            rotation_y = (beta / math.pow(2, stride)) * 360.0
-            rotation_z = (gamma / math.pow(2, stride)) * 360.0
+            rotation_x = (alpha / math.pow(2, 12)) * 360.0
+            rotation_y = (beta / math.pow(2, 12)) * 360.0
+            rotation_z = (gamma / math.pow(2, 12)) * 360.0
 
             channel.append(((translation_x, translation_y, translation_z), (rotation_x, rotation_y, rotation_z)))
             animation.append(channel)
@@ -360,7 +408,7 @@ def loadModelFromBCX(file):
     model.loadAnimationsFromBCX(data, num_animations, offset_animations)
     return model
     
-def loadModelsFromBSX(file, bcxMap):
+def loadModelsFromBSX(file, discPath):
     data = utils.loadLzs(file)
     (size, header_offset) = struct.unpack_from("<II", data, 0)
     assert(size == len(data))
@@ -375,23 +423,23 @@ def loadModelsFromBSX(file, bcxMap):
         offset_animations = offset_parts + num_parts * 32
 
         if model_id == 0x0100:
-            object = bcxMap["cloud"]
+            object = loadModelFromBCX(game.retrieveFile(discPath, "FIELD", "CLOUD.BCX"))
         elif model_id == 0x0201:
-            object = bcxMap["earith"]
+            object = loadModelFromBCX(game.retrieveFile(discPath, "FIELD", "EARITH.BCX"))
         elif model_id == 0x0302:
-            object = bcxMap["ballet"]
+            object = loadModelFromBCX(game.retrieveFile(discPath, "FIELD", "BALLET.BCX"))
         elif model_id == 0x0403:
-            object = bcxMap["tifa"]
+            object = loadModelFromBCX(game.retrieveFile(discPath, "FIELD", "TIFA.BCX"))
         elif model_id == 0x0504:
-            object = bcxMap["red"]
+            object = loadModelFromBCX(game.retrieveFile(discPath, "FIELD", "RED.BCX"))
         elif model_id == 0x0605:
-            object = bcxMap["cid"]
+            object = loadModelFromBCX(game.retrieveFile(discPath, "FIELD", "CID.BCX"))
         elif model_id == 0x0706:
-            object = bcxMap["yufi"]
+            object = loadModelFromBCX(game.retrieveFile(discPath, "FIELD", "YUFI.BCX"))
         elif model_id == 0x0807:
-            object = bcxMap["ketcy"]
+            object = loadModelFromBCX(game.retrieveFile(discPath, "FIELD", "KETCY.BCX"))
         elif model_id == 0x0908:
-            object = bcxMap["vincent"]    
+            object = loadModelFromBCX(game.retrieveFile(discPath, "FIELD", "VINCENT.BCX"))  
         elif num_parts > 0:
             object = Model()
             object.loadModelFromBCX(data, num_bones, offset_skeleton, num_parts, offset_parts)

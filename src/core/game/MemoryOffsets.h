@@ -138,13 +138,13 @@ inline std::string getCharacterName(uint8_t characterID)
     switch (characterID)
     {
         case 0: return "CLOUD";
-        case 1: return "BARRETT";
+        case 1: return "BARRET";
         case 2: return "TIFA";
-        case 3: return "EARITH";
-        case 4: return "RED13";
-        case 5: return "YUFI";
-        case 6: return "KETCY";
-        case 7: return "VINSENT";
+        case 3: return "AERITH";
+        case 4: return "REDXIII";
+        case 5: return "YUFFIE";
+        case 6: return "CAITSITH";
+        case 7: return "VINCENT";
         case 8: return "CID";
     }
 

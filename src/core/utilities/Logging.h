@@ -21,3 +21,9 @@ private:
 extern Logger logger;
 
 #define LOG(...) logger.Log(__VA_ARGS__)
+
+#if _DEBUG
+#define DEBUG_LOG(...) logger.Log(__VA_ARGS__)
+#else
+#define DEBUG_LOG(...)
+#endif

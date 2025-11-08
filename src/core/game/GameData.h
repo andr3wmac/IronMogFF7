@@ -98,23 +98,6 @@ struct Model
     std::string name = "";
     int polyCount = 0;
     std::vector<ModelPart> parts;
-
-    static inline std::string getModelNameFromID(uint8_t modelID)
-    {
-        switch (modelID)
-        {
-            case 1: return "CLOUD";
-            case 2: return "EARITH";
-            case 3: return "BALLET";
-            case 4: return "TIFA";
-            case 5: return "RED";
-            case 6: return "CID";
-            case 7: return "YUFI";
-            case 8: return "KETCY";
-            case 9: return "VINCENT";
-        }
-        return "";
-    }
 };
 
 struct BattleModelPart
