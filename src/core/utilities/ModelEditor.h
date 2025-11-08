@@ -9,6 +9,7 @@
 
 class ModelEditor
 {
+public:
     struct ModelEditorPoly
     {
         bool textured = false;
@@ -25,10 +26,10 @@ class ModelEditor
 
     struct ModelEditorModel
     {
+        std::string modelName;
         std::vector<ModelEditorPart> parts;
     };
 
-public:
     ModelEditor();
     ~ModelEditor();
 
@@ -36,19 +37,19 @@ public:
     void findFieldModels();
     void openBattleModels();
     bool areBattleModelsLoaded();
-    std::vector<std::string> getOpenModelNames();
+    std::vector<ModelEditor::ModelEditorModel>& getOpenModels();
 
     // Overwrites a parts color entirely without any regard for its original color.
-    void setPartColor(std::string modelName, int partIndex, Utilities::Color color, const std::set<int>& excludedPolys = std::set<int>());
+    void setPartColor(int modelIndex, int partIndex, Utilities::Color color, const std::set<int>& excludedPolys = std::set<int>());
 
     // Applies a tint to an entire part minus any polys in excludedPolys.
-    void tintPart(std::string modelName, int partIndex, Utilities::Color color, const std::set<int>& excludedPolys = std::set<int>());
+    void tintPart(int modelIndex, int partIndex, Utilities::Color color, const std::set<int>& excludedPolys = std::set<int>());
 
     // Applies a tint to all the polys in a part specified by includedPolys.
-    void tintPolys(std::string modelName, int partIndex, Utilities::Color color, const std::set<int>& includedPolys);
+    void tintPolys(int modelIndex, int partIndex, Utilities::Color color, const std::set<int>& includedPolys);
 
     // Applies a tint to all the polys in a part within the range of polyStart to polyEnd, inclusive.
-    void tintPolyRange(std::string modelName, int partIndex, Utilities::Color color, uint32_t polyStart, uint32_t polyEnd);
+    void tintPolyRange(int modelIndex, int partIndex, Utilities::Color color, uint32_t polyStart, uint32_t polyEnd);
 
 protected:
     GameManager* game;
@@ -63,5 +64,5 @@ protected:
     int readPoly(int bufferIdx, ModelEditorPoly& polyOut);
     Utilities::Color tintVertexColor(const Utilities::Color& src, const Utilities::Color& tint);
     
-    std::unordered_map<std::string, ModelEditorModel> openModels;
+    std::vector<ModelEditorModel> openModels;
 };

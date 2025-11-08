@@ -227,17 +227,9 @@ bool ModelEditor::areBattleModelsLoaded()
     return false;
 }
 
-std::vector<std::string> ModelEditor::getOpenModelNames()
+std::vector<ModelEditor::ModelEditorModel>& ModelEditor::getOpenModels()
 {
-    std::vector<std::string> keys;
-    keys.reserve(openModels.size());
-
-    for (const auto& [key, _] : openModels)
-    {
-        keys.push_back(key);
-    }
-
-    return keys;
+    return openModels;
 }
 
 bool ModelEditor::openFieldModel(int bufferIdx, const Model& model)
@@ -323,7 +315,8 @@ bool ModelEditor::openFieldModel(int bufferIdx, const Model& model)
         pendingParts.push_back(editorPart);
     }
 
-    ModelEditorModel& editorModel = openModels[model.name];
+    ModelEditorModel& editorModel = openModels.emplace_back();
+    editorModel.modelName = model.name;
     editorModel.parts.insert(editorModel.parts.end(), pendingParts.begin(), pendingParts.end());
 
     return true;
@@ -441,19 +434,20 @@ bool ModelEditor::openBattleModel(int bufferIdx, const BattleModel& model)
         pendingParts.push_back(editorPart);
     }
 
-    ModelEditorModel& editorModel = openModels[model.name];
+    ModelEditorModel& editorModel = openModels.emplace_back();
+    editorModel.modelName = model.name;
     editorModel.parts.insert(editorModel.parts.end(), pendingParts.begin(), pendingParts.end());
     return true;
 }
 
-void ModelEditor::setPartColor(std::string modelName, int partIndex, Utilities::Color color, const std::set<int>& excludedPolys)
+void ModelEditor::setPartColor(int modelIndex, int partIndex, Utilities::Color color, const std::set<int>& excludedPolys)
 {
-    if (game == nullptr || openModels.count(modelName) == 0)
+    if (game == nullptr || modelIndex >= openModels.size())
     {
         return;
     }
 
-    ModelEditorModel& editorModel = openModels[modelName];
+    ModelEditorModel& editorModel = openModels[modelIndex];
 
     if (partIndex >= editorModel.parts.size())
     {
@@ -486,14 +480,14 @@ void ModelEditor::setPartColor(std::string modelName, int partIndex, Utilities::
     }
 }
 
-void ModelEditor::tintPart(std::string modelName, int partIndex, Utilities::Color color, const std::set<int>& excludedPolys)
+void ModelEditor::tintPart(int modelIndex, int partIndex, Utilities::Color color, const std::set<int>& excludedPolys)
 {
-    if (game == nullptr || openModels.count(modelName) == 0)
+    if (game == nullptr || modelIndex >= openModels.size())
     {
         return;
     }
 
-    ModelEditorModel& editorModel = openModels[modelName];
+    ModelEditorModel& editorModel = openModels[modelIndex];
 
     if (partIndex >= editorModel.parts.size())
     {
@@ -528,14 +522,14 @@ void ModelEditor::tintPart(std::string modelName, int partIndex, Utilities::Colo
     }
 }
 
-void ModelEditor::tintPolys(std::string modelName, int partIndex, Utilities::Color color, const std::set<int>& includedPolys)
+void ModelEditor::tintPolys(int modelIndex, int partIndex, Utilities::Color color, const std::set<int>& includedPolys)
 {
-    if (game == nullptr || openModels.count(modelName) == 0)
+    if (game == nullptr || modelIndex >= openModels.size())
     {
         return;
     }
 
-    ModelEditorModel& editorModel = openModels[modelName];
+    ModelEditorModel& editorModel = openModels[modelIndex];
 
     if (partIndex >= editorModel.parts.size())
     {
@@ -570,14 +564,14 @@ void ModelEditor::tintPolys(std::string modelName, int partIndex, Utilities::Col
     }
 }
 
-void ModelEditor::tintPolyRange(std::string modelName, int partIndex, Utilities::Color color, uint32_t polyStart, uint32_t polyEnd)
+void ModelEditor::tintPolyRange(int modelIndex, int partIndex, Utilities::Color color, uint32_t polyStart, uint32_t polyEnd)
 {
-    if (game == nullptr || openModels.count(modelName) == 0)
+    if (game == nullptr || modelIndex >= openModels.size())
     {
         return;
     }
 
-    ModelEditorModel& editorModel = openModels[modelName];
+    ModelEditorModel& editorModel = openModels[modelIndex];
 
     if (partIndex >= editorModel.parts.size())
     {
