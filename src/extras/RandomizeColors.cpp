@@ -243,16 +243,15 @@ void RandomizeColors::applyColors()
         {
             if (modelName == "CLOUD" || modelName == "CLOUD_WORLD")
             {
-                // Make sure we use the same color table for cloud and cloud world.
                 std::vector<Utilities::Color> randomColors = randomModelColors["CLOUD"];
                 Utilities::Color& outfitColor = randomColors[0];
 
                 modelEditor.tintPart(modelName, 0, outfitColor);
                 modelEditor.tintPart(modelName, 1, outfitColor);
                 modelEditor.tintPart(modelName, 9, outfitColor);
-                modelEditor.tintPolyRange(modelName, 10, outfitColor, 4, 9);
+                modelEditor.tintPart(modelName, 10, outfitColor, { 4, 5, 6, 7, 8, 9 });
                 modelEditor.tintPart(modelName, 12, outfitColor);
-                modelEditor.tintPolyRange(modelName, 13, outfitColor, 4, 9);
+                modelEditor.tintPart(modelName, 13, outfitColor, { 4, 5, 6, 7, 8, 9 });
             }
 
             if (modelName == "BARRET")
@@ -263,9 +262,9 @@ void RandomizeColors::applyColors()
 
                 modelEditor.tintPart(modelName, 0, pantsColor);
                 modelEditor.tintPart(modelName, 9, pantsColor);
-                modelEditor.tintPolyRange(modelName, 10, pantsColor, 4, 9);
+                modelEditor.tintPart(modelName, 10, pantsColor, { 4, 5, 6, 7, 8, 9 });
                 modelEditor.tintPart(modelName, 12, pantsColor);
-                modelEditor.tintPolyRange(modelName, 13, pantsColor, 4, 9);
+                modelEditor.tintPart(modelName, 13, pantsColor, { 4, 5, 6, 7, 8, 9 });
 
                 modelEditor.tintPart(modelName, 1, shirtColor, { 0, 1, 2, 3, 4, 52, 53, 54, 55, 64, 65, 66, 67, 68, 69, 70, 71, 79, 80, 81, 82 });
             }
@@ -302,8 +301,8 @@ void RandomizeColors::applyColors()
                 modelEditor.tintPolyRange(modelName, 14, dressColor, 0, 5);
 
                 modelEditor.tintPolys(modelName, 1, dressColor, { 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 25, 26, 27, 28, 29, 30, 31, 32, 33, 34, 35, 36 });
-                modelEditor.tintPolyRange(modelName, 4, jacketColor, 10, 20);
-                modelEditor.tintPolyRange(modelName, 7, jacketColor, 10, 20);
+                modelEditor.tintPart(modelName, 4, jacketColor, { 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20 });
+                modelEditor.tintPart(modelName, 7, jacketColor, { 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20 });
             }
 
             if (modelName == "REDXIII")
@@ -321,19 +320,19 @@ void RandomizeColors::applyColors()
                 // Front Left Leg
                 modelEditor.tintPart(modelName, 3, skinColor);
                 modelEditor.tintPart(modelName, 4, skinColor);
-                modelEditor.tintPolyRange(modelName, 5, skinColor, 7, 11);
+                modelEditor.tintPart(modelName, 5, skinColor, { 7, 8, 9, 10, 11 });
                 modelEditor.tintPart(modelName, 6, skinColor);
 
                 // Front Right Leg
                 modelEditor.tintPart(modelName, 7, skinColor);
                 modelEditor.tintPart(modelName, 8, skinColor);
-                modelEditor.tintPolyRange(modelName, 9, skinColor, 7, 11 );
+                modelEditor.tintPart(modelName, 9, skinColor, { 7, 8, 9, 10, 11 });
                 modelEditor.tintPart(modelName, 10, skinColor);
 
                 // Back Left Leg
                 modelEditor.tintPart(modelName, 11, skinColor);
                 modelEditor.tintPart(modelName, 12, skinColor);
-                modelEditor.tintPolyRange(modelName, 13, skinColor, 7, 11);
+                modelEditor.tintPart(modelName, 13, skinColor, { 7, 8, 9, 10, 11 });
                 modelEditor.tintPart(modelName, 14, skinColor);
 
                 // Tail
@@ -343,7 +342,7 @@ void RandomizeColors::applyColors()
                 // Back Right Leg
                 modelEditor.tintPart(modelName, 18, skinColor);
                 modelEditor.tintPart(modelName, 19, skinColor);
-                modelEditor.tintPolyRange(modelName, 20, skinColor, 7, 11 );
+                modelEditor.tintPart(modelName, 20, skinColor, { 7, 8, 9, 10, 11 });
                 modelEditor.tintPart(modelName, 21, skinColor);
 
                 // Hair (Head, Torso, Tail)
@@ -366,8 +365,8 @@ void RandomizeColors::applyColors()
 
                 modelEditor.tintPolyRange(modelName, 1, shirtColor, 12, 35);
                 modelEditor.tintPolyRange(modelName, 1, shirtColor, 43, 57);
-                modelEditor.tintPolyRange(modelName, 3, shirtColor, 14, 18);
-                modelEditor.tintPolyRange(modelName, 6, shirtColor, 14, 18);
+                modelEditor.tintPart(modelName, 3, shirtColor, { 14, 15, 16, 17, 18 });
+                modelEditor.tintPart(modelName, 6, shirtColor, { 14, 15, 16, 17, 18 });
             }
 
             if (modelName == "CAITSITH")
@@ -396,8 +395,8 @@ void RandomizeColors::applyColors()
                 modelEditor.tintPart(modelName, 4, shirtColor);
 
                 modelEditor.tintPart(modelName, 0, pantsColor);
-                modelEditor.tintPolyRange(modelName, 11, pantsColor, 7, 10);
-                modelEditor.tintPolyRange(modelName, 14, pantsColor, 7, 10);
+                modelEditor.tintPart(modelName, 11, pantsColor, { 7, 8, 9, 10 });
+                modelEditor.tintPart(modelName, 14, pantsColor, { 7, 8, 9, 10 });
 
                 // Shield
                 modelEditor.tintPolyRange(modelName, 5, pantsColor, 17, 26);
@@ -411,26 +410,72 @@ void RandomizeColors::applyColors()
 
                 modelEditor.tintPart(modelName, 1, capeColor, { 11, 23, 24, 25, 26, 27, 28, 29, 30, 31 });
                 modelEditor.tintPart(modelName, 4, capeColor);
-                modelEditor.tintPolyRange(modelName, 5, capeColor, 12, 16);
-                modelEditor.tintPolyRange(modelName, 8, capeColor, 12, 16);
+                modelEditor.tintPart(modelName, 5, capeColor, { 12, 13, 14, 15, 16 });
+                modelEditor.tintPart(modelName, 8, capeColor, { 12, 13, 14, 15, 16 });
             }
 
             if (modelName == "CLOUD_DRESS")
+            {
+                std::vector<Utilities::Color> randomColors = randomModelColors[modelName];
+                Utilities::Color& dressColor = randomColors[0];
+
+                modelEditor.tintPart(modelName, 0, dressColor);
+                modelEditor.tintPolyRange(modelName, 1, dressColor, 2, 7);
+                modelEditor.tintPolyRange(modelName, 1, dressColor, 27, 38);
+                modelEditor.tintPart(modelName, 4, dressColor);
+                modelEditor.tintPart(modelName, 5, dressColor);
+                modelEditor.tintPart(modelName, 7, dressColor);
+                modelEditor.tintPart(modelName, 8, dressColor);
+                modelEditor.tintPart(modelName, 10, dressColor);
+                modelEditor.tintPolyRange(modelName, 11, dressColor, 6, 11);
+                modelEditor.tintPart(modelName, 13, dressColor);
+                modelEditor.tintPolyRange(modelName, 14, dressColor, 6, 11);
+            }
+
+            if (modelName == "AERITH_DRESS")
+            {
+                std::vector<Utilities::Color> randomColors = randomModelColors[modelName];
+                Utilities::Color& dressColor = randomColors[0];
+
+                modelEditor.tintPart(modelName, 0, dressColor);
+                modelEditor.tintPolyRange(modelName, 1, dressColor, 41, 57);
+                modelEditor.tintPolyRange(modelName, 1, dressColor, 62, 76);
+                modelEditor.tintPolyRange(modelName, 2, dressColor, 8, 23);
+                modelEditor.tintPolyRange(modelName, 3, dressColor, 4, 7);
+                modelEditor.tintPolyRange(modelName, 3, dressColor, 135, 143);
+                modelEditor.tintPart(modelName, 11, dressColor);
+                modelEditor.tintPolyRange(modelName, 12, dressColor, 0, 8);
+                modelEditor.tintPolyRange(modelName, 13, dressColor, 5, 22);
+                modelEditor.tintPart(modelName, 14, dressColor);
+                modelEditor.tintPolyRange(modelName, 15, dressColor, 0, 8);
+                modelEditor.tintPolyRange(modelName, 16, dressColor, 5, 22);
+            }
+
+            if (modelName == "TIFA_DRESS")
+            {
+                std::vector<Utilities::Color> randomColors = randomModelColors[modelName];
+                Utilities::Color& dressColor = randomColors[0];
+
+                modelEditor.tintPolyRange(modelName, 0, dressColor, 0, 3);
+                modelEditor.tintPolyRange(modelName, 0, dressColor, 8, 26);
+                modelEditor.tintPolyRange(modelName, 1, dressColor, 34, 69);
+                modelEditor.tintPolyRange(modelName, 1, dressColor, 72, 82);
+                modelEditor.tintPolyRange(modelName, 2, dressColor, 149, 152);
+                modelEditor.tintPolyRange(modelName, 12, dressColor, 5, 22);
+                modelEditor.tintPolyRange(modelName, 15, dressColor, 5, 22);
+            }
+
+            if (modelName == "CLOUD_SWORD")
             {
                 std::vector<Utilities::Color> randomColors = randomModelColors["CLOUD"];
                 Utilities::Color& outfitColor = randomColors[0];
 
                 modelEditor.tintPart(modelName, 0, outfitColor);
-                modelEditor.tintPolyRange(modelName, 1, outfitColor, 2, 7);
-                modelEditor.tintPolyRange(modelName, 1, outfitColor, 27, 38);
-                modelEditor.tintPart(modelName, 4, outfitColor);
-                modelEditor.tintPart(modelName, 5, outfitColor);
-                modelEditor.tintPart(modelName, 7, outfitColor);
-                modelEditor.tintPart(modelName, 8, outfitColor);
+                modelEditor.tintPart(modelName, 1, outfitColor);
                 modelEditor.tintPart(modelName, 10, outfitColor);
-                modelEditor.tintPolyRange(modelName, 11, outfitColor, 6, 11);
+                modelEditor.tintPart(modelName, 11, outfitColor, { 4, 5, 6, 7, 8, 9 });
                 modelEditor.tintPart(modelName, 13, outfitColor);
-                modelEditor.tintPolyRange(modelName, 14, outfitColor, 6, 11);
+                modelEditor.tintPart(modelName, 14, outfitColor, { 4, 5, 6, 7, 8, 9 });
             }
         }
     }

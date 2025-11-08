@@ -81,6 +81,11 @@ class Model:
                 cur_control += 1
             
                 (av, bv, cv, dv, ar, ag, ab, an, br, bg, bb, bn, cr, cg, cb, cn, dr, dg, db, dn, at, bt, ct, dt) = struct.unpack_from("<BBBBBBBBBBBBBBBBBBBBBBBB", data, cur_poly)
+
+                if av >= len(part.vertices) or bv >= len(part.vertices) or cv >= len(part.vertices) or dv >= len(part.vertices):
+                    av = bv = cv = dv = 0
+                    print("Error in quad_color " + str(j) + " in part " + str(i) + " skipping.. ")
+
                 poly = ((av, at, (ar, ag, ab), an), (bv, bt, (br, bg, bb), bn), (dv, dt, (dr, dg, db), dn), (cv, ct, (cr, cg, cb), cn))
 
                 part.quad_color_tex.append(poly)
@@ -153,6 +158,11 @@ class Model:
 
             for j in range(num_tri_color):
                 (av, bv, cv, xv, ar, ag, ab, an, br, bg, bb, bn, cr, cg, cb, cn) = struct.unpack_from("<BBBBBBBBBBBBBBBB", data, cur_poly)
+
+                if av >= len(part.vertices) or bv >= len(part.vertices) or cv >= len(part.vertices):
+                    av = bv = cv = 0
+                    print("Error in tri_color " + str(j) + " in part " + str(i) + " skipping.. ")
+
                 poly = ((av,(ar, ag, ab), an), (bv, (br, bg, bb), bn), (cv, (cr, cg, cb), cn), xv)
 
                 part.tri_color.append(poly)
@@ -163,6 +173,11 @@ class Model:
 
             for j in range(num_quad_color):
                 (av, bv, cv, dv, ar, ag, ab, an, br, bg, bb, bn, cr, cg, cb, cn, dr, dg, db, dn) = struct.unpack_from("<BBBBBBBBBBBBBBBBBBBB", data, cur_poly)
+
+                if av >= len(part.vertices) or bv >= len(part.vertices) or cv >= len(part.vertices) or dv >= len(part.vertices):
+                    av = bv = cv = dv = 0
+                    print("Error in quad_color " + str(j) + " in part " + str(i) + " skipping.. ")
+
                 poly = ((av,(ar, ag, ab), an), (bv, (br, bg, bb), bn), (dv, (dr, dg, db), dn), (cv, (cr, cg, cb), cn))
 
                 part.quad_color.append(poly)
