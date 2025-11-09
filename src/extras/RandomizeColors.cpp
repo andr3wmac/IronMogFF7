@@ -137,6 +137,28 @@ Utilities::Color getRandomColor(std::mt19937& rng)
     return color;
 }
 
+void RandomizeColors::onSettingsGUI()
+{
+    if (ImGui::Button("Reroll Colors", ImVec2(120, 0)))
+    {
+        rerollOffset++;
+        std::mt19937 rng(game->getSeed() + rerollOffset);
+        randomModelColors.clear();
+
+        // Generate table of random colors
+        for (Model& model : GameData::models)
+        {
+            std::string& modelName = model.name;
+            for (int i = 0; i < COLORS_PER_MODEL; ++i)
+            {
+                randomModelColors[modelName].push_back(getRandomColor(rng));
+            }
+        }
+
+        applyColors();
+    }
+}
+
 void RandomizeColors::onStart()
 {
     lastFieldTrigger = 0;
@@ -146,9 +168,9 @@ void RandomizeColors::onStart()
     std::mt19937 rng(game->getSeed());
 
     // Generate table of random colors
-    for (auto kv : GameData::models)
+    for (Model& model : GameData::models)
     {
-        std::string modelName = kv.first;
+        std::string& modelName = model.name;
         for (int i = 0; i < COLORS_PER_MODEL; ++i)
         {
             randomModelColors[modelName].push_back(getRandomColor(rng));
@@ -232,7 +254,7 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
 
 void RandomizeColors::applyColors()
 {
-    // The parts and polys below were manually chosen using gamedata/fieldModelViewer.py in the tools directory
+    // The parts and polys below were manually chosen using gamedata/modelViewer.py in the tools directory
 
     uint8_t gameModule = game->getGameModule();
 
@@ -256,9 +278,9 @@ void RandomizeColors::applyColors()
                 modelEditor.tintPart(i, 13, outfitColor, { 4, 5, 6, 7, 8, 9 });
             }
 
-            if (modelName == "BARRET")
+            if (modelName == "BARRET" || modelName == "BARRET_COREL")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors[modelName];
+                std::vector<Utilities::Color> randomColors = randomModelColors["BARRET"];
                 Utilities::Color& pantsColor = randomColors[0];
                 Utilities::Color& shirtColor = randomColors[1];
 
@@ -268,7 +290,17 @@ void RandomizeColors::applyColors()
                 modelEditor.tintPart(i, 12, pantsColor);
                 modelEditor.tintPart(i, 13, pantsColor, { 4, 5, 6, 7, 8, 9 });
 
-                modelEditor.tintPart(i, 1, shirtColor, { 0, 1, 2, 3, 4, 52, 53, 54, 55, 64, 65, 66, 67, 68, 69, 70, 71, 79, 80, 81, 82 });
+                if (modelName == "BARRET")
+                {
+                    modelEditor.tintPart(i, 1, shirtColor, { 0, 1, 2, 3, 4, 52, 53, 54, 55, 64, 65, 66, 67, 68, 69, 70, 71, 79, 80, 81, 82 });
+                }
+                if (modelName == "BARRET_COREL")
+                {
+                    modelEditor.tintPolyRange(i, 1, shirtColor, 0, 49);
+                    modelEditor.tintPolyRange(i, 1, shirtColor, 48, 55);
+                    modelEditor.tintPolyRange(i, 1, shirtColor, 66, 72);
+                    modelEditor.tintPolyRange(i, 1, shirtColor, 77, 81);
+                }
             }
 
             if (modelName == "TIFA")

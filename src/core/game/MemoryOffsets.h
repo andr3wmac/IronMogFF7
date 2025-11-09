@@ -21,17 +21,18 @@ struct GameOffsets
     CONST_PTR Gil               = 0x9D260;  // uint32_t party gil
     CONST_PTR InGameTime        = 0x9D264;  // uint32_t in seconds
     CONST_PTR GameMoment        = 0x9D288;  // uint16_t
-    CONST_PTR PauseMenuOptions  = 0x9D2A6;  // uint16_t bitmask of options enabled in the menu.
+    CONST_PTR MenuLockingMask   = 0x9D2A6;  // uint16_t bitmask of options disabled in the menu. 
     CONST_PTR PHSVisibilityMask = 0x9D78A;  // uint16_t bitmask of which characters are on PHS
 };
 
 struct GameModule
 {
-    CONST_U8 None   = 0;
-    CONST_U8 Field  = 1;
-    CONST_U8 Battle = 2;
-    CONST_U8 World  = 3;
-    CONST_U8 Menu   = 5;
+    CONST_U8 None           = 0;
+    CONST_U8 Field          = 1;
+    CONST_U8 Battle         = 2;
+    CONST_U8 World          = 3;
+    CONST_U8 Menu           = 5;
+    CONST_U8 Snowboarding   = 8;
 };
 
 struct FieldOffsets
@@ -196,6 +197,14 @@ struct BattleOffsets
 
     // Graphics Data
     CONST_PTR AllyModels[] = { 0x103200, 0x112200, 0x121200 };
+};
+
+struct BattleStateOffsets
+{
+    CONST_PTR Allies[] = { 0xF5BBC, 0xF5C00, 0xF5C44 };
+
+    CONST_PTR ATB       = 0x00;
+    CONST_PTR HPDisplay = 0x38;
 };
 
 // Note: It looks like every formation can have a maximum of 3 enemies, but those enemies can be used multiple times.

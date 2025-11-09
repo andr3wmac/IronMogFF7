@@ -86,10 +86,8 @@ void ModelEditor::findFieldModels()
 
         if (polygonCount > 100)
         {
-            for (auto kv : GameData::models)
+            for (Model& model : GameData::models)
             {
-                Model& model = GameData::models[kv.first];
-
                 if ((model.polyCount * 2) == polygonCount)
                 {
                     if (openFieldModel(startPolyIndex, model))
@@ -168,17 +166,22 @@ void ModelEditor::openBattleModels()
             continue;
         }
 
-        const BattleModel& model = GameData::battleModels[getCharacterName(id)];
-        bufferIdx = (int)(BattleOffsets::AllyModels[i] - BattleOffsets::AllyModels[0]) / 4;
-        bufferIdx += model.headerSize / 4;
-
-        if (openBattleModel(bufferIdx, model))
+        BattleModel* model = GameData::getBattleModel(getCharacterName(id));
+        if (model == nullptr)
         {
-            DEBUG_LOG("Opened battle model: %s %d", model.name.c_str(), bufferAddress + (bufferIdx * 4));
+            continue;
+        }
+
+        bufferIdx = (int)(BattleOffsets::AllyModels[i] - BattleOffsets::AllyModels[0]) / 4;
+        bufferIdx += model->headerSize / 4;
+
+        if (openBattleModel(bufferIdx, *model))
+        {
+            DEBUG_LOG("Opened battle model: %s %d", model->name.c_str(), bufferAddress + (bufferIdx * 4));
         }
         else
         {
-            DEBUG_LOG("Failed to open battle model: %s", model.name.c_str());
+            DEBUG_LOG("Failed to open battle model: %s", model->name.c_str());
         }
     }
 }
@@ -187,14 +190,11 @@ bool ModelEditor::areBattleModelsLoaded()
 {
     // We want a cheap method to ensure the battle model data is loaded
     // before we try to open the models. Our approach is to verify the 
-    // vertex count is what and where it should be for the highest index
-    // player character which will be the deepest in memory.
+    // vertex count is what and where it should be for each party model.
 
     uintptr_t modelsStart = BattleOffsets::AllyModels[0];
     std::array<uint8_t, 3> partyIDs = game->getPartyIDs();
 
-    uint8_t highestIndex = 0;
-    uint8_t highestID = 0;
     for (int i = 0; i < partyIDs.size(); ++i)
     {
         uint8_t& id = partyIDs[i];
@@ -203,28 +203,29 @@ bool ModelEditor::areBattleModelsLoaded()
             continue;
         }
 
-        highestIndex = i;
-        highestID = id;
+        BattleModel* model = GameData::getBattleModel(getCharacterName(id));
+        if (model == nullptr)
+        {
+            return false;
+        }
+
+        // Check the last parts vertex count so we can ensure the full model is loaded.
+        uintptr_t lastPartStartAddress = BattleOffsets::AllyModels[i] + model->headerSize;
+        for (int i = 0; i < model->parts.size() - 1; ++i)
+        {
+            lastPartStartAddress += model->parts[i].sizeInBytes;
+        }
+        const BattleModelPart& lastPart = model->parts[model->parts.size() - 1];
+
+        uint32_t vertexCountData = game->read<uint32_t>(lastPartStartAddress);
+        uint16_t vertexCount = (vertexCountData & 0xFFFF) / 8;
+        if (vertexCount != lastPart.vertexCount)
+        {
+            return false;
+        }
     }
 
-    const BattleModel& model = GameData::battleModels[getCharacterName(highestID)];
-
-    // Check the last parts vertex count so we can gaurantee the full model is loaded.
-    uintptr_t lastPartStartAddress = BattleOffsets::AllyModels[highestIndex] + model.headerSize;
-    for (int i = 0; i < model.parts.size() - 1; ++i)
-    {
-        lastPartStartAddress += model.parts[i].sizeInBytes;
-    }
-    const BattleModelPart& lastPart = model.parts[model.parts.size() - 1];
-
-    uint32_t vertexCountData = game->read<uint32_t>(lastPartStartAddress);
-    uint16_t vertexCount = (vertexCountData & 0xFFFF) / 8;
-    if (vertexCount == lastPart.vertexCount)
-    {
-        return true;
-    }
-
-    return false;
+    return true;
 }
 
 std::vector<ModelEditor::ModelEditorModel>& ModelEditor::getOpenModels()

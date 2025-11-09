@@ -14,8 +14,8 @@ std::vector<ESkill> GameData::eSkills;
 std::unordered_map<uint16_t, FieldData> GameData::fieldData;
 std::vector<WorldMapEntrance> GameData::worldMapEntrances;
 std::unordered_map<uint8_t, BattleScene> GameData::battleScenes;
-std::unordered_map<std::string, Model> GameData::models;
-std::unordered_map<std::string, BattleModel> GameData::battleModels;
+std::vector<Model> GameData::models;
+std::vector<BattleModel> GameData::battleModels;
 
 std::string GameData::getAccessoryName(uint8_t id)
 {
@@ -219,6 +219,19 @@ std::string GameData::getNameFromBattleDropID(uint16_t battleDropID)
         return getWeaponName((uint8_t)data.second);
     }
     return "";
+}
+
+BattleModel* GameData::getBattleModel(std::string modelName)
+{
+    for (BattleModel& model : battleModels)
+    {
+        if (model.name == modelName)
+        {
+            return &model;
+        }
+    }
+
+    return nullptr;
 }
 
 const char* normalChars[256] = {

@@ -79,6 +79,7 @@ void Permadeath::onFrame(uint32_t frameNumber)
             if (isDead)
             {
                 deadCharacterIDs.insert(id);
+                justDiedIDs.insert(id);
                 LOG("Character has died: %d", id);
             }
         }
@@ -91,7 +92,22 @@ void Permadeath::onFrame(uint32_t frameNumber)
 
             if (game->inBattle())
             {
-                game->write<uint16_t>(PlayerOffsets::Players[i] + PlayerOffsets::CurrentHP, 0);
+                // If the player just died we let the game drop the HP gauges 
+                // down naturally instead of us forcing them down instantly.
+                if (justDiedIDs.count(id) > 0)
+                {
+                    uint16_t currentHP = game->read<uint16_t>(PlayerOffsets::Players[i] + PlayerOffsets::CurrentHP);
+                    if (currentHP == 0)
+                    {
+                        justDiedIDs.erase(id);
+                    }
+                }
+                else
+                {
+                    game->write<uint16_t>(PlayerOffsets::Players[i] + PlayerOffsets::CurrentHP, 0);
+                    game->write<uint16_t>(BattleStateOffsets::Allies[i] + BattleStateOffsets::HPDisplay, 0);
+                }
+
                 game->write<uint16_t>(BattleOffsets::Allies[i] + BattleOffsets::Status, StatusFlags::Dead);
             }
         }

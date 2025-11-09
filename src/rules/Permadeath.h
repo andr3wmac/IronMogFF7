@@ -23,6 +23,7 @@ public:
 private:
     std::vector<PermadeathExemption> exemptions;
     std::set<uint8_t> deadCharacterIDs;
+    std::set<uint8_t> justDiedIDs;
 
     void onStart();
     void onFrame(uint32_t frameNumber);

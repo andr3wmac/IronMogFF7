@@ -138,6 +138,8 @@ public:
     static std::string getNameFromFieldScriptID(uint16_t fieldScriptID);
     static std::string getNameFromBattleDropID(uint16_t battleDropID);
 
+    static BattleModel* getBattleModel(std::string modelName);
+
     static std::string decodeString(const std::vector<uint8_t>& data);
     static std::vector<uint8_t> encodeString(const std::string& input);
 
@@ -151,8 +153,8 @@ public:
     static std::unordered_map<uint16_t, FieldData> fieldData;
     static std::vector<WorldMapEntrance> worldMapEntrances;
     static std::unordered_map<uint8_t, BattleScene> battleScenes;
-    static std::unordered_map<std::string, Model> models;
-    static std::unordered_map<std::string, BattleModel> battleModels;
+    static std::vector<Model> models;
+    static std::vector<BattleModel> battleModels;
 };
 
 #define ADD_ACCESSORY(ID, NAME) accessoryNames[ID] = NAME;
@@ -188,5 +190,5 @@ public:
 
 #define ADD_BATTLE_FORMATION(FORMATION_ID, SCENE_ID, NO_ESCAPE, ...) GameData::battleScenes[SCENE_ID].formations.push_back({FORMATION_ID, NO_ESCAPE, {__VA_ARGS__}});
 
-#define ADD_MODEL(MODEL_NAME, POLY_COUNT, ...) { GameData::models[MODEL_NAME] = { MODEL_NAME, POLY_COUNT, __VA_ARGS__ }; }
-#define ADD_BATTLE_MODEL(MODEL_NAME, ...) { GameData::battleModels[MODEL_NAME] = { MODEL_NAME, __VA_ARGS__ }; }
+#define ADD_MODEL(MODEL_NAME, POLY_COUNT, ...) { GameData::models.push_back({ MODEL_NAME, POLY_COUNT, __VA_ARGS__ }); }
+#define ADD_BATTLE_MODEL(MODEL_NAME, ...) { GameData::battleModels.push_back({ MODEL_NAME, __VA_ARGS__ }); }

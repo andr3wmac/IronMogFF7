@@ -11,6 +11,8 @@ public:
     void setup() override;
     bool hasDebugGUI() override { return true; }
     void onDebugGUI() override;
+    bool hasSettings() override { return true; }
+    void onSettingsGUI() override;
 
 private:
     void onStart();
@@ -22,6 +24,7 @@ private:
 
     ModelEditor modelEditor;
     std::unordered_map<std::string, std::vector<Utilities::Color>> randomModelColors;
+    int rerollOffset = 0;
 
     bool waitingForField = false;
     int lastFieldID = -1;
