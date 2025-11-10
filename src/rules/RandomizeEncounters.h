@@ -18,5 +18,6 @@ private:
 
     int maxLevelDifference = 5;
     uint16_t lastFormation = 0;
-    std::unordered_map<uint16_t, uint16_t> randomEncounterMap;
+    std::unordered_map<uint16_t, std::vector<uint16_t>> randomEncounterMap;
+    std::mt19937 rng;
 };

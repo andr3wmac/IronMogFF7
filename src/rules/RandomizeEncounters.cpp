@@ -28,6 +28,7 @@ void RandomizeEncounters::onSettingsGUI()
 
 void RandomizeEncounters::onStart()
 {
+    rng.seed(game->getSeed());
     generateRandomEncounterMap();
 }
 
@@ -42,7 +43,8 @@ void RandomizeEncounters::onFrame(uint32_t frameNumber)
 
     if (randomEncounterMap.count(formationID) > 0)
     {
-        uint16_t randomFormation = randomEncounterMap[formationID];
+        std::uniform_int_distribution<std::size_t> dist(0, randomEncounterMap[formationID].size() - 1);
+        uint16_t randomFormation = randomEncounterMap[formationID][dist(rng)];
         game->write<uint16_t>(0x707BC, randomFormation);
         lastFormation = randomFormation;
 
@@ -57,8 +59,6 @@ void RandomizeEncounters::onBattleExit()
 
 void RandomizeEncounters::generateRandomEncounterMap()
 {
-    std::mt19937 rng(game->getSeed());
-
     for (const auto& kv : GameData::battleScenes)
     {
         BattleScene scene = kv.second;
@@ -123,9 +123,7 @@ void RandomizeEncounters::generateRandomEncounterMap()
                 }
             }
 
-            // Select a random formation from the candidates
-            std::uniform_int_distribution<std::size_t> dist(0, candidateFormationIDs.size() - 1);
-            randomEncounterMap[formation.id] = candidateFormationIDs[dist(rng)];
+            randomEncounterMap[formation.id] = candidateFormationIDs;
         }
     }
 }

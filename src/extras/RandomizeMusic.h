@@ -29,7 +29,6 @@ private:
     void onEmulatorPaused();
     void onEmulatorResumed();
     void onFrame(uint32_t frameNumber);
-    void onModuleChanged(uint8_t newModule);
 
     void scanMusicFolder();
     Track loadTrack(std::string path);

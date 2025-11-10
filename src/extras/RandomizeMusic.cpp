@@ -36,7 +36,6 @@ void RandomizeMusic::setup()
     BIND_EVENT(game->onEmulatorPaused, RandomizeMusic::onEmulatorPaused);
     BIND_EVENT(game->onEmulatorResumed, RandomizeMusic::onEmulatorResumed);
     BIND_EVENT_ONE_ARG(game->onFrame, RandomizeMusic::onFrame);
-    BIND_EVENT_ONE_ARG(game->onModuleChanged, RandomizeMusic::onModuleChanged);
 
     previousMusicID = UnsetMusicID;
 }
@@ -173,14 +172,6 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
 
         overrideMusic = true;
         game->write<uint16_t>(GameOffsets::MusicVolume, 0);
-    }
-}
-
-void RandomizeMusic::onModuleChanged(uint8_t newModule)
-{
-    if (newModule == GameModule::Snowboarding)
-    {
-        AudioManager::pauseMusic();
     }
 }
 
