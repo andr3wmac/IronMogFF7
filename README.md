@@ -9,6 +9,7 @@ Inspired by IronMon and IronMario 64, IronMog FF7 is a modification for Final Fa
 | ---- | --- |
 | No Escapes | Escaping from battles is prohibited, including the use of Exit materia. |
 | No Limit Breaks | Limit breaks are disabled. |
+| No Saving | Saving your game is prohibited. |
 | No Summon Materia | Summon materia cannot be found or purchased. |
 | Permadeath Characters | If a character dies, they cannot be revived and will remain dead for the rest of the playthrough. |
 | Randomized Encounters | Field and world map encounters are randomized to any enemy formation within 5 levels of the one originally encountered. |
