@@ -102,5 +102,6 @@ private:
     bool isFieldDataLoaded();
 
     bool waitingForShopData = false;
+    bool wasInShopMenu = false;
     bool isShopDataLoaded();
 };

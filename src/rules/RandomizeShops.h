@@ -10,6 +10,8 @@ public:
     void setup() override;
     bool hasSettings() override { return true; }
     void onSettingsGUI() override;
+    bool hasDebugGUI() override { return true; }
+    void onDebugGUI() override;
 
 private:
     void onFieldChanged(uint16_t fieldID);

@@ -230,7 +230,25 @@ void GameManager::update()
 
         if (gameModule != GameModule::Menu && newGameModule == GameModule::Menu)
         {
-            waitingForShopData = true;
+            uint8_t menuType = read<uint8_t>(GameOffsets::MenuType);
+            if (menuType == MenuType::Shop)
+            {
+                waitingForShopData = true;
+                wasInShopMenu = true;
+            }
+        }
+
+        if (newGameModule != GameModule::Menu && wasInShopMenu)
+        {
+            // HACK: when we exit a shop sometimes the field doesn't overwrite the shop data
+            // so it stays stale in memory, then the next time we open the shop isShopDataLoaded()
+            // gets false positive from old memory. So, we corrupt one of the materia prices on exit.
+            uint32_t lastMateriaPrice = read<uint32_t>(ShopOffsets::MateriaPricesStart + (68 * 4));
+            if (lastMateriaPrice == 9000) 
+            {
+                write<uint32_t>(ShopOffsets::MateriaPricesStart + (68 * 4), 0);
+            }
+            wasInShopMenu = false;
         }
 
         // Game module changed.
@@ -499,7 +517,6 @@ bool GameManager::isFieldDataLoaded()
 
 // TODO:
 //  - Hardcode expectations instead of checking like this, less reading.
-//  - There has to be some better indicator of what type of menu is currently on the screen.
 bool GameManager::isShopDataLoaded()
 {
     if (gameModule != GameModule::Menu)
@@ -518,7 +535,7 @@ bool GameManager::isShopDataLoaded()
     uint8_t padding = read<uint8_t>(shopOffset + 3);
     if (padding != 0) { return false; }
 
-    for (int i = 0; i < SHOP_ITEM_MAX; ++i)
+    for (int i = invCount; i < SHOP_ITEM_MAX; ++i)
     {
         uintptr_t itemOffset = shopOffset + 4 + (i * 8);
 
@@ -526,13 +543,10 @@ bool GameManager::isShopDataLoaded()
         uint16_t itemID = read<uint32_t>(itemOffset + 4);
         uint16_t itemPadding = read<uint16_t>(itemOffset + 6);
 
-        if (i >= invCount)
+        // If we're outside the specified item count we should see all zeroes.
+        if (itemType != 0 || itemID != 0 || itemPadding != 0)
         {
-            // If we're outside the specified item count we should see all zeroes.
-            if (itemType != 0 || itemID != 0 || itemPadding != 0)
-            {
-                return false;
-            }
+            return false;
         }
     }
 

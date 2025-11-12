@@ -31,7 +31,14 @@ void Permadeath::setup()
     // Fort Condor Battle
     {
         PermadeathExemption& fortCondorBattle = exemptions.emplace_back();
+        fortCondorBattle.fieldIDs.insert(354);
         fortCondorBattle.fieldIDs.insert(356);
+    }
+
+    // Final Sephiroth 1v1 Battle
+    {
+        PermadeathExemption& finalBattle = exemptions.emplace_back();
+        finalBattle.fieldIDs.insert(763);
     }
 }
 

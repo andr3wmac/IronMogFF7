@@ -12,6 +12,7 @@ struct GameOffsets
     CONST_PTR NextFormationID   = 0x707BC;  // uint16_t formation id of the next random encounter
     CONST_PTR FieldID           = 0x9A05C;  // uint16_t
     CONST_PTR MusicID           = 0x9A14E;  // uint16_t id of currently playing music
+    CONST_PTR MenuType          = 0x9ABF5;  // uint8_t 8 = shop, 9 = main menu
     CONST_PTR FieldWarpTrigger  = 0x9ABF5;  // uint8_t, set to 1 to warp to field warp ID below
     CONST_PTR FieldWarpID       = 0x9ABF6;  // uint16_t
     CONST_PTR ScreenFade        = 0x9AC42;  // uint16_t, 0 - 256 how much screen is faded for loading transition
@@ -34,6 +35,16 @@ struct GameModule
     CONST_U8 World          = 3;
     CONST_U8 Menu           = 5;
     CONST_U8 Snowboarding   = 8;
+};
+
+struct MenuType
+{
+    CONST_U8 Credits        = 0x05;
+    CONST_U8 NameEntry      = 0x06;
+    CONST_U8 PartySelect    = 0x07;
+    CONST_U8 Shop           = 0x08;
+    CONST_U8 MainMenu       = 0x09;
+    CONST_U8 Save           = 0x0E;
 };
 
 struct FieldOffsets

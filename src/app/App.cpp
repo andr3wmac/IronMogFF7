@@ -1,11 +1,12 @@
 #include "App.h"
-#include "rules/Restrictions.h"
+#include "core/audio/AudioManager.h"
 #include "core/utilities/Logging.h"
 #include "core/utilities/MemoryMonitor.h"
 #include "core/utilities/MemorySearch.h"
 #include "core/utilities/ModelEditor.h"
 #include "core/utilities/ScriptUtilities.h"
 #include "core/utilities/Utilities.h"
+#include "rules/Restrictions.h"
 
 #include <imgui.h>
 #include <random>
@@ -105,6 +106,8 @@ void App::detach()
     managerThread->join();
     delete managerThread;
     managerThread = nullptr;
+
+    AudioManager::pauseMusic();
 }
 
 void App::runGameManager()

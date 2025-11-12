@@ -511,6 +511,20 @@ void RandomizeColors::applyColors()
                 modelEditor.tintPart(i, 13, outfitColor);
                 modelEditor.tintPart(i, 14, outfitColor, { 4, 5, 6, 7, 8, 9 });
             }
+
+            if (modelName == "CLOUD_WHEELCHAIR")
+            {
+                std::vector<Utilities::Color> randomColors = randomModelColors["CLOUD"];
+                Utilities::Color& outfitColor = randomColors[0];
+
+                modelEditor.tintPart(i, 0, outfitColor);
+                modelEditor.tintPart(i, 1, outfitColor);
+                modelEditor.tintPart(i, 9, outfitColor);
+                modelEditor.tintPolyRange(i, 10, outfitColor, 3, 5);
+                modelEditor.tintPolyRange(i, 10, outfitColor, 19, 26);
+                modelEditor.tintPart(i, 19, outfitColor);
+                modelEditor.tintPart(i, 20, outfitColor, { 4, 5, 6, 7, 8, 9 });
+            }
         }
     }
 
@@ -533,6 +547,24 @@ void RandomizeColors::applyColors()
                 modelEditor.tintPolyRange(i, 10, outfitColor, 2, 49);
                 modelEditor.tintPart(i, 13, outfitColor);
                 modelEditor.tintPolyRange(i, 14, outfitColor, 2, 49);
+            }
+
+            if (modelName == "HICLOUD")
+            {
+                std::vector<Utilities::Color> randomColors = randomModelColors["CLOUD"];
+                Utilities::Color& outfitColor = randomColors[0];
+
+                modelEditor.tintPart(i, 0, outfitColor);
+                modelEditor.tintPart(i, 1, outfitColor);
+                modelEditor.tintPolyRange(i, 2, outfitColor, 444, 448);
+                modelEditor.tintPolyRange(i, 2, outfitColor, 450, 469);
+                modelEditor.tintPolyRange(i, 2, outfitColor, 526, 537);
+                modelEditor.tintPart(i, 9, outfitColor);
+                modelEditor.tintPolyRange(i, 10, outfitColor, 19, 108);
+                modelEditor.tintPolyRange(i, 10, outfitColor, 130, 137);
+                modelEditor.tintPart(i, 13, outfitColor);
+                modelEditor.tintPolyRange(i, 14, outfitColor, 19, 108);
+                modelEditor.tintPolyRange(i, 14, outfitColor, 130, 137);
             }
 
             if (modelName == "BARRET")

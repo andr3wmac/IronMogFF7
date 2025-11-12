@@ -22,6 +22,75 @@ void RandomizeShops::onSettingsGUI()
     ImGui::SetItemTooltip("Keep prices the same as the original shop.");
 }
 
+void RandomizeShops::onDebugGUI()
+{
+    /*if (game->getGameModule() != GameModule::Menu)
+    {
+        return;
+    }
+
+    uint8_t menuType = game->read<uint8_t>(GameOffsets::MenuType);
+    if (menuType != MenuType::Shop)
+    {
+        return;
+    }*/
+
+    FieldData fieldData = GameData::getField(lastFieldID);
+    if (!fieldData.isValid())
+    {
+        return;
+    }
+
+    std::set<uint8_t> displayedShopIDs;
+    for (int i = 0; i < fieldData.shops.size(); ++i)
+    {
+        uint8_t shopID = fieldData.shops[i].shopID;
+        if (displayedShopIDs.count(shopID) > 0)
+        {
+            continue;
+        }
+
+        uintptr_t shopOffset = ShopOffsets::ShopStart + (84 * shopID);
+        uint8_t invCount = game->read<uint8_t>(shopOffset + 2);
+
+        if (invCount > SHOP_ITEM_MAX)
+        {
+            continue;
+        }
+
+        std::string shopText = "Shop " + std::to_string(shopID);
+        ImGui::SeparatorText(shopText.c_str());
+
+        for (int j = 0; j < invCount; ++j)
+        {
+            uintptr_t itemOffset = shopOffset + 4 + (j * 8);
+            uint32_t itemType = game->read<uint32_t>(itemOffset + 0);
+            uint16_t itemID = game->read<uint16_t>(itemOffset + 4);
+
+            // Materia
+            if (itemType == 1)
+            {
+                uint32_t price = game->read<uint32_t>(ShopOffsets::MateriaPricesStart + (itemID * 4));
+                std::string materiaName = GameData::getMateriaName((uint8_t)itemID);
+
+                std::string debugText = "Materia: " + materiaName + " (" + std::to_string(price) + ")";
+                ImGui::Text(debugText.c_str());
+            }
+            // Item
+            else
+            {
+                uint32_t price = game->read<uint32_t>(ShopOffsets::PricesStart + (itemID * 4));
+                std::string itemName = GameData::getNameFromFieldScriptID(itemID);
+
+                std::string debugText = "Materia: " + itemName + " (" + std::to_string(price) + ")";
+                ImGui::Text(debugText.c_str());
+            }
+        }
+
+        displayedShopIDs.insert(shopID);
+    }
+}
+
 void RandomizeShops::onFieldChanged(uint16_t fieldID)
 {
     FieldData fieldData = GameData::getField(fieldID);
@@ -239,7 +308,7 @@ uint16_t RandomizeShops::randomizeShopMateria(uint16_t materiaID, std::set<uint1
 {
     while (true)
     {
-        uint16_t chosen = randomizeShopItem(materiaID);
+        uint16_t chosen = randomizeShopMateria(materiaID);
         if (previouslyChosen.count(chosen) == 0)
         {
             return chosen;

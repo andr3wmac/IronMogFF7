@@ -157,6 +157,24 @@ void ModelEditor::openBattleModels()
     game->read(bufferAddress, bufferSize, (uint8_t*)buffer);
     int bufferIdx = 0;
 
+    // Special handling of HICLOUD in the final fight
+    uint16_t fieldID = game->getFieldID();
+    if (fieldID == 763)
+    {
+        BattleModel* model = GameData::getBattleModel("HICLOUD");
+        if (model != nullptr)
+        {
+            if (openBattleModel(model->headerSize / 4, *model))
+            {
+                DEBUG_LOG("Opened battle model: %s %d", model->name.c_str(), bufferAddress + (bufferIdx * 4));
+            }
+            else
+            {
+                DEBUG_LOG("Failed to open battle model: %s", model->name.c_str());
+            }
+        }
+    }
+
     std::array<uint8_t, 3> partyIDs = game->getPartyIDs();
     for (int i = 0; i < partyIDs.size(); ++i)
     {
@@ -191,6 +209,32 @@ bool ModelEditor::areBattleModelsLoaded()
     // We want a cheap method to ensure the battle model data is loaded
     // before we try to open the models. Our approach is to verify the 
     // vertex count is what and where it should be for each party model.
+
+    // Special handling of HICLOUD in the final fight
+    uint16_t fieldID = game->getFieldID();
+    if (fieldID == 763)
+    {
+        BattleModel* model = GameData::getBattleModel("HICLOUD");
+        if (model != nullptr)
+        {
+            // Check the last parts vertex count so we can ensure the full model is loaded.
+            uintptr_t lastPartStartAddress = BattleOffsets::AllyModels[0] + model->headerSize;
+            for (int i = 0; i < model->parts.size() - 1; ++i)
+            {
+                lastPartStartAddress += model->parts[i].sizeInBytes;
+            }
+            const BattleModelPart& lastPart = model->parts[model->parts.size() - 1];
+
+            uint32_t vertexCountData = game->read<uint32_t>(lastPartStartAddress);
+            uint16_t vertexCount = (vertexCountData & 0xFFFF) / 8;
+            if (vertexCount == lastPart.vertexCount)
+            {
+                // We return true here because if this is the final fight HICLOUD 
+                // will be the only ally model loaded.
+                return true;
+            }
+        }
+    }
 
     uintptr_t modelsStart = BattleOffsets::AllyModels[0];
     std::array<uint8_t, 3> partyIDs = game->getPartyIDs();
