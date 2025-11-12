@@ -9,6 +9,7 @@ struct GameOffsets
 {
     CONST_PTR FrameNumber       = 0x51568;  // uint32_t
     CONST_PTR MusicVolume       = 0x62F5E;  // uint16_t controlling global music volume
+    CONST_PTR NextFormationID   = 0x707BC;  // uint16_t formation id of the next random encounter
     CONST_PTR FieldID           = 0x9A05C;  // uint16_t
     CONST_PTR MusicID           = 0x9A14E;  // uint16_t id of currently playing music
     CONST_PTR FieldWarpTrigger  = 0x9ABF5;  // uint8_t, set to 1 to warp to field warp ID below
@@ -267,5 +268,12 @@ struct SavemapOffsets
 {
     CONST_PTR Start = 0x9C6E4;
 
-    CONST_PTR BuggyHighwindPosition = 0x0F74;
+    // These are IronMog specific values we store and fetch from an unused spot in the save map.
+    // This area from 0x0B5C to 0x0B7C is 32 bytes of unused data.
+    CONST_PTR IronMogSave       = Start + 0x0B5C;  // 2 Bytes for the ASCII letters IM to know we've been here.
+    CONST_PTR IronMogVersion    = Start + 0x0B5E;  // A save data format version number, uint8_t
+    CONST_PTR IronMogSeed       = Start + 0x0B5F;  // uint32_t seed used in current playthrough
+    CONST_PTR IronMogPermadeath = Start + 0x0B63;  // uint16_t used by permadeath to track dead characters
+
+    CONST_PTR BuggyHighwindPosition = Start + 0x0F74;
 };

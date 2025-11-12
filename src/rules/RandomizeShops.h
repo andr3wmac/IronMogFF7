@@ -2,6 +2,7 @@
 #include "Rule.h"
 #include <cstdint>
 #include <random>
+#include <set>
 
 class RandomizeShops : public Rule
 {
@@ -15,7 +16,9 @@ private:
     void onShopOpened();
 
     uint16_t randomizeShopItem(uint16_t itemID);
+    uint16_t randomizeShopItem(uint16_t itemID, std::set<uint16_t> previouslyChosen);
     uint16_t randomizeShopMateria(uint16_t materiaID);
+    uint16_t randomizeShopMateria(uint16_t materiaID, std::set<uint16_t> previouslyChosen);
 
     std::mt19937_64 rng;
     uint16_t lastFieldID = 0;

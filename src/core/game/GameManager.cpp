@@ -153,27 +153,31 @@ void GameManager::loadSaveData()
 {
     const uint8_t saveDataVersion = 0;
 
-    uint8_t byte0 = read<uint8_t>(0x9D240);
-    uint8_t byte1 = read<uint8_t>(0x9D241);
+    uint16_t ironMogID = read<uint16_t>(SavemapOffsets::IronMogSave);
 
     // 49 and 4D are the letters IM for Iron Mog
-    if (byte0 == 0x49 && byte1 == 0x4D)
+    if (ironMogID == 0x494D)
     {
         // Load existing save data.
-        seed = read<uint32_t>(0x9D243);
+        seed = read<uint32_t>(SavemapOffsets::IronMogSeed);
 
         std::string seedString = Utilities::seedToHexString(seed);
         LOG("Loaded seed from save file: %s", seedString.c_str());
     }
     else 
     {
+        // Zero out the area.
+        for (int i = 0; i < 8; ++i)
+        {
+            write<uint32_t>(SavemapOffsets::IronMogSave + (i * 4), 0);
+        }
+
         // Write header and seed into save data area.
-        write<uint8_t>(0x9D240, 0x49);
-        write<uint8_t>(0x9D241, 0x4D);
-        write<uint8_t>(0x9D242, saveDataVersion);
+        write<uint16_t>(SavemapOffsets::IronMogSave, 0x494D);
+        write<uint8_t>(SavemapOffsets::IronMogVersion, saveDataVersion);
 
         // Write seed
-        write<uint32_t>(0x9D243, seed);
+        write<uint32_t>(SavemapOffsets::IronMogSeed, seed);
     }
 }
 
@@ -282,13 +286,15 @@ void GameManager::update()
 
     // A jump in frame number likely indicates a load game or load save state.
     int frameDifference = std::abs((int)newFrameNumber - (int)frameNumber);
-    if (frameDifference > 10)
+    if (frameDifference > 10 && framesSinceReload > 10)
     {
         uint64_t timeGap = currentTime - lastFrameUpdateTime;
         LOG("Load detected, reloading rules %d", timeGap);
-        //loadSaveData();
-        //onStart.Invoke();
+        loadSaveData();
+        onStart.invoke();
+        framesSinceReload = 0;
     }
+    framesSinceReload++;
 
     if (newFrameNumber != frameNumber)
     {

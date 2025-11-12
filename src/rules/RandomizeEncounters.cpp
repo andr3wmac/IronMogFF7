@@ -34,7 +34,7 @@ void RandomizeEncounters::onStart()
 
 void RandomizeEncounters::onFrame(uint32_t frameNumber)
 {
-    uint16_t formationID = game->read<uint16_t>(0x707BC);
+    uint16_t formationID = game->read<uint16_t>(GameOffsets::NextFormationID);
     if (formationID == lastFormation)
     {
         return;
@@ -43,9 +43,13 @@ void RandomizeEncounters::onFrame(uint32_t frameNumber)
 
     if (randomEncounterMap.count(formationID) > 0)
     {
-        std::uniform_int_distribution<std::size_t> dist(0, randomEncounterMap[formationID].size() - 1);
-        uint16_t randomFormation = randomEncounterMap[formationID][dist(rng)];
-        game->write<uint16_t>(0x707BC, randomFormation);
+        std::vector<uint16_t> candidates = randomEncounterMap[formationID];
+
+        // Originally tried choosing the battle once in generateRandomEncounterMap but it didn't feel
+        // random enough so choosing from the candidates on each encounter is done instead.
+        std::uniform_int_distribution<std::size_t> dist(0, candidates.size() - 1);
+        uint16_t randomFormation = candidates[dist(rng)];
+        game->write<uint16_t>(GameOffsets::NextFormationID, randomFormation);
         lastFormation = randomFormation;
 
         LOG("Randomized battle: %d to %d", formationID, randomFormation);
@@ -63,6 +67,7 @@ void RandomizeEncounters::generateRandomEncounterMap()
     {
         BattleScene scene = kv.second;
 
+        // Determine max enemy level in the scene
         int maxLevel = 0;
         for (int i = 0; i < 3; ++i)
         {
@@ -94,6 +99,7 @@ void RandomizeEncounters::generateRandomEncounterMap()
             {
                 BattleScene candidateScene = candidateKv.second;
 
+                // Determine max enemy level in the candidate scene
                 int candidateMaxLevel = 0;
                 for (int j = 0; j < 3; ++j)
                 {

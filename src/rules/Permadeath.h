@@ -2,6 +2,7 @@
 #include "Rule.h"
 #include <cstdint>
 #include <set>
+#include "core/utilities/Flags.h"
 
 struct PermadeathExemption
 {
@@ -17,13 +18,13 @@ public:
 
     bool isCharacterDead(uint8_t characterID)
     {
-        return deadCharacterIDs.count(characterID) > 0;
+        return deadCharacters.isBitSet(characterID);
     }
 
 private:
     std::vector<PermadeathExemption> exemptions;
-    std::set<uint8_t> deadCharacterIDs;
-    std::set<uint8_t> justDiedIDs;
+    Flags<uint16_t> deadCharacters;
+    std::set<uint8_t> justDiedCharacters;
 
     void onStart();
     void onFrame(uint32_t frameNumber);

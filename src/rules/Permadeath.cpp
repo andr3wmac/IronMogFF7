@@ -37,7 +37,7 @@ void Permadeath::setup()
 
 void Permadeath::onStart()
 {
-    deadCharacterIDs.clear();
+    deadCharacters = game->read<uint16_t>(SavemapOffsets::IronMogPermadeath);
 }
 
 void Permadeath::onFrame(uint32_t frameNumber)
@@ -61,7 +61,7 @@ void Permadeath::onFrame(uint32_t frameNumber)
         uintptr_t characterOffset = getCharacterDataOffset(id);
 
         // Check if character died
-        if (deadCharacterIDs.count(id) == 0)
+        if (!deadCharacters.isBitSet(id))
         {
             bool isDead = false;
 
@@ -78,14 +78,15 @@ void Permadeath::onFrame(uint32_t frameNumber)
 
             if (isDead)
             {
-                deadCharacterIDs.insert(id);
-                justDiedIDs.insert(id);
+                deadCharacters.setBit(id, true);
+                game->write<uint16_t>(SavemapOffsets::IronMogPermadeath, deadCharacters.value());
+                justDiedCharacters.insert(id);
                 LOG("Character has died: %d", id);
             }
         }
 
         // Force death if the character is in our dead characters list
-        if (deadCharacterIDs.count(id) > 0)
+        if (deadCharacters.isBitSet(id))
         {
             // Force HP to 0
             game->write<uint16_t>(characterOffset + CharacterDataOffsets::CurrentHP, 0);
@@ -94,12 +95,12 @@ void Permadeath::onFrame(uint32_t frameNumber)
             {
                 // If the player just died we let the game drop the HP gauges 
                 // down naturally instead of us forcing them down instantly.
-                if (justDiedIDs.count(id) > 0)
+                if (justDiedCharacters.count(id) > 0)
                 {
                     uint16_t currentHP = game->read<uint16_t>(PlayerOffsets::Players[i] + PlayerOffsets::CurrentHP);
                     if (currentHP == 0)
                     {
-                        justDiedIDs.erase(id);
+                        justDiedCharacters.erase(id);
                     }
                 }
                 else

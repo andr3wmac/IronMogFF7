@@ -91,6 +91,7 @@ private:
     uint32_t frameNumber = 0;
     uint8_t gameModule = 0;
     uint64_t lastFrameUpdateTime = 0;
+    int framesSinceReload = 0;
 
     uint16_t fieldID = 0;
 

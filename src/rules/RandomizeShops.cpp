@@ -19,7 +19,7 @@ void RandomizeShops::setup()
 void RandomizeShops::onSettingsGUI()
 {
     ImGui::Checkbox("Keep Prices", &keepPrices);
-    ImGui::SetItemTooltip("Keep shop prices the same as the original items.");
+    ImGui::SetItemTooltip("Keep prices the same as the original shop.");
 }
 
 void RandomizeShops::onFieldChanged(uint16_t fieldID)
@@ -33,6 +33,13 @@ void RandomizeShops::onFieldChanged(uint16_t fieldID)
     lastFieldID = fieldID;
 }
 
+struct ShopEntry
+{
+    uintptr_t offset;
+    uint16_t id;
+    uint32_t price;
+};
+
 void RandomizeShops::onShopOpened()
 {
     FieldData fieldData = GameData::getField(lastFieldID);
@@ -41,13 +48,25 @@ void RandomizeShops::onShopOpened()
         return;
     }
 
+    // There can be multiple entries for different shop IDs, we don't want
+    // to randomize them multiple times.
+    std::set<uint8_t> randomizedShopIDs;
+
     for (int i = 0; i < fieldData.shops.size(); ++i)
     {
-        rng.seed(Utilities::makeKey(game->getSeed(), lastFieldID, i));
-
         uint8_t shopID = fieldData.shops[i].shopID;
+        if (randomizedShopIDs.count(shopID) > 0)
+        {
+            continue;
+        }
+
+        rng.seed(Utilities::makeKey(game->getSeed(), lastFieldID, shopID));
+
         uintptr_t shopOffset = ShopOffsets::ShopStart + (84 * shopID);
         uint8_t invCount = game->read<uint8_t>(shopOffset + 2);
+
+        std::vector<ShopEntry> shopItems;
+        std::vector<ShopEntry> shopMateria;
 
         for (int j = 0; j < invCount; ++j)
         {
@@ -55,46 +74,117 @@ void RandomizeShops::onShopOpened()
             uint32_t itemType = game->read<uint32_t>(itemOffset + 0);
             uint16_t itemID = game->read<uint16_t>(itemOffset + 4);
 
-            // Price offset is different based on item or materia.
-            uintptr_t priceOffset = 0;
-            uint32_t newPrice = 0;
-            uint16_t newItemID = itemID;
-
             // Materia
             if (itemType == 1)
             {
-                newItemID = randomizeShopMateria(itemID);
-
-                std::string oldMateriaName = GameData::getMateriaName((uint8_t)itemID);
-                std::string newMateriaName = GameData::getMateriaName((uint8_t)newItemID);
-                LOG("Randomized materia in shop %d: %s changed to: %s", shopID, oldMateriaName.c_str(), newMateriaName.c_str());
-
-                priceOffset = ShopOffsets::MateriaPricesStart + (newItemID * 4);
-                newPrice = game->read<uint32_t>(ShopOffsets::MateriaPricesStart + (itemID * 4));
+                uint32_t price = game->read<uint32_t>(ShopOffsets::MateriaPricesStart + (itemID * 4));
+                shopMateria.push_back({ itemOffset, itemID, price });
             }
-            else
+            // Item
+            else 
             {
-                newItemID = randomizeShopItem(itemID);
-
-                std::string oldItemName = GameData::getNameFromFieldScriptID(itemID);
-                std::string newItemName = GameData::getNameFromFieldScriptID(newItemID);
-                LOG("Randomized item in shop %d: %s changed to: %s", shopID, oldItemName.c_str(), newItemName.c_str());
-
-                priceOffset = ShopOffsets::PricesStart + (newItemID * 4);
-                newPrice = game->read<uint32_t>(ShopOffsets::PricesStart + (itemID * 4));
-            }
-
-            if (priceOffset > 0)
-            {
-                game->write<uint16_t>(itemOffset + 4, newItemID);
-
-                if (keepPrices)
-                {
-                    // We reuse the existing price for the randomized item by overwriting the value with the original.
-                    game->write<uint32_t>(priceOffset, newPrice);
-                }
+                uint32_t price = game->read<uint32_t>(ShopOffsets::PricesStart + (itemID * 4));
+                shopItems.push_back({ itemOffset, itemID, price });
             }
         }
+
+        // Sort by lowest prices first
+        std::sort(shopItems.begin(), shopItems.end(),
+            [](const ShopEntry& a, const ShopEntry& b)
+            {
+                return a.price < b.price;
+            });
+
+        std::sort(shopMateria.begin(), shopMateria.end(),
+            [](const ShopEntry& a, const ShopEntry& b)
+            {
+                return a.price < b.price;
+            });
+
+        // Select new random items
+        std::vector<ShopEntry> newShopItems;
+        {
+            std::set<uint16_t> chosenItems;
+
+            for (int j = 0; j < shopItems.size(); ++j)
+            {
+                uint16_t newItemID = randomizeShopItem(shopItems[j].id, chosenItems);
+                uint32_t price = game->read<uint32_t>(ShopOffsets::PricesStart + (newItemID * 4));
+                if (price <= 2)
+                {
+                    price = price * 20000;
+                }
+                newShopItems.push_back({ 0, newItemID, price });
+                chosenItems.insert(newItemID);
+            }
+
+            // Sort by lowest prices first
+            std::sort(newShopItems.begin(), newShopItems.end(),
+                [](const ShopEntry& a, const ShopEntry& b)
+                {
+                    return a.price < b.price;
+                });
+        }
+        std::vector<ShopEntry> newShopMateria;
+        {
+            std::set<uint16_t> chosenMateria;
+
+            for (int j = 0; j < shopMateria.size(); ++j)
+            {
+                uint16_t newMateriaID = randomizeShopMateria(shopMateria[j].id, chosenMateria);
+                uint32_t price = game->read<uint32_t>(ShopOffsets::PricesStart + (newMateriaID * 4));
+                if (price <= 2)
+                {
+                    price = price * 20000;
+                }
+                newShopMateria.push_back({ 0, newMateriaID, price });
+                chosenMateria.insert(newMateriaID);
+            }
+
+            // Sort by lowest prices first
+            std::sort(newShopMateria.begin(), newShopMateria.end(),
+                [](const ShopEntry& a, const ShopEntry& b)
+                {
+                    return a.price < b.price;
+                });
+        }
+
+        // We match up the old items to the new ones, both lists have been sorted by price
+        // so this gives us a reasonable match up between values.
+        for (int j = 0; j < shopItems.size(); ++j)
+        {
+            ShopEntry& origItem = shopItems[j];
+            ShopEntry& newItem = newShopItems[j];
+
+            game->write<uint16_t>(origItem.offset + 4, newItem.id);
+            if (keepPrices)
+            {
+                // We reuse the existing price for the randomized item by overwriting the value with the original.
+                game->write<uint32_t>(ShopOffsets::PricesStart + (newItem.id * 4), origItem.price);
+            }
+
+            std::string oldItemName = GameData::getNameFromFieldScriptID((uint8_t)origItem.id);
+            std::string newItemName = GameData::getNameFromFieldScriptID((uint8_t)newItem.id);
+            LOG("Randomized item in shop %d: %s changed to: %s", shopID, oldItemName.c_str(), newItemName.c_str());
+        }
+        for (int j = 0; j < shopMateria.size(); ++j)
+        {
+            ShopEntry& origMat = shopMateria[j];
+            ShopEntry& newMat = newShopMateria[j];
+
+            game->write<uint16_t>(origMat.offset + 4, newMat.id);
+            if (keepPrices)
+            {
+                // We reuse the existing price for the randomized item by overwriting the value with the original.
+                game->write<uint32_t>(ShopOffsets::MateriaPricesStart + (newMat.id * 4), origMat.price);
+            }
+
+            std::string oldMateriaName = GameData::getMateriaName((uint8_t)origMat.id);
+            std::string newMateriaName = GameData::getMateriaName((uint8_t)newMat.id);
+            LOG("Randomized materia in shop %d: %s changed to: %s", shopID, oldMateriaName.c_str(), newMateriaName.c_str());
+        }
+
+        randomizedShopIDs.insert(shopID);
     }
 }
 
@@ -102,39 +192,59 @@ uint16_t RandomizeShops::randomizeShopItem(uint16_t itemID)
 {
     uint16_t selectedID = itemID;
 
-    // Loop in case we select a bad ID.
-    while (true)
+    // Item
+    if (itemID < 128)
     {
-        // Item
-        if (itemID < 128)
-        {
-            selectedID = GameData::getRandomItem(rng);
-            break;
-        }
-        // Weapon
-        else if (itemID < 256)
-        {
-            selectedID = 128 + GameData::getRandomWeapon(rng);
-            break;
-        }
-        // Armor
-        else if (itemID < 288)
-        {
-            selectedID = 256 + GameData::getRandomArmor(rng);
-            break;
-        }
-        // Accessory
-        else
-        {
-            selectedID = 288 + GameData::getRandomAccessory(rng);
-            break;
-        }
+        selectedID = GameData::getRandomItem(rng);
+    }
+    // Weapon
+    else if (itemID < 256)
+    {
+        selectedID = 128 + GameData::getRandomWeapon(rng);
+    }
+    // Armor
+    else if (itemID < 288)
+    {
+        selectedID = 256 + GameData::getRandomArmor(rng);
+    }
+    // Accessory
+    else
+    {
+        selectedID = 288 + GameData::getRandomAccessory(rng);
     }
 
     return selectedID;
 }
 
+uint16_t RandomizeShops::randomizeShopItem(uint16_t itemID, std::set<uint16_t> previouslyChosen)
+{
+    while (true)
+    {
+        uint16_t chosen = randomizeShopItem(itemID);
+        if (previouslyChosen.count(chosen) == 0)
+        {
+            return chosen;
+        }
+    }
+
+    return 0;
+}
+
 uint16_t RandomizeShops::randomizeShopMateria(uint16_t materiaID)
 {
     return GameData::getRandomMateria(rng);
+}
+
+uint16_t RandomizeShops::randomizeShopMateria(uint16_t materiaID, std::set<uint16_t> previouslyChosen)
+{
+    while (true)
+    {
+        uint16_t chosen = randomizeShopItem(materiaID);
+        if (previouslyChosen.count(chosen) == 0)
+        {
+            return chosen;
+        }
+    }
+
+    return 0;
 }
