@@ -94,7 +94,7 @@ Music randomization works by setting the music volume to 0 in game and then moni
 | vincent | The Nightmare's Beginning |
 | walz | Waltz de Chocobo |
 | weapon | Weapon Raid |
-| wind | Wutai |
+| wind | Wind |
 | yado | Good Night, Until Tomorrow! |
 | yufi | Descendant of Shinobi |
 | yufi2 | Stolen Materia |
