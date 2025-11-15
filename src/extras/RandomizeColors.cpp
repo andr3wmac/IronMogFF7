@@ -368,50 +368,71 @@ void RandomizeColors::applyColors()
                 modelEditor.tintPart(i, 7, jacketColor, { 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20 });
             }
 
-            if (modelName == "REDXIII")
+            if (modelName == "REDXIII" || modelName == "REDXIII_PARACHUTE")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors[modelName];
+                std::vector<Utilities::Color> randomColors = randomModelColors["REDXIII"];
                 Utilities::Color& skinColor = randomColors[0];
                 Utilities::Color& hairColor = randomColors[1];
 
+                int bodyStart = 3;
+
                 // Torso and Head
                 modelEditor.tintPart(i, 0, skinColor);
-                modelEditor.tintPolys(i, 1, skinColor, { 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 35, 36, 37, 38 });
-                modelEditor.tintPolyRange(i, 2, skinColor, 3, 59);
-                modelEditor.tintPolyRange(i, 2, skinColor, 120, 130);
+                if (modelName == "REDXIII")
+                {
+                    modelEditor.tintPolys(i, 1, skinColor, { 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 35, 36, 37, 38 });
+                    modelEditor.tintPolyRange(i, 2, skinColor, 3, 59);
+                    modelEditor.tintPolyRange(i, 2, skinColor, 120, 130);
+                }
+                if (modelName == "REDXIII_PARACHUTE")
+                {
+                    modelEditor.tintPolyRange(i, 1, skinColor, 4, 41);
+                    modelEditor.tintPolyRange(i, 1, skinColor, 51, 63);
+                    modelEditor.tintPolyRange(i, 3, skinColor, 3, 59);
+                    modelEditor.tintPolyRange(i, 3, skinColor, 120, 130);
+                    bodyStart = 4;
+                }
 
                 // Front Left Leg
-                modelEditor.tintPart(i, 3, skinColor);
-                modelEditor.tintPart(i, 4, skinColor);
-                modelEditor.tintPart(i, 5, skinColor, { 7, 8, 9, 10, 11 });
-                modelEditor.tintPart(i, 6, skinColor);
+                modelEditor.tintPart(i, bodyStart + 0, skinColor);
+                modelEditor.tintPart(i, bodyStart + 1, skinColor);
+                modelEditor.tintPart(i, bodyStart + 2, skinColor, { 7, 8, 9, 10, 11 });
+                modelEditor.tintPart(i, bodyStart + 3, skinColor);
 
                 // Front Right Leg
-                modelEditor.tintPart(i, 7, skinColor);
-                modelEditor.tintPart(i, 8, skinColor);
-                modelEditor.tintPart(i, 9, skinColor, { 7, 8, 9, 10, 11 });
-                modelEditor.tintPart(i, 10, skinColor);
+                modelEditor.tintPart(i, bodyStart + 4, skinColor);
+                modelEditor.tintPart(i, bodyStart + 5, skinColor);
+                modelEditor.tintPart(i, bodyStart + 6, skinColor, { 7, 8, 9, 10, 11 });
+                modelEditor.tintPart(i, bodyStart + 7, skinColor);
 
                 // Back Left Leg
-                modelEditor.tintPart(i, 11, skinColor);
-                modelEditor.tintPart(i, 12, skinColor);
-                modelEditor.tintPart(i, 13, skinColor, { 7, 8, 9, 10, 11 });
-                modelEditor.tintPart(i, 14, skinColor);
+                modelEditor.tintPart(i, bodyStart + 8, skinColor);
+                modelEditor.tintPart(i, bodyStart + 9, skinColor);
+                modelEditor.tintPart(i, bodyStart + 10, skinColor, { 7, 8, 9, 10, 11 });
+                modelEditor.tintPart(i, bodyStart + 11, skinColor);
 
                 // Tail
-                modelEditor.tintPart(i, 15, skinColor);
-                modelEditor.tintPart(i, 16, skinColor);
+                modelEditor.tintPart(i, bodyStart + 12, skinColor);
+                modelEditor.tintPart(i, bodyStart + 13, skinColor);
 
                 // Back Right Leg
-                modelEditor.tintPart(i, 18, skinColor);
-                modelEditor.tintPart(i, 19, skinColor);
-                modelEditor.tintPart(i, 20, skinColor, { 7, 8, 9, 10, 11 });
-                modelEditor.tintPart(i, 21, skinColor);
+                modelEditor.tintPart(i, bodyStart + 15, skinColor);
+                modelEditor.tintPart(i, bodyStart + 16, skinColor);
+                modelEditor.tintPart(i, bodyStart + 17, skinColor, { 7, 8, 9, 10, 11 });
+                modelEditor.tintPart(i, bodyStart + 18, skinColor);
 
                 // Hair (Head, Torso, Tail)
-                modelEditor.tintPolys(i, 1, hairColor, { 0, 1, 2, 3, 28, 29, 30, 31, 32, 33, 34 });
-                modelEditor.tintPolyRange(i, 2, skinColor, 62, 99);
-                modelEditor.tintPart(i, 17, hairColor);
+                if (modelName == "REDXIII")
+                {
+                    modelEditor.tintPolys(i, 1, hairColor, { 0, 1, 2, 3, 28, 29, 30, 31, 32, 33, 34 });
+                    modelEditor.tintPolyRange(i, 2, hairColor, 62, 99);
+                }
+                if (modelName == "REDXIII_PARACHUTE")
+                {
+                    modelEditor.tintPolys(i, 1, hairColor, { 0, 1, 2, 3, 44, 45, 46, 47, 48, 49, 50 });
+                    modelEditor.tintPolyRange(i, 3, hairColor, 62, 99);
+                }
+                modelEditor.tintPart(i, bodyStart + 14, hairColor);
             }
 
             if (modelName == "CID" || modelName == "CID_PARACHUTE")

@@ -23,7 +23,7 @@ ModelEditor::~ModelEditor()
 void ModelEditor::setup(GameManager* gameManager)
 {
     game = gameManager;
-    bufferSize = 400000;
+    bufferSize = 500000;
     openModels.clear();
 }
 

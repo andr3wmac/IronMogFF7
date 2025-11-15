@@ -381,6 +381,7 @@ def outputModels(gen, discPath, version):
     outputModelFromField(discPath, "MD8_5.BSX", 1, "CLOUD_PARACHUTE")
     outputModelFromField(discPath, "MD8_5.BSX", 2, "TIFA_PARACHUTE")
     outputModelFromField(discPath, "MD8_5.BSX", 3, "BARRET_PARACHUTE")
+    outputModelFromField(discPath, "MD8_5.BSX", 4, "REDXIII_PARACHUTE")
     outputModelFromField(discPath, "MD8_5.BSX", 5, "CID_PARACHUTE")
 
     # Clouds model is slightly different on the world map for some reason, this was extracted from memory.
