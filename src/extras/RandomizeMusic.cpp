@@ -111,6 +111,15 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
         return;
     }
 
+    // Fix for midgar raid skip music
+    // We wait for 600 frames to pass to ensure we're past music triggers and then
+    // turn the music lock off. This keeps the music matching the original if you
+    // don't do the skip, but still gets jenova music for hojo fight if you do.
+    if (game->getFieldID() == 741 && game->getFramesInField() == 600)
+    {
+        game->write<uint8_t>(GameOffsets::MusicLock, 0);
+    }
+
     // Keep in game music volume locked to 0
     if (overrideMusic)
     {

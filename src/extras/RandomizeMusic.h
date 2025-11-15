@@ -40,6 +40,7 @@ private:
     float previousVolume = 1.0f;
     uint16_t previousMusicID = 0;
     uint8_t previousGameModule = 0;
+    
     std::unordered_map<uint16_t, uint16_t> previousTrackSelection;
     std::unordered_map<std::string, std::vector<Track>> musicMap;
 };

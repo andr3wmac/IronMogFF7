@@ -267,11 +267,24 @@ void GameManager::update()
 
     if (gameModule == GameModule::Field)
     {
+        // Detect if we're warping into the same field we're already in, this 
+        // is a reload and otherwise wouldn't trigger onFieldChanged.
+        uint8_t fieldWarpTrigger = read<uint8_t>(GameOffsets::FieldWarpTrigger);
+        if (fieldWarpTrigger == 1 && !waitingForFieldData)
+        {
+            uint16_t fieldWarpID = read<uint16_t>(GameOffsets::FieldWarpID);
+            if (fieldID == fieldWarpID)
+            {
+                waitingForFieldData = true;
+            }
+        }
+
         uint16_t newFieldID = read<uint16_t>(GameOffsets::FieldID);
         if (newFieldID != fieldID)
         {
             waitingForFieldData = true;
             fieldID = newFieldID;
+            framesInField = 0;
         }
 
         if (waitingForFieldData && isFieldDataLoaded())
@@ -314,10 +327,12 @@ void GameManager::update()
     }
     framesSinceReload++;
 
+    // Detect change in frame number and trigger event
     if (newFrameNumber != frameNumber)
     {
         frameNumber = newFrameNumber;
         lastFrameUpdateTime = currentTime;
+        framesInField++;
 
         if (emulatorPaused)
         {
@@ -446,6 +461,8 @@ bool GameManager::isBattleDataLoaded()
     return false;
 }
 
+// Detect if field data is fully loaded by verifying the set of information
+// we know about the field is confirmed in memory.
 bool GameManager::isFieldDataLoaded()
 {
     if (gameModule != GameModule::Field)
@@ -515,8 +532,8 @@ bool GameManager::isFieldDataLoaded()
     return true;
 }
 
-// TODO:
-//  - Hardcode expectations instead of checking like this, less reading.
+// Detect if shop data is fully loaded by verifying the set of information
+// we know about the shop is confirmed in memory.
 bool GameManager::isShopDataLoaded()
 {
     if (gameModule != GameModule::Menu)

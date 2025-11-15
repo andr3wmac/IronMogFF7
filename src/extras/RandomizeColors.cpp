@@ -265,30 +265,39 @@ void RandomizeColors::applyColors()
         {
             std::string& modelName = openModels[i].modelName;
 
-            if (modelName == "CLOUD" || modelName == "CLOUD_WORLD")
+            if (modelName == "CLOUD" || modelName == "CLOUD_WORLD" || modelName == "CLOUD_PARACHUTE")
             {
                 std::vector<Utilities::Color> randomColors = randomModelColors["CLOUD"];
                 Utilities::Color& outfitColor = randomColors[0];
 
                 modelEditor.tintPart(i, 0, outfitColor);
-                modelEditor.tintPart(i, 1, outfitColor);
-                modelEditor.tintPart(i, 9, outfitColor);
-                modelEditor.tintPart(i, 10, outfitColor, { 4, 5, 6, 7, 8, 9 });
-                modelEditor.tintPart(i, 12, outfitColor);
-                modelEditor.tintPart(i, 13, outfitColor, { 4, 5, 6, 7, 8, 9 });
+
+                int legStart = 9;
+                if (modelName == "CLOUD_PARACHUTE")
+                {
+                    // Exclude the parachute
+                    modelEditor.tintPolyRange(i, 1, outfitColor, 0, 7);
+                    modelEditor.tintPolyRange(i, 1, outfitColor, 12, 34);
+                    legStart = 10;
+                }
+                else 
+                {
+                    modelEditor.tintPart(i, 1, outfitColor);
+                }
+                
+                modelEditor.tintPart(i, legStart + 0, outfitColor);
+                modelEditor.tintPart(i, legStart + 1, outfitColor, { 4, 5, 6, 7, 8, 9 });
+                modelEditor.tintPart(i, legStart + 3, outfitColor);
+                modelEditor.tintPart(i, legStart + 4, outfitColor, { 4, 5, 6, 7, 8, 9 });
             }
 
-            if (modelName == "BARRET" || modelName == "BARRET_COREL")
+            if (modelName == "BARRET" || modelName == "BARRET_COREL" || modelName == "BARRET_PARACHUTE")
             {
                 std::vector<Utilities::Color> randomColors = randomModelColors["BARRET"];
                 Utilities::Color& pantsColor = randomColors[0];
                 Utilities::Color& shirtColor = randomColors[1];
 
-                modelEditor.tintPart(i, 0, pantsColor);
-                modelEditor.tintPart(i, 9, pantsColor);
-                modelEditor.tintPart(i, 10, pantsColor, { 4, 5, 6, 7, 8, 9 });
-                modelEditor.tintPart(i, 12, pantsColor);
-                modelEditor.tintPart(i, 13, pantsColor, { 4, 5, 6, 7, 8, 9 });
+                int legsStart = 9;
 
                 if (modelName == "BARRET")
                 {
@@ -301,16 +310,36 @@ void RandomizeColors::applyColors()
                     modelEditor.tintPolyRange(i, 1, shirtColor, 66, 72);
                     modelEditor.tintPolyRange(i, 1, shirtColor, 77, 81);
                 }
+                if (modelName == "BARRET_PARACHUTE")
+                {
+                    modelEditor.tintPolyRange(i, 1, shirtColor, 8, 45);
+                    modelEditor.tintPolyRange(i, 1, shirtColor, 72, 89);
+                    legsStart = 10;
+                }
+
+                modelEditor.tintPart(i, 0, pantsColor);
+                modelEditor.tintPart(i, legsStart + 0, pantsColor);
+                modelEditor.tintPart(i, legsStart + 1, pantsColor, { 4, 5, 6, 7, 8, 9 });
+                modelEditor.tintPart(i, legsStart + 3, pantsColor);
+                modelEditor.tintPart(i, legsStart + 4, pantsColor, { 4, 5, 6, 7, 8, 9 });
             }
 
-            if (modelName == "TIFA")
+            if (modelName == "TIFA" || modelName == "TIFA_PARACHUTE")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors[modelName];
+                std::vector<Utilities::Color> randomColors = randomModelColors["TIFA"];
                 Utilities::Color& skirtColor = randomColors[0];
                 Utilities::Color& shirtColor = randomColors[1];
 
                 modelEditor.tintPart(i, 0, skirtColor);
-                modelEditor.tintPart(i, 1, shirtColor, { 6, 7, 8, 36, 37, 38, 39, 40, 41, 42 });
+                if (modelName == "TIFA_PARACHUTE")
+                {
+                    modelEditor.tintPolyRange(i, 1, shirtColor, 19, 41);
+                    modelEditor.tintPolyRange(i, 1, shirtColor, 55, 60);
+                }
+                else
+                {
+                    modelEditor.tintPart(i, 1, shirtColor, { 6, 7, 8, 36, 37, 38, 39, 40, 41, 42 });
+                }
             }
 
             if (modelName == "AERITH" || modelName == "AERITH_INTRO")
@@ -385,22 +414,39 @@ void RandomizeColors::applyColors()
                 modelEditor.tintPart(i, 17, hairColor);
             }
 
-            if (modelName == "CID")
+            if (modelName == "CID" || modelName == "CID_PARACHUTE")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors[modelName];
+                std::vector<Utilities::Color> randomColors = randomModelColors["CID"];
                 Utilities::Color& pantsColor = randomColors[0];
                 Utilities::Color& shirtColor = randomColors[1];
 
-                modelEditor.tintPart(i, 0, pantsColor);
-                modelEditor.tintPart(i, 9, pantsColor);
-                modelEditor.tintPart(i, 10, pantsColor, { 4, 5, 6, 7, 8, 9, 10, 11, 20 });
-                modelEditor.tintPart(i, 12, pantsColor);
-                modelEditor.tintPart(i, 13, pantsColor, { 4, 5, 6, 7, 8, 9, 10, 11, 20 });
+                int legsStart = 9;
+                int armsStart = 3;
 
-                modelEditor.tintPolyRange(i, 1, shirtColor, 12, 35);
-                modelEditor.tintPolyRange(i, 1, shirtColor, 43, 57);
-                modelEditor.tintPart(i, 3, shirtColor, { 14, 15, 16, 17, 18 });
-                modelEditor.tintPart(i, 6, shirtColor, { 14, 15, 16, 17, 18 });
+                if (modelName == "CID_PARACHUTE")
+                {
+                    modelEditor.tintPolyRange(i, 1, shirtColor, 2, 20);
+                    modelEditor.tintPolyRange(i, 1, shirtColor, 23, 43);
+                    modelEditor.tintPolyRange(i, 1, shirtColor, 58, 64);
+                    modelEditor.tintPolyRange(i, 1, shirtColor, 67, 78);
+
+                    legsStart = 10;
+                    armsStart = 4;
+                }
+                else 
+                {
+                    modelEditor.tintPolyRange(i, 1, shirtColor, 12, 35);
+                    modelEditor.tintPolyRange(i, 1, shirtColor, 43, 57);
+                }
+
+                modelEditor.tintPart(i, 0, pantsColor);
+                modelEditor.tintPart(i, legsStart + 0, pantsColor);
+                modelEditor.tintPart(i, legsStart + 1, pantsColor, { 4, 5, 6, 7, 8, 9, 10, 11, 20 });
+                modelEditor.tintPart(i, legsStart + 3, pantsColor);
+                modelEditor.tintPart(i, legsStart + 4, pantsColor, { 4, 5, 6, 7, 8, 9, 10, 11, 20 });
+
+                modelEditor.tintPart(i, armsStart + 0, shirtColor, { 14, 15, 16, 17, 18 });
+                modelEditor.tintPart(i, armsStart + 3, shirtColor, { 14, 15, 16, 17, 18 });
             }
 
             if (modelName == "CAITSITH")

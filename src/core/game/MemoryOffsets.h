@@ -10,6 +10,7 @@ struct GameOffsets
     CONST_PTR FrameNumber       = 0x51568;  // uint32_t
     CONST_PTR MusicVolume       = 0x62F5E;  // uint16_t controlling global music volume
     CONST_PTR NextFormationID   = 0x707BC;  // uint16_t formation id of the next random encounter
+    CONST_PTR MusicLock         = 0x716D4;  // uint8_t 1 is locked, 0 is unlocked
     CONST_PTR FieldID           = 0x9A05C;  // uint16_t
     CONST_PTR MusicID           = 0x9A14E;  // uint16_t id of currently playing music
     CONST_PTR MenuType          = 0x9ABF5;  // uint8_t 8 = shop, 9 = main menu

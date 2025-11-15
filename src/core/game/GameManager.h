@@ -33,6 +33,7 @@ public:
     bool inBattle();
     bool inMenu();
     uint16_t getFieldID() { return fieldID; }
+    int getFramesInField() { return framesInField; }
 
     // Returns a list of the character IDs that are currently in the party. 0xFF is the slot is empty.
     std::array<uint8_t, 3> getPartyIDs();
@@ -94,6 +95,7 @@ private:
     int framesSinceReload = 0;
 
     uint16_t fieldID = 0;
+    int framesInField = 0;
 
     bool waitingForBattleData = false;
     bool isBattleDataLoaded();
