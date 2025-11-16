@@ -16,13 +16,18 @@ public:
         uint8_t r, g, b;
     };
 
-    // Process related utility functions
-    static uint32_t getProcessIDByName(const std::string& processName);
-    static uintptr_t getProcessBaseAddress(void* processHandle);
-    static std::vector<std::string> getRunningProcesses();
-
     // Parses memory address hex string into numeric form
-    static uintptr_t parseAddress(const std::string& addressText);
+    static uintptr_t parseAddress(const std::string& addressText)
+    {
+        std::string str = addressText;
+
+        // Remove "0x" or "0X" prefix if present
+        if (str.rfind("0x", 0) == 0 || str.rfind("0X", 0) == 0)
+            str = str.substr(2);
+
+        // Parse as base-16 (hex)
+        return static_cast<uintptr_t>(std::stoull(str, nullptr, 16));
+    }
 
     static inline std::string seedToHexString(uint32_t seed) 
     {

@@ -1,6 +1,7 @@
 #include "App.h"
 #include "core/game/MemoryOffsets.h"
 #include "core/gui/IconsFontAwesome5.h"
+#include "core/utilities/Platform.h"
 #include "core/utilities/Utilities.h"
 #include "extras/Extra.h"
 #include "extras/RandomizeMusic.h"
@@ -36,7 +37,7 @@ void App::drawSettingsPanel()
                 // Update list of processes if Custom is selected.
                 if (selectedEmulatorType == EmulatorType::Custom)
                 {
-                    runningProcesses = Utilities::getRunningProcesses();
+                    runningProcesses = Platform::getRunningProcesses();
                     runningProcessesCStr.clear();
                     for (const auto& name : runningProcesses)
                     {

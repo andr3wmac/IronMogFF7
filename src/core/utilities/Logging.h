@@ -14,8 +14,8 @@ public:
 
 private:
     std::ofstream logFile;
-    std::string GetTimestamp();
-    std::string FormatString(const char* format, va_list args);
+    std::string getTimestamp();
+    std::string formatString(const char* format, va_list args);
 };
 
 extern Logger logger;

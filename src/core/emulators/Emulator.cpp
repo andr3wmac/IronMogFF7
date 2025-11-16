@@ -4,17 +4,14 @@
 #include "BizHawk.h"
 #include "core/game/MemoryOffsets.h"
 #include "core/utilities/Logging.h"
+#include "core/utilities/Platform.h"
 #include "core/utilities/Utilities.h"
 
 #include <iostream>
 #include <algorithm>
 
-#define NOMINMAX
-#include <windows.h>
-#include <tlhelp32.h>
-#include <psapi.h>
-
 std::vector<std::pair<uintptr_t, uint32_t>> Emulator::ps1MemoryChecks = {
+    {0x08, 54525960},
     {0x80, 1008336896},
     {0x84, 660212864}
 };
@@ -59,28 +56,26 @@ Emulator* Emulator::getEmulatorCustom(std::string processName, uintptr_t memoryA
 Emulator::Emulator()
     : processHandle(0), ps1BaseAddress(0)
 {
-
 }
 
 Emulator::~Emulator()
 {
     if (processHandle != 0)
     {
-        CloseHandle(processHandle);
+        Platform::closeProcess(processHandle);
     }
 }
 
 bool Emulator::attach(std::string processName)
 {
-    DWORD pid = Utilities::getProcessIDByName(processName);
-
+    uint32_t pid = Platform::getProcessIDByName(processName);
     if (pid == 0)
     {
         LOG("Emulator process not found.");
         return false;
     }
 
-    processHandle = OpenProcess(PROCESS_ALL_ACCESS, FALSE, pid);
+    processHandle = Platform::openProcess(pid);
     if (!processHandle)
     {
         LOG("Failed to open emulator process.");
@@ -92,7 +87,7 @@ bool Emulator::attach(std::string processName)
     // This is just to ensure we actually attached to the right memory. This will fail if the offset is wrong.
     uintptr_t fieldXOffset = FieldOffsets::FieldX;
     int32_t fieldX = 0;
-    if (!ReadProcessMemory(processHandle, (LPCVOID)(ps1BaseAddress + fieldXOffset), &fieldX, sizeof(fieldX), nullptr))
+    if (!Platform::read(processHandle, ps1BaseAddress + fieldXOffset, &fieldX, sizeof(fieldX)))
     {
         LOG("Failed to read playstation memory.");
         return false;
@@ -104,7 +99,7 @@ bool Emulator::attach(std::string processName)
 
 bool Emulator::read(uintptr_t offset, void* outBuffer, size_t size)
 {
-    if (!ReadProcessMemory(processHandle, (LPCVOID)(ps1BaseAddress + offset), outBuffer, size, nullptr))
+    if (!Platform::read(processHandle, ps1BaseAddress + offset, outBuffer, size))
     {
         LOG("Failed to read memory from: %d", offset);
         return false;
@@ -115,9 +110,9 @@ bool Emulator::read(uintptr_t offset, void* outBuffer, size_t size)
 
 bool Emulator::write(uintptr_t offset, void* inValue, size_t size)
 {
-    if (!WriteProcessMemory(processHandle, (LPVOID)(ps1BaseAddress + offset), inValue, size, nullptr))
+    if (!Platform::write(processHandle, ps1BaseAddress + offset, inValue, size))
     {
-        LOG("Failed to write memory to: %d", offset);
+        LOG("Failed to read memory from: %d", offset);
         return false;
     }
 
@@ -132,7 +127,7 @@ bool Emulator::verifyPS1MemoryOffset(uintptr_t offset)
     // Run through the memchecks to make sure we found the right memory space.
     for (int i = 0; i < Emulator::ps1MemoryChecks.size(); ++i)
     {
-        if (ReadProcessMemory(processHandle, (LPCVOID)(offset + Emulator::ps1MemoryChecks[i].first), &checkValue, sizeof(checkValue), nullptr))
+        if (Platform::read(processHandle, offset + Emulator::ps1MemoryChecks[i].first, &checkValue, sizeof(checkValue)))
         {
             if (checkValue == Emulator::ps1MemoryChecks[i].second)
             {
