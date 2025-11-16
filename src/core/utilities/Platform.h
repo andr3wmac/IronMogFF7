@@ -8,6 +8,9 @@
 #include <vector>
 #include <unordered_map>
 
+// Platform serves as an OS agnostic wrapper around system function calls.
+// TODO: implement PlatformLinux.cpp and PlatformOSX.cpp
+
 class Platform
 {
 public:
@@ -35,8 +38,9 @@ public:
     static bool findProcessLibrary(void* processHandle, const std::string& libraryName, ProcessLibrary& libraryOut);
     static bool openMemoryRegion(void* processHandle, uintptr_t startAddr, MemoryRegion& memoryRegionOut);
 
-    // Utility functions
     static uint32_t getProcessIDByName(const std::string& processName);
     static uintptr_t getProcessBaseAddress(void* processHandle);
     static std::vector<std::string> getRunningProcesses();
+
+    static void debuggerLog(const std::string& message);
 };

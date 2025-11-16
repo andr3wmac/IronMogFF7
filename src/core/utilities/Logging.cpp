@@ -1,10 +1,9 @@
 #include "Logging.h"
+#include "core/utilities/Platform.h"
+
 #include <filesystem>
 #include <iomanip>
 #include <sstream>
-
-#define NOMINMAX
-#include <windows.h>
 
 Logger logger("logs");
 
@@ -46,8 +45,8 @@ void Logger::Log(const char* format, ...)
         logFile.flush();
     }
 
-    // Write to Visual Studio debug console
-    OutputDebugStringA(line.c_str());
+    // Write to debugger log if one is attached
+    Platform::debuggerLog(line);
 }
 
 std::string Logger::formatString(const char* format, va_list args) 

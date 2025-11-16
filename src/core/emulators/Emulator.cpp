@@ -10,11 +10,17 @@
 #include <iostream>
 #include <algorithm>
 
+// These values seem to be the same regardless of what state my emulator is in
+// or what game I have loaded.
 std::vector<std::pair<uintptr_t, uint32_t>> Emulator::ps1MemoryChecks = {
-    {0x08, 54525960},
     {0x80, 1008336896},
-    {0x84, 660212864}
+    {0x84, 660212864},
+    {0x88, 54525960}
 };
+
+std::vector<uint8_t> ff7Disc1ID = { 0x53, 0x43, 0x55, 0x53, 0x5F, 0x39, 0x34, 0x31, 0x2E, 0x36, 0x33 }; // SCUS_941.63
+std::vector<uint8_t> ff7Disc2ID = { 0x53, 0x43, 0x55, 0x53, 0x5F, 0x39, 0x34, 0x31, 0x2E, 0x36, 0x34 }; // SCUS_941.64
+std::vector<uint8_t> ff7Disc3ID = { 0x53, 0x43, 0x55, 0x53, 0x5F, 0x39, 0x34, 0x31, 0x2E, 0x36, 0x35 }; // SCUS_941.65
 
 // Case insensitive string search
 bool lowercaseContainsString(const std::string& haystack, const std::string& needle) 
@@ -136,11 +142,15 @@ bool Emulator::verifyPS1MemoryOffset(uintptr_t offset)
         }
     }
 
-    // We take the first result that passes all checks because that seems to select the right answer in practice.
-    if (checksPassed == Emulator::ps1MemoryChecks.size())
+    // Check the Disc ID to ensure this is Final Fantasy 7
+    bool discCheckPassed = false;
+    uint8_t discID[11];
+    if (Platform::read(processHandle, offset + 0x9E19, &discID[0], 11))
     {
-        return true;
+        discCheckPassed |= memcmp(&discID[0], ff7Disc1ID.data(), 11) == 0;
+        discCheckPassed |= memcmp(&discID[0], ff7Disc2ID.data(), 11) == 0;
+        discCheckPassed |= memcmp(&discID[0], ff7Disc3ID.data(), 11) == 0;
     }
 
-    return false;
+    return (discCheckPassed && checksPassed == Emulator::ps1MemoryChecks.size());
 }

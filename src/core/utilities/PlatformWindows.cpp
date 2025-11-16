@@ -223,3 +223,9 @@ std::vector<std::string> Platform::getRunningProcesses()
     CloseHandle(snapshot);
     return result;
 }
+
+void Platform::debuggerLog(const std::string& message)
+{
+    // Write to Visual Studio debug console
+    OutputDebugStringA(message.c_str());
+}
