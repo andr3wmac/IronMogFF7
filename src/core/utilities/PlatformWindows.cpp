@@ -8,7 +8,7 @@
 
 #include <set>
 
-// --- NtWriteVirtualMemory typedef ---
+// NtWriteVirtualMemory function signature
 typedef NTSTATUS(WINAPI* NtWriteVirtualMemory_t)(
     HANDLE ProcessHandle,
     PVOID  BaseAddress,
@@ -34,7 +34,7 @@ bool Platform::read(void* processHandle, uintptr_t address, void* memOut, size_t
 
 // WriteProcessMemory results in calls to NtQueryVirtualMemory which can be expensive in some situations.
 // Specifically on BizHawk it can take 5-7ms to execute NtQueryVirtualMemory on each write. Instead we 
-// bypass the safety checks and call NtWriteVirtualMemory directly. The same is not true for ReadProcessMemory.
+// bypass the safety checks and call NtWriteVirtualMemory directly.
 bool Platform::write(void* processHandle, uintptr_t address, void* memIn, size_t sizeInBytes)
 {
     static NtWriteVirtualMemory_t NtWriteVirtualMemoryFn = nullptr;

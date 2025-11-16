@@ -1,12 +1,13 @@
 #pragma once
 
+#include <algorithm>
 #include <chrono>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
 #include <string>
-#include <vector>
 #include <unordered_map>
+#include <vector>
 
 class Utilities
 {
@@ -27,6 +28,23 @@ public:
 
         // Parse as base-16 (hex)
         return static_cast<uintptr_t>(std::stoull(str, nullptr, 16));
+    }
+
+    // Case insensitive string search
+    static inline bool containsIgnoreCase(const std::string& haystack, const std::string& needle)
+    {
+        auto toLower = [](const std::string& s)
+            {
+                std::string result = s;
+                std::transform(result.begin(), result.end(), result.begin(),
+                    [](unsigned char c) { return std::tolower(c); });
+                return result;
+            };
+
+        std::string haystack_lower = toLower(haystack);
+        std::string needle_lower = toLower(needle);
+
+        return haystack_lower.find(needle_lower) != std::string::npos;
     }
 
     static inline std::string seedToHexString(uint32_t seed) 
