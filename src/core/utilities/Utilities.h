@@ -148,10 +148,10 @@ public:
         return result;
     }
 
-    static uint64_t getTimeMS() 
+    static double getTimeMS()
     {
         using namespace std::chrono;
-        return duration_cast<milliseconds>(steady_clock::now().time_since_epoch()).count();
+        return duration<double, std::milli>(steady_clock::now().time_since_epoch()).count();
     }
 
     static std::string formatTime(uint32_t seconds) 

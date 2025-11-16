@@ -223,6 +223,23 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
         lastFieldTrigger = fieldTrigger;
     }
 
+    // Hack fix for aerith forest scene after demons gate.
+    // Her model seems to have the colors reloaded after they do a bright white
+    // effect to it. Its reloaded behind the tree, so we detect when her models
+    // at the position behind the tree then reapply coloring.
+    if (gameModule == GameModule::Field && !waitingForField)
+    {
+        if (game->getFieldID() == 618 && game->getGameMoment() < 638)
+        {
+            int32_t aerithPositionX = game->read<int32_t>(0x7503C);
+            int32_t aerithPositionY = game->read<int32_t>(0x75040);
+            if (aerithPositionX > 975000 && aerithPositionY == -499712)
+            {
+                applyColors();
+            }
+        }
+    }
+
     if (gameModule == GameModule::World && waitingForWorld)
     {
         uint8_t worldTrigger = game->read<uint8_t>(WORLD_TRIGGER_ADDR);

@@ -26,6 +26,7 @@ struct GameOffsets
     CONST_PTR GameMoment        = 0x9D288;  // uint16_t
     CONST_PTR MenuLockingMask   = 0x9D2A6;  // uint16_t bitmask of options disabled in the menu. 
     CONST_PTR PHSVisibilityMask = 0x9D78A;  // uint16_t bitmask of which characters are on PHS
+    CONST_PTR DialogText        = 0xE4944;  // Array of uint8_t characters terminated by 255
 };
 
 struct GameModule

@@ -255,7 +255,7 @@ const char* normalChars[256] = {
 
 std::string GameData::decodeString(const std::vector<uint8_t>& data)
 {
-    std::string result;
+    std::string result = "";
     for (uint8_t byte : data) 
     {
         if (byte == 0xFF) break;

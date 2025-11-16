@@ -27,6 +27,9 @@ public:
     inline uint32_t getSeed() { return seed; }
     void update();
 
+    // Returns how long the last update() took in ms.
+    double getLastUpdateDuration() { return lastUpdateDuration; }
+
     // Returns a byte representing what module the game is. eg Field, Battle, World, etc
     uint8_t getGameModule() { return gameModule; }
     uint16_t getGameMoment();
@@ -47,6 +50,9 @@ public:
 
     // Finds the nearest message that contains the item name
     int findPickUpMessage(std::string itemName, uint32_t itemOffset);
+
+    // Returns the last dialog text that was displayed.
+    std::string getLastDialogText();
 
     // Events
     Event<> onStart;
@@ -88,10 +94,11 @@ private:
 
     bool hasStarted = false;
     bool emulatorPaused = false;
+    double lastUpdateDuration = 0.0;
     uint32_t seed = 0;
-    uint32_t frameNumber = 0;
     uint8_t gameModule = 0;
-    uint64_t lastFrameUpdateTime = 0;
+    uint32_t frameNumber = 0;
+    double lastFrameUpdateTime = 0.0;
     int framesSinceReload = 0;
 
     uint16_t fieldID = 0;

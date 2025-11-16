@@ -278,6 +278,11 @@ void App::drawDebugPanel()
         return;
     }
 
+    // IronMog Frame Update Time
+    double updateDuration = game->getLastUpdateDuration();
+    std::string updateDurationText = "IronMog Update Time: " + std::to_string(updateDuration) + "ms";
+    ImGui::Text(updateDurationText.c_str());
+
     // Frame Number
     uint32_t frameNumber = game->read<uint32_t>(GameOffsets::FrameNumber);
     std::string frameNumberText = "Frame Number: " + std::to_string(frameNumber);
@@ -355,6 +360,23 @@ void App::drawDebugPanel()
         {
             uint32_t gil = game->read<uint32_t>(GameOffsets::Gil);
             game->write<uint32_t>(GameOffsets::Gil, gil + 10000);
+        }
+
+        if (ImGui::Button("Recover Party"))
+        {
+            std::array<uint8_t, 3> partyIDs = game->getPartyIDs();
+            for (int i = 0; i < 3; ++i)
+            {
+                uint8_t id = partyIDs[i];
+                if (id == 0xFF)
+                {
+                    continue;
+                }
+
+                uintptr_t characterOffset = getCharacterDataOffset(id);
+                uint16_t maxHP = game->read<uint16_t>(characterOffset + CharacterDataOffsets::MaxHP);
+                game->write<uint16_t>(characterOffset + CharacterDataOffsets::CurrentHP, maxHP);
+            }
         }
 
         ImGui::Unindent(25.0f);

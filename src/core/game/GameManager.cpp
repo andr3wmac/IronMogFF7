@@ -199,7 +199,7 @@ void GameManager::update()
     }
 
     // We assume if 200ms has passed without the frame number advancing that the emulator is paused
-    uint64_t currentTime = Utilities::getTimeMS();
+    double currentTime = Utilities::getTimeMS();
     if (currentTime - lastFrameUpdateTime > 200 && !emulatorPaused)
     {
         emulatorPaused = true;
@@ -319,8 +319,8 @@ void GameManager::update()
     int frameDifference = std::abs((int)newFrameNumber - (int)frameNumber);
     if (frameDifference > 10 && framesSinceReload > 10)
     {
-        uint64_t timeGap = currentTime - lastFrameUpdateTime;
-        LOG("Load detected, reloading rules %d", timeGap);
+        double timeGap = currentTime - lastFrameUpdateTime;
+        LOG("Load detected, reloading rules %lf", timeGap);
         loadSaveData();
         onStart.invoke();
         framesSinceReload = 0;
@@ -343,6 +343,8 @@ void GameManager::update()
         
         onFrame.invoke(newFrameNumber);
     }
+
+    lastUpdateDuration = Utilities::getTimeMS() - currentTime;
 }
 
 std::array<uint8_t, 3> GameManager::getPartyIDs()
@@ -618,4 +620,14 @@ int GameManager::findPickUpMessage(std::string itemName, uint32_t itemOffset)
     }
 
     return bestIndex;
+}
+
+std::string GameManager::getLastDialogText()
+{
+    if (getGameModule() != GameModule::Field)
+    {
+        return "";
+    }
+
+    return readString(GameOffsets::DialogText, 256);
 }
