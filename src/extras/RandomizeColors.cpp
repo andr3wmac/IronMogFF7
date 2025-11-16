@@ -211,6 +211,16 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
         bool shouldUpdate = (lastFieldTrigger == 0x100 && fieldTrigger < lastFieldTrigger);
         shouldUpdate |= (lastFieldID == -1);
 
+        // Hack fix for base of tower transition after wedge falls
+        if (lastFieldTrigger == 256 && game->getFieldID() == 156 && game->getGameMoment() == 218)
+        {
+            // Waiting 240 frames was chosen arbitrarily and tested. Could be fragile.
+            if (game->getFramesInField() == 240)
+            {
+                shouldUpdate = true;
+            }
+        }
+
         if (shouldUpdate)
         {
             modelEditor.findFieldModels();

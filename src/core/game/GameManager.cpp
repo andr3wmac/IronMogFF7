@@ -156,7 +156,7 @@ void GameManager::loadSaveData()
     uint16_t ironMogID = read<uint16_t>(SavemapOffsets::IronMogSave);
 
     // 49 and 4D are the letters IM for Iron Mog
-    if (ironMogID == 0x494D)
+    if (ironMogID == 0x4D49)
     {
         // Load existing save data.
         seed = read<uint32_t>(SavemapOffsets::IronMogSeed);
@@ -173,7 +173,7 @@ void GameManager::loadSaveData()
         }
 
         // Write header and seed into save data area.
-        write<uint16_t>(SavemapOffsets::IronMogSave, 0x494D);
+        write<uint16_t>(SavemapOffsets::IronMogSave, 0x4D49);
         write<uint8_t>(SavemapOffsets::IronMogVersion, saveDataVersion);
 
         // Write seed

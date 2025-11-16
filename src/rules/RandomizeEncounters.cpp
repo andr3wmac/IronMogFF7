@@ -17,6 +17,24 @@ void RandomizeEncounters::setup()
     BIND_EVENT(game->onStart, RandomizeEncounters::onStart);
     BIND_EVENT_ONE_ARG(game->onFrame, RandomizeEncounters::onFrame);
     BIND_EVENT(game->onBattleExit, RandomizeEncounters::onBattleExit);
+
+    // Chocobo fights
+    excludedFormations.insert({ 56, 57, 60, 61, 78, 79, 80, 81, 98, 99, 104, 105, 152, 153, 156, 157, 162, 163, 166, 167, 202, 203, 206, 207, 214, 215, 218, 219 });
+
+    // Yuffie
+    excludedFormations.insert({ 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279 });
+
+    // Midgar Zolom
+    excludedFormations.insert({ 469, 470 });
+
+    // Turks
+    excludedFormations.insert({ 841, 842, 843 });
+
+    // Ruby Weapon
+    excludedFormations.insert({ 982, 983 });
+
+    // Emerald Weapon
+    excludedFormations.insert({ 984, 985, 986, 987 });
 }
 
 void RandomizeEncounters::onSettingsGUI()
@@ -88,8 +106,8 @@ void RandomizeEncounters::generateRandomEncounterMap()
                 continue;
             }
 
-            // Don't randomize midgar zolom
-            if (formation.id == 469 || formation.id == 470)
+            // Don't randomize excluded formations
+            if (excludedFormations.count(formation.id) > 0)
             {
                 continue;
             }
@@ -121,6 +139,12 @@ void RandomizeEncounters::generateRandomEncounterMap()
                 {
                     BattleFormation candidateFormation = candidateScene.formations[j];
                     if (candidateFormation.noEscape)
+                    {
+                        continue;
+                    }
+
+                    // Skip excluded formations
+                    if (excludedFormations.count(candidateFormation.id) > 0)
                     {
                         continue;
                     }

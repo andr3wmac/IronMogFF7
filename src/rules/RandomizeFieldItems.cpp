@@ -203,6 +203,12 @@ void RandomizeFieldItems::apply()
             continue;
         }
 
+        if (Restrictions::isFieldItemBanned(newItem.id))
+        {
+            std::mt19937_64 rng64(Utilities::makeKey(game->getSeed(), fieldData.id, i));
+            newItem.id = GameData::getRandomFieldItem(newItem.id, rng64);
+        }
+
         game->write<uint16_t>(itemIDOffset, newItem.id);
         game->write<uint8_t>(itemQuantityOffset, newItem.quantity);
 
@@ -258,6 +264,7 @@ void RandomizeFieldItems::apply()
             std::mt19937_64 rng64(Utilities::makeKey(game->getSeed(), fieldData.id, (uint8_t)newMateriaID));
             newMateriaID = GameData::getRandomMateria(rng64);
         }
+
         game->write<uint8_t>(idOffset, (uint8_t)newMateriaID);
 
         std::string oldMateriaName = GameData::getMateriaName(oldMateriaID);

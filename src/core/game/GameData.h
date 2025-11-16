@@ -128,11 +128,14 @@ public:
     static std::string getWeaponName(uint8_t id);
     static std::string getMateriaName(uint8_t id);
 
-    static uint16_t getRandomAccessory(std::mt19937_64& rng);
-    static uint16_t getRandomArmor(std::mt19937_64& rng);
-    static uint16_t getRandomItem(std::mt19937_64& rng);
-    static uint16_t getRandomWeapon(std::mt19937_64& rng);
+    static uint16_t getRandomAccessory(std::mt19937_64& rng, bool excludeBanned = true);
+    static uint16_t getRandomArmor(std::mt19937_64& rng, bool excludeBanned = true);
+    static uint16_t getRandomItem(std::mt19937_64& rng, bool excludeBanned = true);
+    static uint16_t getRandomWeapon(std::mt19937_64& rng, bool excludeBanned = true);
     static uint16_t getRandomMateria(std::mt19937_64& rng, bool excludeBanned = true);
+
+    // Returns a random field item ID thats the same type as origFieldItemID
+    static uint16_t getRandomFieldItem(uint16_t origFieldItemID, std::mt19937_64& rng, bool excludeBanned = true);
 
     static FieldData getField(uint16_t id);
     static std::string getNameFromFieldScriptID(uint16_t fieldScriptID);
