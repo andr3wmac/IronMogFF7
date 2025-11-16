@@ -13,13 +13,13 @@ class Platform
 public:
     struct ProcessLibrary
     {
-        uintptr_t baseAddr; 
+        uintptr_t baseAddress; 
         size_t size;
     };
 
     struct MemoryRegion
     {
-        uintptr_t baseAddr;
+        uintptr_t baseAddress;
         size_t size;
         bool isReadable;
         bool isWritable;

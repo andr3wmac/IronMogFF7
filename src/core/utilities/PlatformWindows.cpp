@@ -92,7 +92,7 @@ bool Platform::findProcessLibrary(void* processHandle, const std::string& librar
     HMODULE hMods[1024];
     DWORD cbNeeded;
 
-    libraryOut.baseAddr = 0;
+    libraryOut.baseAddress = 0;
     libraryOut.size = 0;
 
     if (EnumProcessModulesEx(processHandle, hMods, sizeof(hMods), &cbNeeded, LIST_MODULES_ALL))
@@ -107,7 +107,7 @@ bool Platform::findProcessLibrary(void* processHandle, const std::string& librar
                     MODULEINFO modInfo = {};
                     if (GetModuleInformation(processHandle, hMods[i], &modInfo, sizeof(modInfo)))
                     {
-                        libraryOut.baseAddr = reinterpret_cast<uintptr_t>(modInfo.lpBaseOfDll);
+                        libraryOut.baseAddress = reinterpret_cast<uintptr_t>(modInfo.lpBaseOfDll);
                         libraryOut.size = static_cast<size_t>(modInfo.SizeOfImage);
                         return true;
                     }
@@ -123,7 +123,7 @@ bool Platform::openMemoryRegion(void* processHandle, uintptr_t startAddr, Memory
 {
     MEMORY_BASIC_INFORMATION mbi;
 
-    memoryRegionOut.baseAddr    = 0;
+    memoryRegionOut.baseAddress = 0;
     memoryRegionOut.size        = 0;
     memoryRegionOut.isReadable  = false;
     memoryRegionOut.isWritable  = false;
@@ -134,7 +134,7 @@ bool Platform::openMemoryRegion(void* processHandle, uintptr_t startAddr, Memory
         return false;
     }
 
-    memoryRegionOut.baseAddr    = (uintptr_t)mbi.BaseAddress;
+    memoryRegionOut.baseAddress = (uintptr_t)mbi.BaseAddress;
     memoryRegionOut.size        = mbi.RegionSize;
     memoryRegionOut.isReadable  = (mbi.State == MEM_COMMIT) && ((mbi.Protect & PAGE_READWRITE) ||(mbi.Protect & PAGE_READONLY) || (mbi.Protect & PAGE_WRITECOPY) || (mbi.Protect & PAGE_EXECUTE_READ) || (mbi.Protect & PAGE_EXECUTE_READWRITE));
     memoryRegionOut.isWritable  = (mbi.State == MEM_COMMIT) && ((mbi.Protect & PAGE_READWRITE) ||(mbi.Protect & PAGE_WRITECOPY) || (mbi.Protect & PAGE_EXECUTE_READWRITE));
@@ -161,7 +161,8 @@ uint32_t Platform::getProcessIDByName(const std::string& processName)
                 pid = entry.th32ProcessID;
                 break;
             }
-        } while (Process32Next(snapshot, &entry));
+        } 
+        while (Process32Next(snapshot, &entry));
     }
 
     CloseHandle(snapshot);
@@ -209,12 +210,14 @@ std::vector<std::string> Platform::getRunningProcesses()
 
     if (Process32First(snapshot, &entry)) 
     {
-        do {
+        do 
+        {
             if (seenPIDs.count(entry.th32ProcessID)) 
             {
                 result.emplace_back(entry.szExeFile);
             }
-        } while (Process32Next(snapshot, &entry));
+        } 
+        while (Process32Next(snapshot, &entry));
     }
 
     CloseHandle(snapshot);

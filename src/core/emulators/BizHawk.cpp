@@ -13,7 +13,7 @@ uintptr_t BizHawk::getPS1MemoryOffset()
     Platform::ProcessLibrary library;
     if (Platform::findProcessLibrary(processHandle, "octoshock.dll", library))
     {
-        finalAddress = findPS1MemoryOffset(library.baseAddr, library.baseAddr + library.size);
+        finalAddress = findPS1MemoryOffset(library.baseAddress, library.baseAddress + library.size);
     }
 
     // If all else fails, search entire memory space (slower)
@@ -55,7 +55,7 @@ uintptr_t BizHawk::findPS1MemoryOffset(uintptr_t startAddr, uintptr_t endAddr)
         {
             buffer.resize(memRegion.size);
 
-            if (Platform::read(processHandle, memRegion.baseAddr, buffer.data(), memRegion.size))
+            if (Platform::read(processHandle, memRegion.baseAddress, buffer.data(), memRegion.size))
             {
                 for (size_t i = 0; i + sizeof(uint32_t) <= memRegion.size; i += sizeof(uint32_t))
                 {
@@ -63,7 +63,7 @@ uintptr_t BizHawk::findPS1MemoryOffset(uintptr_t startAddr, uintptr_t endAddr)
 
                     if (candidate == Emulator::ps1MemoryChecks[0].second)
                     {
-                        uintptr_t address = memRegion.baseAddr + i - Emulator::ps1MemoryChecks[0].first;
+                        uintptr_t address = memRegion.baseAddress + i - Emulator::ps1MemoryChecks[0].first;
                         if (verifyPS1MemoryOffset(address))
                         {
                             return address;

@@ -31,6 +31,7 @@ void MemorySearch::loadMemoryState(std::string inputFilePath, uintptr_t startRan
     {
         game->write<uint8_t>(addr, data[addr]);
     }
+    delete[] data;
 }
 
 void MemorySearch::saveMemoryState(std::string outputFilePath)

@@ -55,7 +55,7 @@ uintptr_t DuckStation::getPS1MemoryOffset()
         {
             buffer.resize(memRegion.size);
 
-            if (Platform::read(processHandle, memRegion.baseAddr, buffer.data(), memRegion.size))
+            if (Platform::read(processHandle, memRegion.baseAddress, buffer.data(), memRegion.size))
             {
                 // The two pointers (g_ram and g_unprotected_ram) will occur in the same memory block,
                 // we get fewer false positives by counting within the block.
