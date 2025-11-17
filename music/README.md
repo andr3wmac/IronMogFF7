@@ -20,7 +20,7 @@ Music randomization works by setting the music volume to 0 in game and then moni
 | chu2 | J-E-N-O-V-A |
 | cinco | Cinco de Chocobo |
 | cintro | Those Chosen By the Planet |
-| comical | Parochial Town |
+| comical | Comical (deleted song) |
 | condor | Fortress of the Condor |
 | corel | Mining Town |
 | corneo | Don of the Slums |
