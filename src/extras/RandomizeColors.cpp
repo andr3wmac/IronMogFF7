@@ -512,23 +512,35 @@ void RandomizeColors::applyColors()
                 modelEditor.tintPart(i, 15, moogleColor);
             }
 
-            if (modelName == "YUFFIE")
+            if (modelName == "YUFFIE" || modelName == "YUFFIE_PARACHUTE")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors[modelName];
+                std::vector<Utilities::Color> randomColors = randomModelColors["YUFFIE"];
                 Utilities::Color& shirtColor = randomColors[0];
                 Utilities::Color& pantsColor = randomColors[1];
 
+                int offset = 0;
+                if (modelName == "YUFFIE_PARACHUTE")
+                {
+                    modelEditor.tintPolyRange(i, 1, shirtColor, 0, 13);
+                    modelEditor.tintPolyRange(i, 1, shirtColor, 34, 52);
+                    offset = 1;
+                }
+                else 
+                {
+                    modelEditor.tintPart(i, 1, shirtColor, { 12, 13, 14, 15, 16, 17, 35, 36, 37, 38, 39, 40 });
+                }
+
                 modelEditor.tintPart(i, 1, shirtColor, { 12, 13, 14, 15, 16, 17, 35, 36, 37, 38, 39, 40 });
-                modelEditor.tintPart(i, 3, shirtColor);
-                modelEditor.tintPart(i, 4, shirtColor);
+                modelEditor.tintPart(i, 3 + offset, shirtColor);
+                modelEditor.tintPart(i, 4 + offset, shirtColor);
 
                 modelEditor.tintPart(i, 0, pantsColor);
-                modelEditor.tintPart(i, 11, pantsColor, { 7, 8, 9, 10 });
-                modelEditor.tintPart(i, 14, pantsColor, { 7, 8, 9, 10 });
+                modelEditor.tintPart(i, 11 + offset, pantsColor, { 6, 7, 8, 9, 10 });
+                modelEditor.tintPart(i, 14 + offset, pantsColor, { 6, 7, 8, 9, 10 });
 
                 // Shield
-                modelEditor.tintPolyRange(i, 5, pantsColor, 17, 26);
-                modelEditor.tintPart(i, 6, pantsColor);
+                modelEditor.tintPolyRange(i, 5 + offset, pantsColor, 17, 26);
+                modelEditor.tintPart(i, 6 + offset, pantsColor, { 0, 1, 2 });
             }
 
             if (modelName == "VINCENT")

@@ -113,6 +113,11 @@ class Model:
                 cur_control += 1
             
                 (av, bv, cv, dv, r, g, b, n, at, bt, ct, dt) = struct.unpack_from("<BBBBBBBBBBBB", data, cur_poly)
+
+                if av >= len(part.vertices) or bv >= len(part.vertices) or cv >= len(part.vertices) or dv >= len(part.vertices):
+                    av = bv = cv = dv = 0
+                    print("Error in quad_mono_tex " + str(j) + " in part " + str(i) + " skipping.. ")
+
                 poly = ((av, at), (bv, bt), (dv, dt), (cv, ct), (r, g, b), n)
 
                 part.quad_mono_tex.append(poly)
