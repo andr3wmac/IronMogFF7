@@ -49,10 +49,13 @@ public:
     std::array<uint32_t, 200> getPartyMateria();
 
     // Finds the nearest message that contains the item name
-    int findPickUpMessage(std::string itemName, uint32_t itemOffset);
+    int findPickUpMessage(std::string itemName, uint8_t group, uint8_t script, uint32_t offset);
 
     // Returns the last dialog text that was displayed.
     std::string getLastDialogText();
+
+    // Returns the pointer to the line of field script last executed for a given group index.
+    uint16_t getScriptExecutionPointer(uint8_t groupIndex) { return fieldScriptExecutionTable[groupIndex]; }
 
     // Events
     Event<> onStart;
@@ -87,7 +90,7 @@ public:
     }
 
     std::string readString(uintptr_t offset, uint32_t length);
-    void writeString(uintptr_t offset, uint32_t length, std::string& string, bool centerAlign = false);
+    void writeString(uintptr_t offset, uint32_t length, const std::string& string, bool centerAlign = false);
 
 private:
     Emulator* emulator;
@@ -103,6 +106,9 @@ private:
 
     uint16_t fieldID = 0;
     int framesInField = 0;
+
+    // A set of pointers to the last line of field script executed within each group. 
+    uint16_t fieldScriptExecutionTable[64];
 
     bool waitingForBattleData = false;
     bool isBattleDataLoaded();

@@ -14,25 +14,28 @@ struct ESkill
     uint64_t battleData = 0;
 };
 
-struct FieldItemData
+struct FieldScriptItem
 {
+    uint8_t group = 0;
+    uint8_t script = 0;
     uint32_t offset = 0;
     uint16_t id = 0;
     uint8_t quantity = 0;
-    int16_t x = 0;
-    int16_t y = 0;
-    int16_t z = 0;
 };
 
-struct FieldMessage
+struct FieldScriptMessage
 {
+    uint8_t group = 0;
+    uint8_t script = 0;
     uint32_t offset = 0;
     uint32_t strOffset = 0;
     uint32_t strLength = 0;
 };
 
-struct FieldShop
+struct FieldScriptShop
 {
+    uint8_t group = 0;
+    uint8_t script = 0;
     uint32_t offset = 0;
     uint8_t shopID = 0;
 };
@@ -48,10 +51,10 @@ struct FieldData
 {
     uint16_t id = 0;
     std::string name = "";
-    std::vector<FieldItemData> items;
-    std::vector<FieldItemData> materia;
-    std::vector<FieldMessage> messages;
-    std::vector<FieldShop> shops;
+    std::vector<FieldScriptItem> items;
+    std::vector<FieldScriptItem> materia;
+    std::vector<FieldScriptMessage> messages;
+    std::vector<FieldScriptShop> shops;
     std::vector<FieldWorldExit> worldExits;
     std::vector<uint8_t> modelIDs;
 
@@ -169,17 +172,17 @@ public:
 
 #define ADD_FIELD(FIELD_ID, NAME) fieldData[FIELD_ID] = {FIELD_ID, NAME};
 
-#define ADD_FIELD_ITEM(FIELD_ID, OFFSET, ITEM_ID, QUANTITY, ITEM_X, ITEM_Y, ITEM_Z) \
-    { GameData::fieldData[FIELD_ID].items.push_back({OFFSET, ITEM_ID, QUANTITY, ITEM_X, ITEM_Y, ITEM_Z}); }
+#define FIELD_SCRIPT_ITEM(FIELD_ID, GROUP_IDX, SCRIPT_IDX, OFFSET, ITEM_ID, QUANTITY) \
+    { GameData::fieldData[FIELD_ID].items.push_back({GROUP_IDX, SCRIPT_IDX, OFFSET, ITEM_ID, QUANTITY}); }
 
-#define ADD_FIELD_MATERIA(FIELD_ID, OFFSET, MAT_ID) \
-    { GameData::fieldData[FIELD_ID].materia.push_back({OFFSET, MAT_ID, 1}); }
+#define FIELD_SCRIPT_MATERIA(FIELD_ID, GROUP_IDX, SCRIPT_IDX, OFFSET, MAT_ID) \
+    { GameData::fieldData[FIELD_ID].materia.push_back({GROUP_IDX, SCRIPT_IDX, OFFSET, MAT_ID, 1}); }
 
-#define ADD_FIELD_MESSAGE(FIELD_ID, OFFSET, STR_OFFSET, STR_LEN) \
-    { GameData::fieldData[FIELD_ID].messages.push_back({OFFSET, STR_OFFSET, STR_LEN}); }
+#define FIELD_SCRIPT_MESSAGE(FIELD_ID, GROUP_IDX, SCRIPT_IDX, OFFSET, STR_OFFSET, STR_LEN) \
+    { GameData::fieldData[FIELD_ID].messages.push_back({GROUP_IDX, SCRIPT_IDX, OFFSET, STR_OFFSET, STR_LEN}); }
 
-#define ADD_FIELD_SHOP(FIELD_ID, OFFSET, SHOP_ID) \
-    { GameData::fieldData[FIELD_ID].shops.push_back({OFFSET, SHOP_ID}); }
+#define FIELD_SCRIPT_SHOP(FIELD_ID, GROUP_IDX, SCRIPT_IDX, OFFSET, SHOP_ID) \
+    { GameData::fieldData[FIELD_ID].shops.push_back({GROUP_IDX, SCRIPT_IDX, OFFSET, SHOP_ID}); }
 
 #define ADD_FIELD_WORLD_EXIT(FIELD_ID, OFFSET, INDEX, TARGET_FIELD_ID) \
     { GameData::fieldData[FIELD_ID].worldExits.push_back({OFFSET, INDEX, TARGET_FIELD_ID}); }

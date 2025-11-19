@@ -12,7 +12,7 @@
 GameManager::GameManager()
     : emulator(nullptr)
 {
-
+    memset(fieldScriptExecutionTable, 0, 128);
 }
 
 GameManager::~GameManager()
@@ -53,7 +53,7 @@ std::string GameManager::readString(uintptr_t offset, uint32_t length)
     return GameData::decodeString(strData);
 }
 
-void GameManager::writeString(uintptr_t offset, uint32_t length, std::string& string, bool centerAlign)
+void GameManager::writeString(uintptr_t offset, uint32_t length, const std::string& string, bool centerAlign)
 {
     std::vector<uint8_t> strData = GameData::encodeString(string);
 
@@ -206,6 +206,9 @@ void GameManager::update()
         onEmulatorPaused.invoke();
         LOG("Emulator paused.");
     }
+
+    // Update the field script execution table.
+    read(FieldScriptOffsets::ExecutionTable, 128, (uint8_t*)(&fieldScriptExecutionTable[0]));
 
     onUpdate.invoke();
     
@@ -483,7 +486,7 @@ bool GameManager::isFieldDataLoaded()
 
     for (int i = 0; i < fieldData.items.size(); ++i)
     {
-        FieldItemData& item = fieldData.items[i];
+        FieldScriptItem& item = fieldData.items[i];
         uintptr_t itemIDOffset = FieldScriptOffsets::ScriptStart + item.offset + FieldScriptOffsets::ItemID;
         uintptr_t itemQuantityOffset = FieldScriptOffsets::ScriptStart + item.offset + FieldScriptOffsets::ItemQuantity;
 
@@ -498,7 +501,7 @@ bool GameManager::isFieldDataLoaded()
 
     for (int i = 0; i < fieldData.materia.size(); ++i)
     {
-        FieldItemData& materia = fieldData.materia[i];
+        FieldScriptItem& materia = fieldData.materia[i];
         uintptr_t idOffset = FieldScriptOffsets::ScriptStart + materia.offset + FieldScriptOffsets::MateriaID;
 
         uint8_t materiaID = read<uint8_t>(idOffset);
@@ -511,7 +514,7 @@ bool GameManager::isFieldDataLoaded()
 
     for (int i = 0; i < fieldData.messages.size(); ++i)
     {
-        FieldMessage& message = fieldData.messages[i];
+        FieldScriptMessage& message = fieldData.messages[i];
         uint8_t opCode = read<uint8_t>(FieldScriptOffsets::ScriptStart + message.offset);
         if (opCode != 0x40)
         {
@@ -592,12 +595,12 @@ bool GameManager::isShopDataLoaded()
 
 // The goal here is to find the message thats closest in memory (offset) that also contains
 // the name of the item. The message is usually: Received "{itemName}"!
-int GameManager::findPickUpMessage(std::string itemName, uint32_t itemOffset)
+int GameManager::findPickUpMessage(std::string itemName, uint8_t group, uint8_t script, uint32_t offset)
 {
     FieldData fieldData = GameData::getField(fieldID);
     if (!fieldData.isValid())
     {
-        return - 1;
+        return -1;
     }
 
     int bestIndex = -1;
@@ -605,12 +608,18 @@ int GameManager::findPickUpMessage(std::string itemName, uint32_t itemOffset)
 
     for (int i = 0; i < fieldData.messages.size(); ++i)
     {
-        FieldMessage& fieldMsg = fieldData.messages[i];
-        std::string msg = readString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength);
+        FieldScriptMessage& fieldMsg = fieldData.messages[i];
 
+        // The message is always in the same group+script as the pick up.
+        if (fieldMsg.group != group || fieldMsg.script != script)
+        {
+            continue;
+        }
+        
+        std::string msg = readString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength);
         if (msg.find(itemName) != std::string::npos)
         {
-            uint32_t distance = std::abs((int32_t)(fieldMsg.strOffset - itemOffset));
+            uint32_t distance = std::abs((int32_t)(fieldMsg.strOffset - offset));
             if (distance < bestDistance)
             {
                 bestDistance = distance;

@@ -58,6 +58,9 @@ struct FieldOffsets
 
 struct FieldScriptOffsets
 {
+    // List of uint16_t each is a pointer to current line of field script being executed for that group.
+    CONST_PTR ExecutionTable = 0x831FC; 
+
     CONST_PTR TriggersStart = 0x114FF6;
     CONST_PTR ScriptStart   = 0x115000;
 

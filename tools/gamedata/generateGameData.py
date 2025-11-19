@@ -162,6 +162,7 @@ def outputFields(gen, discPath, version):
         offset = 0
         while offset < len(code):
             addr = offset + baseAddress
+            groupIndex, scriptIndex = event.findGroupAndScript(addr)
 
             format = "%04x: "
             values = (addr, )
@@ -196,12 +197,11 @@ def outputFields(gen, discPath, version):
             if (mnemonic == "stitm"):
                 item_id = values[3] | (values[4] << 8)
                 item_quantity = values[5]
-
-                gen.write_line("ADD_FIELD_ITEM(" + fieldID + ", " + f"0x{addr:X}" + ", " + str(item_id) + ", " + str(item_quantity) + ", " + str(last_x) + ", " + str(last_y) + ", " + str(last_z) + ");", 4)
+                gen.write_line("FIELD_SCRIPT_ITEM(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " + f"0x{addr:X}" + ", " + str(item_id) + ", " + str(item_quantity) + ");", 4)
 
             if (mnemonic == "smtra"):
                 materia_id = values[4]
-                gen.write_line("ADD_FIELD_MATERIA(" + fieldID + ", " + f"0x{addr:X}" + ", " + str(materia_id) + ");", 4)
+                gen.write_line("FIELD_SCRIPT_MATERIA(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " + f"0x{addr:X}" + ", " + str(materia_id) + ");", 4)
 
             if (mnemonic == "mes"):
                 string = fieldStrings[values[3]]
@@ -209,20 +209,20 @@ def outputFields(gen, discPath, version):
                 # We use the Turtle Paradise newsletter for in game hints
                 if ("Turtle Paradise" in string or "Turtles Paradise" in string or "Turtle's Paradise" in string) and ("No." in string or "Number" in string):
                     stroffset, strlen = fieldOffsets[values[3]]
-                    gen.write_line("ADD_FIELD_MESSAGE(" + fieldID + ", " + f"0x{addr:X}" + ", " + f"0x{stroffset:X}" + ", " + str(strlen) + ");", 4)
+                    gen.write_line("FIELD_SCRIPT_MESSAGE(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " + f"0x{addr:X}" + ", " + f"0x{stroffset:X}" + ", " + str(strlen) + ");", 4)
 
                 # Ensures the string contains an item/materia/etc name wrapped in quotes
                 match = next((word for word in gen.item_names if f'"{word}"' in string), None)
                 if match:
                     stroffset, strlen = fieldOffsets[values[3]]
-                    gen.write_line("ADD_FIELD_MESSAGE(" + fieldID + ", " + f"0x{addr:X}" + ", " + f"0x{stroffset:X}" + ", " + str(strlen) + ");", 4)
+                    gen.write_line("FIELD_SCRIPT_MESSAGE(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " +  f"0x{addr:X}" + ", " + f"0x{stroffset:X}" + ", " + str(strlen) + ");", 4)
                 
                 #print(values)
 
             if (mnemonic == "menu" and len(values) == 5):
                 # Shop
                 if values[3] == 8:
-                    gen.write_line("ADD_FIELD_SHOP(" + fieldID + ", " + f"0x{addr:X}" + ", " + str(values[4]) + ");", 4)
+                    gen.write_line("FIELD_SCRIPT_SHOP(" + fieldID + ", "+ str(groupIndex) + ", " + str(scriptIndex) + ", " + f"0x{addr:X}" + ", " + str(values[4]) + ");", 4)
 
             offset += size
 

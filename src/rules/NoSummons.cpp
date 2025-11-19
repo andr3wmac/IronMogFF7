@@ -58,7 +58,7 @@ void NoSummons::onFieldChanged(uint16_t fieldID)
     // Randomize materia
     for (int i = 0; i < fieldData.materia.size(); ++i)
     {
-        FieldItemData& materia = fieldData.materia[i];
+        FieldScriptItem& materia = fieldData.materia[i];
         uintptr_t idOffset = FieldScriptOffsets::ScriptStart + materia.offset + FieldScriptOffsets::MateriaID;
 
         uint8_t oldMateriaID = game->read<uint8_t>(idOffset);
@@ -81,10 +81,10 @@ void NoSummons::onFieldChanged(uint16_t fieldID)
         LOG("Randomized materia on field %d: %s changed to: %s", fieldID, oldMateriaName.c_str(), newMateriaName.c_str());
 
         // Overwrite the popup message
-        int msgIndex = game->findPickUpMessage(oldMateriaName, materia.offset);
+        int msgIndex = game->findPickUpMessage(oldMateriaName, materia.group, materia.script, materia.offset);
         if (msgIndex >= 0)
         {
-            FieldMessage& fieldMsg = fieldData.messages[msgIndex];
+            FieldScriptMessage& fieldMsg = fieldData.messages[msgIndex];
             game->writeString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength, newMateriaName);
         }
     }
