@@ -11,7 +11,15 @@
 struct ESkill
 {
     std::string name = "";
-    uint64_t battleData = 0;
+
+    uint8_t targetFlags = 0;
+    uint32_t mpCost = 0;
+    uint8_t index = 0;
+
+    constexpr uint64_t uint64() const
+    {
+        return (static_cast<uint64_t>(index) & 0xFF) | (static_cast<uint64_t>(mpCost) & 0xFFFFFFFF) << 8 | (static_cast<uint64_t>(targetFlags) & 0xFF) << 40;
+    }
 };
 
 struct FieldScriptItem
@@ -168,7 +176,7 @@ public:
 #define ADD_ITEM(ID, NAME) itemNames[ID] = NAME;
 #define ADD_WEAPON(ID, NAME) weaponNames[ID] = NAME;
 #define ADD_MATERIA(ID, NAME) materiaNames[ID] = NAME;
-#define ADD_ESKILL(NAME, BATTLE_DATA) GameData::eSkills.push_back({NAME, BATTLE_DATA});
+#define ADD_ESKILL(NAME, TARGET_FLAGS, MP_COST, IDX) GameData::eSkills.push_back({NAME, TARGET_FLAGS, MP_COST, IDX});
 
 #define ADD_FIELD(FIELD_ID, NAME) fieldData[FIELD_ID] = {FIELD_ID, NAME};
 
