@@ -227,17 +227,17 @@ void App::drawBottomPanel()
 
     if (connectionState == ConnectionState::NotConnected || connectionState == ConnectionState::Error)
     {
-        if (ImGui::Button("Attach", ImVec2(120, 0)))
+        if (ImGui::Button("Connect", ImVec2(120, 0)))
         {
-            attach();
+            connected();
         }
     }
     else
     {
         ImGui::BeginDisabled(connectionState == ConnectionState::Connecting);
-        if (ImGui::Button("Detach", ImVec2(120, 0)))
+        if (ImGui::Button("Disconnect", ImVec2(120, 0)))
         {
-            detach();
+            disconnect();
         }
         ImGui::EndDisabled();
     }

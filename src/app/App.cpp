@@ -72,7 +72,7 @@ void App::run()
     gui.destroy();
 }
 
-void App::attach()
+void App::connected()
 {
     if (managerThread != nullptr)
     {
@@ -92,10 +92,10 @@ void App::attach()
     managerThread = new std::thread(&App::runGameManager, this);
 }
 
-void App::detach()
+void App::disconnect()
 {
     connectionState = ConnectionState::NotConnected;
-    connectionStatus = "Not Attached";
+    connectionStatus = "Not Connected";
 
     if (managerThread == nullptr || !managerRunning.load())
     {
@@ -122,37 +122,37 @@ void App::runGameManager()
     BIND_EVENT(game->onStart, App::onStart);
 
     connectionState = ConnectionState::Connecting;
-    connectionStatus = "Attaching to Emulator..";
+    connectionStatus = "Connecting to Emulator..";
 
     bool connected = false;
 
     if (selectedEmulatorType == EmulatorType::DuckStation)
     {
-        connectionStatus = "Attaching to DuckStation..";
+        connectionStatus = "Connecting to DuckStation..";
         std::string targetProcess = "duckstation-qt-x64-ReleaseLTCG.exe";
-        connected = game->attachToEmulator(targetProcess);
+        connected = game->connectToEmulator(targetProcess);
     }
     if (selectedEmulatorType == EmulatorType::BizHawk)
     {
-        connectionStatus = "Attaching to BizHawk..";
+        connectionStatus = "Connecting to BizHawk..";
         std::string targetProcess = "EmuHawk.exe";
-        connected = game->attachToEmulator(targetProcess);
+        connected = game->connectToEmulator(targetProcess);
     }
     if (selectedEmulatorType == EmulatorType::Custom)
     {
         uintptr_t customAddress = Utilities::parseAddress(processMemoryOffset);
-        connected = game->attachToEmulator(runningProcesses[selectedProcessIdx], customAddress);
+        connected = game->connectToEmulator(runningProcesses[selectedProcessIdx], customAddress);
     }
 
     if (connected)
     {
         connectionState = ConnectionState::Connected;
-        connectionStatus = "Attached to emulator.";
+        connectionStatus = "Connected to emulator.";
     }
     else
     {
         connectionState = ConnectionState::Error;
-        connectionStatus = "Failed to attach to emulator.";
+        connectionStatus = "Failed to connect to emulator.";
         return;
     }
 

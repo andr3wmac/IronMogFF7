@@ -14,8 +14,8 @@ public:
     GameManager();
     ~GameManager();
     
-    bool attachToEmulator(std::string processName);
-    bool attachToEmulator(std::string processName, uintptr_t memoryAddress);
+    bool connectToEmulator(std::string processName);
+    bool connectToEmulator(std::string processName, uintptr_t memoryAddress);
 
     bool isRuleEnabled(std::string ruleName);
     Rule* getRule(std::string ruleName);

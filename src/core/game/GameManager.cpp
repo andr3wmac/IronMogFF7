@@ -23,7 +23,7 @@ GameManager::~GameManager()
     }
 }
 
-bool GameManager::attachToEmulator(std::string processName)
+bool GameManager::connectToEmulator(std::string processName)
 {
     emulator = Emulator::getEmulatorFromProcessName(processName);
     if (emulator == nullptr)
@@ -31,10 +31,10 @@ bool GameManager::attachToEmulator(std::string processName)
         return false;
     }
 
-    return emulator->attach(processName);
+    return emulator->connect(processName);
 }
 
-bool GameManager::attachToEmulator(std::string processName, uintptr_t memoryAddress)
+bool GameManager::connectToEmulator(std::string processName, uintptr_t memoryAddress)
 {
     emulator = Emulator::getEmulatorCustom(processName, memoryAddress);
     if (emulator == nullptr)
@@ -42,7 +42,7 @@ bool GameManager::attachToEmulator(std::string processName, uintptr_t memoryAddr
         return false;
     }
 
-    return emulator->attach(processName);
+    return emulator->connect(processName);
 }
 
 std::string GameManager::readString(uintptr_t offset, uint32_t length)

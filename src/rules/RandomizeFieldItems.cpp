@@ -299,11 +299,14 @@ void RandomizeFieldItems::overwriteMessage(const FieldData& fieldData, const Fie
         {
             std::string compareItemName = GameData::getNameFromFieldScriptID(compareItem.id);
             int compareMsgIndex = game->findPickUpMessage(compareItemName, compareItem.group, compareItem.script, compareItem.offset);
-            const FieldScriptMessage& compareFieldMsg = fieldData.messages[compareMsgIndex];
-
-            if (fieldMsg.strOffset == compareFieldMsg.strOffset)
+            if (compareMsgIndex >= 0)
             {
-                strMsgCount++;
+                const FieldScriptMessage& compareFieldMsg = fieldData.messages[compareMsgIndex];
+
+                if (fieldMsg.strOffset == compareFieldMsg.strOffset)
+                {
+                    strMsgCount++;
+                }
             }
         }
 

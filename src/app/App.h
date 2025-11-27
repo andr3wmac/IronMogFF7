@@ -44,8 +44,8 @@ public:
     void drawBottomPanel();
     void drawDebugPanel();
 
-    void attach();
-    void detach();
+    void connected();
+    void disconnect();
     void runGameManager();
 
 protected:
@@ -68,7 +68,7 @@ protected:
     char seedValue[9];
 
     ConnectionState connectionState = ConnectionState::NotConnected;
-    std::string connectionStatus = "Not Attached";
+    std::string connectionStatus = "Not Connected";
 
     void onKeyPress(int key, int mods);
     void onStart();

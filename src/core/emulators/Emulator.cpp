@@ -51,7 +51,7 @@ Emulator::~Emulator()
     }
 }
 
-bool Emulator::attach(std::string processName)
+bool Emulator::connect(std::string processName)
 {
     uint32_t pid = Platform::getProcessIDByName(processName);
     if (pid == 0)
@@ -78,7 +78,7 @@ bool Emulator::attach(std::string processName)
         return false;
     }
 
-    LOG("Successfully attached to emulator at: 0x%X", ps1BaseAddress);
+    LOG("Successfully connected to emulator at: 0x%X", ps1BaseAddress);
     return true;
 }
 
