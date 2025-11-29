@@ -25,11 +25,17 @@ Inspired by IronMon and IronMario 64, IronMog FF7 is a modification for Final Fa
 | Randomized Colors | Playable characters’ clothing colors are randomized. |
 | Randomized Music | Music tracks are randomized and can include music from other games. This feature requires additional setup steps, described [here](music/README.md). |
 
+# Requirements
+- Windows
+- PSX Emulator (DuckStation or BizHawk recommended)
+- Final Fantasy VII US NTSC (SCUS-94163)
+
 # How to Play
 - Download the latest IronMog FF7 build from the Releases page
-- Open your emulator (DuckStation or BizHawk) and load your FF7 rom
+- Open your emulator (DuckStation or BizHawk) and load Final Fantasy VII
 - Open IronMogFF7.exe
-- Select your emulator type and press Attach
+- Wait until game is at the main menu
+- Select your emulator type and press Connect
 - Begin playing
 
 # How to Build
@@ -38,3 +44,10 @@ Currently only Windows platforms are supported and Microsoft Visual Studio 2022 
 - Run `GenerateProjectFiles.bat`
 - Open the generated `IronMogFF7.sln`
 - Build
+
+# Resources
+The following resources were referenced during development:
+- [FF7 Memory Values Spreadsheet](https://docs.google.com/spreadsheets/d/13wBwF1yRejK7o9IJSIVNzrzTeK5qHFpGnqi7NgB6QQQ/edit?gid=416136141#gid=416136141)
+- [ff7-lib.rs](https://github.com/maciej-trebacz/ff7-lib.rs)
+- [FF7 - Final Fantasy Inside](https://wiki.ffrtt.ru/index.php/FF7)
+- [Qhimm.com Forums](https://forums.qhimm.com/)
