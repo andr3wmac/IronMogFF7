@@ -16,7 +16,12 @@ void App::run()
     processMemoryOffset[0] = '\0';
     debugWarpFieldID[0] = '\0';
 
-    gui.initialize(APP_WINDOW_WIDTH, APP_WINDOW_HEIGHT, "IronMog FF7 " APP_VERSION_STRING);
+    if (!gui.initialize(APP_WINDOW_WIDTH, APP_WINDOW_HEIGHT, "IronMog FF7 " APP_VERSION_STRING))
+    {
+        LOG("Graphics failure: could not initialize GUI.");
+        return;
+    }
+
     BIND_EVENT_TWO_ARG(gui.onKeyPress, App::onKeyPress);
     generateSeed();
 
