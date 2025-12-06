@@ -31,12 +31,13 @@ void RandomizeFieldItems::onDebugGUI()
         FieldData fieldData = GameData::getField(game->getFieldID());
         if (!fieldData.isValid())
         {
+            ImGui::Text("Invalid field.");
             return;
         }
 
         for (int i = 0; i < fieldData.items.size(); ++i)
         {
-            FieldItemData& item = fieldData.items[i];
+            FieldScriptItem& item = fieldData.items[i];
             uintptr_t itemIDOffset = FieldScriptOffsets::ScriptStart + item.offset + FieldScriptOffsets::ItemID;
             uintptr_t itemQuantityOffset = FieldScriptOffsets::ScriptStart + item.offset + FieldScriptOffsets::ItemQuantity;
 
@@ -50,7 +51,7 @@ void RandomizeFieldItems::onDebugGUI()
 
         for (int i = 0; i < fieldData.materia.size(); ++i)
         {
-            FieldItemData& materia = fieldData.materia[i];
+            FieldScriptItem& materia = fieldData.materia[i];
             uintptr_t idOffset = FieldScriptOffsets::ScriptStart + materia.offset + FieldScriptOffsets::MateriaID;
 
             uint8_t oldMateriaID = game->read<uint8_t>(idOffset);
@@ -73,12 +74,16 @@ uint32_t makeKey(uint16_t fieldID, uint8_t index)
 
 void RandomizeFieldItems::onFrame(uint32_t frameNumber)
 {
-    // HACK: Every 60 frames we reapply the randomization. This handles a particular situation
-    // where the game will update the game moment and then reload the same field. Since the field
-    // ID doesn't change we don't detect it, but it reloads the scripts and overwrites our changes.
-    if (frameNumber % 60 == 0)
+    for (int i = 0; i < overwriteMessages.size(); ++i)
     {
-        apply();
+        const MessageOverwrite& overwriteMsg = overwriteMessages[i];
+        
+        // Check if the current dialog is overwrite message
+        uint16_t fieldScriptPtr = game->getScriptExecutionPointer(overwriteMsg.fieldMsg.group);
+        if (fieldScriptPtr == overwriteMsg.fieldMsg.offset)
+        {
+            game->writeString(GameOffsets::DialogText, overwriteMsg.fieldMsg.strLength, overwriteMsg.text);
+        }
     }
 }
 
@@ -109,8 +114,8 @@ void RandomizeFieldItems::generateRandomizedItems()
         size_t index;
     };
 
-    std::vector<std::pair<FieldItemData, SourceLoc>> allItems;
-    std::vector<std::pair<FieldItemData, SourceLoc>> allMateria;
+    std::vector<std::pair<FieldScriptItem, SourceLoc>> allItems;
+    std::vector<std::pair<FieldScriptItem, SourceLoc>> allMateria;
 
     for (uint32_t fieldID : sortedFieldIDs) 
     {
@@ -135,26 +140,24 @@ void RandomizeFieldItems::generateRandomizedItems()
     }
 
     std::mt19937 rng(game->getSeed());
-    std::vector<std::pair<FieldItemData, SourceLoc>> shuffledItems = allItems;
+    std::vector<std::pair<FieldScriptItem, SourceLoc>> shuffledItems = allItems;
     std::shuffle(shuffledItems.begin(), shuffledItems.end(), rng);
-    std::vector<std::pair<FieldItemData, SourceLoc>> shuffledMateria = allMateria;
+    std::vector<std::pair<FieldScriptItem, SourceLoc>> shuffledMateria = allMateria;
     std::shuffle(shuffledMateria.begin(), shuffledMateria.end(), rng);
 
     for (size_t i = 0; i < allItems.size(); ++i) 
     {
         const SourceLoc& newLoc = allItems[i].second;
-        const FieldItemData& randomItem = shuffledItems[i].first;
+        const FieldScriptItem& randomItem = shuffledItems[i].first;
         randomizedItems[makeKey(newLoc.fieldID, (uint8_t)newLoc.index)] = randomItem;
     }
 
     for (size_t i = 0; i < allMateria.size(); ++i)
     {
         const SourceLoc& newLoc = allMateria[i].second;
-        const FieldItemData& randomMateria = shuffledMateria[i].first;
+        const FieldScriptItem& randomMateria = shuffledMateria[i].first;
         randomizedMateria[makeKey(newLoc.fieldID, (uint8_t)newLoc.index)] = randomMateria;
     }
-
-    // TODO: generate spoiler log information here?
 }
 
 void RandomizeFieldItems::apply()
@@ -165,24 +168,27 @@ void RandomizeFieldItems::apply()
         return;
     }
 
+    overwriteMessages.clear();
+    messagesToClear.clear();
+
     // Randomize items
     for (int i = 0; i < fieldData.items.size(); ++i)
     {
-        FieldItemData& item = fieldData.items[i];
-        uintptr_t itemIDOffset = FieldScriptOffsets::ScriptStart + item.offset + FieldScriptOffsets::ItemID;
-        uintptr_t itemQuantityOffset = FieldScriptOffsets::ScriptStart + item.offset + FieldScriptOffsets::ItemQuantity;
+        FieldScriptItem& oldItem = fieldData.items[i];
+        uintptr_t itemIDOffset = FieldScriptOffsets::ScriptStart + oldItem.offset + FieldScriptOffsets::ItemID;
+        uintptr_t itemQuantityOffset = FieldScriptOffsets::ScriptStart + oldItem.offset + FieldScriptOffsets::ItemQuantity;
 
-        uint16_t oldItemID = game->read<uint16_t>(itemIDOffset);
-        uint8_t oldItemQuantity = game->read<uint8_t>(itemQuantityOffset);
-
-        if (oldItemID != item.id || oldItemQuantity != item.quantity)
+        // Checks whats currently in the item spot
+        uint16_t curItemID = game->read<uint16_t>(itemIDOffset);
+        uint8_t curItemQuantity = game->read<uint8_t>(itemQuantityOffset);
+        if (curItemID != oldItem.id || curItemQuantity != oldItem.quantity)
         {
             // Data isn't loaded yet or has already been randomized.
             continue;
         }
 
         // Do not randomize Battery in Wall Market.
-        if (fieldData.id == 196 && item.id == 85)
+        if (fieldData.id == 196 && oldItem.id == 85)
         {
             continue;
         }
@@ -194,40 +200,48 @@ void RandomizeFieldItems::apply()
         }
 
         // Select a different item from the already randomized table and overwrite.
-        FieldItemData newItem = randomizedItems[randomKey];
+        FieldScriptItem newItem = randomizedItems[randomKey];
 
         // It's possible we randomized to the same item already there.
-        if (newItem.id == oldItemID)
+        if (newItem.id == oldItem.id)
         {
             continue;
+        }
+
+        if (Restrictions::isFieldItemBanned(newItem.id))
+        {
+            std::mt19937_64 rng64(Utilities::makeKey(game->getSeed(), fieldData.id, i));
+            newItem.id = GameData::getRandomFieldItem(newItem.id, rng64);
         }
 
         game->write<uint16_t>(itemIDOffset, newItem.id);
         game->write<uint8_t>(itemQuantityOffset, newItem.quantity);
 
-        std::string oldItemName = GameData::getNameFromFieldScriptID(oldItemID);
+        std::string oldItemName = GameData::getNameFromFieldScriptID(oldItem.id);
         std::string newItemName = GameData::getNameFromFieldScriptID(newItem.id);
-        LOG("Randomized item on field %d: %s (%d) changed to: %s (%d)", fieldData.id, oldItemName.c_str(), oldItemQuantity, newItemName.c_str(), newItem.quantity);
+        LOG("Randomized item on field %d: %s (%d) changed to: %s (%d)", fieldData.id, oldItemName.c_str(), oldItem.quantity, newItemName.c_str(), newItem.quantity);
 
         // Overwrite the popup message
-        int msgIndex = game->findPickUpMessage(oldItemName, item.offset);
-        if (msgIndex >= 0)
-        {
-            FieldMessage& fieldMsg = fieldData.messages[msgIndex];
-            game->writeString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength, newItemName);
-        }
+        overwriteMessage(fieldData, oldItem, newItem);
     }
 
     // Randomize materia
     for (int i = 0; i < fieldData.materia.size(); ++i)
     {
-        FieldItemData& materia = fieldData.materia[i];
-        uintptr_t idOffset = FieldScriptOffsets::ScriptStart + materia.offset + FieldScriptOffsets::MateriaID;
+        FieldScriptItem& oldMateria = fieldData.materia[i];
+        uintptr_t idOffset = FieldScriptOffsets::ScriptStart + oldMateria.offset + FieldScriptOffsets::MateriaID;
 
-        uint8_t oldMateriaID = game->read<uint8_t>(idOffset);
-        if (oldMateriaID != materia.id)
+        // Checks whats currently in the materia spot
+        uint8_t curMateriaID = game->read<uint8_t>(idOffset);
+        if (curMateriaID != oldMateria.id)
         {
             // Data isn't loaded yet.
+            continue;
+        }
+
+        // Don't randomize Chocobo Lure at the Chocobo Ranch
+        if (fieldData.id == 345 && oldMateria.id == 9)
+        {
             continue;
         }
 
@@ -238,31 +252,75 @@ void RandomizeFieldItems::apply()
         }
 
         // Select a different item from the already randomized table and overwrite.
-        uint16_t newMateriaID = randomizedMateria[randomKey].id;
+        FieldScriptItem newMateria = randomizedMateria[randomKey];
 
         // It's possible we randomized to the same materia already there.
-        if (newMateriaID == oldMateriaID)
+        if (newMateria.id == oldMateria.id)
         {
             continue;
         }
 
-        if (Restrictions::isMateriaBanned((uint8_t)newMateriaID))
+        if (Restrictions::isMateriaBanned((uint8_t)newMateria.id))
         {
-            std::mt19937_64 rng64(Utilities::makeKey(game->getSeed(), fieldData.id, (uint8_t)newMateriaID));
-            newMateriaID = GameData::getRandomMateria(rng64);
+            std::mt19937_64 rng64(Utilities::makeKey(game->getSeed(), fieldData.id, (uint8_t)newMateria.id));
+            newMateria.id = GameData::getRandomMateria(rng64);
         }
-        game->write<uint8_t>(idOffset, (uint8_t)newMateriaID);
 
-        std::string oldMateriaName = GameData::getMateriaName(oldMateriaID);
-        std::string newMateriaName = GameData::getMateriaName((uint8_t)newMateriaID);
+        game->write<uint8_t>(idOffset, (uint8_t)newMateria.id);
+
+        std::string oldMateriaName = GameData::getMateriaName((uint8_t)oldMateria.id);
+        std::string newMateriaName = GameData::getMateriaName((uint8_t)newMateria.id);
         LOG("Randomized materia on field %d: %s changed to: %s", fieldData.id, oldMateriaName.c_str(), newMateriaName.c_str());
 
         // Overwrite the popup message
-        int msgIndex = game->findPickUpMessage(oldMateriaName, materia.offset);
-        if (msgIndex >= 0)
+        overwriteMessage(fieldData, oldMateria, newMateria);
+    }
+
+    // Clear original messages that will be overwritten in real time
+    for (FieldScriptMessage& fieldMsg : messagesToClear)
+    {
+        game->writeString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength, "");
+    }
+}
+
+void RandomizeFieldItems::overwriteMessage(const FieldData& fieldData, const FieldScriptItem& oldItem, const FieldScriptItem& newItem)
+{
+    std::string oldItemName = GameData::getNameFromFieldScriptID(oldItem.id);
+    std::string newItemName = GameData::getNameFromFieldScriptID(newItem.id);
+
+    // Overwrite the popup message
+    int msgIndex = game->findPickUpMessage(oldItemName, oldItem.group, oldItem.script, oldItem.offset);
+    if (msgIndex >= 0)
+    {
+        const FieldScriptMessage& fieldMsg = fieldData.messages[msgIndex];
+
+        int strMsgCount = 0;
+        for (const FieldScriptItem& compareItem : fieldData.items)
         {
-            FieldMessage& fieldMsg = fieldData.messages[msgIndex];
-            game->writeString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength, newMateriaName);
+            std::string compareItemName = GameData::getNameFromFieldScriptID(compareItem.id);
+            int compareMsgIndex = game->findPickUpMessage(compareItemName, compareItem.group, compareItem.script, compareItem.offset);
+            if (compareMsgIndex >= 0)
+            {
+                const FieldScriptMessage& compareFieldMsg = fieldData.messages[compareMsgIndex];
+
+                if (fieldMsg.strOffset == compareFieldMsg.strOffset)
+                {
+                    strMsgCount++;
+                }
+            }
+        }
+
+        // If the string has more than one message tied to it then we need to overwrite it
+        // in real time rather than just on field change. This is a consequence of randomizing
+        // every item separately and the fact the game reuses the same string for duplicates.
+        if (strMsgCount > 1)
+        {
+            overwriteMessages.push_back({ fieldMsg, newItemName });
+            messagesToClear.push_back(fieldMsg);
+        }
+        else
+        {
+            game->writeString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength, newItemName);
         }
     }
 }

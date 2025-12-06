@@ -70,6 +70,9 @@ class MapData:
     def getTriggerSectionStart(self):
         return self.sectionStarts[Section.TRIGGER]
 
+    def getModelSection(self):
+        return ModelSection(self.sections[Section.MODEL])
+
     # Replace the event section data.
     def setEventSection(self, event):
         data = event.getData()
@@ -320,6 +323,13 @@ class EventSection:
             data.extend(extra)
 
         return data
+    
+    def findGroupAndScript(self, addr):
+        for i, sub in enumerate(self.actorScripts):
+            for j in range(len(sub) - 1):
+                if sub[j] < addr < sub[j + 1]:
+                    return i, j
+        return 0, 0
 
 class Range:
     def __init__(self, data, offset):
@@ -413,6 +423,41 @@ class TriggerSection:
             arr = Arrow(data, offset)
             self.arrows.append(arr)
             offset += arr._size
+
+class FieldModel:
+    def __init__(self, data, offset):
+        self.faceID, = struct.unpack_from("<B", data, offset)
+        offset += 1
+        self.numBones, = struct.unpack_from("<B", data, offset)
+        offset += 1
+        self.numParts, = struct.unpack_from("<B", data, offset)
+        offset += 1
+        self.numAnimations, = struct.unpack_from("<B", data, offset)
+        offset += 1
+        self.unknown0, = struct.unpack_from("<B", data, offset)
+        offset += 1
+        self.isNPC, = struct.unpack_from("<B", data, offset)
+        offset += 1
+        self.unknown1, = struct.unpack_from("<B", data, offset)
+        offset += 1
+        self.globalModelID, = struct.unpack_from("<B", data, offset)
+        offset += 1
+
+class ModelSection:
+    def __init__(self, data):
+        offset = 0
+
+        self.size, = struct.unpack_from("<h", data, offset)
+        offset += 2
+
+        self.modelCount, = struct.unpack_from("<h", data, offset)
+        offset += 2
+
+        self.models = []
+        for _ in range(self.modelCount):
+            arr = FieldModel(data, offset)
+            self.models.append(arr)
+            offset += 8
 
 # Mnemonic and operand length for each script opcode
 opcodes = [

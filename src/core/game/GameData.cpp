@@ -9,10 +9,13 @@ std::unordered_map<uint8_t, std::string> GameData::armorNames;
 std::unordered_map<uint8_t, std::string> GameData::itemNames;
 std::unordered_map<uint8_t, std::string> GameData::weaponNames;
 std::unordered_map<uint8_t, std::string> GameData::materiaNames;
-std::vector<ESkill> GameData::eSkills;
 
+std::vector<ESkill> GameData::eSkills;
 std::unordered_map<uint16_t, FieldData> GameData::fieldData;
 std::vector<WorldMapEntrance> GameData::worldMapEntrances;
+std::unordered_map<uint8_t, BattleScene> GameData::battleScenes;
+std::vector<Model> GameData::models;
+std::vector<BattleModel> GameData::battleModels;
 
 std::string GameData::getAccessoryName(uint8_t id)
 {
@@ -64,8 +67,27 @@ std::string GameData::getMateriaName(uint8_t id)
     return materiaNames[id];
 }
 
-uint16_t GameData::getRandomAccessory(std::mt19937_64& rng)
+uint16_t GameData::getRandomAccessory(std::mt19937_64& rng, bool excludeBanned)
 {
+    if (excludeBanned)
+    {
+        static std::vector<uint16_t> keysWithoutBanned;
+        if (keysWithoutBanned.empty())
+        {
+            for (const auto& pair : GameData::accessoryNames)
+            {
+                if (Restrictions::isAccessoryBanned(pair.first))
+                {
+                    continue;
+                }
+                keysWithoutBanned.push_back(pair.first);
+            }
+        }
+
+        std::uniform_int_distribution<size_t> dist(0, keysWithoutBanned.size() - 1);
+        return keysWithoutBanned[dist(rng)];
+    }
+
     static std::vector<uint16_t> keys;
     if (keys.empty())
     {
@@ -79,8 +101,27 @@ uint16_t GameData::getRandomAccessory(std::mt19937_64& rng)
     return keys[dist(rng)];
 }
 
-uint16_t GameData::getRandomArmor(std::mt19937_64& rng)
+uint16_t GameData::getRandomArmor(std::mt19937_64& rng, bool excludeBanned)
 {
+    if (excludeBanned)
+    {
+        static std::vector<uint16_t> keysWithoutBanned;
+        if (keysWithoutBanned.empty())
+        {
+            for (const auto& pair : GameData::armorNames)
+            {
+                if (Restrictions::isArmorBanned(pair.first))
+                {
+                    continue;
+                }
+                keysWithoutBanned.push_back(pair.first);
+            }
+        }
+
+        std::uniform_int_distribution<size_t> dist(0, keysWithoutBanned.size() - 1);
+        return keysWithoutBanned[dist(rng)];
+    }
+
     static std::vector<uint16_t> keys;
     if (keys.empty())
     {
@@ -94,8 +135,27 @@ uint16_t GameData::getRandomArmor(std::mt19937_64& rng)
     return keys[dist(rng)];
 }
 
-uint16_t GameData::getRandomItem(std::mt19937_64& rng)
+uint16_t GameData::getRandomItem(std::mt19937_64& rng, bool excludeBanned)
 {
+    if (excludeBanned)
+    {
+        static std::vector<uint16_t> keysWithoutBanned;
+        if (keysWithoutBanned.empty())
+        {
+            for (const auto& pair : GameData::itemNames)
+            {
+                if (Restrictions::isItemBanned(pair.first))
+                {
+                    continue;
+                }
+                keysWithoutBanned.push_back(pair.first);
+            }
+        }
+
+        std::uniform_int_distribution<size_t> dist(0, keysWithoutBanned.size() - 1);
+        return keysWithoutBanned[dist(rng)];
+    }
+
     static std::vector<uint16_t> keys;
     if (keys.empty())
     {
@@ -109,8 +169,27 @@ uint16_t GameData::getRandomItem(std::mt19937_64& rng)
     return keys[dist(rng)];
 }
 
-uint16_t GameData::getRandomWeapon(std::mt19937_64& rng)
+uint16_t GameData::getRandomWeapon(std::mt19937_64& rng, bool excludeBanned)
 {
+    if (excludeBanned)
+    {
+        static std::vector<uint16_t> keysWithoutBanned;
+        if (keysWithoutBanned.empty())
+        {
+            for (const auto& pair : GameData::weaponNames)
+            {
+                if (Restrictions::isWeaponBanned(pair.first))
+                {
+                    continue;
+                }
+                keysWithoutBanned.push_back(pair.first);
+            }
+        }
+
+        std::uniform_int_distribution<size_t> dist(0, keysWithoutBanned.size() - 1);
+        return keysWithoutBanned[dist(rng)];
+    }
+
     static std::vector<uint16_t> keys;
     if (keys.empty())
     {
@@ -122,6 +201,28 @@ uint16_t GameData::getRandomWeapon(std::mt19937_64& rng)
 
     std::uniform_int_distribution<size_t> dist(0, keys.size() - 1);
     return keys[dist(rng)];
+}
+
+uint16_t GameData::getRandomFieldItem(uint16_t origFieldItemID, std::mt19937_64& rng, bool excludeBanned)
+{
+    if (origFieldItemID < 128)
+    {
+        return getRandomItem(rng);
+    }
+    else if (origFieldItemID < 256)
+    {
+        return getRandomWeapon(rng);
+    }
+    else if (origFieldItemID < 288)
+    {
+        return getRandomWeapon(rng);
+    }
+    else
+    {
+        return getRandomAccessory(rng);
+    }
+
+    return origFieldItemID;
 }
 
 uint16_t GameData::getRandomMateria(std::mt19937_64& rng, bool excludeBanned)
@@ -218,6 +319,19 @@ std::string GameData::getNameFromBattleDropID(uint16_t battleDropID)
     return "";
 }
 
+BattleModel* GameData::getBattleModel(std::string modelName)
+{
+    for (BattleModel& model : battleModels)
+    {
+        if (model.name == modelName)
+        {
+            return &model;
+        }
+    }
+
+    return nullptr;
+}
+
 const char* normalChars[256] = {
     " ", "!", "\"", "#", "$", "%", "&", "'", "(", ")", "*", "+", ",", "-", ".", "/",
     "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ":", ";", "<", "=", ">", "?",
@@ -239,7 +353,7 @@ const char* normalChars[256] = {
 
 std::string GameData::decodeString(const std::vector<uint8_t>& data)
 {
-    std::string result;
+    std::string result = "";
     for (uint8_t byte : data) 
     {
         if (byte == 0xFF) break;

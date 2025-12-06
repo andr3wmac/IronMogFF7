@@ -28,6 +28,23 @@ public:
     // Check if a flag is active
     bool isSet(T flag) const { return (flags & flag) != 0; }
 
+    // Set or clear a bit by index
+    void setBit(size_t index, bool value = true)
+    {
+        const T mask = static_cast<T>(T(1) << index);
+        if (value)
+            flags |= mask;
+        else
+            flags &= ~mask;
+    }
+
+    // Check if a bit at an index is set
+    bool isBitSet(size_t index) const
+    {
+        const T mask = static_cast<T>(T(1) << index);
+        return (flags & mask) != 0;
+    }
+
     // Get the underlying raw flags value
     T value() const { return flags; }
 

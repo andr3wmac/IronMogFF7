@@ -7,7 +7,7 @@
 void ScriptUtilities::decompileWorldScript(uint8_t* data, size_t sizeInBytes)
 {
     uint16_t* opCodes = (uint16_t*)data;
-    int opCodeCount = sizeInBytes / 2;
+    size_t opCodeCount = sizeInBytes / 2;
 
     int line = 0;
     for (int i = 0; i < opCodeCount; ++i)
@@ -40,7 +40,7 @@ void ScriptUtilities::decompileWorldScript(uint8_t* data, size_t sizeInBytes)
 
 void ScriptUtilities::findWorldScripts(GameManager* game, uintptr_t startAddress, uintptr_t endAddress)
 {
-    int opCodeCount = endAddress - startAddress / 2;
+    uintptr_t opCodeCount = endAddress - startAddress / 2;
 
     uint16_t* data = new uint16_t[opCodeCount];
     game->read(startAddress, opCodeCount * sizeof(uint16_t), (uint8_t*)(data));
@@ -60,8 +60,8 @@ void ScriptUtilities::findWorldScripts(GameManager* game, uintptr_t startAddress
 
         if (opCode == 0x318 && prev1 == 0x110)
         {
-            uint32_t address = startAddress + (prevFunctionEnd * 2);
-            uint32_t offset = address - WorldOffsets::ScriptStart;
+            uintptr_t address = startAddress + (prevFunctionEnd * 2);
+            uintptr_t offset = address - WorldOffsets::ScriptStart;
             LOG("Found World Map Entrance: %d %d %04x", prev2, address, offset);
         }
 

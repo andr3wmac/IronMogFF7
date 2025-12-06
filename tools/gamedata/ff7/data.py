@@ -954,12 +954,12 @@ def fieldMaps(version):
 
     # The FRCYO2 map (Chocobo stable disc 2/3) is only present in European
     # versions of the game.
-    if not ff7.isEuropean(version):
+    if not ff7.game.isEuropean(version):
         maps.remove("FRCYO2")
 
     # Some maps from the original Japanese release were dummied out in later
     # versions, others were added
-    if version == ff7.Version.JO:
+    if version == ff7.game.Version.JO:
         maps.remove("MDS7ST33")
         maps.remove("MIDGAL")
         maps.remove("NIVGATE4")

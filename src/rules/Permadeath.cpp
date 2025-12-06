@@ -31,13 +31,20 @@ void Permadeath::setup()
     // Fort Condor Battle
     {
         PermadeathExemption& fortCondorBattle = exemptions.emplace_back();
+        fortCondorBattle.fieldIDs.insert(354);
         fortCondorBattle.fieldIDs.insert(356);
+    }
+
+    // Final Sephiroth 1v1 Battle
+    {
+        PermadeathExemption& finalBattle = exemptions.emplace_back();
+        finalBattle.fieldIDs.insert(763);
     }
 }
 
 void Permadeath::onStart()
 {
-    deadCharacterIDs.clear();
+    deadCharacters = game->read<uint16_t>(SavemapOffsets::IronMogPermadeath);
 }
 
 void Permadeath::onFrame(uint32_t frameNumber)
@@ -61,13 +68,13 @@ void Permadeath::onFrame(uint32_t frameNumber)
         uintptr_t characterOffset = getCharacterDataOffset(id);
 
         // Check if character died
-        if (deadCharacterIDs.count(id) == 0)
+        if (!deadCharacters.isBitSet(id))
         {
             bool isDead = false;
 
             if (game->inBattle())
             {
-                Flags<uint16_t> statusFlags = game->read<uint16_t>(BattleCharacterOffsets::Allies[i] + BattleCharacterOffsets::Status);
+                Flags<uint16_t> statusFlags = game->read<uint16_t>(BattleOffsets::Allies[i] + BattleOffsets::Status);
                 isDead = statusFlags.isSet(StatusFlags::Dead);
             }
             else 
@@ -78,21 +85,38 @@ void Permadeath::onFrame(uint32_t frameNumber)
 
             if (isDead)
             {
-                deadCharacterIDs.insert(id);
+                deadCharacters.setBit(id, true);
+                game->write<uint16_t>(SavemapOffsets::IronMogPermadeath, deadCharacters.value());
+                justDiedCharacters.insert(id);
                 LOG("Character has died: %d", id);
             }
         }
 
         // Force death if the character is in our dead characters list
-        if (deadCharacterIDs.count(id) > 0)
+        if (deadCharacters.isBitSet(id))
         {
             // Force HP to 0
             game->write<uint16_t>(characterOffset + CharacterDataOffsets::CurrentHP, 0);
 
             if (game->inBattle())
             {
-                game->write<uint16_t>(PlayerOffsets::Players[i] + PlayerOffsets::CurrentHP, 0);
-                game->write<uint16_t>(BattleCharacterOffsets::Allies[i] + BattleCharacterOffsets::Status, StatusFlags::Dead);
+                // If the player just died we let the game drop the HP gauges 
+                // down naturally instead of us forcing them down instantly.
+                if (justDiedCharacters.count(id) > 0)
+                {
+                    uint16_t currentHP = game->read<uint16_t>(PlayerOffsets::Players[i] + PlayerOffsets::CurrentHP);
+                    if (currentHP == 0)
+                    {
+                        justDiedCharacters.erase(id);
+                    }
+                }
+                else
+                {
+                    game->write<uint16_t>(PlayerOffsets::Players[i] + PlayerOffsets::CurrentHP, 0);
+                    game->write<uint16_t>(BattleStateOffsets::Allies[i] + BattleStateOffsets::HPDisplay, 0);
+                }
+
+                game->write<uint16_t>(BattleOffsets::Allies[i] + BattleOffsets::Status, StatusFlags::Dead);
             }
         }
     }

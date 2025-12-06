@@ -1,9 +1,12 @@
 #include "App.h"
-#include "rules/Restrictions.h"
+#include "core/audio/AudioManager.h"
 #include "core/utilities/Logging.h"
+#include "core/utilities/MemoryMonitor.h"
 #include "core/utilities/MemorySearch.h"
+#include "core/utilities/ModelEditor.h"
 #include "core/utilities/ScriptUtilities.h"
 #include "core/utilities/Utilities.h"
+#include "rules/Restrictions.h"
 
 #include <imgui.h>
 #include <random>
@@ -11,8 +14,14 @@
 void App::run()
 {
     processMemoryOffset[0] = '\0';
+    debugWarpFieldID[0] = '\0';
 
-    gui.initialize(APP_WINDOW_WIDTH, APP_WINDOW_HEIGHT, "IronMog FF7 " APP_VERSION_STRING);
+    if (!gui.initialize(APP_WINDOW_WIDTH, APP_WINDOW_HEIGHT, "IronMog FF7 " APP_VERSION_STRING))
+    {
+        LOG("Graphics failure: could not initialize GUI.");
+        return;
+    }
+
     BIND_EVENT_TWO_ARG(gui.onKeyPress, App::onKeyPress);
     generateSeed();
 
@@ -47,12 +56,12 @@ void App::run()
         {
             switch (currentPanel)
             {
-                case Panels::Main:
-                    drawMainPanel();
+                case Panels::Settings:
+                    drawSettingsPanel();
                     break;
 
-                case Panels::Status:
-                    drawStatusPanel();
+                case Panels::Tracker:
+                    drawTrackerPanel();
                     break;
 
                 case Panels::Debug:
@@ -68,7 +77,7 @@ void App::run()
     gui.destroy();
 }
 
-void App::attach()
+void App::connected()
 {
     if (managerThread != nullptr)
     {
@@ -88,10 +97,10 @@ void App::attach()
     managerThread = new std::thread(&App::runGameManager, this);
 }
 
-void App::detach()
+void App::disconnect()
 {
     connectionState = ConnectionState::NotConnected;
-    connectionStatus = "Not Attached";
+    connectionStatus = "Not Connected";
 
     if (managerThread == nullptr || !managerRunning.load())
     {
@@ -102,6 +111,8 @@ void App::detach()
     managerThread->join();
     delete managerThread;
     managerThread = nullptr;
+
+    AudioManager::pauseMusic();
 }
 
 void App::runGameManager()
@@ -116,37 +127,37 @@ void App::runGameManager()
     BIND_EVENT(game->onStart, App::onStart);
 
     connectionState = ConnectionState::Connecting;
-    connectionStatus = "Attaching to Emulator..";
+    connectionStatus = "Connecting to Emulator..";
 
     bool connected = false;
 
     if (selectedEmulatorType == EmulatorType::DuckStation)
     {
-        connectionStatus = "Attaching to DuckStation..";
+        connectionStatus = "Connecting to DuckStation..";
         std::string targetProcess = "duckstation-qt-x64-ReleaseLTCG.exe";
-        connected = game->attachToEmulator(targetProcess);
+        connected = game->connectToEmulator(targetProcess);
     }
     if (selectedEmulatorType == EmulatorType::BizHawk)
     {
-        connectionStatus = "Attaching to BizHawk..";
+        connectionStatus = "Connecting to BizHawk..";
         std::string targetProcess = "EmuHawk.exe";
-        connected = game->attachToEmulator(targetProcess);
+        connected = game->connectToEmulator(targetProcess);
     }
     if (selectedEmulatorType == EmulatorType::Custom)
     {
         uintptr_t customAddress = Utilities::parseAddress(processMemoryOffset);
-        connected = game->attachToEmulator(runningProcesses[selectedProcessIdx], customAddress);
+        connected = game->connectToEmulator(runningProcesses[selectedProcessIdx], customAddress);
     }
 
     if (connected)
     {
         connectionState = ConnectionState::Connected;
-        connectionStatus = "Attached to emulator.";
+        connectionStatus = "Connected to emulator.";
     }
     else
     {
         connectionState = ConnectionState::Error;
-        connectionStatus = "Failed to attach to emulator.";
+        connectionStatus = "Failed to connect to emulator.";
         return;
     }
 
@@ -176,13 +187,13 @@ void App::onKeyPress(int key, int mods)
     // Ctrl + D
     if (key == 68 && (mods & 2))
     {
-        if (currentPanel == Panels::Main)
+        if (currentPanel == Panels::Settings)
         {
             currentPanel = Panels::Debug;
         }
         else if (currentPanel == Panels::Debug)
         {
-            currentPanel = Panels::Main;
+            currentPanel = Panels::Settings;
         }
     }
 }

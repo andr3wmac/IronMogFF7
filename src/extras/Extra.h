@@ -12,6 +12,8 @@ public:
     virtual void setup() {}
     virtual bool hasSettings() { return false; }
     virtual void onSettingsGUI() { }
+    virtual bool hasDebugGUI() { return false; }
+    virtual void onDebugGUI() {}
 
     void setManager(GameManager* gameManager)
     {

@@ -4,7 +4,6 @@
 #include <fstream>
 #include <ctime>
 #include <cstdarg>
-#include <Windows.h>
 
 class Logger {
 public:
@@ -15,10 +14,16 @@ public:
 
 private:
     std::ofstream logFile;
-    std::string GetTimestamp();
-    std::string FormatString(const char* format, va_list args);
+    std::string getTimestamp();
+    std::string formatString(const char* format, va_list args);
 };
 
 extern Logger logger;
 
 #define LOG(...) logger.Log(__VA_ARGS__)
+
+#if _DEBUG
+#define DEBUG_LOG(...) logger.Log(__VA_ARGS__)
+#else
+#define DEBUG_LOG(...)
+#endif

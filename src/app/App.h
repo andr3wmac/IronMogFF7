@@ -7,18 +7,20 @@
 #include <thread>
 
 #define APP_WINDOW_WIDTH 497
-#define APP_WINDOW_HEIGHT 610
-#define APP_VERSION 0.5
-#define APP_VERSION_STRING "v0.5"
+#define APP_WINDOW_HEIGHT 632
+#define APP_VERSION_MAJOR 0
+#define APP_VERSION_MINOR 6
+#define APP_VERSION_PATCH 0
+#define APP_VERSION_STRING "v0.6.0"
 
 class App
 {
 public:
     enum Panels : uint8_t
     {
-        Main    = 0,
-        Status  = 1,
-        Debug   = 2
+        Settings    = 0,
+        Tracker     = 1,
+        Debug       = 2
     };
 
     enum EmulatorType : uint8_t
@@ -39,13 +41,13 @@ public:
     void run();
     void generateSeed();
 
-    void drawMainPanel();
-    void drawStatusPanel();
+    void drawSettingsPanel();
+    void drawTrackerPanel();
     void drawBottomPanel();
     void drawDebugPanel();
 
-    void attach();
-    void detach();
+    void connected();
+    void disconnect();
     void runGameManager();
 
 protected:
@@ -53,7 +55,7 @@ protected:
     GUIImage logo;
     std::vector<GUIImage> characterPortraits;
     GUIImage deadIcon;
-    Panels currentPanel = Panels::Main;
+    Panels currentPanel = Panels::Settings;
 
     GameManager* game = nullptr;
     std::thread* managerThread = nullptr;
@@ -68,8 +70,11 @@ protected:
     char seedValue[9];
 
     ConnectionState connectionState = ConnectionState::NotConnected;
-    std::string connectionStatus = "Not Attached";
+    std::string connectionStatus = "Not Connected";
 
     void onKeyPress(int key, int mods);
     void onStart();
+
+    // Debug Panel variables
+    char debugWarpFieldID[5];
 };

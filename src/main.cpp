@@ -3,7 +3,7 @@
 #include "core/game/GameData.h"
 
 #define WIN32_LEAN_AND_MEAN
-#include <Windows.h>
+#include <windows.h>
 
 int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
 {

@@ -9,12 +9,12 @@ class Event
     public:
         using Callback = std::function<void(Args...)>;
 
-        void AddListener(const Callback& callback) 
+        void addListener(const Callback& callback) 
         {
             listeners.push_back(callback);
         }
 
-        void Invoke(Args... args) const 
+        void invoke(Args... args) const 
         {
             for (const auto& listener : listeners) 
             {
@@ -26,6 +26,6 @@ class Event
         std::vector<Callback> listeners;
 };
 
-#define BIND_EVENT(EVENT, FUNC) EVENT.AddListener(std::bind(&FUNC, this));
-#define BIND_EVENT_ONE_ARG(EVENT, FUNC) EVENT.AddListener(std::bind(&FUNC, this, std::placeholders::_1));
-#define BIND_EVENT_TWO_ARG(EVENT, FUNC) EVENT.AddListener(std::bind(&FUNC, this, std::placeholders::_1, std::placeholders::_2));
+#define BIND_EVENT(EVENT, FUNC) EVENT.addListener(std::bind(&FUNC, this));
+#define BIND_EVENT_ONE_ARG(EVENT, FUNC) EVENT.addListener(std::bind(&FUNC, this, std::placeholders::_1));
+#define BIND_EVENT_TWO_ARG(EVENT, FUNC) EVENT.addListener(std::bind(&FUNC, this, std::placeholders::_1, std::placeholders::_2));

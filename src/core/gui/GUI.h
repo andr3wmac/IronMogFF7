@@ -1,6 +1,7 @@
 #pragma once
 #include <functional>
-#include "../utilities/Event.h"
+#include "core/utilities/Event.h"
+#include "core/utilities/Utilities.h"
 
 struct GLFWwindow;
 struct GUIImage;
@@ -17,7 +18,7 @@ public:
     void endFrame();
 
     bool wasWindowClosed();
-    void drawImage(GUIImage& image, int width, int height, float alpha = 1.0f);
+    
 
     void pushIconFont();
     void popIconFont();
@@ -26,6 +27,10 @@ private:
     GLFWwindow* window;
 
     void onKeyCallback(int key, int scancode, int action, int mods);
+
+public:
+    static void drawImage(GUIImage& image, int width, int height, float alpha = 1.0f);
+    static void drawColorGrid(const std::string& name, std::vector<Utilities::Color>& colors, std::function<void(int, Utilities::Color)> onClickCallback = {}, float boxSize = 16.0f, float spacing = 2.0f, int colorsPerRow = 24);
 };
 
 struct GUIImage

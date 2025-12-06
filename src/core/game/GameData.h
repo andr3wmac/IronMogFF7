@@ -11,28 +11,39 @@
 struct ESkill
 {
     std::string name = "";
-    uint64_t battleData = 0;
+
+    uint8_t targetFlags = 0;
+    uint32_t mpCost = 0;
+    uint8_t index = 0;
+
+    constexpr uint64_t uint64() const
+    {
+        return (static_cast<uint64_t>(index) & 0xFF) | (static_cast<uint64_t>(mpCost) & 0xFFFFFFFF) << 8 | (static_cast<uint64_t>(targetFlags) & 0xFF) << 40;
+    }
 };
 
-struct FieldItemData
+struct FieldScriptItem
 {
+    uint8_t group = 0;
+    uint8_t script = 0;
     uint32_t offset = 0;
     uint16_t id = 0;
     uint8_t quantity = 0;
-    int16_t x = 0;
-    int16_t y = 0;
-    int16_t z = 0;
 };
 
-struct FieldMessage
+struct FieldScriptMessage
 {
+    uint8_t group = 0;
+    uint8_t script = 0;
     uint32_t offset = 0;
     uint32_t strOffset = 0;
     uint32_t strLength = 0;
 };
 
-struct FieldShop
+struct FieldScriptShop
 {
+    uint8_t group = 0;
+    uint8_t script = 0;
     uint32_t offset = 0;
     uint8_t shopID = 0;
 };
@@ -48,11 +59,12 @@ struct FieldData
 {
     uint16_t id = 0;
     std::string name = "";
-    std::vector<FieldItemData> items;
-    std::vector<FieldItemData> materia;
-    std::vector<FieldMessage> messages;
-    std::vector<FieldShop> shops;
+    std::vector<FieldScriptItem> items;
+    std::vector<FieldScriptItem> materia;
+    std::vector<FieldScriptMessage> messages;
+    std::vector<FieldScriptShop> shops;
     std::vector<FieldWorldExit> worldExits;
+    std::vector<uint8_t> modelIDs;
 
     bool isValid() { return name != ""; }
 };
@@ -66,6 +78,56 @@ struct WorldMapEntrance
     uint32_t centerZ = 0;
 };
 
+struct BattleFormation
+{
+    uint16_t id = 0;
+    bool noEscape = false;
+    int enemyIDs[6];
+};
+
+struct BattleScene
+{
+    int enemyIDs[3];
+    int enemyLevels[3];
+    std::vector<BattleFormation> formations;
+};
+
+struct ModelPart
+{
+    int quadColorTex = 0;
+    int triColorTex  = 0;
+    int quadMonoTex  = 0;
+    int triMonoTex   = 0;
+    int triMono      = 0;
+    int quadMono     = 0;
+    int triColor     = 0;
+    int quadColor    = 0;
+};
+
+struct Model
+{
+    std::string name = "";
+    int polyCount = 0;
+    std::vector<ModelPart> parts;
+};
+
+struct BattleModelPart
+{
+    int sizeInBytes = 0;
+    int vertexCount = 0;
+    int triMonoTex  = 0;
+    int quadMonoTex = 0;
+    int triColor    = 0;
+    int quadColor   = 0;
+};
+
+struct BattleModel
+{
+    std::string name = "";
+    int headerSize = 0;
+    std::vector<BattleModelPart> parts;
+};
+
 class GameData
 {
 public:
@@ -77,15 +139,20 @@ public:
     static std::string getWeaponName(uint8_t id);
     static std::string getMateriaName(uint8_t id);
 
-    static uint16_t getRandomAccessory(std::mt19937_64& rng);
-    static uint16_t getRandomArmor(std::mt19937_64& rng);
-    static uint16_t getRandomItem(std::mt19937_64& rng);
-    static uint16_t getRandomWeapon(std::mt19937_64& rng);
+    static uint16_t getRandomAccessory(std::mt19937_64& rng, bool excludeBanned = true);
+    static uint16_t getRandomArmor(std::mt19937_64& rng, bool excludeBanned = true);
+    static uint16_t getRandomItem(std::mt19937_64& rng, bool excludeBanned = true);
+    static uint16_t getRandomWeapon(std::mt19937_64& rng, bool excludeBanned = true);
     static uint16_t getRandomMateria(std::mt19937_64& rng, bool excludeBanned = true);
+
+    // Returns a random field item ID thats the same type as origFieldItemID
+    static uint16_t getRandomFieldItem(uint16_t origFieldItemID, std::mt19937_64& rng, bool excludeBanned = true);
 
     static FieldData getField(uint16_t id);
     static std::string getNameFromFieldScriptID(uint16_t fieldScriptID);
     static std::string getNameFromBattleDropID(uint16_t battleDropID);
+
+    static BattleModel* getBattleModel(std::string modelName);
 
     static std::string decodeString(const std::vector<uint8_t>& data);
     static std::vector<uint8_t> encodeString(const std::string& input);
@@ -95,11 +162,13 @@ public:
     static std::unordered_map<uint8_t, std::string> itemNames;
     static std::unordered_map<uint8_t, std::string> weaponNames;
     static std::unordered_map<uint8_t, std::string> materiaNames;
+
     static std::vector<ESkill> eSkills;
-
     static std::unordered_map<uint16_t, FieldData> fieldData;
-
     static std::vector<WorldMapEntrance> worldMapEntrances;
+    static std::unordered_map<uint8_t, BattleScene> battleScenes;
+    static std::vector<Model> models;
+    static std::vector<BattleModel> battleModels;
 };
 
 #define ADD_ACCESSORY(ID, NAME) accessoryNames[ID] = NAME;
@@ -107,23 +176,33 @@ public:
 #define ADD_ITEM(ID, NAME) itemNames[ID] = NAME;
 #define ADD_WEAPON(ID, NAME) weaponNames[ID] = NAME;
 #define ADD_MATERIA(ID, NAME) materiaNames[ID] = NAME;
-#define ADD_ESKILL(NAME, BATTLE_DATA) GameData::eSkills.push_back({NAME, BATTLE_DATA});
+#define ADD_ESKILL(NAME, TARGET_FLAGS, MP_COST, IDX) GameData::eSkills.push_back({NAME, TARGET_FLAGS, MP_COST, IDX});
 
 #define ADD_FIELD(FIELD_ID, NAME) fieldData[FIELD_ID] = {FIELD_ID, NAME};
 
-#define ADD_FIELD_ITEM(FIELD_ID, OFFSET, ITEM_ID, QUANTITY, ITEM_X, ITEM_Y, ITEM_Z) \
-    { GameData::fieldData[FIELD_ID].items.push_back({OFFSET, ITEM_ID, QUANTITY, ITEM_X, ITEM_Y, ITEM_Z}); }
+#define FIELD_SCRIPT_ITEM(FIELD_ID, GROUP_IDX, SCRIPT_IDX, OFFSET, ITEM_ID, QUANTITY) \
+    { GameData::fieldData[FIELD_ID].items.push_back({GROUP_IDX, SCRIPT_IDX, OFFSET, ITEM_ID, QUANTITY}); }
 
-#define ADD_FIELD_MATERIA(FIELD_ID, OFFSET, MAT_ID) \
-    { GameData::fieldData[FIELD_ID].materia.push_back({OFFSET, MAT_ID, 1}); }
+#define FIELD_SCRIPT_MATERIA(FIELD_ID, GROUP_IDX, SCRIPT_IDX, OFFSET, MAT_ID) \
+    { GameData::fieldData[FIELD_ID].materia.push_back({GROUP_IDX, SCRIPT_IDX, OFFSET, MAT_ID, 1}); }
 
-#define ADD_FIELD_MESSAGE(FIELD_ID, OFFSET, STR_OFFSET, STR_LEN) \
-    { GameData::fieldData[FIELD_ID].messages.push_back({OFFSET, STR_OFFSET, STR_LEN}); }
+#define FIELD_SCRIPT_MESSAGE(FIELD_ID, GROUP_IDX, SCRIPT_IDX, OFFSET, STR_OFFSET, STR_LEN) \
+    { GameData::fieldData[FIELD_ID].messages.push_back({GROUP_IDX, SCRIPT_IDX, OFFSET, STR_OFFSET, STR_LEN}); }
 
-#define ADD_FIELD_SHOP(FIELD_ID, OFFSET, SHOP_ID) \
-    { GameData::fieldData[FIELD_ID].shops.push_back({OFFSET, SHOP_ID}); }
+#define FIELD_SCRIPT_SHOP(FIELD_ID, GROUP_IDX, SCRIPT_IDX, OFFSET, SHOP_ID) \
+    { GameData::fieldData[FIELD_ID].shops.push_back({GROUP_IDX, SCRIPT_IDX, OFFSET, SHOP_ID}); }
 
 #define ADD_FIELD_WORLD_EXIT(FIELD_ID, OFFSET, INDEX, TARGET_FIELD_ID) \
     { GameData::fieldData[FIELD_ID].worldExits.push_back({OFFSET, INDEX, TARGET_FIELD_ID}); }
 
+#define ADD_FIELD_MODELS(FIELD_ID, ...) \
+    { GameData::fieldData[FIELD_ID].modelIDs = {__VA_ARGS__}; }
+
 #define ADD_WORLDMAP_ENTRANCE(OFFSET, FIELD_ID, FIELD_NAME, CENTER_X, CENTER_Z) GameData::worldMapEntrances.push_back({OFFSET, FIELD_ID, FIELD_NAME, CENTER_X, CENTER_Z});
+
+#define ADD_BATTLE_SCENE(SCENE_ID, ENEMY_ID0, ENEMY_ID1, ENEMY_ID2, ENEMY_LEVEL0, ENEMY_LEVEL1, ENEMY_LEVEL2) GameData::battleScenes[SCENE_ID] = {{ENEMY_ID0, ENEMY_ID1, ENEMY_ID2}, {ENEMY_LEVEL0, ENEMY_LEVEL1, ENEMY_LEVEL2}};
+
+#define ADD_BATTLE_FORMATION(FORMATION_ID, SCENE_ID, NO_ESCAPE, ...) GameData::battleScenes[SCENE_ID].formations.push_back({FORMATION_ID, NO_ESCAPE, {__VA_ARGS__}});
+
+#define ADD_MODEL(MODEL_NAME, POLY_COUNT, ...) { GameData::models.push_back({ MODEL_NAME, POLY_COUNT, __VA_ARGS__ }); }
+#define ADD_BATTLE_MODEL(MODEL_NAME, ...) { GameData::battleModels.push_back({ MODEL_NAME, __VA_ARGS__ }); }

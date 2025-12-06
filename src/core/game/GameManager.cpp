@@ -12,7 +12,7 @@
 GameManager::GameManager()
     : emulator(nullptr)
 {
-
+    memset(fieldScriptExecutionTable, 0, 128);
 }
 
 GameManager::~GameManager()
@@ -23,7 +23,7 @@ GameManager::~GameManager()
     }
 }
 
-bool GameManager::attachToEmulator(std::string processName)
+bool GameManager::connectToEmulator(std::string processName)
 {
     emulator = Emulator::getEmulatorFromProcessName(processName);
     if (emulator == nullptr)
@@ -31,10 +31,10 @@ bool GameManager::attachToEmulator(std::string processName)
         return false;
     }
 
-    return emulator->attach(processName);
+    return emulator->connect(processName);
 }
 
-bool GameManager::attachToEmulator(std::string processName, uintptr_t memoryAddress)
+bool GameManager::connectToEmulator(std::string processName, uintptr_t memoryAddress)
 {
     emulator = Emulator::getEmulatorCustom(processName, memoryAddress);
     if (emulator == nullptr)
@@ -42,7 +42,7 @@ bool GameManager::attachToEmulator(std::string processName, uintptr_t memoryAddr
         return false;
     }
 
-    return emulator->attach(processName);
+    return emulator->connect(processName);
 }
 
 std::string GameManager::readString(uintptr_t offset, uint32_t length)
@@ -53,7 +53,7 @@ std::string GameManager::readString(uintptr_t offset, uint32_t length)
     return GameData::decodeString(strData);
 }
 
-void GameManager::writeString(uintptr_t offset, uint32_t length, std::string& string, bool centerAlign)
+void GameManager::writeString(uintptr_t offset, uint32_t length, const std::string& string, bool centerAlign)
 {
     std::vector<uint8_t> strData = GameData::encodeString(string);
 
@@ -97,6 +97,32 @@ Rule* GameManager::getRule(std::string ruleName)
     return nullptr;
 }
 
+bool GameManager::isExtraEnabled(std::string extraName)
+{
+    for (Extra* extra : Extra::getList())
+    {
+        if (extra->enabled && extra->name == extraName)
+        {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+Extra* GameManager::getExtra(std::string extraName)
+{
+    for (Extra* extra : Extra::getList())
+    {
+        if (extra->enabled && extra->name == extraName)
+        {
+            return extra;
+        }
+    }
+
+    return nullptr;
+}
+
 void GameManager::setup(uint32_t inputSeed)
 {
     // Note: seed may change after loading a save file, so its important to not utilize it in rule setup.
@@ -127,27 +153,31 @@ void GameManager::loadSaveData()
 {
     const uint8_t saveDataVersion = 0;
 
-    uint8_t byte0 = read<uint8_t>(0x9D240);
-    uint8_t byte1 = read<uint8_t>(0x9D241);
+    uint16_t ironMogID = read<uint16_t>(SavemapOffsets::IronMogSave);
 
     // 49 and 4D are the letters IM for Iron Mog
-    if (byte0 == 0x49 && byte1 == 0x4D)
+    if (ironMogID == 0x4D49)
     {
         // Load existing save data.
-        seed = read<uint32_t>(0x9D243);
+        seed = read<uint32_t>(SavemapOffsets::IronMogSeed);
 
         std::string seedString = Utilities::seedToHexString(seed);
         LOG("Loaded seed from save file: %s", seedString.c_str());
     }
     else 
     {
+        // Zero out the area.
+        for (int i = 0; i < 8; ++i)
+        {
+            write<uint32_t>(SavemapOffsets::IronMogSave + (i * 4), 0);
+        }
+
         // Write header and seed into save data area.
-        write<uint8_t>(0x9D240, 0x49);
-        write<uint8_t>(0x9D241, 0x4D);
-        write<uint8_t>(0x9D242, saveDataVersion);
+        write<uint16_t>(SavemapOffsets::IronMogSave, 0x4D49);
+        write<uint8_t>(SavemapOffsets::IronMogVersion, saveDataVersion);
 
         // Write seed
-        write<uint32_t>(0x9D243, seed);
+        write<uint32_t>(SavemapOffsets::IronMogSeed, seed);
     }
 }
 
@@ -163,21 +193,24 @@ void GameManager::update()
     else if (!hasStarted)
     {
         loadSaveData();
-        onStart.Invoke();
+        onStart.invoke();
         hasStarted = true;
         lastFrameUpdateTime = Utilities::getTimeMS();
     }
 
     // We assume if 200ms has passed without the frame number advancing that the emulator is paused
-    uint64_t currentTime = Utilities::getTimeMS();
+    double currentTime = Utilities::getTimeMS();
     if (currentTime - lastFrameUpdateTime > 200 && !emulatorPaused)
     {
         emulatorPaused = true;
-        onEmulatorPaused.Invoke();
+        onEmulatorPaused.invoke();
         LOG("Emulator paused.");
     }
 
-    onUpdate.Invoke();
+    // Update the field script execution table.
+    read(FieldScriptOffsets::ExecutionTable, 128, (uint8_t*)(&fieldScriptExecutionTable[0]));
+
+    onUpdate.invoke();
     
     if (newGameModule != gameModule)
     {
@@ -190,7 +223,7 @@ void GameManager::update()
         // Exited battle
         if (gameModule == GameModule::Battle && newGameModule != GameModule::Battle)
         {
-            onBattleExit.Invoke();
+            onBattleExit.invoke();
         }
 
         if (gameModule == GameModule::Battle && newGameModule == GameModule::Field)
@@ -200,34 +233,66 @@ void GameManager::update()
 
         if (gameModule != GameModule::Menu && newGameModule == GameModule::Menu)
         {
-            waitingForShopData = true;
+            uint8_t menuType = read<uint8_t>(GameOffsets::MenuType);
+            if (menuType == MenuType::Shop)
+            {
+                waitingForShopData = true;
+                wasInShopMenu = true;
+            }
+        }
+
+        if (newGameModule != GameModule::Menu && wasInShopMenu)
+        {
+            // HACK: when we exit a shop sometimes the field doesn't overwrite the shop data
+            // so it stays stale in memory, then the next time we open the shop isShopDataLoaded()
+            // gets false positive from old memory. So, we corrupt one of the materia prices on exit.
+            uint32_t lastMateriaPrice = read<uint32_t>(ShopOffsets::MateriaPricesStart + (68 * 4));
+            if (lastMateriaPrice == 9000) 
+            {
+                write<uint32_t>(ShopOffsets::MateriaPricesStart + (68 * 4), 0);
+            }
+            wasInShopMenu = false;
         }
 
         // Game module changed.
         gameModule = newGameModule;
+        onModuleChanged.invoke(gameModule);
     }
 
     if (gameModule == GameModule::Battle)
     {
         if (waitingForBattleData && isBattleDataLoaded())
         {
-            onBattleEnter.Invoke();
+            onBattleEnter.invoke();
             waitingForBattleData = false;
         }
     }
 
     if (gameModule == GameModule::Field)
     {
+        // Detect if we're warping into the same field we're already in, this 
+        // is a reload and otherwise wouldn't trigger onFieldChanged.
+        uint8_t fieldWarpTrigger = read<uint8_t>(GameOffsets::FieldWarpTrigger);
+        if (fieldWarpTrigger == 1 && !waitingForFieldData)
+        {
+            uint16_t fieldWarpID = read<uint16_t>(GameOffsets::FieldWarpID);
+            if (fieldID == fieldWarpID)
+            {
+                waitingForFieldData = true;
+            }
+        }
+
         uint16_t newFieldID = read<uint16_t>(GameOffsets::FieldID);
         if (newFieldID != fieldID)
         {
             waitingForFieldData = true;
             fieldID = newFieldID;
+            framesInField = 0;
         }
 
         if (waitingForFieldData && isFieldDataLoaded())
         {
-            onFieldChanged.Invoke(fieldID);
+            onFieldChanged.invoke(fieldID);
             waitingForFieldData = false;
         }
     }
@@ -246,7 +311,7 @@ void GameManager::update()
     {
         if (waitingForShopData && isShopDataLoaded())
         {
-            onShopOpened.Invoke();
+            onShopOpened.invoke();
             waitingForShopData = false;
         }
     }
@@ -255,27 +320,34 @@ void GameManager::update()
 
     // A jump in frame number likely indicates a load game or load save state.
     int frameDifference = std::abs((int)newFrameNumber - (int)frameNumber);
-    if (frameDifference > 10)
+    if (frameDifference > 10 && framesSinceReload > 10)
     {
-        LOG("Load detected, reloading rules.");
+        double timeGap = currentTime - lastFrameUpdateTime;
+        LOG("Load detected, reloading rules %lf", timeGap);
         loadSaveData();
-        onStart.Invoke();
+        onStart.invoke();
+        framesSinceReload = 0;
     }
+    framesSinceReload++;
 
+    // Detect change in frame number and trigger event
     if (newFrameNumber != frameNumber)
     {
         frameNumber = newFrameNumber;
         lastFrameUpdateTime = currentTime;
+        framesInField++;
 
         if (emulatorPaused)
         {
             LOG("Emulator resumed.");
-            onEmulatorResumed.Invoke();
+            onEmulatorResumed.invoke();
             emulatorPaused = false;
         }
         
-        onFrame.Invoke(newFrameNumber);
+        onFrame.invoke(newFrameNumber);
     }
+
+    lastUpdateDuration = Utilities::getTimeMS() - currentTime;
 }
 
 std::array<uint8_t, 3> GameManager::getPartyIDs()
@@ -357,7 +429,7 @@ bool GameManager::isBattleDataLoaded()
 
             uintptr_t characterOffset = getCharacterDataOffset(id);
             uint16_t worldMaxHP = read<uint16_t>(characterOffset + CharacterDataOffsets::MaxHP);
-            uint16_t battleMaxHP = read<uint16_t>(BattleCharacterOffsets::Allies[i] + BattleCharacterOffsets::MaxHP);
+            uint16_t battleMaxHP = read<uint16_t>(BattleOffsets::Allies[i] + BattleOffsets::MaxHP);
 
             if (worldMaxHP == battleMaxHP)
             {
@@ -394,6 +466,8 @@ bool GameManager::isBattleDataLoaded()
     return false;
 }
 
+// Detect if field data is fully loaded by verifying the set of information
+// we know about the field is confirmed in memory.
 bool GameManager::isFieldDataLoaded()
 {
     if (gameModule != GameModule::Field)
@@ -412,7 +486,7 @@ bool GameManager::isFieldDataLoaded()
 
     for (int i = 0; i < fieldData.items.size(); ++i)
     {
-        FieldItemData& item = fieldData.items[i];
+        FieldScriptItem& item = fieldData.items[i];
         uintptr_t itemIDOffset = FieldScriptOffsets::ScriptStart + item.offset + FieldScriptOffsets::ItemID;
         uintptr_t itemQuantityOffset = FieldScriptOffsets::ScriptStart + item.offset + FieldScriptOffsets::ItemQuantity;
 
@@ -427,7 +501,7 @@ bool GameManager::isFieldDataLoaded()
 
     for (int i = 0; i < fieldData.materia.size(); ++i)
     {
-        FieldItemData& materia = fieldData.materia[i];
+        FieldScriptItem& materia = fieldData.materia[i];
         uintptr_t idOffset = FieldScriptOffsets::ScriptStart + materia.offset + FieldScriptOffsets::MateriaID;
 
         uint8_t materiaID = read<uint8_t>(idOffset);
@@ -440,7 +514,7 @@ bool GameManager::isFieldDataLoaded()
 
     for (int i = 0; i < fieldData.messages.size(); ++i)
     {
-        FieldMessage& message = fieldData.messages[i];
+        FieldScriptMessage& message = fieldData.messages[i];
         uint8_t opCode = read<uint8_t>(FieldScriptOffsets::ScriptStart + message.offset);
         if (opCode != 0x40)
         {
@@ -463,9 +537,8 @@ bool GameManager::isFieldDataLoaded()
     return true;
 }
 
-// TODO:
-//  - Hardcode expectations instead of checking like this, less reading.
-//  - There has to be some better indicator of what type of menu is currently on the screen.
+// Detect if shop data is fully loaded by verifying the set of information
+// we know about the shop is confirmed in memory.
 bool GameManager::isShopDataLoaded()
 {
     if (gameModule != GameModule::Menu)
@@ -484,7 +557,7 @@ bool GameManager::isShopDataLoaded()
     uint8_t padding = read<uint8_t>(shopOffset + 3);
     if (padding != 0) { return false; }
 
-    for (int i = 0; i < SHOP_ITEM_MAX; ++i)
+    for (int i = invCount; i < SHOP_ITEM_MAX; ++i)
     {
         uintptr_t itemOffset = shopOffset + 4 + (i * 8);
 
@@ -492,13 +565,10 @@ bool GameManager::isShopDataLoaded()
         uint16_t itemID = read<uint32_t>(itemOffset + 4);
         uint16_t itemPadding = read<uint16_t>(itemOffset + 6);
 
-        if (i >= invCount)
+        // If we're outside the specified item count we should see all zeroes.
+        if (itemType != 0 || itemID != 0 || itemPadding != 0)
         {
-            // If we're outside the specified item count we should see all zeroes.
-            if (itemType != 0 || itemID != 0 || itemPadding != 0)
-            {
-                return false;
-            }
+            return false;
         }
     }
 
@@ -525,12 +595,12 @@ bool GameManager::isShopDataLoaded()
 
 // The goal here is to find the message thats closest in memory (offset) that also contains
 // the name of the item. The message is usually: Received "{itemName}"!
-int GameManager::findPickUpMessage(std::string itemName, uint32_t itemOffset)
+int GameManager::findPickUpMessage(std::string itemName, uint8_t group, uint8_t script, uint32_t offset)
 {
     FieldData fieldData = GameData::getField(fieldID);
     if (!fieldData.isValid())
     {
-        return - 1;
+        return -1;
     }
 
     int bestIndex = -1;
@@ -538,12 +608,18 @@ int GameManager::findPickUpMessage(std::string itemName, uint32_t itemOffset)
 
     for (int i = 0; i < fieldData.messages.size(); ++i)
     {
-        FieldMessage& fieldMsg = fieldData.messages[i];
-        std::string msg = readString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength);
+        FieldScriptMessage& fieldMsg = fieldData.messages[i];
 
+        // The message is always in the same group+script as the pick up.
+        if (fieldMsg.group != group || fieldMsg.script != script)
+        {
+            continue;
+        }
+        
+        std::string msg = readString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength);
         if (msg.find(itemName) != std::string::npos)
         {
-            uint32_t distance = std::abs((int32_t)(fieldMsg.strOffset - itemOffset));
+            uint32_t distance = std::abs((int32_t)(fieldMsg.strOffset - offset));
             if (distance < bestDistance)
             {
                 bestDistance = distance;
@@ -553,4 +629,14 @@ int GameManager::findPickUpMessage(std::string itemName, uint32_t itemOffset)
     }
 
     return bestIndex;
+}
+
+std::string GameManager::getLastDialogText()
+{
+    if (getGameModule() != GameModule::Field)
+    {
+        return "";
+    }
+
+    return readString(GameOffsets::DialogText, 256);
 }

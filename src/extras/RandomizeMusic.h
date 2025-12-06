@@ -21,17 +21,26 @@ public:
     bool hasSettings() override { return true; }
     void onSettingsGUI() override;
 
+    bool isPlaying();
+    std::string getCurrentlyPlaying();
+
 private:
     void onStart();
     void onEmulatorPaused();
     void onEmulatorResumed();
     void onFrame(uint32_t frameNumber);
-    void onFieldChanged(uint16_t fieldID);
 
+    void scanMusicFolder();
     Track loadTrack(std::string path);
 
+    bool disabled = false;
+    bool overrideMusic = false;
+    std::string currentSong = "";
     float currentVolume = 1.0f;
     float previousVolume = 1.0f;
     uint16_t previousMusicID = 0;
+    uint8_t previousGameModule = 0;
+    
+    std::unordered_map<uint16_t, uint16_t> previousTrackSelection;
     std::unordered_map<std::string, std::vector<Track>> musicMap;
 };

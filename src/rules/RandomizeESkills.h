@@ -1,5 +1,6 @@
 #pragma once
 #include "Rule.h"
+#include "core/utilities/Flags.h"
 #include <cstdint>
 
 class RandomizeESkills : public Rule
@@ -21,8 +22,7 @@ private:
     {
         uint8_t index = 0;
         std::vector<TrackedMateria> trackedMateria;
-        bool menuLoaded = false;
-        uint64_t previousESkillValues[24];
+        Flags<uint32_t> previousESkills;
     };
 
     void onStart();
@@ -30,7 +30,6 @@ private:
     void onBattleExit();
     void onFrame(uint32_t frameNumber);
 
-    bool isESkillMenuLoaded(TrackedPlayer& player);
     void setESkillBattleMenu(TrackedPlayer& player, int eSkillIndex, bool enabled);
 
     bool battleEntered = false;

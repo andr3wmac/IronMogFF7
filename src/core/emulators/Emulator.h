@@ -18,7 +18,7 @@ public:
     ~Emulator();
 
     virtual uintptr_t getPS1MemoryOffset() { return 0; }
-    virtual bool attach(std::string processName);
+    virtual bool connect(std::string processName);
 
     virtual bool read(uintptr_t offset, void* outBuffer, size_t size);
     virtual bool write(uintptr_t offset, void* inValue, size_t size);

@@ -7,54 +7,75 @@
 
 struct GameOffsets
 {
-    CONST_PTR FrameNumber       = 0x51568;
-    CONST_PTR MusicVolume       = 0x62F5E;
-    CONST_PTR FieldID           = 0x9A05C;
-    CONST_PTR MusicID           = 0x9A14E;
-    CONST_PTR CurrentModule     = 0x9C560; 
-    CONST_PTR PartyIDList       = 0x9CBDC; // 3 Bytes in a row.
-    CONST_PTR Inventory         = 0x9CBE0; // 320 item list, 2 byte ids.
-    CONST_PTR MateriaInventory  = 0x9C360; // 200 item list, 4 byte ids.
-    CONST_PTR Gil               = 0x9D260;
-    CONST_PTR InGameTime        = 0x9D264; // 32-bit integer, in seconds
-    CONST_PTR GameMoment        = 0x9D288;
-    CONST_PTR PauseMenuOptions  = 0x9D2A6; // Bitmask of options enabled in the menu.
-    CONST_PTR PHSVisibilityMask = 0x9D78A;
+    CONST_PTR FrameNumber       = 0x51568;  // uint32_t
+    CONST_PTR MusicVolume       = 0x62F5E;  // uint16_t controlling global music volume
+    CONST_PTR NextFormationID   = 0x707BC;  // uint16_t formation id of the next random encounter
+    CONST_PTR MusicLock         = 0x716D4;  // uint8_t 1 is locked, 0 is unlocked
+    CONST_PTR FieldID           = 0x9A05C;  // uint16_t
+    CONST_PTR MusicID           = 0x9A14E;  // uint16_t id of currently playing music
+    CONST_PTR MenuType          = 0x9ABF5;  // uint8_t 8 = shop, 9 = main menu
+    CONST_PTR FieldWarpTrigger  = 0x9ABF5;  // uint8_t, set to 1 to warp to field warp ID below
+    CONST_PTR FieldWarpID       = 0x9ABF6;  // uint16_t
+    CONST_PTR ScreenFade        = 0x9AC42;  // uint16_t, 0 - 256 how much screen is faded for loading transition
+    CONST_PTR CurrentModule     = 0x9C560;  // uint8_t
+    CONST_PTR PartyIDList       = 0x9CBDC;  // 3 uint8_t in a row.
+    CONST_PTR Inventory         = 0x9CBE0;  // 320 item list, uint16_t ids.
+    CONST_PTR MateriaInventory  = 0x9C360;  // 200 item list, uint32_t ids.
+    CONST_PTR Gil               = 0x9D260;  // uint32_t party gil
+    CONST_PTR InGameTime        = 0x9D264;  // uint32_t in seconds
+    CONST_PTR GameMoment        = 0x9D288;  // uint16_t
+    CONST_PTR MenuLockingMask   = 0x9D2A6;  // uint16_t bitmask of options disabled in the menu. 
+    CONST_PTR PHSVisibilityMask = 0x9D78A;  // uint16_t bitmask of which characters are on PHS
+    CONST_PTR DialogText        = 0xE4944;  // Array of uint8_t characters terminated by 255
 };
 
 struct GameModule
 {
-    CONST_U8 None   = 0;
-    CONST_U8 Field  = 1;
-    CONST_U8 Battle = 2;
-    CONST_U8 World  = 3;
-    CONST_U8 Menu   = 5;
+    CONST_U8 None           = 0;
+    CONST_U8 Field          = 1;
+    CONST_U8 Battle         = 2;
+    CONST_U8 World          = 3;
+    CONST_U8 Menu           = 5;
+    CONST_U8 Snowboarding   = 8;
+};
+
+struct MenuType
+{
+    CONST_U8 Credits        = 0x05;
+    CONST_U8 NameEntry      = 0x06;
+    CONST_U8 PartySelect    = 0x07;
+    CONST_U8 Shop           = 0x08;
+    CONST_U8 MainMenu       = 0x09;
+    CONST_U8 Save           = 0x0E;
 };
 
 struct FieldOffsets
 {
-    CONST_PTR FieldX = 0x74EB0;
-    CONST_PTR FieldY = 0x74EB4;
-    CONST_PTR FieldZ = 0x74EB8;
+    CONST_PTR FieldX = 0x74EB0; // int32_t
+    CONST_PTR FieldY = 0x74EB4; // int32_t
+    CONST_PTR FieldZ = 0x74EB8; // int32_t
 };
 
 struct FieldScriptOffsets
 {
-    CONST_PTR ScriptStart = 0x115000;
-    CONST_PTR TriggersStart = 0x114FF6;
+    // List of uint16_t each is a pointer to current line of field script being executed for that group.
+    CONST_PTR ExecutionTable = 0x831FC; 
 
-    CONST_PTR ItemID = 0x02;
-    CONST_PTR ItemQuantity = 0x04;
+    CONST_PTR TriggersStart = 0x114FF6;
+    CONST_PTR ScriptStart   = 0x115000;
+
+    CONST_PTR ItemID        = 0x02; // uint16_t
+    CONST_PTR ItemQuantity  = 0x04; // uint8_t
 
     // TODO: get the real number
-    CONST_PTR MateriaID = 0x03;
+    CONST_PTR MateriaID = 0x03;     // uint8_t
 };
 
 struct WorldOffsets
 {
-    CONST_PTR WorldX = 0xE56FC;
-    CONST_PTR WorldY = 0xE5700;
-    CONST_PTR WorldZ = 0xE5704;
+    CONST_PTR WorldX = 0xE56FC; // int32_t
+    CONST_PTR WorldY = 0xE5700; // int32_t
+    CONST_PTR WorldZ = 0xE5704; // int32_t
 
     // Add offset from GameData to get to memory address.
     CONST_PTR ScriptStart = 0xD0B6A;
@@ -130,6 +151,24 @@ inline uintptr_t getCharacterDataOffset(uint8_t characterID)
     return CharacterDataOffsets::Cloud;
 }
 
+inline std::string getCharacterName(uint8_t characterID)
+{
+    switch (characterID)
+    {
+        case 0: return "CLOUD";
+        case 1: return "BARRET";
+        case 2: return "TIFA";
+        case 3: return "AERITH";
+        case 4: return "REDXIII";
+        case 5: return "YUFFIE";
+        case 6: return "CAITSITH";
+        case 7: return "VINCENT";
+        case 8: return "CID";
+    }
+
+    return "CLOUD";
+}
+
 struct PlayerOffsets
 {
     CONST_PTR Players[] = { 0x9D84C, 0x9DC8C, 0x9E0CC };
@@ -150,12 +189,12 @@ struct PlayerOffsets
     CONST_PTR CurrentMP     = 0x14;
     CONST_PTR MaxMP         = 0x16;
 
-    CONST_PTR LimitBreakDisplay = 0x1B;
-    CONST_PTR EnemySkillMenu    = 0x348; // List of 24 8-byte entries.
+    CONST_PTR LimitBreakDisplay = 0x1B;     // uint8_t
+    CONST_PTR EnemySkillMenu    = 0x348;    // List of 24 8-byte entries.
     CONST_PTR CharacterID       = 0x420;
 };
 
-struct BattleCharacterOffsets
+struct BattleOffsets
 {
     // Battle Character Data Length = 104 bytes
     CONST_PTR Allies[] = { 0xF83E0, 0xF8448, 0xF84B0 };
@@ -170,10 +209,19 @@ struct BattleCharacterOffsets
     CONST_PTR ID        = 0x24;
     CONST_PTR CurrentHP = 0x2C;
     CONST_PTR MaxHP     = 0x30;
+    CONST_PTR Gil       = 0x58;
+    CONST_PTR Exp       = 0x5C;
 
-    // TODO: what do these do for allies?
-    CONST_PTR Gil = 0x58;
-    CONST_PTR Exp = 0x5C;
+    // Graphics Data
+    CONST_PTR AllyModels[] = { 0x103200, 0x112200, 0x121200 };
+};
+
+struct BattleStateOffsets
+{
+    CONST_PTR Allies[] = { 0xF5BBC, 0xF5C00, 0xF5C44 };
+
+    CONST_PTR ATB       = 0x00;
+    CONST_PTR HPDisplay = 0x38;
 };
 
 // Note: It looks like every formation can have a maximum of 3 enemies, but those enemies can be used multiple times.
@@ -236,5 +284,12 @@ struct SavemapOffsets
 {
     CONST_PTR Start = 0x9C6E4;
 
-    CONST_PTR BuggyHighwindPosition = 0x0F74;
+    // These are IronMog specific values we store and fetch from an unused spot in the save map.
+    // This area from 0x0B5C to 0x0B7C is 32 bytes of unused data.
+    CONST_PTR IronMogSave       = Start + 0x0B5C;  // 2 Bytes for the ASCII letters IM to know we've been here.
+    CONST_PTR IronMogVersion    = Start + 0x0B5E;  // A save data format version number, uint8_t
+    CONST_PTR IronMogSeed       = Start + 0x0B5F;  // uint32_t seed used in current playthrough
+    CONST_PTR IronMogPermadeath = Start + 0x0B63;  // uint16_t used by permadeath to track dead characters
+
+    CONST_PTR BuggyHighwindPosition = Start + 0x0F74;
 };

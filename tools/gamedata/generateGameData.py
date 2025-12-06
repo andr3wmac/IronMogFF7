@@ -32,12 +32,12 @@ class GameDataGenerator:
 
 def outputInventory(gen, discPath, version):
     # Retrieve the kernel data file
-    kernelDataFile = ff7.retrieveFile(discPath, "INIT", "KERNEL.BIN")
+    kernelDataFile = ff7.game.retrieveFile(discPath, "INIT", "KERNEL.BIN")
     kernelBin = ff7.kernel.Archive(kernelDataFile)
 
     # Extract all string lists
     for index, numStrings, compressed, transDir, transFileName in ff7.data.kernelStringData:
-        stringList = ff7.kernel.StringList(kernelBin.getFile(9, index).getData(), numStrings, ff7.isJapanese(version))
+        stringList = ff7.kernel.StringList(kernelBin.getFile(9, index).getData(), numStrings, ff7.game.isJapanese(version))
         lines = stringList.getStrings()
 
         # Item Names
@@ -102,31 +102,32 @@ def outputInventory(gen, discPath, version):
 
 def outputOther(gen, discPath, version):
     # Enemy Skills
-    # The uint64_t numbers were extracted from memory at runtime.
-    gen.write_line("ADD_ESKILL(\"Frog Song\", 3298534884608);", 4)
-    gen.write_line("ADD_ESKILL(\"L4 Suicide\", 7696581396993);", 4)
-    gen.write_line("ADD_ESKILL(\"Magic Hammer\", 3298534884098);", 4)
-    gen.write_line("ADD_ESKILL(\"White Wind\", 5497558147587);", 4)
-    gen.write_line("ADD_ESKILL(\"Big Guard\", 5497558153220);", 4)
-    gen.write_line("ADD_ESKILL(\"Angel Whisper\", 1099511640581);", 4)
-    gen.write_line("ADD_ESKILL(\"Dragon Force\", 1099511632646);", 4)
-    gen.write_line("ADD_ESKILL(\"Death Force\", 1099511628551);", 4)
-    gen.write_line("ADD_ESKILL(\"Flame Thrower\", 3298534885896);", 4)
-    gen.write_line("ADD_ESKILL(\"Laser\", 3298534887433);", 4)
-    gen.write_line("ADD_ESKILL(\"Matra Magic\", 7696581396490);", 4)
-    gen.write_line("ADD_ESKILL(\"Bad Breath\", 7696581409291);", 4)
-    gen.write_line("ADD_ESKILL(\"Beta\", 7696581403404);", 4)
-    gen.write_line("ADD_ESKILL(\"Aqualung\", 7696581403149);", 4)
-    gen.write_line("ADD_ESKILL(\"Trine\", 7696581399566);", 4)
-    gen.write_line("ADD_ESKILL(\"Magic Breath\", 7696581413647);", 4)
-    gen.write_line("ADD_ESKILL(\"????\", 3298534884112);", 4)
-    gen.write_line("ADD_ESKILL(\"Goblin Punch\", 3298534883345);", 4)
-    gen.write_line("ADD_ESKILL(\"Chocobuckle\", 3298534884114);", 4)
-    gen.write_line("ADD_ESKILL(\"L5 Death\", 7696581400083);", 4)
-    gen.write_line("ADD_ESKILL(\"Death Sentence\", 3298534885908);", 4)
-    gen.write_line("ADD_ESKILL(\"Roulette\", 218802813928981);", 4)
-    gen.write_line("ADD_ESKILL(\"Shadow Flare\", 3298534908950);", 4)
-    gen.write_line("ADD_ESKILL(\"Pandora’s Box\", 7696581422615);", 4)
+    # TODO: we can pull this data from kernel, instead its hardcoded from inspection with Scarlet.
+    # Format: Name, Target Flags, MP Cost, Index.
+    gen.write_line("ADD_ESKILL(\"Frog Song\", 0b00000011, 5, 0);", 4)
+    gen.write_line("ADD_ESKILL(\"L4 Suicide\", 0b00000111, 10, 1);", 4)
+    gen.write_line("ADD_ESKILL(\"Magic Hammer\", 0b00000011, 3, 2);", 4)
+    gen.write_line("ADD_ESKILL(\"White Wind\", 0b00000101, 34, 3);", 4)
+    gen.write_line("ADD_ESKILL(\"Big Guard\", 0b00000101, 56, 4);", 4)
+    gen.write_line("ADD_ESKILL(\"Angel Whisper\", 0b00000001, 50, 5);", 4)
+    gen.write_line("ADD_ESKILL(\"Dragon Force\", 0b00000001, 19, 6);", 4)
+    gen.write_line("ADD_ESKILL(\"Death Force\", 0b00000001, 3, 7);", 4)
+    gen.write_line("ADD_ESKILL(\"Flame Thrower\", 0b00000011, 10, 8);", 4)
+    gen.write_line("ADD_ESKILL(\"Laser\", 0b00000011, 16, 9);", 4)
+    gen.write_line("ADD_ESKILL(\"Matra Magic\", 0b00000111, 8, 10);", 4)
+    gen.write_line("ADD_ESKILL(\"Bad Breath\", 0b00000111, 58, 11);", 4)
+    gen.write_line("ADD_ESKILL(\"Beta\", 0b00000111, 35, 12);", 4)
+    gen.write_line("ADD_ESKILL(\"Aqualung\", 0b00000111, 34, 13);", 4)
+    gen.write_line("ADD_ESKILL(\"Trine\", 0b00000111, 20, 14);", 4)
+    gen.write_line("ADD_ESKILL(\"Magic Breath\", 0b00000111, 75, 15);", 4)
+    gen.write_line("ADD_ESKILL(\"????\", 0b00000011, 3, 16);", 4)
+    gen.write_line("ADD_ESKILL(\"Goblin Punch\", 0b00000011, 0, 17);", 4)
+    gen.write_line("ADD_ESKILL(\"Chocobuckle\", 0b00000011, 3, 18);", 4)
+    gen.write_line("ADD_ESKILL(\"L5 Death\", 0b00000111, 22, 19);", 4)
+    gen.write_line("ADD_ESKILL(\"Death Sentence\", 0b00000011, 10, 20);", 4)
+    gen.write_line("ADD_ESKILL(\"Roulette\", 0b11000111, 6, 21);", 4)
+    gen.write_line("ADD_ESKILL(\"Shadow Flare\", 0b00000011, 100, 22);", 4)
+    gen.write_line("ADD_ESKILL(\"Pandora’s Box\", 0b00000111, 110, 23);", 4)
     gen.write_line("")
 
 def unpack_ushort(byteA, byteB):
@@ -139,7 +140,7 @@ def outputFields(gen, discPath, version):
     # Handle all map files
     for map in ff7.data.fieldMaps(version):
         # Get the event data
-        mapData = ff7.field.MapData(ff7.retrieveFile(discPath, "FIELD", map + ".DAT"))
+        mapData = ff7.field.MapData(ff7.game.retrieveFile(discPath, "FIELD", map + ".DAT"))
         event = mapData.getEventSection()
         code = event.scriptCode
         baseAddress = event.scriptBaseAddress
@@ -147,14 +148,13 @@ def outputFields(gen, discPath, version):
         fieldStrings = {}
         fieldOffsets = {}
         id = 0
-        for stroffset, strlen, string in event.getStringsWithOffsets(ff7.isJapanese(version)):
+        for stroffset, strlen, string in event.getStringsWithOffsets(ff7.game.isJapanese(version)):
             fieldStrings[id] = string
             fieldOffsets[id] = (stroffset, strlen)
             id += 1
 
         fieldID = fieldIDTable[map.lower()]
         gen.write_line("ADD_FIELD(" + fieldID + ", \"" + map.lower() + "\");", 4)
-        #print("FIELD: " + map.lower())
 
         last_x = 0
         last_y = 0
@@ -163,6 +163,7 @@ def outputFields(gen, discPath, version):
         offset = 0
         while offset < len(code):
             addr = offset + baseAddress
+            groupIndex, scriptIndex = event.findGroupAndScript(addr)
 
             format = "%04x: "
             values = (addr, )
@@ -197,30 +198,32 @@ def outputFields(gen, discPath, version):
             if (mnemonic == "stitm"):
                 item_id = values[3] | (values[4] << 8)
                 item_quantity = values[5]
-
-                gen.write_line("ADD_FIELD_ITEM(" + fieldID + ", " + f"0x{addr:X}" + ", " + str(item_id) + ", " + str(item_quantity) + ", " + str(last_x) + ", " + str(last_y) + ", " + str(last_z) + ");", 4)
+                gen.write_line("FIELD_SCRIPT_ITEM(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " + f"0x{addr:X}" + ", " + str(item_id) + ", " + str(item_quantity) + ");", 4)
 
             if (mnemonic == "smtra"):
                 materia_id = values[4]
-                gen.write_line("ADD_FIELD_MATERIA(" + fieldID + ", " + f"0x{addr:X}" + ", " + str(materia_id) + ");", 4)
+                gen.write_line("FIELD_SCRIPT_MATERIA(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " + f"0x{addr:X}" + ", " + str(materia_id) + ");", 4)
 
             if (mnemonic == "mes"):
                 string = fieldStrings[values[3]]
 
+                # We use the Turtle Paradise newsletter for in game hints
+                if ("Turtle Paradise" in string or "Turtles Paradise" in string or "Turtle's Paradise" in string) and ("No." in string or "Number" in string):
+                    stroffset, strlen = fieldOffsets[values[3]]
+                    gen.write_line("FIELD_SCRIPT_MESSAGE(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " + f"0x{addr:X}" + ", " + f"0x{stroffset:X}" + ", " + str(strlen) + ");", 4)
+
                 # Ensures the string contains an item/materia/etc name wrapped in quotes
                 match = next((word for word in gen.item_names if f'"{word}"' in string), None)
                 if match:
-                    #print(match + ": " + string)
                     stroffset, strlen = fieldOffsets[values[3]]
-                    #print(str(stroffset) + " " + str(strlen) + ": " + string)
-                    gen.write_line("ADD_FIELD_MESSAGE(" + fieldID + ", " + f"0x{addr:X}" + ", " + f"0x{stroffset:X}" + ", " + str(strlen) + ");", 4)
+                    gen.write_line("FIELD_SCRIPT_MESSAGE(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " +  f"0x{addr:X}" + ", " + f"0x{stroffset:X}" + ", " + str(strlen) + ");", 4)
                 
                 #print(values)
 
             if (mnemonic == "menu" and len(values) == 5):
                 # Shop
                 if values[3] == 8:
-                    gen.write_line("ADD_FIELD_SHOP(" + fieldID + ", " + f"0x{addr:X}" + ", " + str(values[4]) + ");", 4)
+                    gen.write_line("FIELD_SCRIPT_SHOP(" + fieldID + ", "+ str(groupIndex) + ", " + str(scriptIndex) + ", " + f"0x{addr:X}" + ", " + str(values[4]) + ");", 4)
 
             offset += size
 
@@ -236,6 +239,13 @@ def outputFields(gen, discPath, version):
 
                 gen.write_line("ADD_FIELD_WORLD_EXIT(" + fieldID + ", " + f"0x{final_offset:X}" + ", " + str(door_index) + ", " + f"0x{door.fieldID:X}" + ");", 4)
             door_index += 1
+
+        # Field Models
+        modelSection = mapData.getModelSection()
+        globalModelIDs = []
+        for model in modelSection.models:
+            globalModelIDs.append(model.globalModelID)
+        gen.write_line("ADD_FIELD_MODELS(" + fieldID + ", " + ", ".join(str(x) for x in globalModelIDs) + ");", 4)    
 
     gen.write_line("")
 
@@ -286,13 +296,150 @@ def outputWorldMap(gen, discPath, version):
     gen.write_line("ADD_WORLDMAP_ENTRANCE(0x5d10, 0x3A, \"Forgotten Capital\", 162051, 81137);", 4)
     gen.write_line("")
 
+def outputBattles(gen, discPath, version):
+    sceneBin = ff7.scene.Archive(ff7.game.retrieveFile(discPath, "BATTLE", "SCENE.BIN"))
+
+    # Process all scenes
+    for i in range(sceneBin.numScenes()):
+        scene = sceneBin.getScene(i)
+
+        hasValidEnemies = False
+        enemyLevels = ""
+        enemies = scene.getEnemies(ff7.game.isJapanese(version))
+        for enemy in enemies:
+            if len(enemy.name) >= 2 and ord(enemy.name[0]) == 0x00EA and ord(enemy.name[1]) == 0x00FA:
+                hasValidEnemies = False
+                break
+
+            if (enemy.name != "" and enemy.level != 255):
+                enemyLevels += ", " + str(enemy.level)
+                hasValidEnemies = True
+            else:
+                enemyLevels += ", 255"
+        
+        if not hasValidEnemies:
+            continue
+
+        gen.write_line("ADD_BATTLE_SCENE(" + str(i) + ", " + str(scene.enemyID0) + ", " + str(scene.enemyID1) + ", " + str(scene.enemyID2) + enemyLevels + ");", 4)
+
+        formations = scene.getFormations()
+        formationIndex = 0
+        for formation in formations:
+            formationID = (i * 4) + formationIndex
+
+            noEscape = "false"
+            if not formation.canEscape():
+                noEscape = "true"
+
+            enemyIDs = ", ".join(map(str, formation.enemyIDs))
+            gen.write_line("ADD_BATTLE_FORMATION(" + str(formationID) + ", " + str(i) + ", " + noEscape + ", " + enemyIDs + ");", 4)
+            formationIndex += 1
+
+    gen.write_line("")
+
+def outputModel(modelName, model):
+    parts_strings = []
+    for i in range(0, len(model.parts)):
+        part = model.parts[i]
+        model_part_string = "{" + str(len(part.quad_color_tex)) + ", " + str(len(part.tri_color_tex)) + ", " + str(len(part.quad_mono_tex)) + ", " + str(len(part.tri_mono_tex)) + ", " + str(len(part.tri_mono)) + ", " + str(len(part.quad_mono)) + ", " + str(len(part.tri_color)) + ", " + str(len(part.quad_color)) + "}"
+        parts_strings.append(model_part_string)
+
+    parts_string = ", ".join(parts_strings)
+    gen.write_line("ADD_MODEL(\"" + modelName + "\", " + str(model.poly_count) + ", {" + parts_string +  "});", 4)
+
+def outputModelFromField(discPath, fieldFile, modelIndex, modelName):
+    models = ff7.models.loadModelsFromBSX(ff7.game.retrieveFile(discPath, "FIELD", fieldFile), discPath)
+    if modelIndex >= len(models):
+        print("Model index exceeds model count from field file: " + fieldFile)
+        return
+    
+    outputModel(modelName, models[modelIndex])
+
+def outputModels(gen, discPath, version):
+    # Global Models
+    modelFiles = {"BARRET":     "BALLET.BCX", 
+                  "CID":        "CID.BCX", 
+                  "CLOUD":      "CLOUD.BCX", 
+                  "AERITH":     "EARITH.BCX", 
+                  "CAITSITH":   "KETCY.BCX", 
+                  "REDXIII":    "RED.BCX", 
+                  "TIFA":       "TIFA.BCX", 
+                  "VINCENT":    "VINCENT.BCX", 
+                  "YUFFIE":     "YUFI.BCX"}
+    
+    for modelName, modelFile in modelFiles.items():
+        model = ff7.models.loadModelFromBCX(ff7.game.retrieveFile(discPath, "FIELD", modelFile))
+        outputModel(modelName, model)
+
+    # Field Specific Models
+    outputModelFromField(discPath, "MD8_2.BSX", 1, "AERITH_INTRO")
+    outputModelFromField(discPath, "MRKT1.BSX", 4, "CLOUD_DRESS")
+    outputModelFromField(discPath, "MRKT2.BSX", 3, "AERITH_DRESS")
+    outputModelFromField(discPath, "COLNE_4.BSX", 5, "TIFA_DRESS")
+    outputModelFromField(discPath, "MD0.BSX", 4, "CLOUD_SWORD")
+    outputModelFromField(discPath, "MTCRL_3.BSX", 3, "BARRET_COREL")
+    outputModelFromField(discPath, "ITHOS.BSX", 9, "CLOUD_WHEELCHAIR")
+    outputModelFromField(discPath, "MD8_5.BSX", 1, "CLOUD_PARACHUTE")
+    outputModelFromField(discPath, "MD8_5.BSX", 2, "TIFA_PARACHUTE")
+    outputModelFromField(discPath, "MD8_5.BSX", 3, "BARRET_PARACHUTE")
+    outputModelFromField(discPath, "MD8_5.BSX", 4, "REDXIII_PARACHUTE")
+    outputModelFromField(discPath, "MD8_5.BSX", 5, "CID_PARACHUTE")
+    outputModelFromField(discPath, "FSHIP_12.BSX", 5, "YUFFIE_PARACHUTE")
+
+    # Clouds model is slightly different on the world map for some reason, this was extracted from memory.
+    gen.write_line("ADD_MODEL(\"CLOUD_WORLD\", 378, {{0, 0, 0, 0, 0, 0, 12, 6}, {0, 0, 0, 0, 0, 0, 6, 27}, {2, 4 + 2, 0, 0, 0, 0, 148 + 2, 12 + 1}, {0, 0, 0, 0, 0, 0, 10, 9}, {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 0, 0, 0, 0, 0, 6}, {0, 0, 0, 0, 0, 0, 10, 9}, {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 0, 0, 0, 0, 0, 6}, {0, 0, 0, 0, 0, 0, 8, 4}, {0, 0, 0, 0, 0, 0, 4, 14}, {0, 0, 0, 0, 0, 0, 2, 7}, {0, 0, 0, 0, 0, 0, 8, 4}, {0, 0, 0, 0, 0, 0, 4, 14}, {0, 0, 0, 0, 0, 0, 2, 7}});", 4)
+    gen.write_line("")
+
+    # Battle Models
+    battleModelFiles = {"BARRET":   "BARRETT.LZS", 
+                        "CID":      "CID.LZS", 
+                        "CLOUD":    "CLOUD.LZS", 
+                        "HICLOUD":  "HICLOUD.LZS",
+                        "AERITH":   "EARITH.LZS",  
+                        "CAITSITH": "KETCY.LZS", 
+                        "REDXIII":  "RED13.LZS",  
+                        "TIFA":     "TIFA.LZS", 
+                        "VINCENT":  "VINSENT.LZS", 
+                        "YUFFIE":   "YUFI.LZS"}
+
+    # These were determined with memory inspection at runtime. Part of it is skeleton data, but the rest is unknown for now.
+    battleModelHeaderSizes = {
+        "BARRET":   636, 
+        "CID":      668,
+        "CLOUD":    652,
+        "HICLOUD":  652,
+        "AERITH":   712,
+        "CAITSITH": 812, 
+        "REDXIII":  804,
+        "TIFA":     700, 
+        "VINCENT":  840,
+        "YUFFIE":   688
+    }
+
+    for modelName, modelFile in battleModelFiles.items():
+        battleModel = ff7.models.loadModelFromLZS(ff7.game.retrieveFile(discPath, "ENEMY6", modelFile))
+
+        part_strings = []
+        for part in battleModel.parts:
+            totalSize = 0
+            totalSize += 4 + len(part.vertices) * 8
+            totalSize += 4 + len(part.tri_mono_tex) * 16
+            totalSize += 4 + len(part.quad_mono_tex) * 20
+            totalSize += 4 + len(part.tri_color) * 20
+            totalSize += 4 + len(part.quad_color) * 24
+
+            part_strings.append("{" + str(totalSize) + ", " + str(len(part.vertices)) + ", " + str(len(part.tri_mono_tex)) + ", " + str(len(part.quad_mono_tex)) + ", " + str(len(part.tri_color)) + ", " + str(len(part.quad_color)) + "}")
+            
+        parts_string = ", ".join(part_strings)
+        gen.write_line("ADD_BATTLE_MODEL(\"" + modelName + "\", " + str(battleModelHeaderSizes[modelName]) + ", {" + parts_string + "});", 4)
+
 discPath = sys.argv[1]
 
 if not os.path.isdir(discPath):
     raise EnvironmentError("'%s' is not a directory" % discPath)
 
 # Check that this is a FF7 disc
-version, discNumber, execFileName = ff7.checkDisc(discPath)
+version, discNumber, execFileName = ff7.game.checkDisc(discPath)
 
 gen = GameDataGenerator()
 gen.open_file()
@@ -302,6 +449,8 @@ outputInventory(gen, discPath, version)
 outputOther(gen, discPath, version)
 outputFields(gen, discPath, version)
 outputWorldMap(gen, discPath, version)
+outputBattles(gen, discPath, version)
+outputModels(gen, discPath, version)
 
 gen.write_footer()
 gen.close_file()

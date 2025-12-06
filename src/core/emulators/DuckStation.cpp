@@ -2,15 +2,8 @@
 #include "core/game/GameManager.h"
 #include "core/game/MemoryOffsets.h"
 #include "core/utilities/Logging.h"
+#include "core/utilities/Platform.h"
 
-#define NOMINMAX
-#include <windows.h>
-#include <tlhelp32.h>
-#include <psapi.h>
-#include <vector>
-#include <iostream>
-#include <thread>
-#include <chrono>
 #include <unordered_map>
 
 bool isPossiblePointer(uintptr_t value) 
@@ -43,38 +36,32 @@ uintptr_t DuckStation::getPS1MemoryOffset()
 {
     LOG("Searching for DuckStation PS1 Memory Offset..");
 
-    SYSTEM_INFO sysInfo;
-    GetSystemInfo(&sysInfo);
+    uintptr_t startAddr = 0;
+    uintptr_t endAddr = 0;
+    Platform::getApplicationAddressRange(startAddr, endAddr);
 
-    uintptr_t startAddr = reinterpret_cast<uintptr_t>(sysInfo.lpMinimumApplicationAddress);
-    uintptr_t endAddr = reinterpret_cast<uintptr_t>(sysInfo.lpMaximumApplicationAddress);
-
-    MEMORY_BASIC_INFORMATION mbi;
-    SIZE_T bytesRead;
+    Platform::MemoryRegion memRegion;
     std::vector<uint8_t> buffer;
     uintptr_t candidate;
 
     while (startAddr < endAddr)
     {
-        if (VirtualQueryEx(processHandle, reinterpret_cast<LPCVOID>(startAddr), &mbi, sizeof(mbi)) == 0)
-            break;
-
-        // Only scan committed, readable memory
-        bool isReadable =
-            (mbi.State == MEM_COMMIT) &&
-            ((mbi.Protect & PAGE_READWRITE) || (mbi.Protect & PAGE_READONLY) || (mbi.Protect & PAGE_WRITECOPY));
-
-        if (isReadable && !(mbi.Protect & PAGE_GUARD))
+        if (!Platform::openMemoryRegion(processHandle, startAddr, memRegion))
         {
-            buffer.resize(mbi.RegionSize);
+            break;
+        }
 
-            if (ReadProcessMemory(processHandle, mbi.BaseAddress, buffer.data(), mbi.RegionSize, &bytesRead))
+        if (memRegion.isReadable && memRegion.isWritable && !memRegion.isGuarded)
+        {
+            buffer.resize(memRegion.size);
+
+            if (Platform::read(processHandle, memRegion.baseAddress, buffer.data(), memRegion.size))
             {
                 // The two pointers (g_ram and g_unprotected_ram) will occur in the same memory block,
                 // we get fewer false positives by counting within the block.
                 std::unordered_map<uintptr_t, int> subAddressCounter;
 
-                for (size_t i = 0; i + sizeof(uintptr_t) <= bytesRead; i += sizeof(uintptr_t))
+                for (size_t i = 0; i + sizeof(uintptr_t) <= memRegion.size; i += sizeof(uintptr_t))
                 {
                     memcpy(&candidate, &buffer[i], sizeof(uintptr_t));
 
@@ -97,7 +84,7 @@ uintptr_t DuckStation::getPS1MemoryOffset()
             }
         }
 
-        startAddr += mbi.RegionSize;
+        startAddr += memRegion.size;
     }
 
     return 0;

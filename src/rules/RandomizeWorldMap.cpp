@@ -151,7 +151,7 @@ void RandomizeWorldMap::onFrame(uint32_t frameNumber)
         // may not be able to get to the highwind due to world map randomization.
         // To get around this we move the highwind to be next to junon.
 
-        uintptr_t offset = SavemapOffsets::Start + SavemapOffsets::BuggyHighwindPosition;
+        uintptr_t offset = SavemapOffsets::BuggyHighwindPosition;
         game->write<uint32_t>(offset + 0, 1931124268);
         game->write<uint32_t>(offset + 4, 81415094);
     }

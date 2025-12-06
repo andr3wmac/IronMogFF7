@@ -1,0 +1,42 @@
+#pragma once
+#include "extras/Extra.h"
+#include "core/utilities/ModelEditor.h"
+#include "core/utilities/Utilities.h"
+#include <cstdint>
+#include <unordered_map>
+
+class RandomizeColors : public Extra
+{
+public:
+    void setup() override;
+    bool hasDebugGUI() override { return true; }
+    void onDebugGUI() override;
+    bool hasSettings() override { return true; }
+    void onSettingsGUI() override;
+
+private:
+    void onStart();
+    void onModuleChanged(uint8_t newModule);
+    void onFieldChanged(uint16_t fieldID);
+    void onBattleEnter();
+    void onFrame(uint32_t frameNumber);
+    void applyColors();
+
+    ModelEditor modelEditor;
+    std::unordered_map<std::string, std::vector<Utilities::Color>> randomModelColors;
+    int rerollOffset = 0;
+
+    bool waitingForField = false;
+    int lastFieldID = -1;
+    int lastFieldTrigger = 0;
+
+    bool waitingForWorld = false;
+    int lastWorldTrigger = 0;
+
+    bool waitingForBattle = false;
+
+    // Debug variables
+    char debugStartNum[20];
+    char debugCount[20];
+    std::vector<uintptr_t> debugAddresses;
+};
