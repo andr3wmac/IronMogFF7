@@ -21,7 +21,7 @@ void App::drawSettingsPanel()
     GUI::drawImage(logo, logo.width / 2, logo.height / 2);
 
     ImGui::Spacing();
-    ImGui::BeginChild("##ScrollBox", ImVec2(0, APP_WINDOW_HEIGHT - 250));
+    ImGui::BeginChild("##ScrollBox", ImVec2(0, APP_WINDOW_HEIGHT - 212));
     ImGui::BeginDisabled(connectionState > ConnectionState::NotConnected && connectionState < ConnectionState::Error);
     {
         ImGui::SeparatorText("Game");

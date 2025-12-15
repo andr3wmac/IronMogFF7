@@ -7,11 +7,11 @@
 #include <thread>
 
 #define APP_WINDOW_WIDTH 497
-#define APP_WINDOW_HEIGHT 632
+#define APP_WINDOW_HEIGHT 665
 #define APP_VERSION_MAJOR 0
 #define APP_VERSION_MINOR 6
-#define APP_VERSION_PATCH 0
-#define APP_VERSION_STRING "v0.6.0"
+#define APP_VERSION_PATCH 1
+#define APP_VERSION_STRING "v0.6.1"
 
 class App
 {
