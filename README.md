@@ -2,7 +2,7 @@
   <img src="img/logo.png?raw=true" alt="IronMog FF7 Logo" title="IronMog FF7 Logo">
 </p>
 
-Inspired by IronMon and IronMario 64, IronMog FF7 is a modification for Final Fantasy 7 (PSX) that combines a randomizer with a difficult ruleset to create a new challange.
+Inspired by IronMon and IronMario 64, IronMog FF7 is a modification for Final Fantasy 7 (PS1, emulator only) that combines a randomizer with a difficult ruleset to create a new challange.
 
 # Rules
 | Rule | Description |
@@ -27,7 +27,7 @@ Inspired by IronMon and IronMario 64, IronMog FF7 is a modification for Final Fa
 
 # Requirements
 - Windows
-- PSX Emulator (DuckStation or BizHawk recommended)
+- PS1 Emulator (DuckStation or BizHawk recommended)
 - Final Fantasy VII US NTSC (SCUS-94163)
 
 # How to Play
