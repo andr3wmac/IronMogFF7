@@ -2,6 +2,7 @@
 #include "core/game/GameData.h"
 #include "core/game/MemoryOffsets.h"
 #include "core/utilities/Logging.h"
+#include "core/utilities/Utilities.h"
 
 #include <random>
 
@@ -50,20 +51,6 @@ uint16_t RandomizeEnemyDrops::randomizeDropID(uint16_t dropID)
     return packDropID(data.first, selectedID);
 }
 
-uint64_t makeCombinedSeed(uint32_t battleID, uint32_t seed)
-{
-    uint64_t combined = (uint64_t(battleID) << 32) | seed;
-
-    // Mix bits to spread entropy
-    combined ^= combined >> 33;
-    combined *= 0xff51afd7ed558ccd;
-    combined ^= combined >> 33;
-    combined *= 0xc4ceb9fe1a85ec53;
-    combined ^= combined >> 33;
-
-    return combined;
-}
-
 void RandomizeEnemyDrops::onBattleEnter()
 {
     // Seed the RNG for this particular battle formation on this field.
@@ -71,7 +58,7 @@ void RandomizeEnemyDrops::onBattleEnter()
     uint16_t fieldID = game->getFieldID();
     uint16_t formationID = game->read<uint16_t>(EnemyFormationOffsets::FormationID);
     uint32_t battleIDSeed = (uint32_t(fieldID) << 16) | formationID;
-    uint64_t combinedSeed = makeCombinedSeed(battleIDSeed, game->getSeed());
+    uint64_t combinedSeed = Utilities::makeCombinedSeed(battleIDSeed, game->getSeed());
     rng.seed(combinedSeed);
 
     // Max 3 unique enemies per fight

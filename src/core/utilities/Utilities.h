@@ -130,35 +130,6 @@ public:
         return str.substr(start, end - start + 1);
     }
 
-    // Loads key/value pair config file, like a simpler ini format
-    static std::unordered_map<std::string, std::string> loadConfig(const std::string& filename) 
-    {
-        std::unordered_map<std::string, std::string> config;
-        std::ifstream file(filename);
-        std::string line;
-
-        if (!file.is_open()) 
-        {
-            return config;
-        }
-
-        while (std::getline(file, line)) 
-        {
-            // Ignore comments and empty lines
-            line = trim(line);
-            if (line.empty() || line[0] == '#') continue;
-
-            auto delimiterPos = line.find('=');
-            if (delimiterPos == std::string::npos) continue;
-
-            std::string key = trim(line.substr(0, delimiterPos));
-            std::string value = trim(line.substr(delimiterPos + 1));
-            config[key] = value;
-        }
-
-        return config;
-    }
-
     static std::string replaceExtension(const std::string& filename, const std::string& from, const std::string& to)
     {
         std::string result = filename;
@@ -218,10 +189,40 @@ public:
         return combined;
     }
 
+    static uint64_t makeCombinedSeed(uint32_t battleID, uint32_t seed)
+    {
+        uint64_t combined = (uint64_t(battleID) << 32) | seed;
+
+        // Mix bits to spread entropy
+        combined ^= combined >> 33;
+        combined *= 0xff51afd7ed558ccd;
+        combined ^= combined >> 33;
+        combined *= 0xc4ceb9fe1a85ec53;
+        combined ^= combined >> 33;
+
+        return combined;
+    }
+
     static float getDistance(int x1, int y1, int x2, int y2)
     {
         int64_t dx = static_cast<int64_t>(x2) - x1;
         int64_t dy = static_cast<int64_t>(y2) - y1;
         return std::sqrt(static_cast<float>(dx * dx + dy * dy));
+    }
+
+    static std::string sanitizeName(const std::string& name) 
+    {
+        std::string result;
+        result.reserve(name.size());
+
+        for (unsigned char c : name) 
+        {
+            if (std::isalnum(c))
+            {
+                result += c;
+            }
+        }
+
+        return result;
     }
 };

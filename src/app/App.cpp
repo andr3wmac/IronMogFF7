@@ -1,15 +1,21 @@
 #include "App.h"
 #include "core/audio/AudioManager.h"
 #include "core/utilities/Logging.h"
+#include "core/utilities/ConfigFile.h"
 #include "core/utilities/MemoryMonitor.h"
 #include "core/utilities/MemorySearch.h"
 #include "core/utilities/ModelEditor.h"
 #include "core/utilities/ScriptUtilities.h"
 #include "core/utilities/Utilities.h"
+#include "extras/Extra.h"
 #include "rules/Restrictions.h"
+#include "rules/Rule.h"
 
 #include <imgui.h>
 #include <random>
+
+#include <filesystem>
+namespace fs = std::filesystem;
 
 void App::run()
 {
@@ -39,6 +45,22 @@ void App::run()
     characterPortraits[8].loadFromFile("img/cid.png");
 
     deadIcon.loadFromFile("img/dead.png");
+
+    // Load any settings files
+    {
+        const std::string settingsDir = "settings";
+
+        if (fs::exists(settingsDir) && fs::is_directory(settingsDir))
+        {
+            for (const auto& entry : fs::directory_iterator(settingsDir))
+            {
+                if (entry.is_regular_file() && entry.path().extension() == ".cfg")
+                {
+                    availableSettings.push_back(entry.path().stem().string());
+                }
+            }
+        }
+    }
 
     while (true)
     {
@@ -180,6 +202,57 @@ void App::generateSeed()
     uint32_t seed = (static_cast<uint32_t>(rd()) << 16) ^ rd();
     snprintf(seedValue, sizeof(seedValue), "%08X", seed);
     LOG("Seed generated: %s", seedValue);
+}
+
+void App::loadSettings(const std::string& filePath)
+{
+    ConfigFile cfg;
+
+    if (cfg.load(filePath))
+    {
+        LOG("Loaded settings from: %s", filePath.c_str());
+
+        for (auto& rule : Rule::getList())
+        {
+            cfg.keyPrefix = Utilities::sanitizeName(rule->name) + ".";
+            rule->loadSettings(cfg);
+            rule->enabled = cfg.get<bool>("enabled", rule->enabled);
+            cfg.keyPrefix = "";
+
+        }
+        for (auto& extra : Extra::getList())
+        {
+            cfg.keyPrefix = Utilities::sanitizeName(extra->name) + ".";
+            extra->loadSettings(cfg);
+            extra->enabled = cfg.get<bool>("enabled", extra->enabled);
+            cfg.keyPrefix = "";
+        }
+    }
+}
+
+void App::saveSettings(const std::string& filePath)
+{
+    ConfigFile cfg;
+
+    for (auto& rule : Rule::getList())
+    {
+        std::string name = Utilities::sanitizeName(rule->name);
+        cfg.set<bool>(name + ".enabled", rule->enabled);
+        cfg.keyPrefix = name + ".";
+        rule->saveSettings(cfg);
+        cfg.keyPrefix = "";
+    }
+    for (auto& extra : Extra::getList())
+    {
+        std::string name = Utilities::sanitizeName(extra->name);
+        cfg.set<bool>(name + ".enabled", extra->enabled);
+        cfg.keyPrefix = name + ".";
+        extra->saveSettings(cfg);
+        cfg.keyPrefix = "";
+    }
+
+    cfg.save(filePath);
+    LOG("Saved settings to: %s", filePath.c_str());
 }
 
 void App::onKeyPress(int key, int mods)

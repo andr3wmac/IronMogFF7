@@ -29,6 +29,18 @@ void RandomizeShops::onSettingsGUI()
     ImGui::EndDisabled();
 }
 
+void RandomizeShops::loadSettings(const ConfigFile& cfg)
+{
+    disableShops = cfg.get<bool>("disableShops", false);
+    keepPrices = cfg.get<bool>("keepPrices", true);
+}
+
+void RandomizeShops::saveSettings(ConfigFile& cfg)
+{
+    cfg.set<bool>("disableShops", disableShops);
+    cfg.set<bool>("keepPrices", keepPrices);
+}
+
 void RandomizeShops::onDebugGUI()
 {
     /*if (game->getGameModule() != GameModule::Menu)

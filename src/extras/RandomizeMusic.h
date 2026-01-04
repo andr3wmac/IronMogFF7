@@ -20,6 +20,8 @@ public:
     void setup() override;
     bool hasSettings() override { return true; }
     void onSettingsGUI() override;
+    void loadSettings(const ConfigFile& cfg) override;
+    void saveSettings(ConfigFile& cfg) override;
 
     bool isPlaying();
     std::string getCurrentlyPlaying();

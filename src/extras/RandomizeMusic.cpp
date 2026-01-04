@@ -2,6 +2,7 @@
 #include "core/audio/AudioManager.h"
 #include "core/game/GameData.h"
 #include "core/game/MemoryOffsets.h"
+#include "core/utilities/ConfigFile.h"
 #include "core/utilities/Logging.h"
 #include "core/utilities/Utilities.h"
 
@@ -57,6 +58,16 @@ void RandomizeMusic::onSettingsGUI()
         AudioManager::setMusicVolume(currentVolume);
         previousVolume = currentVolume;
     }
+}
+
+void RandomizeMusic::loadSettings(const ConfigFile& cfg)
+{
+    currentVolume = cfg.get<float>("volume", 5);
+}
+
+void RandomizeMusic::saveSettings(ConfigFile& cfg)
+{
+    cfg.set<float>("volume", currentVolume);
 }
 
 bool RandomizeMusic::isPlaying()
@@ -251,22 +262,15 @@ Track RandomizeMusic::loadTrack(std::string path)
     std::string cfgFilename = Utilities::replaceExtension(path, ".mp3", ".cfg");
     cfgFilename = Utilities::replaceExtension(cfgFilename, ".wav", ".cfg");
 
-    std::unordered_map<std::string, std::string> cfg = Utilities::loadConfig(cfgFilename);
-
-    if (cfg.count("Start") > 0)
+    ConfigFile cfg;
+    if (!cfg.load(cfgFilename))
     {
-        track.start = std::stoull(cfg["Start"]);
+        return track;
     }
 
-    if (cfg.count("LoopStart") > 0)
-    {
-        track.loopStart = std::stoull(cfg["LoopStart"]);
-    }
-
-    if (cfg.count("LoopEnd") > 0)
-    {
-        track.loopEnd = std::stoull(cfg["LoopEnd"]);
-    }
+    track.start     = cfg.get<uint64_t>("Start", 0);
+    track.loopStart = cfg.get<uint64_t>("LoopStart", 0);
+    track.loopEnd   = cfg.get<uint64_t>("LoopEnd", UINT64_MAX);
 
     return track;
 }

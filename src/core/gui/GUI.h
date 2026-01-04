@@ -18,10 +18,12 @@ public:
     void endFrame();
 
     bool wasWindowClosed();
-    
 
     void pushIconFont();
     void popIconFont();
+
+    std::string openFileDialog();
+    std::string saveFileDialog();
 
 private:
     GLFWwindow* window;

@@ -44,6 +44,16 @@ void RandomizeEncounters::onSettingsGUI()
     ImGui::PopItemWidth();
 }
 
+void RandomizeEncounters::loadSettings(const ConfigFile& cfg)
+{
+    maxLevelDifference = cfg.get<int>("maxLevelDifference", 5);
+}
+
+void RandomizeEncounters::saveSettings(ConfigFile& cfg)
+{
+    cfg.set<int>("maxLevelDifference", maxLevelDifference);
+}
+
 void RandomizeEncounters::onStart()
 {
     rng.seed(game->getSeed());

@@ -1,6 +1,7 @@
 #include "App.h"
 #include "core/game/MemoryOffsets.h"
 #include "core/gui/IconsFontAwesome5.h"
+#include "core/utilities/Logging.h"
 #include "core/utilities/Platform.h"
 #include "core/utilities/Utilities.h"
 #include "extras/Extra.h"
@@ -38,11 +39,6 @@ void App::drawSettingsPanel()
                 if (selectedEmulatorType == EmulatorType::Custom)
                 {
                     runningProcesses = Platform::getRunningProcesses();
-                    runningProcessesCStr.clear();
-                    for (const auto& name : runningProcesses)
-                    {
-                        runningProcessesCStr.push_back(name.c_str());
-                    }
                 }
             }
 
@@ -50,7 +46,7 @@ void App::drawSettingsPanel()
             {
                 ImGui::Text("Process:");
                 ImGui::SameLine();
-                ImGui::Combo("##ProcessList", &selectedProcessIdx, runningProcessesCStr.data(), (int)runningProcessesCStr.size());
+                ImGui::Combo("##ProcessList", &selectedProcessIdx, runningProcesses.data(), (int)runningProcesses.size());
                 ImGui::Text("Memory Offset:");
                 ImGui::SameLine();
                 ImGui::InputText("##MemoryOffset", processMemoryOffset, 20);
@@ -66,6 +62,39 @@ void App::drawSettingsPanel()
             {
                 generateSeed();
             }
+        }
+        ImGui::Spacing();
+
+        ImGui::SeparatorText("Settings");
+        {
+            if (ImGui::Combo("##SettingsList", &selectedSettingsIdx, availableSettings.data(), (int)availableSettings.size()))
+            {
+                loadSettings("settings/" + availableSettings[selectedSettingsIdx] + ".cfg");
+            }
+
+            ImGui::SameLine();
+            ImGui::PushID("OPEN_SETTINGS_FILE");
+            if (ImGui::Button(ICON_FA_FOLDER_OPEN))
+            {
+                std::string openPath = gui.openFileDialog();
+                if (openPath != "")
+                {
+                    loadSettings(openPath);
+                }
+            }
+            ImGui::PopID();
+
+            ImGui::SameLine();
+            ImGui::PushID("SAVE_SETTINGS_FILE");
+            if (ImGui::Button(ICON_FA_SAVE))
+            {
+                std::string savePath = gui.saveFileDialog();
+                if (savePath != "")
+                {
+                    saveSettings(savePath);
+                }
+            }
+            ImGui::PopID();
         }
         ImGui::Spacing();
 

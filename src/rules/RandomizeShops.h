@@ -10,6 +10,8 @@ public:
     void setup() override;
     bool hasSettings() override { return true; }
     void onSettingsGUI() override;
+    void loadSettings(const ConfigFile& cfg) override;
+    void saveSettings(ConfigFile& cfg) override;
     bool hasDebugGUI() override { return true; }
     void onDebugGUI() override;
 

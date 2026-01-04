@@ -2,6 +2,7 @@
 
 #include "core/game/GameManager.h"
 #include "core/gui/GUI.h"
+#include "core/utilities/StringList.h"
 
 #include <atomic>
 #include <thread>
@@ -40,6 +41,8 @@ public:
 
     void run();
     void generateSeed();
+    void loadSettings(const std::string& filePath);
+    void saveSettings(const std::string& filePath);
 
     void drawSettingsPanel();
     void drawTrackerPanel();
@@ -63,8 +66,10 @@ protected:
 
     EmulatorType selectedEmulatorType = EmulatorType::DuckStation;
 
-    std::vector<std::string> runningProcesses;
-    std::vector<const char*> runningProcessesCStr;
+    StringList availableSettings;
+    int selectedSettingsIdx = 0;
+
+    StringList runningProcesses;
     int selectedProcessIdx = 0;
     char processMemoryOffset[20];
     char seedValue[9];
