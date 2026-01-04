@@ -26,7 +26,7 @@ private:
 
     // Applies randomization to current field.
     void apply();
-    void overwriteMessage(const FieldData& fieldData, const FieldScriptItem& oldItem, const FieldScriptItem& newItem);
+    void overwriteMessage(const FieldData& fieldData, const FieldScriptItem& oldItem, const FieldScriptItem& newItem, const std::string& oldName, const std::string& newName);
 
     // Generated randomization mapping
     std::unordered_map<uint32_t, FieldScriptItem> randomizedItems;

@@ -24,5 +24,6 @@ private:
 
     std::mt19937_64 rng;
     uint16_t lastFieldID = 0;
+    bool disableShops = false;
     bool keepPrices = true;
 };

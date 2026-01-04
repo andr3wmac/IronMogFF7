@@ -144,7 +144,7 @@ void App::drawTrackerPanel()
     GUI::drawImage(logo, logo.width / 2, logo.height / 2);
 
     ImGui::Spacing();
-    ImGui::BeginChild("##ScrollBox", ImVec2(0, APP_WINDOW_HEIGHT - 250));
+    ImGui::BeginChild("##ScrollBox", ImVec2(0, APP_WINDOW_HEIGHT - 212));
     {
         if (connectionState == ConnectionState::Connected)
         {

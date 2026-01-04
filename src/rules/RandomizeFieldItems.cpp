@@ -222,7 +222,7 @@ void RandomizeFieldItems::apply()
         LOG("Randomized item on field %d: %s (%d) changed to: %s (%d)", fieldData.id, oldItemName.c_str(), oldItem.quantity, newItemName.c_str(), newItem.quantity);
 
         // Overwrite the popup message
-        overwriteMessage(fieldData, oldItem, newItem);
+        overwriteMessage(fieldData, oldItem, newItem, oldItemName, newItemName);
     }
 
     // Randomize materia
@@ -273,7 +273,7 @@ void RandomizeFieldItems::apply()
         LOG("Randomized materia on field %d: %s changed to: %s", fieldData.id, oldMateriaName.c_str(), newMateriaName.c_str());
 
         // Overwrite the popup message
-        overwriteMessage(fieldData, oldMateria, newMateria);
+        overwriteMessage(fieldData, oldMateria, newMateria, oldMateriaName, newMateriaName);
     }
 
     // Clear original messages that will be overwritten in real time
@@ -283,13 +283,10 @@ void RandomizeFieldItems::apply()
     }
 }
 
-void RandomizeFieldItems::overwriteMessage(const FieldData& fieldData, const FieldScriptItem& oldItem, const FieldScriptItem& newItem)
+void RandomizeFieldItems::overwriteMessage(const FieldData& fieldData, const FieldScriptItem& oldItem, const FieldScriptItem& newItem, const std::string& oldName, const std::string& newName)
 {
-    std::string oldItemName = GameData::getNameFromFieldScriptID(oldItem.id);
-    std::string newItemName = GameData::getNameFromFieldScriptID(newItem.id);
-
     // Overwrite the popup message
-    int msgIndex = game->findPickUpMessage(oldItemName, oldItem.group, oldItem.script, oldItem.offset);
+    int msgIndex = game->findPickUpMessage(oldName, oldItem.group, oldItem.script, oldItem.offset);
     if (msgIndex >= 0)
     {
         const FieldScriptMessage& fieldMsg = fieldData.messages[msgIndex];
@@ -315,12 +312,12 @@ void RandomizeFieldItems::overwriteMessage(const FieldData& fieldData, const Fie
         // every item separately and the fact the game reuses the same string for duplicates.
         if (strMsgCount > 1)
         {
-            overwriteMessages.push_back({ fieldMsg, newItemName });
+            overwriteMessages.push_back({ fieldMsg, newName });
             messagesToClear.push_back(fieldMsg);
         }
         else
         {
-            game->writeString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength, newItemName);
+            game->writeString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength, newName);
         }
     }
 }

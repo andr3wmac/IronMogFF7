@@ -18,8 +18,15 @@ void RandomizeShops::setup()
 
 void RandomizeShops::onSettingsGUI()
 {
-    ImGui::Checkbox("Keep Prices", &keepPrices);
-    ImGui::SetItemTooltip("Keep prices the same as the original shop.");
+    ImGui::Checkbox("Disable Shops", &disableShops);
+    ImGui::SetItemTooltip("Completely disables all shops.");
+
+    ImGui::BeginDisabled(disableShops);
+    {
+        ImGui::Checkbox("Keep Prices", &keepPrices);
+        ImGui::SetItemTooltip("Keep prices the same as the original shop.");
+    }
+    ImGui::EndDisabled();
 }
 
 void RandomizeShops::onDebugGUI()
@@ -100,6 +107,16 @@ void RandomizeShops::onFieldChanged(uint16_t fieldID)
     }
 
     lastFieldID = fieldID;
+
+    // Disable shops
+    if (disableShops)
+    {
+        for (int i = 0; i < fieldData.shops.size(); ++i)
+        {
+            // Overwrite the MENU opcode and parameters with 0x5F which is NOP
+            game->write<uint32_t>(FieldScriptOffsets::ScriptStart + fieldData.shops[i].offset, 0x5F5F5F5F);
+        }
+    }
 }
 
 struct ShopEntry
