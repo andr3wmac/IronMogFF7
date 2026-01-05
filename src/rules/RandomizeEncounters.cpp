@@ -37,11 +37,15 @@ void RandomizeEncounters::setup()
     excludedFormations.insert({ 984, 985, 986, 987 });
 }
 
-void RandomizeEncounters::onSettingsGUI()
+bool RandomizeEncounters::onSettingsGUI()
 {
+    bool changed = false;
+
     ImGui::PushItemWidth(100);
-    ImGui::InputInt("Max Level Difference", &maxLevelDifference);
+    changed |= ImGui::InputInt("Max Level Difference", &maxLevelDifference);
     ImGui::PopItemWidth();
+
+    return changed;
 }
 
 void RandomizeEncounters::loadSettings(const ConfigFile& cfg)

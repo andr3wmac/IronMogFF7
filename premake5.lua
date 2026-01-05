@@ -45,6 +45,7 @@ project "IronMogFF7"
         path.join(LIB_DIR, "glfw/include/"),
         path.join(LIB_DIR, "imgui/"),
         path.join(LIB_DIR, "stb/include/"),
+        path.join(LIB_DIR, "nativefiledialog-extended/include/"),
     }
 
     files { 
@@ -57,4 +58,5 @@ project "IronMogFF7"
         "opengl32",
         path.join(LIB_DIR, "glfw/lib/Release/glfw3"),
         path.join(LIB_DIR, "stb/lib/Release/stb"),
+        path.join(LIB_DIR, "nativefiledialog-extended/lib/Release/nfd")
     }

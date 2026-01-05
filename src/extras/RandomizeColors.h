@@ -12,7 +12,7 @@ public:
     bool hasDebugGUI() override { return true; }
     void onDebugGUI() override;
     bool hasSettings() override { return true; }
-    void onSettingsGUI() override;
+    bool onSettingsGUI() override;
 
 private:
     void onStart();

@@ -50,10 +50,25 @@ void App::run()
     {
         const std::string settingsDir = "settings";
 
+        // Always first in the list so we can switch to it when settings are changed.
+        availableSettings.push_back("Custom");
+
+        // Special case for default settings file
+        if (fs::exists(settingsDir + "/Default.cfg"))
+        {
+            availableSettings.push_back("Default");
+            selectedSettingsIdx = 1;
+        }
+
         if (fs::exists(settingsDir) && fs::is_directory(settingsDir))
         {
             for (const auto& entry : fs::directory_iterator(settingsDir))
             {
+                if (entry.path().stem() == "Default")
+                {
+                    continue;
+                }
+
                 if (entry.is_regular_file() && entry.path().extension() == ".cfg")
                 {
                     availableSettings.push_back(entry.path().stem().string());

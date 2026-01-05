@@ -41,8 +41,10 @@ void RandomizeMusic::setup()
     previousMusicID = UnsetMusicID;
 }
 
-void RandomizeMusic::onSettingsGUI()
+bool RandomizeMusic::onSettingsGUI()
 {
+    bool changed = false;
+
     if (disabled)
     {
         ImGui::Text("No music found, randomization disabled.");
@@ -51,13 +53,15 @@ void RandomizeMusic::onSettingsGUI()
     constexpr float min = 0.0f;
     constexpr float max = 1.0f;
 
-    ImGui::SliderScalar("Volume", ImGuiDataType_Float, &currentVolume, &min, &max, "%.3lf");
+    changed |= ImGui::SliderScalar("Volume", ImGuiDataType_Float, &currentVolume, &min, &max, "%.3lf");
 
     if (currentVolume != previousVolume)
     {
         AudioManager::setMusicVolume(currentVolume);
         previousVolume = currentVolume;
     }
+
+    return changed;
 }
 
 void RandomizeMusic::loadSettings(const ConfigFile& cfg)

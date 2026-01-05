@@ -137,7 +137,7 @@ Utilities::Color getRandomColor(std::mt19937& rng)
     return color;
 }
 
-void RandomizeColors::onSettingsGUI()
+bool RandomizeColors::onSettingsGUI()
 {
     if (ImGui::Button("Reroll Colors", ImVec2(120, 0)))
     {
@@ -157,6 +157,8 @@ void RandomizeColors::onSettingsGUI()
 
         applyColors();
     }
+
+    return false;
 }
 
 void RandomizeColors::onStart()

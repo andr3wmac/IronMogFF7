@@ -100,10 +100,11 @@ void App::drawSettingsPanel()
 
         ImGui::SeparatorText("Rules");
         {
+            bool changed = false;
             int ruleIndex = 0;
             for (auto& rule : Rule::getList())
             {
-                ImGui::Checkbox(rule->name.c_str(), &rule->enabled);
+                changed |= ImGui::Checkbox(rule->name.c_str(), &rule->enabled);
 
                 if (rule->hasSettings())
                 {
@@ -121,10 +122,16 @@ void App::drawSettingsPanel()
                     if (rule->settingsVisible)
                     {
                         ImGui::Indent(25.0f);
-                        rule->onSettingsGUI();
+                        changed |= rule->onSettingsGUI();
                         ImGui::Unindent(25.0f);
                     }
                 }
+            }
+
+            if (changed)
+            {
+                // Reset to custom.
+                selectedSettingsIdx = 0;
             }
         }
         ImGui::Spacing();
@@ -134,10 +141,11 @@ void App::drawSettingsPanel()
     // Note: extras can be changed during gameplay
     ImGui::SeparatorText("Extras");
     {
+        bool changed = false;
         int extraIndex = 0;
         for (auto& extra : Extra::getList())
         {
-            ImGui::Checkbox(extra->name.c_str(), &extra->enabled);
+            changed |= ImGui::Checkbox(extra->name.c_str(), &extra->enabled);
 
             if (extra->hasSettings())
             {
@@ -155,10 +163,16 @@ void App::drawSettingsPanel()
                 if (extra->settingsVisible)
                 {
                     ImGui::Indent(25.0f);
-                    extra->onSettingsGUI();
+                    changed |= extra->onSettingsGUI();
                     ImGui::Unindent(25.0f);
                 }
             }
+        }
+
+        if (changed)
+        {
+            // Reset to custom.
+            selectedSettingsIdx = 0;
         }
     }
 

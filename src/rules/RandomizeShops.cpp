@@ -16,17 +16,21 @@ void RandomizeShops::setup()
     BIND_EVENT(game->onShopOpened, RandomizeShops::onShopOpened);
 }
 
-void RandomizeShops::onSettingsGUI()
+bool RandomizeShops::onSettingsGUI()
 {
-    ImGui::Checkbox("Disable Shops", &disableShops);
+    bool changed = false;
+
+    changed |= ImGui::Checkbox("Disable Shops", &disableShops);
     ImGui::SetItemTooltip("Completely disables all shops.");
 
     ImGui::BeginDisabled(disableShops);
     {
-        ImGui::Checkbox("Keep Prices", &keepPrices);
+        changed |= ImGui::Checkbox("Keep Prices", &keepPrices);
         ImGui::SetItemTooltip("Keep prices the same as the original shop.");
     }
     ImGui::EndDisabled();
+
+    return changed;
 }
 
 void RandomizeShops::loadSettings(const ConfigFile& cfg)
