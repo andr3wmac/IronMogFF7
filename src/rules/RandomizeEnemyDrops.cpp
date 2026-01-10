@@ -26,34 +26,17 @@ void RandomizeEnemyDrops::onDebugGUI()
         return;
     }
 
-    std::vector<int> validEnemySlots;
-    for (int i = 0; i < 6; ++i)
-    {
-        if (formation->enemyIDs[i] == UINT16_MAX)
-        {
-            continue;
-        }
-
-        for (int j = 0; j < 3; ++j)
-        {
-            if (formation->enemyIDs[i] == scene->enemyIDs[j])
-            {
-                validEnemySlots.push_back(j);
-            }
-        }
-    }
-
     // Max 3 unique enemies per fight
-    for (int slot = 0; slot < 3; ++slot)
+    for (int i = 0; i < 3; ++i)
     {
-        std::string enemyName = game->readString(BattleSceneOffsets::Enemies[slot] + BattleSceneOffsets::Name, 32);
-        std::string enemyText = std::to_string(slot) + ") " + enemyName;
+        std::string enemyName = game->readString(BattleSceneOffsets::Enemies[i] + BattleSceneOffsets::Name, 32);
+        std::string enemyText = std::to_string(i) + ") " + enemyName;
         ImGui::Text(enemyText.c_str());
 
         // Maximum of 4 item slots per enemy
         for (int j = 0; j < 4; ++j)
         {
-            uint16_t dropID = game->read<uint16_t>(BattleSceneOffsets::Enemies[slot] + BattleSceneOffsets::DropIDs[j]);
+            uint16_t dropID = game->read<uint16_t>(BattleSceneOffsets::Enemies[i] + BattleSceneOffsets::DropIDs[j]);
 
             // Empty slot
             if (dropID == 65535)
@@ -103,18 +86,16 @@ void RandomizeEnemyDrops::onBattleEnter()
     for (int id : activeEnemyIDs)
     {
         // Maximum of 4 item slots per enemy
-        for (int j = 0; j < 4; ++j)
+        for (int i = 0; i < 4; ++i)
         {
-            uint16_t dropID = game->read<uint16_t>(BattleSceneOffsets::Enemies[id] + BattleSceneOffsets::DropIDs[j]);
-
-            // Empty slot
-            if (dropID == 65535)
+            uint16_t dropID = game->read<uint16_t>(BattleSceneOffsets::Enemies[id] + BattleSceneOffsets::DropIDs[i]);
+            if (dropID == UINT16_MAX)
             {
                 continue;
             }
 
             uint16_t newDropID = GameData::getRandomItemFromID(dropID, rng, true);
-            game->write<uint16_t>(BattleSceneOffsets::Enemies[id] + BattleSceneOffsets::DropIDs[j], newDropID);
+            game->write<uint16_t>(BattleSceneOffsets::Enemies[id] + BattleSceneOffsets::DropIDs[i], newDropID);
 
             std::string oldItemName = GameData::getItemNameFromID(dropID);
             std::string newItemName = GameData::getItemNameFromID(newDropID);
