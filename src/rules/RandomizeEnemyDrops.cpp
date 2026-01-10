@@ -59,7 +59,7 @@ void RandomizeEnemyDrops::onBattleEnter()
     uint16_t fieldID = game->getFieldID();
     uint16_t formationID = game->read<uint16_t>(BattleOffsets::FormationID);
     uint32_t battleIDSeed = (uint32_t(fieldID) << 16) | formationID;
-    uint64_t combinedSeed = Utilities::makeCombinedSeed(battleIDSeed, game->getSeed());
+    uint64_t combinedSeed = Utilities::makeSeed64(game->getSeed(), battleIDSeed);
     rng.seed(combinedSeed);
 
     std::pair<BattleScene*, BattleFormation*> battleData = game->getBattleFormation();

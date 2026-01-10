@@ -232,7 +232,7 @@ void RandomizeFieldItems::apply()
         else if (randomMode == RandomMode::Random)
         {
             // Pick random one based on key.
-            std::mt19937_64 rng64(Utilities::makeKey(game->getSeed(), fieldData.id, i));
+            std::mt19937_64 rng64(Utilities::makeSeed64(game->getSeed(), fieldData.id, i));
             newItem.id = GameData::getRandomItemFromID(newItem.id, rng64);
         }
         
@@ -244,7 +244,7 @@ void RandomizeFieldItems::apply()
 
         if (Restrictions::isFieldItemBanned(newItem.id))
         {
-            std::mt19937_64 rng64(Utilities::makeKey(game->getSeed(), fieldData.id, i));
+            std::mt19937_64 rng64(Utilities::makeSeed64(game->getSeed(), fieldData.id, i));
             newItem.id = GameData::getRandomItemFromID(newItem.id, rng64);
         }
 
@@ -294,7 +294,7 @@ void RandomizeFieldItems::apply()
         else if (randomMode == RandomMode::Random)
         {
             // Pick random one based on key.
-            std::mt19937_64 rng64(Utilities::makeKey(game->getSeed(), fieldData.id, (uint8_t)newMateria.id));
+            std::mt19937_64 rng64(Utilities::makeSeed64(game->getSeed(), fieldData.id, (uint8_t)newMateria.id));
             newMateria.id = GameData::getRandomMateria(rng64);
         }
         
@@ -306,7 +306,7 @@ void RandomizeFieldItems::apply()
 
         if (Restrictions::isMateriaBanned((uint8_t)newMateria.id))
         {
-            std::mt19937_64 rng64(Utilities::makeKey(game->getSeed(), fieldData.id, (uint8_t)newMateria.id));
+            std::mt19937_64 rng64(Utilities::makeSeed64(game->getSeed(), fieldData.id, (uint8_t)newMateria.id));
             newMateria.id = GameData::getRandomMateria(rng64);
         }
 

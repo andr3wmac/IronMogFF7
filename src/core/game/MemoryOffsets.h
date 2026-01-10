@@ -279,6 +279,30 @@ struct ElementType
     CONST_U8 None       = 0xFF;
 };
 
+inline std::string getElementTypeName(uint8_t id)
+{
+    switch (id)
+    {
+        case 0:  return "Fire";
+        case 1:  return "Ice";
+        case 2:  return "Bolt";
+        case 3:  return "Earth";
+        case 4:  return "Bio";
+        case 5:  return "Gravity";
+        case 6:  return "Water";
+        case 7:  return "Wind";
+        case 8:  return "Holy";
+        case 9:  return "Health";
+        case 10: return "Cut";
+        case 11: return "Hit";
+        case 12: return "Punch";
+        case 13: return "Shoot";
+        case 14: return "Scream";
+    }
+
+    return "None";
+}
+
 struct ElementRate
 {
     CONST_U8 Rates[] = { 0x00, 0x02, 0x04, 0x05, 0x06, 0x07 };
@@ -291,6 +315,21 @@ struct ElementRate
     CONST_U8 FullCure       = 0x07;
     CONST_U8 None           = 0xFF;
 };
+
+inline std::string getElementRateName(uint8_t id)
+{
+    switch (id)
+    {
+        case 0x00: return "Death";
+        case 0x02: return "Double Damage";
+        case 0x04: return "Half Damage";
+        case 0x05: return "Nullify Damage";
+        case 0x06: return "Absorb";
+        case 0x07: return "Full Cure";
+    }
+
+    return "None";
+}
 
 struct StatusFlags
 {

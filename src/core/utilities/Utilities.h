@@ -174,12 +174,11 @@ public:
         return (value & (T(1) << bitIndex)) != 0;
     }
 
-    static uint64_t makeKey(uint32_t seed, uint16_t fieldID, uint8_t index)
+    static uint64_t makeSeed64(uint32_t seed, uint32_t data)
     {
-        uint32_t fieldKey = (uint32_t(fieldID) << 16 | index);
-        uint64_t combined = (uint64_t(fieldKey) << 32) | seed;
+        uint64_t combined = (uint64_t(data) << 32) | seed;
 
-        // Mix bits to spread entropy
+        // MurmurHash3 64-bit mixer
         combined ^= combined >> 33;
         combined *= 0xff51afd7ed558ccd;
         combined ^= combined >> 33;
@@ -189,18 +188,11 @@ public:
         return combined;
     }
 
-    static uint64_t makeCombinedSeed(uint32_t battleID, uint32_t seed)
+    static uint64_t makeSeed64(uint32_t seed, uint16_t data16, uint8_t data8)
     {
-        uint64_t combined = (uint64_t(battleID) << 32) | seed;
-
-        // Mix bits to spread entropy
-        combined ^= combined >> 33;
-        combined *= 0xff51afd7ed558ccd;
-        combined ^= combined >> 33;
-        combined *= 0xc4ceb9fe1a85ec53;
-        combined ^= combined >> 33;
-
-        return combined;
+        // Pack: [16-bit data16 | 8-bit data8 | 8-bit padding/zero]
+        uint32_t packedData = (uint32_t(data16) << 16) | data8;
+        return makeSeed64(seed, packedData);
     }
 
     static float getDistance(int x1, int y1, int x2, int y2)

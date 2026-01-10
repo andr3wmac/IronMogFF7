@@ -162,7 +162,7 @@ void RandomizeShops::onShopOpened()
             continue;
         }
 
-        rng.seed(Utilities::makeKey(game->getSeed(), lastFieldID, shopID));
+        rng.seed(Utilities::makeSeed64(game->getSeed(), lastFieldID, shopID));
 
         uintptr_t shopOffset = ShopOffsets::ShopStart + (84 * shopID);
         uint8_t invCount = game->read<uint8_t>(shopOffset + 2);
