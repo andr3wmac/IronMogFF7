@@ -87,9 +87,19 @@ struct BattleFormation
 
 struct BattleScene
 {
+    uint8_t id = 0;
     int enemyIDs[3];
     int enemyLevels[3];
     std::vector<BattleFormation> formations;
+};
+
+struct Boss
+{
+    std::string name = "";
+    uint16_t id = 0;
+    std::vector<int> sceneIDs;
+    uint64_t elementTypes = 0;
+    uint64_t elementRates = 0;
 };
 
 struct ModelPart
@@ -145,14 +155,14 @@ public:
     static uint16_t getRandomWeapon(std::mt19937_64& rng, bool excludeBanned = true);
     static uint16_t getRandomMateria(std::mt19937_64& rng, bool excludeBanned = true);
 
-    // Returns a random field item ID thats the same type as origFieldItemID
-    static uint16_t getRandomFieldItem(uint16_t origFieldItemID, std::mt19937_64& rng, bool excludeBanned = true);
+    // Returns a random item ID thats the same type as origItemID
+    static uint16_t getRandomItemFromID(uint16_t origItemID, std::mt19937_64& rng, bool excludeBanned = true);
 
     static FieldData getField(uint16_t id);
-    static std::string getNameFromFieldScriptID(uint16_t fieldScriptID);
-    static std::string getNameFromBattleDropID(uint16_t battleDropID);
+    static std::string getItemNameFromID(uint16_t fieldScriptID);
 
     static BattleModel* getBattleModel(std::string modelName);
+    static std::vector<const Boss*> getBossesInScene(const BattleScene* scene);
 
     static std::string decodeString(const std::vector<uint8_t>& data);
     static std::vector<uint8_t> encodeString(const std::string& input);
@@ -167,6 +177,7 @@ public:
     static std::unordered_map<uint16_t, FieldData> fieldData;
     static std::vector<WorldMapEntrance> worldMapEntrances;
     static std::unordered_map<uint8_t, BattleScene> battleScenes;
+    static std::vector<Boss> bosses;
     static std::vector<Model> models;
     static std::vector<BattleModel> battleModels;
 };
@@ -200,9 +211,10 @@ public:
 
 #define ADD_WORLDMAP_ENTRANCE(OFFSET, FIELD_ID, FIELD_NAME, CENTER_X, CENTER_Z) GameData::worldMapEntrances.push_back({OFFSET, FIELD_ID, FIELD_NAME, CENTER_X, CENTER_Z});
 
-#define ADD_BATTLE_SCENE(SCENE_ID, ENEMY_ID0, ENEMY_ID1, ENEMY_ID2, ENEMY_LEVEL0, ENEMY_LEVEL1, ENEMY_LEVEL2) GameData::battleScenes[SCENE_ID] = {{ENEMY_ID0, ENEMY_ID1, ENEMY_ID2}, {ENEMY_LEVEL0, ENEMY_LEVEL1, ENEMY_LEVEL2}};
+#define ADD_BATTLE_SCENE(SCENE_ID, ENEMY_ID0, ENEMY_ID1, ENEMY_ID2, ENEMY_LEVEL0, ENEMY_LEVEL1, ENEMY_LEVEL2) GameData::battleScenes[SCENE_ID] = {SCENE_ID, {ENEMY_ID0, ENEMY_ID1, ENEMY_ID2}, {ENEMY_LEVEL0, ENEMY_LEVEL1, ENEMY_LEVEL2}};
 
 #define ADD_BATTLE_FORMATION(FORMATION_ID, SCENE_ID, NO_ESCAPE, ...) GameData::battleScenes[SCENE_ID].formations.push_back({FORMATION_ID, NO_ESCAPE, {__VA_ARGS__}});
+#define ADD_BOSS(NAME, ENEMY_ID, SCENE_IDS, ELEM_TYPES, ELEM_RATES) GameData::bosses.push_back({ NAME, ENEMY_ID, SCENE_IDS, ELEM_TYPES, ELEM_RATES });
 
 #define ADD_MODEL(MODEL_NAME, POLY_COUNT, ...) { GameData::models.push_back({ MODEL_NAME, POLY_COUNT, __VA_ARGS__ }); }
 #define ADD_BATTLE_MODEL(MODEL_NAME, ...) { GameData::battleModels.push_back({ MODEL_NAME, __VA_ARGS__ }); }

@@ -7,10 +7,11 @@ class RandomizeEnemyDrops : public Rule
 {
 public:
     void setup() override;
+    bool hasDebugGUI() override { return true; }
+    void onDebugGUI() override;
 
 private:
     std::mt19937_64 rng;
 
-    uint16_t randomizeDropID(uint16_t dropID);
     void onBattleEnter();
 };

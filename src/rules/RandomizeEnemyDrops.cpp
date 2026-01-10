@@ -4,6 +4,7 @@
 #include "core/utilities/Logging.h"
 #include "core/utilities/Utilities.h"
 
+#include <imgui.h>
 #include <random>
 
 REGISTER_RULE("Randomize Enemy Drops", RandomizeEnemyDrops)
@@ -13,42 +14,59 @@ void RandomizeEnemyDrops::setup()
     BIND_EVENT(game->onBattleEnter, RandomizeEnemyDrops::onBattleEnter);
 }
 
-uint16_t RandomizeEnemyDrops::randomizeDropID(uint16_t dropID)
+void RandomizeEnemyDrops::onDebugGUI()
 {
-    std::pair<uint8_t, uint16_t> data = unpackDropID(dropID);
+    std::pair<BattleScene*, BattleFormation*> battleData = game->getBattleFormation();
+    BattleScene* scene = battleData.first;
+    BattleFormation* formation = battleData.second;
 
-    uint16_t selectedID = data.second;
-
-    // Loop in case we select an unused ID.
-    while (true)
+    if (scene == nullptr || formation == nullptr)
     {
-        if (data.first == DropType::Accessory)
+        ImGui::Text("Not currently in a battle.");
+        return;
+    }
+
+    std::vector<int> validEnemySlots;
+    for (int i = 0; i < 6; ++i)
+    {
+        if (formation->enemyIDs[i] == UINT16_MAX)
         {
-            selectedID = GameData::getRandomAccessory(rng);
-            break;
+            continue;
         }
-        else if (data.first == DropType::Armor)
+
+        for (int j = 0; j < 3; ++j)
         {
-            selectedID = GameData::getRandomArmor(rng);
-            break;
-        }
-        else if (data.first == DropType::Item)
-        {
-            selectedID = GameData::getRandomItem(rng);
-            break;
-        }
-        else if (data.first == DropType::Weapon)
-        {
-            selectedID = GameData::getRandomWeapon(rng);
-            break;
-        }
-        else 
-        {
-            break;
+            if (formation->enemyIDs[i] == scene->enemyIDs[j])
+            {
+                validEnemySlots.push_back(j);
+            }
         }
     }
-    
-    return packDropID(data.first, selectedID);
+
+    // Max 3 unique enemies per fight
+    for (int slot = 0; slot < 3; ++slot)
+    {
+        std::string enemyName = game->readString(BattleSceneOffsets::Enemies[slot] + BattleSceneOffsets::Name, 32);
+        std::string enemyText = std::to_string(slot) + ") " + enemyName;
+        ImGui::Text(enemyText.c_str());
+
+        // Maximum of 4 item slots per enemy
+        for (int j = 0; j < 4; ++j)
+        {
+            uint16_t dropID = game->read<uint16_t>(BattleSceneOffsets::Enemies[slot] + BattleSceneOffsets::DropIDs[j]);
+
+            // Empty slot
+            if (dropID == 65535)
+            {
+                std::string dropText = "  Drop " + std::to_string(j) + ": Empty.";
+                ImGui::Text(dropText.c_str());
+                continue;
+            }
+
+            std::string dropText = "  Drop " + std::to_string(j) + ": " + GameData::getItemNameFromID(dropID) + "(" + std::to_string(dropID) + ")";
+            ImGui::Text(dropText.c_str());
+        }
+    }
 }
 
 void RandomizeEnemyDrops::onBattleEnter()
@@ -56,18 +74,38 @@ void RandomizeEnemyDrops::onBattleEnter()
     // Seed the RNG for this particular battle formation on this field.
     // This produces predictable drops based on the game seed.
     uint16_t fieldID = game->getFieldID();
-    uint16_t formationID = game->read<uint16_t>(EnemyFormationOffsets::FormationID);
+    uint16_t formationID = game->read<uint16_t>(BattleOffsets::FormationID);
     uint32_t battleIDSeed = (uint32_t(fieldID) << 16) | formationID;
     uint64_t combinedSeed = Utilities::makeCombinedSeed(battleIDSeed, game->getSeed());
     rng.seed(combinedSeed);
 
-    // Max 3 unique enemies per fight
-    for (int i = 0; i < 3; ++i)
+    std::pair<BattleScene*, BattleFormation*> battleData = game->getBattleFormation();
+    BattleScene* scene = battleData.first;
+    BattleFormation* formation = battleData.second;
+
+    std::vector<int> activeEnemyIDs;
+    for (int i = 0; i < 6; ++i)
+    {
+        if (formation->enemyIDs[i] == UINT16_MAX)
+        {
+            continue;
+        }
+
+        for (int j = 0; j < 3; ++j)
+        {
+            if (formation->enemyIDs[i] == scene->enemyIDs[j])
+            {
+                activeEnemyIDs.push_back(j);
+            }
+        }
+    }
+
+    for (int id : activeEnemyIDs)
     {
         // Maximum of 4 item slots per enemy
         for (int j = 0; j < 4; ++j)
         {
-            uint16_t dropID = game->read<uint16_t>(EnemyFormationOffsets::Enemies[i] + EnemyFormationOffsets::DropIDs[j]);
+            uint16_t dropID = game->read<uint16_t>(BattleSceneOffsets::Enemies[id] + BattleSceneOffsets::DropIDs[j]);
 
             // Empty slot
             if (dropID == 65535)
@@ -75,11 +113,11 @@ void RandomizeEnemyDrops::onBattleEnter()
                 continue;
             }
 
-            uint16_t newDropID = randomizeDropID(dropID);
-            game->write<uint16_t>(EnemyFormationOffsets::Enemies[i] + EnemyFormationOffsets::DropIDs[j], newDropID);
+            uint16_t newDropID = GameData::getRandomItemFromID(dropID, rng, true);
+            game->write<uint16_t>(BattleSceneOffsets::Enemies[id] + BattleSceneOffsets::DropIDs[j], newDropID);
 
-            std::string oldItemName = GameData::getNameFromBattleDropID(dropID);
-            std::string newItemName = GameData::getNameFromBattleDropID(newDropID);
+            std::string oldItemName = GameData::getItemNameFromID(dropID);
+            std::string newItemName = GameData::getItemNameFromID(newDropID);
             LOG("Randomized enemy drop in formation %d: %s changed to %s", formationID, oldItemName.c_str(), newItemName.c_str());
         }
     }

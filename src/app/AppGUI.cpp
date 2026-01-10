@@ -30,6 +30,7 @@ void App::drawSettingsPanel()
             ImGui::Text("Emulator:");
             ImGui::SameLine();
 
+            ImGui::SetNextItemWidth(393.0f);
             int emulatorIndex = (int)selectedEmulatorType;
             if (ImGui::Combo("##EmulatorList", &emulatorIndex, emulators, IM_ARRAYSIZE(emulators)))
             {
@@ -56,6 +57,7 @@ void App::drawSettingsPanel()
 
         ImGui::SeparatorText("Seed");
         {
+            ImGui::SetNextItemWidth(378.0f);
             ImGui::InputText("##Seed", seedValue, 9);
             ImGui::SameLine();
             if (ImGui::Button("Regenerate"))
@@ -67,6 +69,7 @@ void App::drawSettingsPanel()
 
         ImGui::SeparatorText("Settings");
         {
+            ImGui::SetNextItemWidth(410.0f);
             if (ImGui::Combo("##SettingsList", &selectedSettingsIdx, availableSettings.data(), (int)availableSettings.size()))
             {
                 loadSettings("settings/" + availableSettings[selectedSettingsIdx] + ".cfg");

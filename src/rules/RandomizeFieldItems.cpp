@@ -18,6 +18,29 @@ void RandomizeFieldItems::setup()
     BIND_EVENT_ONE_ARG(game->onFieldChanged, RandomizeFieldItems::onFieldChanged);
 }
 
+bool RandomizeFieldItems::onSettingsGUI()
+{
+    bool changed = false;
+
+    int* randomModeInt = (int*)(&randomMode);
+    changed |= ImGui::RadioButton("Shuffle", randomModeInt, 0);
+    ImGui::SetItemTooltip("Items will be replaced by an item from another field.");
+    changed |= ImGui::RadioButton("Random", randomModeInt, 1);
+    ImGui::SetItemTooltip("Items are replaced with a random selection.");
+
+    return changed;
+}
+
+void RandomizeFieldItems::loadSettings(const ConfigFile& cfg)
+{
+    randomMode = (RandomMode)cfg.get<int>("randomMode", 0);
+}
+
+void RandomizeFieldItems::saveSettings(ConfigFile& cfg)
+{
+    cfg.set<int>("randomMode", (int)randomMode);
+}
+
 void RandomizeFieldItems::onDebugGUI()
 {
     if (game->getGameModule() != GameModule::Field)
@@ -199,9 +222,20 @@ void RandomizeFieldItems::apply()
             continue;
         }
 
-        // Select a different item from the already randomized table and overwrite.
-        FieldScriptItem newItem = randomizedItems[randomKey];
+        FieldScriptItem newItem = oldItem;
 
+        if (randomMode == RandomMode::Shuffle)
+        {
+            // Select a different item from the already randomized table and overwrite.
+            newItem = randomizedItems[randomKey];
+        }
+        else if (randomMode == RandomMode::Random)
+        {
+            // Pick random one based on key.
+            std::mt19937_64 rng64(Utilities::makeKey(game->getSeed(), fieldData.id, i));
+            newItem.id = GameData::getRandomItemFromID(newItem.id, rng64);
+        }
+        
         // It's possible we randomized to the same item already there.
         if (newItem.id == oldItem.id)
         {
@@ -211,14 +245,14 @@ void RandomizeFieldItems::apply()
         if (Restrictions::isFieldItemBanned(newItem.id))
         {
             std::mt19937_64 rng64(Utilities::makeKey(game->getSeed(), fieldData.id, i));
-            newItem.id = GameData::getRandomFieldItem(newItem.id, rng64);
+            newItem.id = GameData::getRandomItemFromID(newItem.id, rng64);
         }
 
         game->write<uint16_t>(itemIDOffset, newItem.id);
         game->write<uint8_t>(itemQuantityOffset, newItem.quantity);
 
-        std::string oldItemName = GameData::getNameFromFieldScriptID(oldItem.id);
-        std::string newItemName = GameData::getNameFromFieldScriptID(newItem.id);
+        std::string oldItemName = GameData::getItemNameFromID(oldItem.id);
+        std::string newItemName = GameData::getItemNameFromID(newItem.id);
         LOG("Randomized item on field %d: %s (%d) changed to: %s (%d)", fieldData.id, oldItemName.c_str(), oldItem.quantity, newItemName.c_str(), newItem.quantity);
 
         // Overwrite the popup message
@@ -245,15 +279,25 @@ void RandomizeFieldItems::apply()
             continue;
         }
 
-        uint32_t randomKey = makeKey(fieldData.id, i);
-        if (randomizedMateria.count(randomKey) == 0)
+        FieldScriptItem newMateria = oldMateria;
+        if (randomMode == RandomMode::Shuffle)
         {
-            continue;
+            uint32_t randomKey = makeKey(fieldData.id, i);
+            if (randomizedMateria.count(randomKey) == 0)
+            {
+                continue;
+            }
+
+            // Select a different item from the already randomized table and overwrite.
+            newMateria = randomizedMateria[randomKey];
         }
-
-        // Select a different item from the already randomized table and overwrite.
-        FieldScriptItem newMateria = randomizedMateria[randomKey];
-
+        else if (randomMode == RandomMode::Random)
+        {
+            // Pick random one based on key.
+            std::mt19937_64 rng64(Utilities::makeKey(game->getSeed(), fieldData.id, (uint8_t)newMateria.id));
+            newMateria.id = GameData::getRandomMateria(rng64);
+        }
+        
         // It's possible we randomized to the same materia already there.
         if (newMateria.id == oldMateria.id)
         {
@@ -294,7 +338,7 @@ void RandomizeFieldItems::overwriteMessage(const FieldData& fieldData, const Fie
         int strMsgCount = 0;
         for (const FieldScriptItem& compareItem : fieldData.items)
         {
-            std::string compareItemName = GameData::getNameFromFieldScriptID(compareItem.id);
+            std::string compareItemName = GameData::getItemNameFromID(compareItem.id);
             int compareMsgIndex = game->findPickUpMessage(compareItemName, compareItem.group, compareItem.script, compareItem.offset);
             if (compareMsgIndex >= 0)
             {

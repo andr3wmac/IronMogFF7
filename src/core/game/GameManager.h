@@ -5,8 +5,10 @@
 #include <string>
 #include <array>
 
-class Rule;
+struct BattleScene;
+struct BattleFormation;
 class Extra;
+class Rule;
 
 class GameManager
 {
@@ -54,6 +56,9 @@ public:
     // Returns the last dialog text that was displayed.
     std::string getLastDialogText();
 
+    // Returns the current battle scene and formation.
+    std::pair<BattleScene*, BattleFormation*> getBattleFormation();
+
     // Returns the pointer to the line of field script last executed for a given group index.
     uint16_t getScriptExecutionPointer(uint8_t groupIndex) { return fieldScriptExecutionTable[groupIndex]; }
 
@@ -87,6 +92,11 @@ public:
     void write(uintptr_t offset, T value)
     {
         emulator->write(offset, &value, sizeof(value));
+    }
+
+    void write(uintptr_t offset, uint8_t* dataIn, uintptr_t size)
+    {
+        emulator->write(offset, dataIn, size);
     }
 
     std::string readString(uintptr_t offset, uint32_t length);

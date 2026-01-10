@@ -447,7 +447,7 @@ bool GameManager::isBattleDataLoaded()
             // Maximum of 4 item slots per enemy
             for (int j = 0; j < 4; ++j)
             {
-                uint16_t dropID = read<uint16_t>(EnemyFormationOffsets::Enemies[i] + EnemyFormationOffsets::DropIDs[j]);
+                uint16_t dropID = read<uint16_t>(BattleSceneOffsets::Enemies[i] + BattleSceneOffsets::DropIDs[j]);
 
                 // Empty slot
                 if (dropID == 65535)
@@ -639,4 +639,27 @@ std::string GameManager::getLastDialogText()
     }
 
     return readString(GameOffsets::DialogText, 256);
+}
+
+std::pair<BattleScene*, BattleFormation*> GameManager::getBattleFormation()
+{
+    if (getGameModule() != GameModule::Battle)
+    {
+        return { nullptr, nullptr };
+    }
+
+    uint16_t formationID = read<uint16_t>(BattleOffsets::FormationID);
+
+    for (auto& [id, scene] : GameData::battleScenes) 
+    {
+        for (BattleFormation& formation : scene.formations)
+        {
+            if (formation.id == formationID)
+            {
+                return { &scene, &formation };
+            }
+        }
+    }
+
+    return { nullptr, nullptr };
 }

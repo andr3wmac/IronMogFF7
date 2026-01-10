@@ -103,7 +103,7 @@ void RandomizeShops::onDebugGUI()
             else
             {
                 uint32_t price = game->read<uint32_t>(ShopOffsets::PricesStart + (itemID * 4));
-                std::string itemName = GameData::getNameFromFieldScriptID(itemID);
+                std::string itemName = GameData::getItemNameFromID(itemID);
 
                 std::string debugText = "Materia: " + itemName + " (" + std::to_string(price) + ")";
                 ImGui::Text(debugText.c_str());
@@ -265,8 +265,8 @@ void RandomizeShops::onShopOpened()
                 game->write<uint32_t>(ShopOffsets::PricesStart + (newItem.id * 4), origItem.price);
             }
 
-            std::string oldItemName = GameData::getNameFromFieldScriptID((uint8_t)origItem.id);
-            std::string newItemName = GameData::getNameFromFieldScriptID((uint8_t)newItem.id);
+            std::string oldItemName = GameData::getItemNameFromID((uint8_t)origItem.id);
+            std::string newItemName = GameData::getItemNameFromID((uint8_t)newItem.id);
             LOG("Randomized item in shop %d: %s changed to: %s", shopID, oldItemName.c_str(), newItemName.c_str());
         }
         for (int j = 0; j < shopMateria.size(); ++j)
