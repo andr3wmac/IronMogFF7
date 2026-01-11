@@ -166,11 +166,7 @@ void GameManager::loadSaveData()
     }
     else 
     {
-        // Zero out the area.
-        for (int i = 0; i < 8; ++i)
-        {
-            write<uint32_t>(SavemapOffsets::IronMogSave + (i * 4), 0);
-        }
+        clearSaveData();
 
         // Write header and seed into save data area.
         write<uint16_t>(SavemapOffsets::IronMogSave, 0x4D49);
@@ -181,21 +177,67 @@ void GameManager::loadSaveData()
     }
 }
 
+void GameManager::clearSaveData()
+{
+    // Zero out the area.
+    for (int i = 0; i < 8; ++i)
+    {
+        write<uint32_t>(SavemapOffsets::IronMogSave + (i * 4), 0);
+    }
+}
+
+GameManager::GameState GameManager::getState()
+{
+    uint8_t gameModule = read<uint8_t>(GameOffsets::CurrentModule);
+
+    // Not really sure what this is actually meant for but its consistently
+    // 27 when on the main menu, and 26 when on game over screen.
+    uint8_t screenState = read<uint8_t>(0xEFBB1);
+
+    if (gameModule == 0 && screenState == 0)
+    {
+        return GameState::BootScreen;
+    }
+
+    if (gameModule == 0 && screenState == 27)
+    {
+        // Fresh boot, main menu.
+        return GameState::MainMenuCold;
+    }
+
+    if (gameModule != 0 && screenState == 27)
+    {
+        // Main menu after a soft reset or game over.
+        return GameState::MainMenuWarm;
+    }
+
+    return GameState::InGame;
+}
+
 void GameManager::update()
 {
-    uint8_t newGameModule = read<uint8_t>(GameOffsets::CurrentModule);
-    if (newGameModule == 0)
+    GameState state = getState();
     {
-        // At main menu
-        hasStarted = false;
-        return;
+        if (lastGameState == GameState::InGame && state != GameState::InGame)
+        {
+            // Clearing save data prevents stale state getting stuck from a game over.
+            clearSaveData();
+        }
+
+        if (lastGameState != GameState::InGame && state == GameState::InGame)
+        {
+            loadSaveData();
+            onStart.invoke();
+            lastFrameUpdateTime = Utilities::getTimeMS();
+        }
+
+        lastGameState = state;
     }
-    else if (!hasStarted)
+
+    // Only perform updates when we're actually in the game.
+    if (state != GameState::InGame)
     {
-        loadSaveData();
-        onStart.invoke();
-        hasStarted = true;
-        lastFrameUpdateTime = Utilities::getTimeMS();
+        return;
     }
 
     // We assume if 200ms has passed without the frame number advancing that the emulator is paused
@@ -212,6 +254,7 @@ void GameManager::update()
 
     onUpdate.invoke();
     
+    uint8_t newGameModule = read<uint8_t>(GameOffsets::CurrentModule);
     if (newGameModule != gameModule)
     {
         // Entered battle

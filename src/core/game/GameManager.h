@@ -13,6 +13,14 @@ class Rule;
 class GameManager
 {
 public:
+    enum class GameState : int
+    {
+        BootScreen   = 0,
+        MainMenuCold = 1,
+        MainMenuWarm = 2,
+        InGame       = 3
+    };
+
     GameManager();
     ~GameManager();
     
@@ -26,7 +34,9 @@ public:
 
     void setup(uint32_t inputSeed);
     void loadSaveData();
+    void clearSaveData();
     inline uint32_t getSeed() { return seed; }
+    GameState getState();
     void update();
 
     // Returns how long the last update() took in ms.
@@ -105,7 +115,7 @@ public:
 private:
     Emulator* emulator;
 
-    bool hasStarted = false;
+    GameState lastGameState = GameState::BootScreen;
     bool emulatorPaused = false;
     double lastUpdateDuration = 0.0;
     uint32_t seed = 0;

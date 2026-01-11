@@ -15,6 +15,8 @@ class Permadeath : public Rule
 {
 public:
     void setup() override;
+    bool hasDebugGUI() override { return true; }
+    void onDebugGUI() override;
 
     bool isCharacterDead(uint8_t characterID)
     {
@@ -28,5 +30,16 @@ private:
 
     void onStart();
     void onFrame(uint32_t frameNumber);
+    void onFieldChanged(uint16_t fieldID);
+    void onBattleExit();
+
     bool isExempt(uint16_t fieldID);
+    std::vector<uint8_t> getLivingCharacters();
+    int selectRandomLivingCharacter(uint16_t fieldID, uint8_t ignoreCharacter);
+    void updateOverrideFights();
+    
+    bool appliedRufusRandom = false;
+    bool appliedDyneRandom = false;
+    bool waitingOnBattleExit = false;
+    uint16_t lastFieldTrigger = 0;
 };

@@ -21,9 +21,17 @@ void App::drawSettingsPanel()
 {
     GUI::drawImage(logo, logo.width / 2, logo.height / 2);
 
+    // We lock settings if we're both connected and in game.
+    bool lockSettings = connectionState > ConnectionState::NotConnected && connectionState < ConnectionState::Error;
+    if (lockSettings && connectionState == ConnectionState::Connected)
+    {
+        GameManager::GameState state = game->getState();
+        lockSettings &= (state == GameManager::GameState::InGame);
+    }
+
     ImGui::Spacing();
     ImGui::BeginChild("##ScrollBox", ImVec2(0, APP_WINDOW_HEIGHT - 212));
-    ImGui::BeginDisabled(connectionState > ConnectionState::NotConnected && connectionState < ConnectionState::Error);
+    ImGui::BeginDisabled(lockSettings);
     {
         ImGui::SeparatorText("Game");
         {
@@ -325,6 +333,16 @@ void App::drawDebugPanel()
         return;
     }
 
+    GameManager::GameState gameState = game->getState();
+    {
+        std::string gameStateText = "State: ";
+        if (gameState == GameManager::GameState::BootScreen) gameStateText += "Boot";
+        if (gameState == GameManager::GameState::MainMenuCold) gameStateText += "Main Menu (Cold)";
+        if (gameState == GameManager::GameState::MainMenuWarm) gameStateText += "Main Menu (Warm)";
+        if (gameState == GameManager::GameState::InGame) gameStateText += "In Game";
+        ImGui::Text(gameStateText.c_str());
+    }
+
     // IronMog Frame Update Time
     double updateDuration = game->getLastUpdateDuration();
     std::string updateDurationText = "IronMog Update Time: " + std::to_string(updateDuration) + "ms";
@@ -359,6 +377,11 @@ void App::drawDebugPanel()
     uint16_t fieldID = game->read<uint16_t>(GameOffsets::FieldID);
     std::string fieldText = "Field ID: " + std::to_string(fieldID);
     ImGui::Text(fieldText.c_str());
+
+    // Formation
+    uint16_t formationID = game->read<uint16_t>(BattleOffsets::FormationID);
+    std::string formationText = "Formation: " + std::to_string(formationID);
+    ImGui::Text(formationText.c_str());
 
     // Party Members
     {
