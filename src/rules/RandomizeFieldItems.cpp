@@ -236,12 +236,6 @@ void RandomizeFieldItems::apply()
             newItem.id = GameData::getRandomItemFromID(newItem.id, rng64);
         }
         
-        // It's possible we randomized to the same item already there.
-        if (newItem.id == oldItem.id)
-        {
-            continue;
-        }
-
         if (Restrictions::isFieldItemBanned(newItem.id))
         {
             std::mt19937_64 rng64(Utilities::makeSeed64(game->getSeed(), fieldData.id, i));
@@ -294,16 +288,10 @@ void RandomizeFieldItems::apply()
         else if (randomMode == RandomMode::Random)
         {
             // Pick random one based on key.
-            std::mt19937_64 rng64(Utilities::makeSeed64(game->getSeed(), fieldData.id, (uint8_t)newMateria.id));
+            std::mt19937_64 rng64(Utilities::makeSeed64(game->getSeed(), fieldData.id, (uint8_t)oldMateria.id));
             newMateria.id = GameData::getRandomMateria(rng64);
         }
         
-        // It's possible we randomized to the same materia already there.
-        if (newMateria.id == oldMateria.id)
-        {
-            continue;
-        }
-
         if (Restrictions::isMateriaBanned((uint8_t)newMateria.id))
         {
             std::mt19937_64 rng64(Utilities::makeSeed64(game->getSeed(), fieldData.id, (uint8_t)newMateria.id));
@@ -363,5 +351,9 @@ void RandomizeFieldItems::overwriteMessage(const FieldData& fieldData, const Fie
         {
             game->writeString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength, newName);
         }
+    }
+    else 
+    {
+        LOG("Error: Unable to find message that contains: %s", oldName.c_str());
     }
 }

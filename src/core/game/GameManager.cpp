@@ -516,7 +516,8 @@ bool GameManager::isFieldDataLoaded()
     {
         FieldScriptMessage& message = fieldData.messages[i];
         uint8_t opCode = read<uint8_t>(FieldScriptOffsets::ScriptStart + message.offset);
-        if (opCode != 0x40)
+        uint8_t endChar = read<uint8_t>(FieldScriptOffsets::ScriptStart + message.strOffset + message.strLength);
+        if (opCode != 0x40 || endChar != 0xFF)
         {
             return false;
         }
@@ -615,7 +616,7 @@ int GameManager::findPickUpMessage(std::string itemName, uint8_t group, uint8_t 
         {
             continue;
         }
-        
+
         std::string msg = readString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength);
         if (msg.find(itemName) != std::string::npos)
         {

@@ -93,7 +93,24 @@ class Enemy:
             self.maxStringSize = 0x20
 
         self.name = ff7.decodeKernelText(data[0:self.maxStringSize], japanese)
-        self.level = data[self.maxStringSize]
+        ptr = self.maxStringSize
+
+        self.level          = data[ptr + 0]
+        self.speed          = data[ptr + 1]
+        self.luck           = data[ptr + 2]
+        self.evade          = data[ptr + 3]
+        self.strength       = data[ptr + 4]
+        self.defense        = data[ptr + 5]
+        self.magic          = data[ptr + 6]
+        self.magicDefense   = data[ptr + 7]
+
+        self.elementTypes = []
+        for i in range(0, 8):
+            self.elementTypes.append(data[ptr + 8 + i])
+
+        self.elementRates = []
+        for i in range(0, 8):
+            self.elementRates.append(data[ptr + 16 + i])
 
 class Formation:
     def __init__(self, battleSetupData, formationData):
@@ -147,9 +164,10 @@ class Scene:
         # Extract enemy scripts
         self.enemyScripts = self.extractScripts(self.aiDataOffset, 3, len(data))
 
-        self.enemyID0 = struct.unpack_from("<H", data, 0x00)[0]
-        self.enemyID1 = struct.unpack_from("<H", data, 0x02)[0]
-        self.enemyID2 = struct.unpack_from("<H", data, 0x04)[0]
+        self.enemyIDs = []
+        self.enemyIDs.append(struct.unpack_from("<H", data, 0x00)[0])
+        self.enemyIDs.append(struct.unpack_from("<H", data, 0x02)[0])
+        self.enemyIDs.append(struct.unpack_from("<H", data, 0x04)[0])
 
     # Return the binary scene data
     def getData(self):

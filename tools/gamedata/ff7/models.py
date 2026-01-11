@@ -84,7 +84,7 @@ class Model:
 
                 if av >= len(part.vertices) or bv >= len(part.vertices) or cv >= len(part.vertices) or dv >= len(part.vertices):
                     av = bv = cv = dv = 0
-                    print("Error in quad_color " + str(j) + " in part " + str(i) + " skipping.. ")
+                    #print("Error in quad_color " + str(j) + " in part " + str(i) + " skipping.. ")
 
                 poly = ((av, at, (ar, ag, ab), an), (bv, bt, (br, bg, bb), bn), (dv, dt, (dr, dg, db), dn), (cv, ct, (cr, cg, cb), cn))
 
@@ -116,7 +116,7 @@ class Model:
 
                 if av >= len(part.vertices) or bv >= len(part.vertices) or cv >= len(part.vertices) or dv >= len(part.vertices):
                     av = bv = cv = dv = 0
-                    print("Error in quad_mono_tex " + str(j) + " in part " + str(i) + " skipping.. ")
+                    #print("Error in quad_mono_tex " + str(j) + " in part " + str(i) + " skipping.. ")
 
                 poly = ((av, at), (bv, bt), (dv, dt), (cv, ct), (r, g, b), n)
 
@@ -166,7 +166,7 @@ class Model:
 
                 if av >= len(part.vertices) or bv >= len(part.vertices) or cv >= len(part.vertices):
                     av = bv = cv = 0
-                    print("Error in tri_color " + str(j) + " in part " + str(i) + " skipping.. ")
+                    #print("Error in tri_color " + str(j) + " in part " + str(i) + " skipping.. ")
 
                 poly = ((av,(ar, ag, ab), an), (bv, (br, bg, bb), bn), (cv, (cr, cg, cb), cn), xv)
 
@@ -181,7 +181,7 @@ class Model:
 
                 if av >= len(part.vertices) or bv >= len(part.vertices) or cv >= len(part.vertices) or dv >= len(part.vertices):
                     av = bv = cv = dv = 0
-                    print("Error in quad_color " + str(j) + " in part " + str(i) + " skipping.. ")
+                    #print("Error in quad_color " + str(j) + " in part " + str(i) + " skipping.. ")
 
                 poly = ((av,(ar, ag, ab), an), (bv, (br, bg, bb), bn), (dv, (dr, dg, db), dn), (cv, (cr, cg, cb), cn))
 
