@@ -14,6 +14,37 @@ void RandomizeEnemyDrops::setup()
     BIND_EVENT(game->onBattleEnter, RandomizeEnemyDrops::onBattleEnter);
 }
 
+bool RandomizeEnemyDrops::onSettingsGUI()
+{
+    bool changed = false;
+
+    ImGui::Text("Gil Multiplier");
+    ImGui::SetItemTooltip("Multiplies the gil dropped by each enemy.");
+    ImGui::SameLine(140.0f);
+    ImGui::SetNextItemWidth(50.0f);
+    changed |= ImGui::InputFloat("##gilMultiplier", &gilMultiplier, 0.0f, 0.0f, "%.2f");
+
+    ImGui::Text("Exp Multiplier");
+    ImGui::SetItemTooltip("Multiplies the exp obtained from each enemy.");
+    ImGui::SameLine(140.0f);
+    ImGui::SetNextItemWidth(50.0f);
+    changed |= ImGui::InputFloat("##expMultiplier", &expMultiplier, 0.0f, 0.0f, "%.2f");
+
+    return changed;
+}
+
+void RandomizeEnemyDrops::loadSettings(const ConfigFile& cfg)
+{
+    gilMultiplier = cfg.get<float>("gilMultiplier", 1.0f);
+    expMultiplier = cfg.get<float>("expMultiplier", 1.0f);
+}
+
+void RandomizeEnemyDrops::saveSettings(ConfigFile& cfg)
+{
+    cfg.set<float>("gilMultiplier", gilMultiplier);
+    cfg.set<float>("expMultiplier", expMultiplier);
+}
+
 void RandomizeEnemyDrops::onDebugGUI()
 {
     std::pair<BattleScene*, BattleFormation*> battleData = game->getBattleFormation();
@@ -81,6 +112,14 @@ void RandomizeEnemyDrops::onBattleEnter()
                 activeEnemyIDs.push_back(j);
             }
         }
+
+        // Gil and EXP Multipliers
+        uint32_t gil = game->read<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::Gil);
+        uint32_t exp = game->read<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::Exp);
+        uint32_t newGil = std::clamp(gil * gilMultiplier, 0.0f, FLT_MAX);
+        uint32_t newExp = std::clamp(exp * expMultiplier, 0.0f, FLT_MAX);
+        game->write<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::Gil, newGil);
+        game->write<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::Exp, newExp);
     }
 
     for (int id : activeEnemyIDs)
