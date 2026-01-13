@@ -456,7 +456,9 @@ void App::drawDebugPanel()
     {
         ImGui::Indent(25.0f);
 
-        ImGui::InputText("##DebugWarpFieldID", debugWarpFieldID, 10);
+        // Debug Panel variables
+        static char debugWarpFieldID[5] = "";
+        ImGui::InputText("##DebugWarpFieldID", debugWarpFieldID, 5);
         ImGui::SameLine();
         if (ImGui::Button("Warp To Field"))
         {

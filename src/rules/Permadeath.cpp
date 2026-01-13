@@ -55,15 +55,15 @@ void Permadeath::setup()
 
 void Permadeath::onDebugGUI()
 {
-    ImGui::Text("Dead Characters: ");
+    std::string deadCharText = "Dead Characters: ";
     for (int i = 0; i < 9; ++i)
     {
         if (deadCharacters.isBitSet(i))
         {
-            std::string charText = " " + std::to_string(i);
-            ImGui::Text(charText.c_str());
+            deadCharText += std::to_string(i) + " ";
         }
     }
+    ImGui::Text(deadCharText.c_str());
 
     if (ImGui::Button("Clear Dead Characters"))
     {
@@ -81,6 +81,18 @@ void Permadeath::onDebugGUI()
 
             uintptr_t characterOffset = getCharacterDataOffset(id);
             game->write<uint16_t>(characterOffset + CharacterDataOffsets::CurrentHP, 1);
+        }
+    }
+
+    static char debugKillCharacterIndex[5];
+    ImGui::InputText("##killCharacterField", debugKillCharacterIndex, 5);
+    ImGui::SameLine();
+    if (ImGui::Button("Kill"))
+    {
+        uint16_t charID = atoi(debugKillCharacterIndex);
+        if (charID >= 0 && charID <= 9)
+        {
+            deadCharacters.setBit(charID, true);
         }
     }
 }

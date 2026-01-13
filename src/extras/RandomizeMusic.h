@@ -34,9 +34,12 @@ private:
 
     void scanMusicFolder();
     Track loadTrack(std::string path);
+    bool randomizeMusic(uint16_t musicID);
+    void play(const Track& track);
 
     bool disabled = false;
     bool overrideMusic = false;
+    int trackCount = 0;
     std::string currentSong = "";
     float currentVolume = 1.0f;
     float previousVolume = 1.0f;

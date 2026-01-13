@@ -217,4 +217,33 @@ public:
 
         return result;
     }
+
+    static Color HSVtoRGB(float h, float s, float v) 
+    {
+        float f = h / 60.0f;
+        int hi = static_cast<int>(std::floor(f)) % 6;
+        f = f - std::floor(f);
+
+        float p = v * (1.0f - s);
+        float q = v * (1.0f - (f * s));
+        float t = v * (1.0f - ((1.0f - f) * s));
+
+        float r, g, b;
+        switch (hi) 
+        {
+            case 0: r = v; g = t; b = p; break;
+            case 1: r = q; g = v; b = p; break;
+            case 2: r = p; g = v; b = t; break;
+            case 3: r = p; g = q; b = v; break;
+            case 4: r = t; g = p; b = v; break;
+            case 5: r = v; g = p; b = q; break;
+        }
+
+        return Color
+        {
+            static_cast<uint8_t>(r * 255),
+            static_cast<uint8_t>(g * 255),
+            static_cast<uint8_t>(b * 255)
+        };
+    }
 };

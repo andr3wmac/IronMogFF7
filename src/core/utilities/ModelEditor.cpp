@@ -657,7 +657,7 @@ Utilities::Color ModelEditor::tintVertexColor(const Utilities::Color& src, const
     float gray = (0.299f * src.r + 0.587f * src.g + 0.114f * src.b) / 255.0f;
 
     // Boost the darks in the gray so the tint color comes out more
-    gray = pow(gray, 0.5f);
+    gray = pow(gray, 0.75f);
 
     // Multiply by tint color
     float rf = gray * tint.r;

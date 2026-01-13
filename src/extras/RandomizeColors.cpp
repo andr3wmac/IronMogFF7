@@ -128,6 +128,7 @@ void RandomizeColors::onDebugGUI()
 
 Utilities::Color getRandomColor(std::mt19937& rng)
 {
+    /*
     std::uniform_int_distribution<uint32_t> dist(0, 255);
 
     Utilities::Color color;
@@ -135,6 +136,22 @@ Utilities::Color getRandomColor(std::mt19937& rng)
     color.g = dist(rng);
     color.b = dist(rng);
     return color;
+    */
+
+    // Uniformly pick any color on the rainbow
+    std::uniform_real_distribution<float> hueDist(0.0f, 360.0f);
+
+    // Keep saturation high so colors aren't gray/muddy
+    std::uniform_real_distribution<float> satDist(0.6f, 0.9f);
+
+    // Keep value high so colors aren't black/dim
+    std::uniform_real_distribution<float> valDist(0.7f, 1.0f);
+
+    float h = hueDist(rng);
+    float s = satDist(rng);
+    float v = valDist(rng);
+
+    return Utilities::HSVtoRGB(h, s, v);
 }
 
 bool RandomizeColors::onSettingsGUI()
