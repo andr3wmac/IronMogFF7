@@ -205,20 +205,19 @@ def outputFields(gen, discPath, version):
                 gen.write_line("FIELD_SCRIPT_MATERIA(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " + f"0x{addr:X}" + ", " + str(materia_id) + ");", 4)
 
             if (mnemonic == "mes"):
+                windowIndex = values[2]
                 string = fieldStrings[values[3]]
 
                 # We use the Turtle Paradise newsletter for in game hints
                 if ("Turtle Paradise" in string or "Turtles Paradise" in string or "Turtle's Paradise" in string) and ("No." in string or "Number" in string):
                     stroffset, strlen = fieldOffsets[values[3]]
-                    gen.write_line("FIELD_SCRIPT_MESSAGE(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " + f"0x{addr:X}" + ", " + f"0x{stroffset:X}" + ", " + str(strlen) + ");", 4)
+                    gen.write_line("FIELD_SCRIPT_MESSAGE(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " + str(windowIndex) + ", " + f"0x{addr:X}" + ", " + f"0x{stroffset:X}" + ", " + str(strlen) + ");", 4)
 
                 # Ensures the string contains an item/materia/etc name wrapped in quotes
                 match = next((word for word in gen.item_names if f'"{word}"' in string), None)
                 if match:
                     stroffset, strlen = fieldOffsets[values[3]]
-                    gen.write_line("FIELD_SCRIPT_MESSAGE(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " +  f"0x{addr:X}" + ", " + f"0x{stroffset:X}" + ", " + str(strlen) + ");", 4)
-                
-                #print(values)
+                    gen.write_line("FIELD_SCRIPT_MESSAGE(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " + str(windowIndex) + ", " +  f"0x{addr:X}" + ", " + f"0x{stroffset:X}" + ", " + str(strlen) + ");", 4)
 
             if (mnemonic == "menu" and len(values) == 5):
                 # Shop
