@@ -63,8 +63,8 @@ public:
     // Finds the nearest message that contains the item name
     int findPickUpMessage(std::string itemName, uint8_t group, uint8_t script, uint32_t offset);
 
-    // Returns the last dialog text that was displayed.
-    std::string getLastDialogText();
+    // Returns the last text displayed in a window
+    std::string getWindowText(uint8_t index);
 
     // Returns the current battle scene and formation.
     std::pair<BattleScene*, BattleFormation*> getBattleFormation();

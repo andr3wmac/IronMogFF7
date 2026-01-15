@@ -145,7 +145,7 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
     {
         if (game->read<uint8_t>(GameOffsets::MusicLock) == 1)
         {
-            if (game->getLastDialogText() == "Cloud ‘Hojo!  Stop right there!!’")
+            if (game->getWindowText(0) == "Cloud ‘Hojo!  Stop right there!!’")
             {
                 game->write<uint8_t>(GameOffsets::MusicLock, 0);
             }

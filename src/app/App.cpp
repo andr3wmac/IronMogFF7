@@ -57,6 +57,7 @@ void App::run()
         {
             availableSettings.push_back("Default");
             selectedSettingsIdx = 1;
+            loadSettings(settingsDir + "/Default.cfg");
         }
 
         if (fs::exists(settingsDir) && fs::is_directory(settingsDir))

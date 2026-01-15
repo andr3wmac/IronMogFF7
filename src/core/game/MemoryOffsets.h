@@ -26,8 +26,13 @@ struct GameOffsets
     CONST_PTR GameMoment        = 0x9D288;  // uint16_t
     CONST_PTR MenuLockingMask   = 0x9D2A6;  // uint16_t bitmask of options disabled in the menu. 
     CONST_PTR PHSVisibilityMask = 0x9D78A;  // uint16_t bitmask of which characters are on PHS
-    CONST_PTR DialogText        = 0xE4944;  // Array of uint8_t characters terminated by 255
+    CONST_PTR WindowText        = 0xE4944;  // Array of window text entries, each window gets 256 characters, terminated by 0xFF.
 };
+
+inline uintptr_t getWindowTextOffset(uint8_t index)
+{
+    return GameOffsets::WindowText + (index * 256);
+}
 
 struct GameModule
 {

@@ -37,6 +37,9 @@ public:
     // Search for polygon render commands where at least 2 occur in a row
     std::vector<uintptr_t> searchForPolygons();
 
+    // Encodes string and then searches for it
+    std::vector<uintptr_t> searchForString(const std::string& str);
+
     // Scan for clusters of polygon render commands that look like they're models
     void modelScan(uintptr_t startAddress, int maxSteps, bool verbose = false);
 

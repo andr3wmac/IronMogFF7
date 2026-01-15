@@ -35,6 +35,7 @@ struct FieldScriptMessage
 {
     uint8_t group = 0;
     uint8_t script = 0;
+    uint8_t windowIndex = 0;
     uint32_t offset = 0;
     uint32_t strOffset = 0;
     uint32_t strLength = 0;
@@ -197,8 +198,8 @@ public:
 #define FIELD_SCRIPT_MATERIA(FIELD_ID, GROUP_IDX, SCRIPT_IDX, OFFSET, MAT_ID) \
     { GameData::fieldData[FIELD_ID].materia.push_back({GROUP_IDX, SCRIPT_IDX, OFFSET, MAT_ID, 1}); }
 
-#define FIELD_SCRIPT_MESSAGE(FIELD_ID, GROUP_IDX, SCRIPT_IDX, OFFSET, STR_OFFSET, STR_LEN) \
-    { GameData::fieldData[FIELD_ID].messages.push_back({GROUP_IDX, SCRIPT_IDX, OFFSET, STR_OFFSET, STR_LEN}); }
+#define FIELD_SCRIPT_MESSAGE(FIELD_ID, GROUP_IDX, SCRIPT_IDX, WINDOW_IDX, OFFSET, STR_OFFSET, STR_LEN) \
+    { GameData::fieldData[FIELD_ID].messages.push_back({GROUP_IDX, SCRIPT_IDX, WINDOW_IDX, OFFSET, STR_OFFSET, STR_LEN}); }
 
 #define FIELD_SCRIPT_SHOP(FIELD_ID, GROUP_IDX, SCRIPT_IDX, OFFSET, SHOP_ID) \
     { GameData::fieldData[FIELD_ID].shops.push_back({GROUP_IDX, SCRIPT_IDX, OFFSET, SHOP_ID}); }

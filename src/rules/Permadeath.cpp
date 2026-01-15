@@ -306,7 +306,7 @@ void Permadeath::updateOverrideFights()
 
     if (fieldID == RUFUS_FIELD_ID && !appliedRufusRandom)
     {
-        std::string lastText = game->getLastDialogText();
+        std::string lastText = game->getWindowText(0);
         if (lastText == "Rufus ‘I see.     I guess this means we won't become friends.’")
         {
             // Select a random living character other than Cloud.

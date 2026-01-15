@@ -675,14 +675,14 @@ int GameManager::findPickUpMessage(std::string itemName, uint8_t group, uint8_t 
     return bestIndex;
 }
 
-std::string GameManager::getLastDialogText()
+std::string GameManager::getWindowText(uint8_t index)
 {
     if (getGameModule() != GameModule::Field)
     {
         return "";
     }
 
-    return readString(GameOffsets::DialogText, 256);
+    return readString(getWindowTextOffset(index), 256);
 }
 
 std::pair<BattleScene*, BattleFormation*> GameManager::getBattleFormation()

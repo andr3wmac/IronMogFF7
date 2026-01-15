@@ -116,8 +116,8 @@ void RandomizeEnemyDrops::onBattleEnter()
         // Gil and EXP Multipliers
         uint32_t gil = game->read<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::Gil);
         uint32_t exp = game->read<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::Exp);
-        uint32_t newGil = std::clamp(gil * gilMultiplier, 0.0f, FLT_MAX);
-        uint32_t newExp = std::clamp(exp * expMultiplier, 0.0f, FLT_MAX);
+        uint32_t newGil = (uint32_t)std::clamp(gil * gilMultiplier, 0.0f, FLT_MAX);
+        uint32_t newExp = (uint32_t)std::clamp(exp * expMultiplier, 0.0f, FLT_MAX);
         game->write<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::Gil, newGil);
         game->write<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::Exp, newExp);
     }

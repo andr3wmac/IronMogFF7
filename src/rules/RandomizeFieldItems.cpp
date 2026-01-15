@@ -105,7 +105,7 @@ void RandomizeFieldItems::onFrame(uint32_t frameNumber)
         uint16_t fieldScriptPtr = game->getScriptExecutionPointer(overwriteMsg.fieldMsg.group);
         if (fieldScriptPtr == overwriteMsg.fieldMsg.offset)
         {
-            game->writeString(GameOffsets::DialogText, overwriteMsg.fieldMsg.strLength, overwriteMsg.text);
+            game->writeString(getWindowTextOffset(overwriteMsg.fieldMsg.windowIndex), overwriteMsg.fieldMsg.strLength, overwriteMsg.text);
         }
     }
 }
