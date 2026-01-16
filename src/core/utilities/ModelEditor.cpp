@@ -236,9 +236,7 @@ bool ModelEditor::areBattleModelsLoaded()
         }
     }
 
-    uintptr_t modelsStart = BattleOffsets::AllyModels[0];
     std::array<uint8_t, 3> partyIDs = game->getPartyIDs();
-
     for (int i = 0; i < partyIDs.size(); ++i)
     {
         uint8_t& id = partyIDs[i];

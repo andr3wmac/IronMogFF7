@@ -187,6 +187,7 @@ void RandomizeColors::onStart()
     std::mt19937 rng(game->getSeed());
 
     // Generate table of random colors
+    randomModelColors.clear();
     for (Model& model : GameData::models)
     {
         std::string& modelName = model.name;
