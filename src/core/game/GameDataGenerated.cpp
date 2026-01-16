@@ -1599,7 +1599,7 @@ void GameData::loadGameData()
     ADD_FIELD(0x0297, "hyou4");
     ADD_FIELD_MODELS(0x0297, 1, 2, 3, 4, 5, 6, 7, 8, 9);
     ADD_FIELD(0x0298, "hyou5_1");
-    FIELD_SCRIPT_ITEM(0x0298, 0, 0, 0x9AA, 0, 1);
+    FIELD_SCRIPT_ITEM(0x0298, 23, 1, 0x9AA, 0, 1);
     FIELD_SCRIPT_MESSAGE(0x0298, 23, 1, 0, 0x9BE, 0xAA8, 18);
     ADD_FIELD_MODELS(0x0298, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0);
     ADD_FIELD(0x0299, "hyou5_2");
@@ -1617,7 +1617,7 @@ void GameData::loadGameData()
     ADD_FIELD(0x02A5, "hyou8_1");
     ADD_FIELD_MODELS(0x02A5, 1, 2, 3, 4, 5, 6, 7, 8, 9);
     ADD_FIELD(0x02A6, "hyou8_2");
-    FIELD_SCRIPT_ITEM(0x02A6, 0, 0, 0x4D0, 5, 1);
+    FIELD_SCRIPT_ITEM(0x02A6, 12, 1, 0x4D0, 5, 1);
     FIELD_SCRIPT_MESSAGE(0x02A6, 12, 1, 0, 0x4E4, 0x5E1, 18);
     ADD_FIELD_MODELS(0x02A6, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0);
     ADD_FIELD(0x02A7, "hyou9");
@@ -1922,7 +1922,7 @@ void GameData::loadGameData()
     FIELD_SCRIPT_MESSAGE(0x0262, 28, 1, 0, 0x1825, 0x1982, 22);
     ADD_FIELD_MODELS(0x0262, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 0);
     ADD_FIELD(0x0264, "kuro_82");
-    FIELD_SCRIPT_MATERIA(0x0264, 0, 0, 0x12FC, 81);
+    FIELD_SCRIPT_MATERIA(0x0264, 20, 1, 0x12FC, 81);
     FIELD_SCRIPT_MESSAGE(0x0264, 20, 1, 0, 0x133A, 0x19AD, 27);
     ADD_FIELD_MODELS(0x0264, 1, 1, 2, 3, 4, 5, 6, 7, 8, 9, 0, 0);
     ADD_FIELD(0x0263, "kuro_8");
@@ -2329,7 +2329,7 @@ void GameData::loadGameData()
     FIELD_SCRIPT_ITEM(0x00C4, 0, 0, 0x395, 318, 1);
     FIELD_SCRIPT_MESSAGE(0x00C4, 0, 0, 0, 0x3D9, 0xB2C, 23);
     FIELD_SCRIPT_ITEM(0x00C4, 0, 0, 0x3DE, 318, 1);
-    FIELD_SCRIPT_SHOP(0x00C4, 0, 0, 0x4B3, 6);
+    FIELD_SCRIPT_SHOP(0x00C4, 8, 1, 0x4B3, 6);
     FIELD_SCRIPT_ITEM(0x00C4, 9, 1, 0x5E7, 85, 3);
     FIELD_SCRIPT_ITEM(0x00C4, 9, 1, 0x619, 85, 3);
     ADD_FIELD_MODELS(0x00C4, 1, 2, 4, 6, 0, 2, 0, 0);

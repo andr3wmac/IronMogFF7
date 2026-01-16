@@ -327,7 +327,7 @@ class EventSection:
     def findGroupAndScript(self, addr):
         for i, sub in enumerate(self.actorScripts):
             for j in range(len(sub) - 1):
-                if sub[j] < addr < sub[j + 1]:
+                if sub[j] <= addr < sub[j + 1]:
                     return i, j
         return 0, 0
 

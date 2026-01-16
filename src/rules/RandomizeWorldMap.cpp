@@ -254,7 +254,7 @@ void RandomizeWorldMap::onFieldChanged(uint16_t fieldID)
     // then we'll be stuck on that side of the river with no way back over. To fix this we
     // reset the buggy to not being broken and place it in front of cosmo canyon.
     uint16_t currentGameMoment = game->getGameMoment();
-    if (currentGameMoment >= 469 && currentGameMoment < 523)
+    if (currentGameMoment >= 469 && currentGameMoment < 514)
     {
         Flags buggyFlags = game->read<uint8_t>(0x9D457);
         if (buggyFlags.isBitSet(1))
@@ -264,6 +264,7 @@ void RandomizeWorldMap::onFieldChanged(uint16_t fieldID)
 
             buggyFlags.setBit(1, false);
             game->write<uint8_t>(0x9D457, buggyFlags.value());
+            LOG("Repaired buggy and moved it in front of cosmo canyon.");
         }
     }
 
