@@ -26,7 +26,7 @@ bool AudioManager::playMusic(std::string path)
     return playMusic(path, 0, 0, UINT64_MAX);
 }
 
-bool AudioManager::playMusic(std::string path, uint64_t start, uint64_t loopStart, uint64_t loopEnd)
+bool AudioManager::playMusic(std::string path, uint64_t start, uint64_t loopStart, uint64_t loopEnd, bool playOnce)
 {
     if (gCurrentMusic.pDataSource != NULL)
     {
@@ -40,15 +40,16 @@ bool AudioManager::playMusic(std::string path, uint64_t start, uint64_t loopStar
         return false;
     }
 
+
     ma_data_source* dataSrc = ma_sound_get_data_source(&gCurrentMusic);
-    ma_data_source_set_looping(dataSrc, MA_TRUE);
+    ma_data_source_set_looping(dataSrc, playOnce ? MA_FALSE : MA_TRUE);
 
     if (start > 0)
     {
         ma_data_source_seek_pcm_frames(dataSrc, start, NULL);
     }
     
-    if (loopStart > 0 || loopEnd < UINT64_MAX)
+    if (!playOnce && (loopStart > 0 || loopEnd < UINT64_MAX))
     {
         ma_data_source_set_loop_point_in_pcm_frames(dataSrc, loopStart, loopEnd);
     }

@@ -117,6 +117,12 @@ class Formation:
         # location: 2 bytes at offset 0
         self.location = struct.unpack_from("<H", battleSetupData, 0)[0]
 
+        self.battleArenaCandidates = []
+        self.battleArenaCandidates.append(struct.unpack_from("<H", battleSetupData, 0x08)[0])
+        self.battleArenaCandidates.append(struct.unpack_from("<H", battleSetupData, 0x0A)[0])
+        self.battleArenaCandidates.append(struct.unpack_from("<H", battleSetupData, 0x0C)[0])
+        self.battleArenaCandidates.append(struct.unpack_from("<H", battleSetupData, 0x0E)[0])
+
         # flags: 2 bytes at offset 0x10
         self.flags = struct.unpack_from("<H", battleSetupData, 0x10)[0]
 

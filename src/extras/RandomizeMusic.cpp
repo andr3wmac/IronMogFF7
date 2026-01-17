@@ -88,6 +88,22 @@ void RandomizeMusic::saveSettings(ConfigFile& cfg)
     cfg.set<float>("volume", currentVolume);
 }
 
+void RandomizeMusic::onDebugGUI()
+{
+    uint16_t musicID = game->read<uint16_t>(GameOffsets::MusicID);
+    std::string musicText = "Music: " + std::to_string(musicID);
+    ImGui::Text(musicText.c_str());
+
+    if (musicID < MusicList.size())
+    {
+        std::string internalName = "Internal Name: " + MusicList[musicID];
+        ImGui::Text(internalName.c_str());
+    }
+
+    std::string validStackStr = "Stack: " + std::to_string(previousValidStack[0]) + " " + std::to_string(previousValidStack[1]);
+    ImGui::Text(validStackStr.c_str());
+}
+
 bool RandomizeMusic::isPlaying()
 {
     if (disabled)
@@ -155,7 +171,7 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
     // Keep in game music volume locked to 0
     if (overrideMusic)
     {
-        game->write<uint16_t>(GameOffsets::MusicVolume, 0);
+        game->write<uint16_t>(GameOffsets::MusicVolume, 1);
     }
 
     uint16_t musicID = game->read<uint16_t>(GameOffsets::MusicID);
@@ -182,6 +198,15 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
             return;
         }
 
+        // Reuse recent songs except in battle. The point of this is just for continuity when
+        // songs change temporarily. For example: when you sleep at an inn.
+        if (currentGameModule != GameModule::Battle && previousValidStack[1] == musicID)
+        {
+            usePreviousTrackSelection = true;
+        }
+        std::swap(previousValidStack[0], previousValidStack[1]);
+        previousValidStack[0] = musicID;
+
         // Reuse previously selected random track.
         if (usePreviousTrackSelection)
         {
@@ -204,7 +229,7 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
         }
 
         overrideMusic = true;
-        game->write<uint16_t>(GameOffsets::MusicVolume, 0);
+        game->write<uint16_t>(GameOffsets::MusicVolume, 1);
     }
 }
 
@@ -283,6 +308,7 @@ Track RandomizeMusic::loadTrack(std::string path)
     track.start     = cfg.get<uint64_t>("Start", 0);
     track.loopStart = cfg.get<uint64_t>("LoopStart", 0);
     track.loopEnd   = cfg.get<uint64_t>("LoopEnd", UINT64_MAX);
+    track.playOnce  = cfg.get<bool>("PlayOnce", false);
 
     return track;
 }
@@ -315,6 +341,6 @@ void RandomizeMusic::play(const Track& track)
     std::filesystem::path p(track.path);
     currentSong = p.stem().string();
 
-    AudioManager::playMusic(track.path, track.start, track.loopStart, track.loopEnd);
+    AudioManager::playMusic(track.path, track.start, track.loopStart, track.loopEnd, track.playOnce);
     LOG("Playing: %s", track.path.c_str());
 }
