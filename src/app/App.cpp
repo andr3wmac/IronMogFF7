@@ -31,19 +31,19 @@ void App::run()
     generateSeed();
 
     // Load images
-    logo.loadFromFile("img/logo.png");
+    logo.loadFromFile("resources/logo.png");
     characterPortraits.resize(9);
-    characterPortraits[0].loadFromFile("img/cloud.png");
-    characterPortraits[1].loadFromFile("img/barret.png");
-    characterPortraits[2].loadFromFile("img/tifa.png");
-    characterPortraits[3].loadFromFile("img/aerith.png");
-    characterPortraits[4].loadFromFile("img/red.png");
-    characterPortraits[5].loadFromFile("img/yuffie.png");
-    characterPortraits[6].loadFromFile("img/caitsith.png");
-    characterPortraits[7].loadFromFile("img/vincent.png");
-    characterPortraits[8].loadFromFile("img/cid.png");
+    characterPortraits[0].loadFromFile("resources/cloud.png");
+    characterPortraits[1].loadFromFile("resources/barret.png");
+    characterPortraits[2].loadFromFile("resources/tifa.png");
+    characterPortraits[3].loadFromFile("resources/aerith.png");
+    characterPortraits[4].loadFromFile("resources/red.png");
+    characterPortraits[5].loadFromFile("resources/yuffie.png");
+    characterPortraits[6].loadFromFile("resources/caitsith.png");
+    characterPortraits[7].loadFromFile("resources/vincent.png");
+    characterPortraits[8].loadFromFile("resources/cid.png");
 
-    deadIcon.loadFromFile("img/dead.png");
+    deadIcon.loadFromFile("resources/dead.png");
 
     // Load any settings files
     {

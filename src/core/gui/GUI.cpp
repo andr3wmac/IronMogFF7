@@ -170,14 +170,14 @@ bool GUI::initialize(int width, int height, const char* windowTitle)
     icons_config.MergeMode = true;
     icons_config.PixelSnapH = true;
     icons_config.GlyphMinAdvanceX = iconFontSize;
-    iconFont = io.Fonts->AddFontFromFileTTF("fonts/fa-solid-900.ttf", iconFontSize, &icons_config, icons_ranges);
+    iconFont = io.Fonts->AddFontFromFileTTF("resources/fa-solid-900.ttf", iconFontSize, &icons_config, icons_ranges);
 
     // Setup style
     setupStyle();
 
     // Window icon
     {
-        const char* iconPath = "img/icon.png";
+        const char* iconPath = "resources/icon.png";
 
         GLFWimage images[1];
         images[0].pixels = stbi_load(iconPath, &images[0].width, &images[0].height, 0, 4); // RGBA
