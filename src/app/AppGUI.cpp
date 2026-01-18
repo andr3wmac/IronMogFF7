@@ -203,6 +203,7 @@ void App::drawSettingsPanel()
 void App::drawTrackerPanel()
 {
     GUI::drawImage(logo, logo.width / 2, logo.height / 2);
+    gui.pushFont("Inter");
 
     ImGui::Spacing();
     ImGui::BeginChild("##ScrollBox", ImVec2(0, APP_WINDOW_HEIGHT - 212));
@@ -269,6 +270,7 @@ void App::drawTrackerPanel()
     ImGui::EndChild();
     ImGui::Spacing();
 
+    gui.popFont();
     drawBottomPanel();
 }
 

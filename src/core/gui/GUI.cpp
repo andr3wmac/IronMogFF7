@@ -27,7 +27,8 @@
 #pragma comment(lib, "legacy_stdio_definitions")
 #endif
 
-ImFont* iconFont = nullptr;
+// Fonts we loaded from the resources folder
+std::unordered_map<std::string, ImFont*> fonts;
 
 static void glfw_error_callback(int error, const char* description)
 {
@@ -144,25 +145,8 @@ bool GUI::initialize(int width, int height, const char* windowTitle)
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init(glsl_version);
 
-    // Load Fonts
-    // - If no fonts are loaded, dear imgui will use the default font. You can also load multiple fonts and use ImGui::PushFont()/PopFont() to select them.
-    // - AddFontFromFileTTF() will return the ImFont* so you can store it if you need to select the font among multiple.
-    // - If the file cannot be loaded, the function will return a nullptr. Please handle those errors in your application (e.g. use an assertion, or display an error and quit).
-    // - The fonts will be rasterized at a given size (w/ oversampling) and stored into a texture when calling ImFontAtlas::Build()/GetTexDataAsXXXX(), which ImGui_ImplXXXX_NewFrame below will call.
-    // - Use '#define IMGUI_ENABLE_FREETYPE' in your imconfig file to use Freetype for higher quality font rendering.
-    // - Read 'docs/FONTS.md' for more instructions and details.
-    // - Remember that in C/C++ if you want to include a backslash \ in a string literal you need to write a double backslash \\ !
-    // - Our Emscripten build process allows embedding fonts to be accessible at runtime from the "fonts/" folder. See Makefile.emscripten for details.
-    //io.Fonts->AddFontDefault();
-    //io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\segoeui.ttf", 18.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/DroidSans.ttf", 16.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Roboto-Medium.ttf", 16.0f);
-    //io.Fonts->AddFontFromFileTTF("../../misc/fonts/Cousine-Regular.ttf", 15.0f);
-    //ImFont* font = io.Fonts->AddFontFromFileTTF("c:\\Windows\\Fonts\\ArialUni.ttf", 18.0f, nullptr, io.Fonts->GetGlyphRangesJapanese());
-    //IM_ASSERT(font != nullptr);
-
+    // Default font + icon font
     io.Fonts->AddFontDefault();
-
     float baseFontSize = 16.0f; // 13.0f is the size of the default font. Change to the font size you use.
     float iconFontSize = baseFontSize * 2.0f / 3.0f; // FontAwesome fonts need to have their sizes reduced by
     static const ImWchar icons_ranges[] = { ICON_MIN_FA, ICON_MAX_16_FA, 0 };
@@ -170,7 +154,10 @@ bool GUI::initialize(int width, int height, const char* windowTitle)
     icons_config.MergeMode = true;
     icons_config.PixelSnapH = true;
     icons_config.GlyphMinAdvanceX = iconFontSize;
-    iconFont = io.Fonts->AddFontFromFileTTF("resources/fa-solid-900.ttf", iconFontSize, &icons_config, icons_ranges);
+    fonts["Icon"] = io.Fonts->AddFontFromFileTTF("resources/fa-solid-900.ttf", iconFontSize, &icons_config, icons_ranges);
+
+    // Google's Inter font
+    fonts["Inter"] = io.Fonts->AddFontFromFileTTF("resources/Inter_18pt-Regular.ttf", 18.0f);
 
     // Setup style
     setupStyle();
@@ -268,12 +255,17 @@ void GUI::onKeyCallback(int key, int scancode, int action, int mods)
     }
 }
 
-void GUI::pushIconFont()
+void GUI::pushFont(const std::string& fontName)
 {
-    ImGui::PushFont(iconFont);
+    if (fonts.count(fontName) == 0)
+    {
+        return;
+    }
+
+    ImGui::PushFont(fonts[fontName]);
 }
 
-void GUI::popIconFont()
+void GUI::popFont()
 {
     ImGui::PopFont();
 }

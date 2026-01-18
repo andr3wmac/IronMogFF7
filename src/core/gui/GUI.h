@@ -19,8 +19,8 @@ public:
 
     bool wasWindowClosed();
 
-    void pushIconFont();
-    void popIconFont();
+    void pushFont(const std::string& fontName);
+    void popFont();
 
     std::string openFileDialog();
     std::string saveFileDialog();

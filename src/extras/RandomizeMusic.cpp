@@ -194,6 +194,7 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
         // 0 and 1 are nothing so if thats switched to we need to pause any running tracks.
         if (musicID == 0 || musicID == 1)
         {
+            currentSong = "";
             AudioManager::pauseMusic();
             return;
         }
@@ -235,6 +236,7 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
         else
         {
             // No tracks available for this music ID, stop overriding and let the game take over.
+            currentSong = "";
             overrideMusic = false;
             game->write<uint16_t>(GameOffsets::MusicVolume, FullVolume);
             AudioManager::pauseMusic();
