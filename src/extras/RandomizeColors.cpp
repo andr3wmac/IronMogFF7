@@ -232,13 +232,19 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
         shouldUpdate |= (lastFieldID == -1);
 
         // Hack fix for base of tower transition after wedge falls
-        if (lastFieldTrigger == 256 && game->getFieldID() == 156 && game->getGameMoment() == 218)
+        if (game->getFieldID() == 156 && game->getGameMoment() == 218 && lastFieldTrigger == 256)
         {
             // Waiting 240 frames was chosen arbitrarily and tested. Could be fragile.
             if (game->getFramesInField() == 240)
             {
                 shouldUpdate = true;
             }
+        }
+
+        // Hack fix for tifa and cloud scene before northern crater
+        if (game->getFieldID() == 771 && game->getGameMoment() == 1612 && lastFieldTrigger > 1 && lastFieldTrigger < 120)
+        {
+            shouldUpdate = true;
         }
 
         if (shouldUpdate)

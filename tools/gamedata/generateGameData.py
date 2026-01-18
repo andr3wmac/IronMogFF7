@@ -48,7 +48,7 @@ def outputInventory(gen, discPath, version):
                 if (item_name == ""):
                     continue
 
-                gen.write_line("ADD_ITEM(" + str(idx) + ", \"" + item_name + "\");", 4)  
+                gen.write_line("addItem(" + str(idx) + ", \"" + item_name + "\");", 4)  
                 gen.item_names.append(item_name)
             gen.write_line("")
 
@@ -60,7 +60,7 @@ def outputInventory(gen, discPath, version):
                 if (item_name == ""):
                     continue
                 
-                gen.write_line("ADD_WEAPON(" + str(idx) + ", \"" + item_name + "\");", 4)  
+                gen.write_line("addWeapon(" + str(idx) + ", \"" + item_name + "\");", 4)  
                 gen.item_names.append(item_name)
             gen.write_line("")
 
@@ -72,7 +72,7 @@ def outputInventory(gen, discPath, version):
                 if (item_name == ""):
                     continue
                 
-                gen.write_line("ADD_ARMOR(" + str(idx) + ", \"" + item_name + "\");", 4)  
+                gen.write_line("addArmor(" + str(idx) + ", \"" + item_name + "\");", 4)  
                 gen.item_names.append(item_name)
             gen.write_line("")
 
@@ -84,7 +84,7 @@ def outputInventory(gen, discPath, version):
                 if (item_name == ""):
                     continue
                 
-                gen.write_line("ADD_ACCESSORY(" + str(idx) + ", \"" + item_name + "\");", 4)   
+                gen.write_line("addAccessory(" + str(idx) + ", \"" + item_name + "\");", 4)   
                 gen.item_names.append(item_name)
             gen.write_line("")
 
@@ -96,7 +96,7 @@ def outputInventory(gen, discPath, version):
                 if (item_name == ""):
                     continue
                 
-                gen.write_line("ADD_MATERIA(" + str(idx) + ", \"" + item_name + "\");", 4) 
+                gen.write_line("addMateria(" + str(idx) + ", \"" + item_name + "\");", 4) 
                 gen.item_names.append(item_name) 
             gen.write_line("")
 
@@ -104,30 +104,30 @@ def outputOther(gen, discPath, version):
     # Enemy Skills
     # TODO: we can pull this data from kernel, instead its hardcoded from inspection with Scarlet.
     # Format: Name, Target Flags, MP Cost, Index.
-    gen.write_line("ADD_ESKILL(\"Frog Song\", 0b00000011, 5, 0);", 4)
-    gen.write_line("ADD_ESKILL(\"L4 Suicide\", 0b00000111, 10, 1);", 4)
-    gen.write_line("ADD_ESKILL(\"Magic Hammer\", 0b00000011, 3, 2);", 4)
-    gen.write_line("ADD_ESKILL(\"White Wind\", 0b00000101, 34, 3);", 4)
-    gen.write_line("ADD_ESKILL(\"Big Guard\", 0b00000101, 56, 4);", 4)
-    gen.write_line("ADD_ESKILL(\"Angel Whisper\", 0b00000001, 50, 5);", 4)
-    gen.write_line("ADD_ESKILL(\"Dragon Force\", 0b00000001, 19, 6);", 4)
-    gen.write_line("ADD_ESKILL(\"Death Force\", 0b00000001, 3, 7);", 4)
-    gen.write_line("ADD_ESKILL(\"Flame Thrower\", 0b00000011, 10, 8);", 4)
-    gen.write_line("ADD_ESKILL(\"Laser\", 0b00000011, 16, 9);", 4)
-    gen.write_line("ADD_ESKILL(\"Matra Magic\", 0b00000111, 8, 10);", 4)
-    gen.write_line("ADD_ESKILL(\"Bad Breath\", 0b00000111, 58, 11);", 4)
-    gen.write_line("ADD_ESKILL(\"Beta\", 0b00000111, 35, 12);", 4)
-    gen.write_line("ADD_ESKILL(\"Aqualung\", 0b00000111, 34, 13);", 4)
-    gen.write_line("ADD_ESKILL(\"Trine\", 0b00000111, 20, 14);", 4)
-    gen.write_line("ADD_ESKILL(\"Magic Breath\", 0b00000111, 75, 15);", 4)
-    gen.write_line("ADD_ESKILL(\"????\", 0b00000011, 3, 16);", 4)
-    gen.write_line("ADD_ESKILL(\"Goblin Punch\", 0b00000011, 0, 17);", 4)
-    gen.write_line("ADD_ESKILL(\"Chocobuckle\", 0b00000011, 3, 18);", 4)
-    gen.write_line("ADD_ESKILL(\"L5 Death\", 0b00000111, 22, 19);", 4)
-    gen.write_line("ADD_ESKILL(\"Death Sentence\", 0b00000011, 10, 20);", 4)
-    gen.write_line("ADD_ESKILL(\"Roulette\", 0b11000111, 6, 21);", 4)
-    gen.write_line("ADD_ESKILL(\"Shadow Flare\", 0b00000011, 100, 22);", 4)
-    gen.write_line("ADD_ESKILL(\"Pandora’s Box\", 0b00000111, 110, 23);", 4)
+    gen.write_line("addESkill(\"Frog Song\", 0b00000011, 5, 0);", 4)
+    gen.write_line("addESkill(\"L4 Suicide\", 0b00000111, 10, 1);", 4)
+    gen.write_line("addESkill(\"Magic Hammer\", 0b00000011, 3, 2);", 4)
+    gen.write_line("addESkill(\"White Wind\", 0b00000101, 34, 3);", 4)
+    gen.write_line("addESkill(\"Big Guard\", 0b00000101, 56, 4);", 4)
+    gen.write_line("addESkill(\"Angel Whisper\", 0b00000001, 50, 5);", 4)
+    gen.write_line("addESkill(\"Dragon Force\", 0b00000001, 19, 6);", 4)
+    gen.write_line("addESkill(\"Death Force\", 0b00000001, 3, 7);", 4)
+    gen.write_line("addESkill(\"Flame Thrower\", 0b00000011, 10, 8);", 4)
+    gen.write_line("addESkill(\"Laser\", 0b00000011, 16, 9);", 4)
+    gen.write_line("addESkill(\"Matra Magic\", 0b00000111, 8, 10);", 4)
+    gen.write_line("addESkill(\"Bad Breath\", 0b00000111, 58, 11);", 4)
+    gen.write_line("addESkill(\"Beta\", 0b00000111, 35, 12);", 4)
+    gen.write_line("addESkill(\"Aqualung\", 0b00000111, 34, 13);", 4)
+    gen.write_line("addESkill(\"Trine\", 0b00000111, 20, 14);", 4)
+    gen.write_line("addESkill(\"Magic Breath\", 0b00000111, 75, 15);", 4)
+    gen.write_line("addESkill(\"????\", 0b00000011, 3, 16);", 4)
+    gen.write_line("addESkill(\"Goblin Punch\", 0b00000011, 0, 17);", 4)
+    gen.write_line("addESkill(\"Chocobuckle\", 0b00000011, 3, 18);", 4)
+    gen.write_line("addESkill(\"L5 Death\", 0b00000111, 22, 19);", 4)
+    gen.write_line("addESkill(\"Death Sentence\", 0b00000011, 10, 20);", 4)
+    gen.write_line("addESkill(\"Roulette\", 0b11000111, 6, 21);", 4)
+    gen.write_line("addESkill(\"Shadow Flare\", 0b00000011, 100, 22);", 4)
+    gen.write_line("addESkill(\"Pandora’s Box\", 0b00000111, 110, 23);", 4)
     gen.write_line("")
 
 def unpack_ushort(byteA, byteB):
@@ -154,7 +154,7 @@ def outputFields(gen, discPath, version):
             id += 1
 
         fieldID = fieldIDTable[map.lower()]
-        gen.write_line("ADD_FIELD(" + fieldID + ", \"" + map.lower() + "\");", 4)
+        gen.write_line("addField(" + fieldID + ", \"" + map.lower() + "\");", 4)
 
         last_x = 0
         last_y = 0
@@ -198,11 +198,11 @@ def outputFields(gen, discPath, version):
             if (mnemonic == "stitm"):
                 item_id = values[3] | (values[4] << 8)
                 item_quantity = values[5]
-                gen.write_line("FIELD_SCRIPT_ITEM(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " + f"0x{addr:X}" + ", " + str(item_id) + ", " + str(item_quantity) + ");", 4)
+                gen.write_line("addFieldScriptItem(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " + f"0x{addr:X}" + ", " + str(item_id) + ", " + str(item_quantity) + ");", 4)
 
             if (mnemonic == "smtra"):
                 materia_id = values[4]
-                gen.write_line("FIELD_SCRIPT_MATERIA(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " + f"0x{addr:X}" + ", " + str(materia_id) + ");", 4)
+                gen.write_line("addFieldScriptMateria(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " + f"0x{addr:X}" + ", " + str(materia_id) + ");", 4)
 
             if (mnemonic == "mes"):
                 windowIndex = values[2]
@@ -211,18 +211,18 @@ def outputFields(gen, discPath, version):
                 # We use the Turtle Paradise newsletter for in game hints
                 if ("Turtle Paradise" in string or "Turtles Paradise" in string or "Turtle's Paradise" in string) and ("No." in string or "Number" in string):
                     stroffset, strlen = fieldOffsets[values[3]]
-                    gen.write_line("FIELD_SCRIPT_MESSAGE(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " + str(windowIndex) + ", " + f"0x{addr:X}" + ", " + f"0x{stroffset:X}" + ", " + str(strlen) + ");", 4)
+                    gen.write_line("addFieldScriptMessage(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " + str(windowIndex) + ", " + f"0x{addr:X}" + ", " + f"0x{stroffset:X}" + ", " + str(strlen) + ");", 4)
 
                 # Ensures the string contains an item/materia/etc name wrapped in quotes
                 match = next((word for word in gen.item_names if f'"{word}"' in string), None)
                 if match:
                     stroffset, strlen = fieldOffsets[values[3]]
-                    gen.write_line("FIELD_SCRIPT_MESSAGE(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " + str(windowIndex) + ", " +  f"0x{addr:X}" + ", " + f"0x{stroffset:X}" + ", " + str(strlen) + ");", 4)
+                    gen.write_line("addFieldScriptMessage(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " + str(windowIndex) + ", " +  f"0x{addr:X}" + ", " + f"0x{stroffset:X}" + ", " + str(strlen) + ");", 4)
 
             if (mnemonic == "menu" and len(values) == 5):
                 # Shop
                 if values[3] == 8:
-                    gen.write_line("FIELD_SCRIPT_SHOP(" + fieldID + ", "+ str(groupIndex) + ", " + str(scriptIndex) + ", " + f"0x{addr:X}" + ", " + str(values[4]) + ");", 4)
+                    gen.write_line("addFieldScriptShop(" + fieldID + ", "+ str(groupIndex) + ", " + str(scriptIndex) + ", " + f"0x{addr:X}" + ", " + str(values[4]) + ");", 4)
 
             offset += size
 
@@ -236,7 +236,7 @@ def outputFields(gen, discPath, version):
             if (door.fieldID > 0 and door.fieldID < 65):
                 final_offset = section_start + 56 + (door_index * 24)
 
-                gen.write_line("ADD_FIELD_WORLD_EXIT(" + fieldID + ", " + f"0x{final_offset:X}" + ", " + str(door_index) + ", " + f"0x{door.fieldID:X}" + ");", 4)
+                gen.write_line("addFieldWorldExit(" + fieldID + ", " + f"0x{final_offset:X}" + ", " + str(door_index) + ", " + f"0x{door.fieldID:X}" + ");", 4)
             door_index += 1
 
         # Field Models
@@ -244,7 +244,7 @@ def outputFields(gen, discPath, version):
         globalModelIDs = []
         for model in modelSection.models:
             globalModelIDs.append(model.globalModelID)
-        gen.write_line("ADD_FIELD_MODELS(" + fieldID + ", " + ", ".join(str(x) for x in globalModelIDs) + ");", 4)    
+        gen.write_line("addFieldModels(" + fieldID + ", {" + ",".join(str(x) for x in globalModelIDs) + "});", 4)    
 
     gen.write_line("")
 
@@ -255,44 +255,44 @@ def outputWorldMap(gen, discPath, version):
     # and seems to produce wrong jumps for certain entrances. Therefore, the jump addresses were all determined
     # by analyzing memory at runtime.
 
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x5436, 0x01, \"Slum Outskirts\", 185586, 120034);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x546c, 0x02, \"Kalm\", 201654, 112270);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x54a2, 0x03, \"Chocobo Farm\", 239232, 137553);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x558c, 0x04, \"Mithril Mine\", 214151, 153662);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x55c2, 0x05, \"Mithril Mine\", 209488, 157306);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x55f8, 0x06, \"Base of Fort Condor\", 203336, 169536);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x562e, 0x07, \"Under Junon\", 169850, 146365);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x5670, 0x08, \"Temple of the Ancients\", 169981, 182279);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x56a6, 0x09, \"Old Man's House\", 198726, 133446);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x56dc, 0x0A, \"Weapon Seller\", 129280, 173309);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x5712, 0x0B, \"Mideel\", 220157, 201688);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x5768, 0x0C, \"Materia Cave\", 274268, 140114);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x579e, 0x0D, \"Costa del Sol\", 140866, 124836);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x57e0, 0x0E, \"Mt. Corel\", 112985, 121747);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x5816, 0x0F, \"North Corel\", 109337, 125402);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x5866, 0x10, \"Corel Desert\", 120383, 154118);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x5884, 0x11, \"Jungle\", 112914, 182638);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x58ba, 0x12, \"Cosmo Canyon\", 87246, 170237);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x58f0, 0x13, \"Nibelheim\", 92529, 136292);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x5926, 0x14, \"Rocket Town\", 83786, 120735);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x597c, 0x15, \"???\", 102194, 141174);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x59b2, 0x16, \"Materia Cave\", 116260, 109023);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x59e8, 0x17, \"Wutai\", 37926, 88476);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x5a90, 0x18, \"Materia Cave\", 53675, 128295);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x5ac6, 0x19, \"Bone Village\", 156389, 89288);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x5afc, 0x1A, \"Corel Valley Cave\", 158239, 71427);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x5b32, 0x1B, \"Icicle Inn\", 129009, 72362);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x5b68, 0x1C, \"Mystery House\", 146135, 70381);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x5b9e, 0x1D, \"Materia Cave\", 263725, 13193);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x5238, 0x20, \"Marshes\", 215007, 152937);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x5286, 0x22, \"Wilderness\", 52951, 156334);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x5bd4, 0x2B, \"Nibelheim\", 92389, 135817);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x5c0a, 0x2C, \"Mt. Nibel\", 94085, 125897);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x5c40, 0x2E, \"Mt. Nibel\", 88079, 132446);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x5c76, 0x2F, \"Icicle Inn\", 129068, 71982);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x5cbc, 0x30, \"Great Glacier\", 136858, 53523);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x5cda, 0x39, \"Corel Valley\", 162994, 86357);", 4)
-    gen.write_line("ADD_WORLDMAP_ENTRANCE(0x5d10, 0x3A, \"Forgotten Capital\", 162051, 81137);", 4)
+    gen.write_line("addWorldMapEntrance(0x5436, 0x01, \"Slum Outskirts\", 185586, 120034);", 4)
+    gen.write_line("addWorldMapEntrance(0x546c, 0x02, \"Kalm\", 201654, 112270);", 4)
+    gen.write_line("addWorldMapEntrance(0x54a2, 0x03, \"Chocobo Farm\", 239232, 137553);", 4)
+    gen.write_line("addWorldMapEntrance(0x558c, 0x04, \"Mithril Mine\", 214151, 153662);", 4)
+    gen.write_line("addWorldMapEntrance(0x55c2, 0x05, \"Mithril Mine\", 209488, 157306);", 4)
+    gen.write_line("addWorldMapEntrance(0x55f8, 0x06, \"Base of Fort Condor\", 203336, 169536);", 4)
+    gen.write_line("addWorldMapEntrance(0x562e, 0x07, \"Under Junon\", 169850, 146365);", 4)
+    gen.write_line("addWorldMapEntrance(0x5670, 0x08, \"Temple of the Ancients\", 169981, 182279);", 4)
+    gen.write_line("addWorldMapEntrance(0x56a6, 0x09, \"Old Man's House\", 198726, 133446);", 4)
+    gen.write_line("addWorldMapEntrance(0x56dc, 0x0A, \"Weapon Seller\", 129280, 173309);", 4)
+    gen.write_line("addWorldMapEntrance(0x5712, 0x0B, \"Mideel\", 220157, 201688);", 4)
+    gen.write_line("addWorldMapEntrance(0x5768, 0x0C, \"Materia Cave\", 274268, 140114);", 4)
+    gen.write_line("addWorldMapEntrance(0x579e, 0x0D, \"Costa del Sol\", 140866, 124836);", 4)
+    gen.write_line("addWorldMapEntrance(0x57e0, 0x0E, \"Mt. Corel\", 112985, 121747);", 4)
+    gen.write_line("addWorldMapEntrance(0x5816, 0x0F, \"North Corel\", 109337, 125402);", 4)
+    gen.write_line("addWorldMapEntrance(0x5866, 0x10, \"Corel Desert\", 120383, 154118);", 4)
+    gen.write_line("addWorldMapEntrance(0x5884, 0x11, \"Jungle\", 112914, 182638);", 4)
+    gen.write_line("addWorldMapEntrance(0x58ba, 0x12, \"Cosmo Canyon\", 87246, 170237);", 4)
+    gen.write_line("addWorldMapEntrance(0x58f0, 0x13, \"Nibelheim\", 92529, 136292);", 4)
+    gen.write_line("addWorldMapEntrance(0x5926, 0x14, \"Rocket Town\", 83786, 120735);", 4)
+    gen.write_line("addWorldMapEntrance(0x597c, 0x15, \"???\", 102194, 141174);", 4)
+    gen.write_line("addWorldMapEntrance(0x59b2, 0x16, \"Materia Cave\", 116260, 109023);", 4)
+    gen.write_line("addWorldMapEntrance(0x59e8, 0x17, \"Wutai\", 37926, 88476);", 4)
+    gen.write_line("addWorldMapEntrance(0x5a90, 0x18, \"Materia Cave\", 53675, 128295);", 4)
+    gen.write_line("addWorldMapEntrance(0x5ac6, 0x19, \"Bone Village\", 156389, 89288);", 4)
+    gen.write_line("addWorldMapEntrance(0x5afc, 0x1A, \"Corel Valley Cave\", 158239, 71427);", 4)
+    gen.write_line("addWorldMapEntrance(0x5b32, 0x1B, \"Icicle Inn\", 129009, 72362);", 4)
+    gen.write_line("addWorldMapEntrance(0x5b68, 0x1C, \"Mystery House\", 146135, 70381);", 4)
+    gen.write_line("addWorldMapEntrance(0x5b9e, 0x1D, \"Materia Cave\", 263725, 13193);", 4)
+    gen.write_line("addWorldMapEntrance(0x5238, 0x20, \"Marshes\", 215007, 152937);", 4)
+    gen.write_line("addWorldMapEntrance(0x5286, 0x22, \"Wilderness\", 52951, 156334);", 4)
+    gen.write_line("addWorldMapEntrance(0x5bd4, 0x2B, \"Nibelheim\", 92389, 135817);", 4)
+    gen.write_line("addWorldMapEntrance(0x5c0a, 0x2C, \"Mt. Nibel\", 94085, 125897);", 4)
+    gen.write_line("addWorldMapEntrance(0x5c40, 0x2E, \"Mt. Nibel\", 88079, 132446);", 4)
+    gen.write_line("addWorldMapEntrance(0x5c76, 0x2F, \"Icicle Inn\", 129068, 71982);", 4)
+    gen.write_line("addWorldMapEntrance(0x5cbc, 0x30, \"Great Glacier\", 136858, 53523);", 4)
+    gen.write_line("addWorldMapEntrance(0x5cda, 0x39, \"Corel Valley\", 162994, 86357);", 4)
+    gen.write_line("addWorldMapEntrance(0x5d10, 0x3A, \"Forgotten Capital\", 162051, 81137);", 4)
     gen.write_line("")
 
 def outputBattles(gen, discPath, version):
@@ -319,7 +319,7 @@ def outputBattles(gen, discPath, version):
         if not hasValidEnemies:
             continue
 
-        gen.write_line("ADD_BATTLE_SCENE(" + str(i) + ", " + str(scene.enemyIDs[0]) + ", " + str(scene.enemyIDs[1]) + ", " + str(scene.enemyIDs[2]) + enemyLevels + ");", 4)
+        gen.write_line("addBattleScene(" + str(i) + ", " + str(scene.enemyIDs[0]) + ", " + str(scene.enemyIDs[1]) + ", " + str(scene.enemyIDs[2]) + enemyLevels + ");", 4)
 
         formations = scene.getFormations()
         formationIndex = 0
@@ -331,7 +331,8 @@ def outputBattles(gen, discPath, version):
                 noEscape = "true"
 
             enemyIDs = ", ".join(map(str, formation.enemyIDs))
-            gen.write_line("ADD_BATTLE_FORMATION(" + str(formationID) + ", " + str(i) + ", " + noEscape + ", " + enemyIDs + ");", 4)
+            battleArenaIDs = ", ".join(map(str, formation.battleArenaCandidates))
+            gen.write_line("addBattleFormation(" + str(i) + ", " + str(formationID) + ", " + noEscape + ", {" + enemyIDs + "}, {" + battleArenaIDs + "});", 4)
             formationIndex += 1
 
     gen.write_line("")
@@ -423,7 +424,7 @@ def outputBosses(gen, discPath, version):
         uint64_elemTypes = f"0x{bytes(elementTypes).hex().upper()}ULL"
         uint64_elemRates = f"0x{bytes(elementRates).hex().upper()}ULL"
 
-        gen.write_line("ADD_BOSS(\"" + final_name + "\", " + str(enemyID) + ", { " + scenes_string + " }, " + uint64_elemTypes + ", " + uint64_elemRates + ");", 4)
+        gen.write_line("addBoss(\"" + final_name + "\", " + str(enemyID) + ", { " + scenes_string + " }, " + uint64_elemTypes + ", " + uint64_elemRates + ");", 4)
 
     gen.write_line("")
 
@@ -435,7 +436,7 @@ def outputModel(modelName, model):
         parts_strings.append(model_part_string)
 
     parts_string = ", ".join(parts_strings)
-    gen.write_line("ADD_MODEL(\"" + modelName + "\", " + str(model.poly_count) + ", {" + parts_string +  "});", 4)
+    gen.write_line("addModel(\"" + modelName + "\", " + str(model.poly_count) + ", {" + parts_string +  "});", 4)
 
 def outputModelFromField(discPath, fieldFile, modelIndex, modelName):
     models = ff7.models.loadModelsFromBSX(ff7.game.retrieveFile(discPath, "FIELD", fieldFile), discPath)
@@ -477,7 +478,7 @@ def outputModels(gen, discPath, version):
     outputModelFromField(discPath, "FSHIP_12.BSX", 5, "YUFFIE_PARACHUTE")
 
     # Clouds model is slightly different on the world map for some reason, this was extracted from memory.
-    gen.write_line("ADD_MODEL(\"CLOUD_WORLD\", 378, {{0, 0, 0, 0, 0, 0, 12, 6}, {0, 0, 0, 0, 0, 0, 6, 27}, {2, 4 + 2, 0, 0, 0, 0, 148 + 2, 12 + 1}, {0, 0, 0, 0, 0, 0, 10, 9}, {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 0, 0, 0, 0, 0, 6}, {0, 0, 0, 0, 0, 0, 10, 9}, {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 0, 0, 0, 0, 0, 6}, {0, 0, 0, 0, 0, 0, 8, 4}, {0, 0, 0, 0, 0, 0, 4, 14}, {0, 0, 0, 0, 0, 0, 2, 7}, {0, 0, 0, 0, 0, 0, 8, 4}, {0, 0, 0, 0, 0, 0, 4, 14}, {0, 0, 0, 0, 0, 0, 2, 7}});", 4)
+    gen.write_line("addModel(\"CLOUD_WORLD\", 378, {{0, 0, 0, 0, 0, 0, 12, 6}, {0, 0, 0, 0, 0, 0, 6, 27}, {2, 4 + 2, 0, 0, 0, 0, 148 + 2, 12 + 1}, {0, 0, 0, 0, 0, 0, 10, 9}, {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 0, 0, 0, 0, 0, 6}, {0, 0, 0, 0, 0, 0, 10, 9}, {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 0, 0, 0, 0, 0, 6}, {0, 0, 0, 0, 0, 0, 8, 4}, {0, 0, 0, 0, 0, 0, 4, 14}, {0, 0, 0, 0, 0, 0, 2, 7}, {0, 0, 0, 0, 0, 0, 8, 4}, {0, 0, 0, 0, 0, 0, 4, 14}, {0, 0, 0, 0, 0, 0, 2, 7}});", 4)
     gen.write_line("")
 
     # Battle Models
@@ -521,7 +522,7 @@ def outputModels(gen, discPath, version):
             part_strings.append("{" + str(totalSize) + ", " + str(len(part.vertices)) + ", " + str(len(part.tri_mono_tex)) + ", " + str(len(part.quad_mono_tex)) + ", " + str(len(part.tri_color)) + ", " + str(len(part.quad_color)) + "}")
             
         parts_string = ", ".join(part_strings)
-        gen.write_line("ADD_BATTLE_MODEL(\"" + modelName + "\", " + str(battleModelHeaderSizes[modelName]) + ", {" + parts_string + "});", 4)
+        gen.write_line("addBattleModel(\"" + modelName + "\", " + str(battleModelHeaderSizes[modelName]) + ", {" + parts_string + "});", 4)
 
 discPath = sys.argv[1]
 

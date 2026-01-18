@@ -27,6 +27,13 @@ void App::drawSettingsPanel()
     {
         GameManager::GameState state = game->getState();
         lockSettings &= (state == GameManager::GameState::InGame);
+
+        // Save the current configuration in case of a crash, etc
+        if (previousState != GameManager::GameState::InGame && state == GameManager::GameState::InGame)
+        {
+            saveSettings("settings/Last Settings.cfg");
+        }
+        previousState = state;
     }
 
     ImGui::Spacing();
@@ -237,9 +244,13 @@ void App::drawTrackerPanel()
             ImGui::Spacing();
             ImGui::Spacing();
 
+            // Seed
+            std::string seedText = "Seed: " + std::string(seedValue);
+            ImGui::Text(seedText.c_str());
+
             // In Game Time
             uint32_t igt = game->read<uint32_t>(GameOffsets::InGameTime);
-            std::string igtText = "In Game Time: " + Utilities::formatTime(igt);
+            std::string igtText = "Time: " + Utilities::formatTime(igt);
             ImGui::Text(igtText.c_str());
 
             // Current Song
@@ -249,7 +260,7 @@ void App::drawTrackerPanel()
                 if (musicRando->isPlaying())
                 {
                     std::string currentSong = musicRando->getCurrentlyPlaying();
-                    std::string currentSongText = "Current Song: " + currentSong;
+                    std::string currentSongText = "Song: " + currentSong;
                     ImGui::Text(currentSongText.c_str());
                 }
             }

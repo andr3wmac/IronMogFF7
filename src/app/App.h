@@ -10,9 +10,9 @@
 #define APP_WINDOW_WIDTH 497
 #define APP_WINDOW_HEIGHT 665
 #define APP_VERSION_MAJOR 0
-#define APP_VERSION_MINOR 6
-#define APP_VERSION_PATCH 1
-#define APP_VERSION_STRING "v0.6.1"
+#define APP_VERSION_MINOR 7
+#define APP_VERSION_PATCH 0
+#define APP_VERSION_STRING "v0.7.0"
 
 class App
 {
@@ -63,6 +63,7 @@ protected:
     GameManager* game = nullptr;
     std::thread* managerThread = nullptr;
     std::atomic<bool> managerRunning = false;
+    GameManager::GameState previousState = GameManager::GameState::BootScreen;
 
     EmulatorType selectedEmulatorType = EmulatorType::DuckStation;
 

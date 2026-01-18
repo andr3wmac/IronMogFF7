@@ -207,29 +207,39 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
         std::swap(previousValidStack[0], previousValidStack[1]);
         previousValidStack[0] = musicID;
 
+        bool didRandomize = false;
+
         // Reuse previously selected random track.
         if (usePreviousTrackSelection)
         {
             std::vector<Track> tracks = musicMap[MusicList[musicID]];
             uint16_t selectedMusic = previousTrackSelection[musicID];
-            const Track& track = tracks[selectedMusic];
-            play(track);
+
+            if (selectedMusic < tracks.size())
+            {
+                const Track& track = tracks[selectedMusic];
+                play(track);
+                didRandomize = true;
+            }
         }
         else 
         {
-            // Try to randomize
-            if (!randomizeMusic(musicID))
-            {
-                // No songs available for this music ID, stop overriding and let the game take over.
-                overrideMusic = false;
-                game->write<uint16_t>(GameOffsets::MusicVolume, FullVolume);
-                AudioManager::pauseMusic();
-                LOG("No tracks available, resuming in-game music.");
-            }
+            didRandomize = randomizeMusic(musicID);
         }
 
-        overrideMusic = true;
-        game->write<uint16_t>(GameOffsets::MusicVolume, 1);
+        if (didRandomize)
+        {
+            overrideMusic = true;
+            game->write<uint16_t>(GameOffsets::MusicVolume, 1);
+        }
+        else
+        {
+            // No tracks available for this music ID, stop overriding and let the game take over.
+            overrideMusic = false;
+            game->write<uint16_t>(GameOffsets::MusicVolume, FullVolume);
+            AudioManager::pauseMusic();
+            LOG("No tracks available, resuming in-game music.");
+        }
     }
 }
 
@@ -322,6 +332,10 @@ bool RandomizeMusic::randomizeMusic(uint16_t musicID)
 
     // Get available tracks for this music ID
     std::vector<Track> tracks = musicMap[MusicList[musicID]];
+    if (tracks.size() == 0)
+    {
+        return false;
+    }
 
     // Randomly select a track from the choices for this music ID
     static std::mt19937 rng(std::random_device{}());
