@@ -1,6 +1,7 @@
 #include "App.h"
 #include "core/game/MemoryOffsets.h"
 #include "core/gui/IconsFontAwesome5.h"
+#include "core/utilities/Logging.h"
 #include "core/utilities/Platform.h"
 #include "core/utilities/Utilities.h"
 #include "extras/Extra.h"
@@ -20,15 +21,31 @@ void App::drawSettingsPanel()
 {
     GUI::drawImage(logo, logo.width / 2, logo.height / 2);
 
+    // We lock settings if we're both connected and in game.
+    bool lockSettings = connectionState > ConnectionState::NotConnected && connectionState < ConnectionState::Error;
+    if (lockSettings && connectionState == ConnectionState::Connected)
+    {
+        GameManager::GameState state = game->getState();
+        lockSettings &= (state == GameManager::GameState::InGame);
+
+        // Save the current configuration in case of a crash, etc
+        if (previousState != GameManager::GameState::InGame && state == GameManager::GameState::InGame)
+        {
+            saveSettings("settings/Last Settings.cfg");
+        }
+        previousState = state;
+    }
+
     ImGui::Spacing();
     ImGui::BeginChild("##ScrollBox", ImVec2(0, APP_WINDOW_HEIGHT - 212));
-    ImGui::BeginDisabled(connectionState > ConnectionState::NotConnected && connectionState < ConnectionState::Error);
+    ImGui::BeginDisabled(lockSettings);
     {
         ImGui::SeparatorText("Game");
         {
             ImGui::Text("Emulator:");
             ImGui::SameLine();
 
+            ImGui::SetNextItemWidth(393.0f);
             int emulatorIndex = (int)selectedEmulatorType;
             if (ImGui::Combo("##EmulatorList", &emulatorIndex, emulators, IM_ARRAYSIZE(emulators)))
             {
@@ -38,11 +55,6 @@ void App::drawSettingsPanel()
                 if (selectedEmulatorType == EmulatorType::Custom)
                 {
                     runningProcesses = Platform::getRunningProcesses();
-                    runningProcessesCStr.clear();
-                    for (const auto& name : runningProcesses)
-                    {
-                        runningProcessesCStr.push_back(name.c_str());
-                    }
                 }
             }
 
@@ -50,7 +62,7 @@ void App::drawSettingsPanel()
             {
                 ImGui::Text("Process:");
                 ImGui::SameLine();
-                ImGui::Combo("##ProcessList", &selectedProcessIdx, runningProcessesCStr.data(), (int)runningProcessesCStr.size());
+                ImGui::Combo("##ProcessList", &selectedProcessIdx, runningProcesses.data(), (int)runningProcesses.size());
                 ImGui::Text("Memory Offset:");
                 ImGui::SameLine();
                 ImGui::InputText("##MemoryOffset", processMemoryOffset, 20);
@@ -60,6 +72,7 @@ void App::drawSettingsPanel()
 
         ImGui::SeparatorText("Seed");
         {
+            ImGui::SetNextItemWidth(378.0f);
             ImGui::InputText("##Seed", seedValue, 9);
             ImGui::SameLine();
             if (ImGui::Button("Regenerate"))
@@ -69,12 +82,47 @@ void App::drawSettingsPanel()
         }
         ImGui::Spacing();
 
+        ImGui::SeparatorText("Settings");
+        {
+            ImGui::SetNextItemWidth(410.0f);
+            if (ImGui::Combo("##SettingsList", &selectedSettingsIdx, availableSettings.data(), (int)availableSettings.size()))
+            {
+                loadSettings("settings/" + availableSettings[selectedSettingsIdx] + ".cfg");
+            }
+
+            ImGui::SameLine();
+            ImGui::PushID("OPEN_SETTINGS_FILE");
+            if (ImGui::Button(ICON_FA_FOLDER_OPEN))
+            {
+                std::string openPath = gui.openFileDialog();
+                if (openPath != "")
+                {
+                    loadSettings(openPath);
+                }
+            }
+            ImGui::PopID();
+
+            ImGui::SameLine();
+            ImGui::PushID("SAVE_SETTINGS_FILE");
+            if (ImGui::Button(ICON_FA_SAVE))
+            {
+                std::string savePath = gui.saveFileDialog();
+                if (savePath != "")
+                {
+                    saveSettings(savePath);
+                }
+            }
+            ImGui::PopID();
+        }
+        ImGui::Spacing();
+
         ImGui::SeparatorText("Rules");
         {
+            bool changed = false;
             int ruleIndex = 0;
             for (auto& rule : Rule::getList())
             {
-                ImGui::Checkbox(rule->name.c_str(), &rule->enabled);
+                changed |= ImGui::Checkbox(rule->name.c_str(), &rule->enabled);
 
                 if (rule->hasSettings())
                 {
@@ -92,10 +140,16 @@ void App::drawSettingsPanel()
                     if (rule->settingsVisible)
                     {
                         ImGui::Indent(25.0f);
-                        rule->onSettingsGUI();
+                        changed |= rule->onSettingsGUI();
                         ImGui::Unindent(25.0f);
                     }
                 }
+            }
+
+            if (changed)
+            {
+                // Reset to custom.
+                selectedSettingsIdx = 0;
             }
         }
         ImGui::Spacing();
@@ -105,10 +159,11 @@ void App::drawSettingsPanel()
     // Note: extras can be changed during gameplay
     ImGui::SeparatorText("Extras");
     {
+        bool changed = false;
         int extraIndex = 0;
         for (auto& extra : Extra::getList())
         {
-            ImGui::Checkbox(extra->name.c_str(), &extra->enabled);
+            changed |= ImGui::Checkbox(extra->name.c_str(), &extra->enabled);
 
             if (extra->hasSettings())
             {
@@ -126,10 +181,16 @@ void App::drawSettingsPanel()
                 if (extra->settingsVisible)
                 {
                     ImGui::Indent(25.0f);
-                    extra->onSettingsGUI();
+                    changed |= extra->onSettingsGUI();
                     ImGui::Unindent(25.0f);
                 }
             }
+        }
+
+        if (changed)
+        {
+            // Reset to custom.
+            selectedSettingsIdx = 0;
         }
     }
 
@@ -142,9 +203,10 @@ void App::drawSettingsPanel()
 void App::drawTrackerPanel()
 {
     GUI::drawImage(logo, logo.width / 2, logo.height / 2);
+    gui.pushFont("Inter");
 
     ImGui::Spacing();
-    ImGui::BeginChild("##ScrollBox", ImVec2(0, APP_WINDOW_HEIGHT - 250));
+    ImGui::BeginChild("##ScrollBox", ImVec2(0, APP_WINDOW_HEIGHT - 212));
     {
         if (connectionState == ConnectionState::Connected)
         {
@@ -183,9 +245,13 @@ void App::drawTrackerPanel()
             ImGui::Spacing();
             ImGui::Spacing();
 
+            // Seed
+            std::string seedText = "Seed: " + std::string(seedValue);
+            ImGui::Text(seedText.c_str());
+
             // In Game Time
             uint32_t igt = game->read<uint32_t>(GameOffsets::InGameTime);
-            std::string igtText = "In Game Time: " + Utilities::formatTime(igt);
+            std::string igtText = "Time: " + Utilities::formatTime(igt);
             ImGui::Text(igtText.c_str());
 
             // Current Song
@@ -195,7 +261,7 @@ void App::drawTrackerPanel()
                 if (musicRando->isPlaying())
                 {
                     std::string currentSong = musicRando->getCurrentlyPlaying();
-                    std::string currentSongText = "Current Song: " + currentSong;
+                    std::string currentSongText = "Song: " + currentSong;
                     ImGui::Text(currentSongText.c_str());
                 }
             }
@@ -204,6 +270,7 @@ void App::drawTrackerPanel()
     ImGui::EndChild();
     ImGui::Spacing();
 
+    gui.popFont();
     drawBottomPanel();
 }
 
@@ -279,6 +346,16 @@ void App::drawDebugPanel()
         return;
     }
 
+    GameManager::GameState gameState = game->getState();
+    {
+        std::string gameStateText = "State: ";
+        if (gameState == GameManager::GameState::BootScreen) gameStateText += "Boot";
+        if (gameState == GameManager::GameState::MainMenuCold) gameStateText += "Main Menu (Cold)";
+        if (gameState == GameManager::GameState::MainMenuWarm) gameStateText += "Main Menu (Warm)";
+        if (gameState == GameManager::GameState::InGame) gameStateText += "In Game";
+        ImGui::Text(gameStateText.c_str());
+    }
+
     // IronMog Frame Update Time
     double updateDuration = game->getLastUpdateDuration();
     std::string updateDurationText = "IronMog Update Time: " + std::to_string(updateDuration) + "ms";
@@ -313,6 +390,11 @@ void App::drawDebugPanel()
     uint16_t fieldID = game->read<uint16_t>(GameOffsets::FieldID);
     std::string fieldText = "Field ID: " + std::to_string(fieldID);
     ImGui::Text(fieldText.c_str());
+
+    // Formation
+    uint16_t formationID = game->read<uint16_t>(BattleOffsets::FormationID);
+    std::string formationText = "Formation: " + std::to_string(formationID);
+    ImGui::Text(formationText.c_str());
 
     // Party Members
     {
@@ -387,7 +469,9 @@ void App::drawDebugPanel()
     {
         ImGui::Indent(25.0f);
 
-        ImGui::InputText("##DebugWarpFieldID", debugWarpFieldID, 10);
+        // Debug Panel variables
+        static char debugWarpFieldID[5] = "";
+        ImGui::InputText("##DebugWarpFieldID", debugWarpFieldID, 5);
         ImGui::SameLine();
         if (ImGui::Button("Warp To Field"))
         {

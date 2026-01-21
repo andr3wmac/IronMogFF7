@@ -5,12 +5,22 @@
 #include <string>
 #include <array>
 
-class Rule;
+struct BattleScene;
+struct BattleFormation;
 class Extra;
+class Rule;
 
 class GameManager
 {
 public:
+    enum class GameState : int
+    {
+        BootScreen   = 0,
+        MainMenuCold = 1,
+        MainMenuWarm = 2,
+        InGame       = 3
+    };
+
     GameManager();
     ~GameManager();
     
@@ -24,7 +34,9 @@ public:
 
     void setup(uint32_t inputSeed);
     void loadSaveData();
+    void clearSaveData();
     inline uint32_t getSeed() { return seed; }
+    GameState getState();
     void update();
 
     // Returns how long the last update() took in ms.
@@ -51,8 +63,11 @@ public:
     // Finds the nearest message that contains the item name
     int findPickUpMessage(std::string itemName, uint8_t group, uint8_t script, uint32_t offset);
 
-    // Returns the last dialog text that was displayed.
-    std::string getLastDialogText();
+    // Returns the last text displayed in a window
+    std::string getWindowText(uint8_t index);
+
+    // Returns the current battle scene and formation.
+    std::pair<BattleScene*, BattleFormation*> getBattleFormation();
 
     // Returns the pointer to the line of field script last executed for a given group index.
     uint16_t getScriptExecutionPointer(uint8_t groupIndex) { return fieldScriptExecutionTable[groupIndex]; }
@@ -89,13 +104,18 @@ public:
         emulator->write(offset, &value, sizeof(value));
     }
 
+    void write(uintptr_t offset, uint8_t* dataIn, uintptr_t size)
+    {
+        emulator->write(offset, dataIn, size);
+    }
+
     std::string readString(uintptr_t offset, uint32_t length);
     void writeString(uintptr_t offset, uint32_t length, const std::string& string, bool centerAlign = false);
 
 private:
     Emulator* emulator;
 
-    bool hasStarted = false;
+    GameState lastGameState = GameState::BootScreen;
     bool emulatorPaused = false;
     double lastUpdateDuration = 0.0;
     uint32_t seed = 0;

@@ -22,7 +22,7 @@ void RandomizeEncounters::setup()
     excludedFormations.insert({ 56, 57, 60, 61, 78, 79, 80, 81, 98, 99, 104, 105, 152, 153, 156, 157, 162, 163, 166, 167, 202, 203, 206, 207, 214, 215, 218, 219 });
 
     // Yuffie
-    excludedFormations.insert({ 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279 });
+    excludedFormations.insert({ 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 296, 297, 298 });
 
     // Midgar Zolom
     excludedFormations.insert({ 469, 470 });
@@ -37,11 +37,25 @@ void RandomizeEncounters::setup()
     excludedFormations.insert({ 984, 985, 986, 987 });
 }
 
-void RandomizeEncounters::onSettingsGUI()
+bool RandomizeEncounters::onSettingsGUI()
 {
+    bool changed = false;
+
     ImGui::PushItemWidth(100);
-    ImGui::InputInt("Max Level Difference", &maxLevelDifference);
+    changed |= ImGui::InputInt("Max Level Difference", &maxLevelDifference);
     ImGui::PopItemWidth();
+
+    return changed;
+}
+
+void RandomizeEncounters::loadSettings(const ConfigFile& cfg)
+{
+    maxLevelDifference = cfg.get<int>("maxLevelDifference", 5);
+}
+
+void RandomizeEncounters::saveSettings(ConfigFile& cfg)
+{
+    cfg.set<int>("maxLevelDifference", maxLevelDifference);
 }
 
 void RandomizeEncounters::onStart()
@@ -86,7 +100,7 @@ void RandomizeEncounters::generateRandomEncounterMap()
         BattleScene scene = kv.second;
 
         // Determine max enemy level in the scene
-        int maxLevel = 0;
+        uint8_t maxLevel = 0;
         for (int i = 0; i < 3; ++i)
         {
             if (scene.enemyLevels[i] == 255)
@@ -106,6 +120,12 @@ void RandomizeEncounters::generateRandomEncounterMap()
                 continue;
             }
 
+            if (formation.isArenaBattle())
+            {
+                // For now skip randomizing these.
+                continue;
+            }
+
             // Don't randomize excluded formations
             if (excludedFormations.count(formation.id) > 0)
             {
@@ -118,7 +138,7 @@ void RandomizeEncounters::generateRandomEncounterMap()
                 BattleScene candidateScene = candidateKv.second;
 
                 // Determine max enemy level in the candidate scene
-                int candidateMaxLevel = 0;
+                uint8_t candidateMaxLevel = 0;
                 for (int j = 0; j < 3; ++j)
                 {
                     if (candidateScene.enemyLevels[j] == 255)
@@ -139,6 +159,11 @@ void RandomizeEncounters::generateRandomEncounterMap()
                 {
                     BattleFormation candidateFormation = candidateScene.formations[j];
                     if (candidateFormation.noEscape)
+                    {
+                        continue;
+                    }
+
+                    if (candidateFormation.isArenaBattle())
                     {
                         continue;
                     }

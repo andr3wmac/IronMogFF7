@@ -26,8 +26,13 @@ struct GameOffsets
     CONST_PTR GameMoment        = 0x9D288;  // uint16_t
     CONST_PTR MenuLockingMask   = 0x9D2A6;  // uint16_t bitmask of options disabled in the menu. 
     CONST_PTR PHSVisibilityMask = 0x9D78A;  // uint16_t bitmask of which characters are on PHS
-    CONST_PTR DialogText        = 0xE4944;  // Array of uint8_t characters terminated by 255
+    CONST_PTR WindowText        = 0xE4944;  // Array of window text entries, each window gets 256 characters, terminated by 0xFF.
 };
+
+inline uintptr_t getWindowTextOffset(uint8_t index)
+{
+    return GameOffsets::WindowText + (index * 256);
+}
 
 struct GameModule
 {
@@ -196,8 +201,10 @@ struct PlayerOffsets
 
 struct BattleOffsets
 {
+    CONST_PTR FormationID = 0x707BC;
+
     // Battle Character Data Length = 104 bytes
-    CONST_PTR Allies[] = { 0xF83E0, 0xF8448, 0xF84B0 };
+    CONST_PTR Allies[]  = { 0xF83E0, 0xF8448, 0xF84B0 };
     CONST_PTR Enemies[] = { 0xF8580, 0xF85E8, 0xF8650, 0xF86B8, 0xF8720, 0xF8788 };
 
     CONST_PTR Status    = 0x00;
@@ -224,17 +231,27 @@ struct BattleStateOffsets
     CONST_PTR HPDisplay = 0x38;
 };
 
-// Note: It looks like every formation can have a maximum of 3 enemies, but those enemies can be used multiple times.
-// For instance if you have 6 of the same enemy in a fight all 6 of those will reference a single entry in formation data.
-struct EnemyFormationOffsets
+struct BattleSceneOffsets
 {
-    CONST_PTR FormationID = 0x707BC;
-
     // Enemy Data Length = 184 bytes
-    CONST_PTR Enemies[] = { 0xF5FCC, 0xF6084, 0xF613C };
+    // This data stays static and each formation has instances made up of these enemies.
+    CONST_PTR Enemies[] = { 0xF5F44, 0xF5FFC, 0xF60B4 };
 
-    CONST_PTR DropRates[]   = { 0x00, 0x01, 0x02, 0x03 };
-    CONST_PTR DropIDs[]     = { 0x04, 0x06, 0x08, 0x0A };   // First 4 bits specify the type (Item, Weapon, etc)
+    CONST_PTR Name          = 0x00; // 32 byte string
+    CONST_PTR Level         = 0x20;
+    CONST_PTR Speed         = 0x21;
+    CONST_PTR Luck          = 0x22;
+    CONST_PTR Evade         = 0x23;
+    CONST_PTR Strength      = 0x24;
+    CONST_PTR Defense       = 0x25;
+    CONST_PTR Magic         = 0x26;
+    CONST_PTR MagicDefense  = 0x27;
+    CONST_PTR ElementTypes  = 0x28; // List of uint8_t with 8 entries.
+    CONST_PTR ElementRates  = 0x30; // List of uint8_t with 8 entries.
+
+    // Drop/Steals
+    CONST_PTR DropRates[] = { 0x88, 0x89, 0x8A, 0x8B };
+    CONST_PTR DropIDs[]   = { 0x8C, 0x8E, 0x90, 0x92 };
 };
 
 struct DropType
@@ -245,16 +262,78 @@ struct DropType
     CONST_U8 Weapon     = 0b0100;
 };
 
-inline std::pair<uint8_t, uint16_t> unpackDropID(uint16_t dropID)
+struct ElementType
 {
-    uint8_t dropType = (dropID >> 5) & 0x0F;
-    uint16_t id = dropID & 0x1F;
-    return { dropType, id };
+    CONST_U8 Types[] = { 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D, 0x0E };
+
+    CONST_U8 Fire       = 0x00;
+    CONST_U8 Ice        = 0x01;
+    CONST_U8 Bolt       = 0x02;
+    CONST_U8 Earth      = 0x03;
+    CONST_U8 Bio        = 0x04;
+    CONST_U8 Gravity    = 0x05;
+    CONST_U8 Water      = 0x06;
+    CONST_U8 Wind       = 0x07;
+    CONST_U8 Holy       = 0x08;
+    CONST_U8 Health     = 0x09;
+    CONST_U8 Cut        = 0x0A;
+    CONST_U8 Hit        = 0x0B;
+    CONST_U8 Punch      = 0x0C;
+    CONST_U8 Shoot      = 0x0D;
+    CONST_U8 Scream     = 0x0E;
+    CONST_U8 None       = 0xFF;
+};
+
+inline std::string getElementTypeName(uint8_t id)
+{
+    switch (id)
+    {
+        case 0:  return "Fire";
+        case 1:  return "Ice";
+        case 2:  return "Bolt";
+        case 3:  return "Earth";
+        case 4:  return "Bio";
+        case 5:  return "Gravity";
+        case 6:  return "Water";
+        case 7:  return "Wind";
+        case 8:  return "Holy";
+        case 9:  return "Health";
+        case 10: return "Cut";
+        case 11: return "Hit";
+        case 12: return "Punch";
+        case 13: return "Shoot";
+        case 14: return "Scream";
+    }
+
+    return "None";
 }
 
-inline uint16_t packDropID(uint8_t dropType, uint16_t id)
+struct ElementRate
 {
-    return ((dropType & 0x0F) << 5) | (id & 0x1F);
+    CONST_U8 Rates[] = { 0x00, 0x02, 0x04, 0x05, 0x06, 0x07 };
+
+    CONST_U8 Death          = 0x00;
+    CONST_U8 DoubleDamage   = 0x02;
+    CONST_U8 HalfDamage     = 0x04;
+    CONST_U8 NullifyDamage  = 0x05;
+    CONST_U8 Absorb         = 0x06;
+    CONST_U8 FullCure       = 0x07;
+    CONST_U8 None           = 0xFF;
+};
+
+inline std::string getElementRateName(uint8_t id)
+{
+    switch (id)
+    {
+        case 0x00: return "Death";
+        case 0x02: return "Double Damage";
+        case 0x04: return "Half Damage";
+        case 0x05: return "Nullify Damage";
+        case 0x06: return "Absorb";
+        case 0x07: return "Full Cure";
+    }
+
+    return "None";
 }
 
 struct StatusFlags

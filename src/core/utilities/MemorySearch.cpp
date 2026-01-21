@@ -1,4 +1,5 @@
 #include "MemorySearch.h"
+#include "core/game/GameData.h"
 #include "core/utilities/Logging.h"
 #include "core/utilities/Utilities.h"
 
@@ -297,6 +298,12 @@ std::vector<uintptr_t> MemorySearch::searchForPolygons()
     }
 
     return results;
+}
+
+std::vector<uintptr_t> MemorySearch::searchForString(const std::string& str)
+{
+    std::vector<uint8_t> encodedStr = GameData::encodeString(str);
+    return search(encodedStr);
 }
 
 std::string getOpCodeName(int curType)

@@ -7,10 +7,20 @@ class RandomizeFieldItems : public Rule
 {
 public:
     void setup() override;
+    bool hasSettings() override { return true; }
+    bool onSettingsGUI() override;
+    void loadSettings(const ConfigFile& cfg) override;
+    void saveSettings(ConfigFile& cfg) override;
     bool hasDebugGUI() override { return true; }
     void onDebugGUI() override;
 
 private:
+    enum class RandomMode : int
+    {
+        Shuffle = 0,
+        Random = 1
+    };
+
     struct MessageOverwrite
     {
         FieldScriptMessage fieldMsg;
@@ -26,7 +36,9 @@ private:
 
     // Applies randomization to current field.
     void apply();
-    void overwriteMessage(const FieldData& fieldData, const FieldScriptItem& oldItem, const FieldScriptItem& newItem);
+    void overwriteMessage(const FieldData& fieldData, const FieldScriptItem& oldItem, const FieldScriptItem& newItem, const std::string& oldName, const std::string& newName);
+
+    RandomMode randomMode;
 
     // Generated randomization mapping
     std::unordered_map<uint32_t, FieldScriptItem> randomizedItems;

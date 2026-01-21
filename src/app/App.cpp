@@ -1,20 +1,25 @@
 #include "App.h"
 #include "core/audio/AudioManager.h"
 #include "core/utilities/Logging.h"
+#include "core/utilities/ConfigFile.h"
 #include "core/utilities/MemoryMonitor.h"
 #include "core/utilities/MemorySearch.h"
 #include "core/utilities/ModelEditor.h"
 #include "core/utilities/ScriptUtilities.h"
 #include "core/utilities/Utilities.h"
+#include "extras/Extra.h"
 #include "rules/Restrictions.h"
+#include "rules/Rule.h"
 
 #include <imgui.h>
 #include <random>
 
+#include <filesystem>
+namespace fs = std::filesystem;
+
 void App::run()
 {
     processMemoryOffset[0] = '\0';
-    debugWarpFieldID[0] = '\0';
 
     if (!gui.initialize(APP_WINDOW_WIDTH, APP_WINDOW_HEIGHT, "IronMog FF7 " APP_VERSION_STRING))
     {
@@ -26,19 +31,51 @@ void App::run()
     generateSeed();
 
     // Load images
-    logo.loadFromFile("img/logo.png");
+    logo.loadFromFile("resources/logo.png");
     characterPortraits.resize(9);
-    characterPortraits[0].loadFromFile("img/cloud.png");
-    characterPortraits[1].loadFromFile("img/barret.png");
-    characterPortraits[2].loadFromFile("img/tifa.png");
-    characterPortraits[3].loadFromFile("img/aerith.png");
-    characterPortraits[4].loadFromFile("img/red.png");
-    characterPortraits[5].loadFromFile("img/yuffie.png");
-    characterPortraits[6].loadFromFile("img/caitsith.png");
-    characterPortraits[7].loadFromFile("img/vincent.png");
-    characterPortraits[8].loadFromFile("img/cid.png");
+    characterPortraits[0].loadFromFile("resources/cloud.png");
+    characterPortraits[1].loadFromFile("resources/barret.png");
+    characterPortraits[2].loadFromFile("resources/tifa.png");
+    characterPortraits[3].loadFromFile("resources/aerith.png");
+    characterPortraits[4].loadFromFile("resources/red.png");
+    characterPortraits[5].loadFromFile("resources/yuffie.png");
+    characterPortraits[6].loadFromFile("resources/caitsith.png");
+    characterPortraits[7].loadFromFile("resources/vincent.png");
+    characterPortraits[8].loadFromFile("resources/cid.png");
 
-    deadIcon.loadFromFile("img/dead.png");
+    deadIcon.loadFromFile("resources/dead.png");
+
+    // Load any settings files
+    {
+        const std::string settingsDir = "settings";
+
+        // Always first in the list so we can switch to it when settings are changed.
+        availableSettings.push_back("Custom");
+
+        // Special case for default settings file
+        if (fs::exists(settingsDir + "/Default.cfg"))
+        {
+            availableSettings.push_back("Default");
+            selectedSettingsIdx = 1;
+            loadSettings(settingsDir + "/Default.cfg");
+        }
+
+        if (fs::exists(settingsDir) && fs::is_directory(settingsDir))
+        {
+            for (const auto& entry : fs::directory_iterator(settingsDir))
+            {
+                if (entry.path().stem() == "Default")
+                {
+                    continue;
+                }
+
+                if (entry.is_regular_file() && entry.path().extension() == ".cfg")
+                {
+                    availableSettings.push_back(entry.path().stem().string());
+                }
+            }
+        }
+    }
 
     while (true)
     {
@@ -180,6 +217,57 @@ void App::generateSeed()
     uint32_t seed = (static_cast<uint32_t>(rd()) << 16) ^ rd();
     snprintf(seedValue, sizeof(seedValue), "%08X", seed);
     LOG("Seed generated: %s", seedValue);
+}
+
+void App::loadSettings(const std::string& filePath)
+{
+    ConfigFile cfg;
+
+    if (cfg.load(filePath))
+    {
+        LOG("Loaded settings from: %s", filePath.c_str());
+
+        for (auto& rule : Rule::getList())
+        {
+            cfg.keyPrefix = Utilities::sanitizeName(rule->name) + ".";
+            rule->loadSettings(cfg);
+            rule->enabled = cfg.get<bool>("enabled", rule->enabled);
+            cfg.keyPrefix = "";
+
+        }
+        for (auto& extra : Extra::getList())
+        {
+            cfg.keyPrefix = Utilities::sanitizeName(extra->name) + ".";
+            extra->loadSettings(cfg);
+            extra->enabled = cfg.get<bool>("enabled", extra->enabled);
+            cfg.keyPrefix = "";
+        }
+    }
+}
+
+void App::saveSettings(const std::string& filePath)
+{
+    ConfigFile cfg;
+
+    for (auto& rule : Rule::getList())
+    {
+        std::string name = Utilities::sanitizeName(rule->name);
+        cfg.set<bool>(name + ".enabled", rule->enabled);
+        cfg.keyPrefix = name + ".";
+        rule->saveSettings(cfg);
+        cfg.keyPrefix = "";
+    }
+    for (auto& extra : Extra::getList())
+    {
+        std::string name = Utilities::sanitizeName(extra->name);
+        cfg.set<bool>(name + ".enabled", extra->enabled);
+        cfg.keyPrefix = name + ".";
+        extra->saveSettings(cfg);
+        cfg.keyPrefix = "";
+    }
+
+    cfg.save(filePath);
+    LOG("Saved settings to: %s", filePath.c_str());
 }
 
 void App::onKeyPress(int key, int mods)

@@ -2,6 +2,7 @@
 #include "core/audio/AudioManager.h"
 #include "core/game/GameData.h"
 #include "core/game/MemoryOffsets.h"
+#include "core/utilities/ConfigFile.h"
 #include "core/utilities/Logging.h"
 #include "core/utilities/Utilities.h"
 
@@ -40,23 +41,67 @@ void RandomizeMusic::setup()
     previousMusicID = UnsetMusicID;
 }
 
-void RandomizeMusic::onSettingsGUI()
+bool RandomizeMusic::onSettingsGUI()
 {
+    bool changed = false;
+
     if (disabled)
     {
         ImGui::Text("No music found, randomization disabled.");
     }
 
     constexpr float min = 0.0f;
-    constexpr float max = 1.0f;
+    constexpr float max = 2.0f;
 
-    ImGui::SliderScalar("Volume", ImGuiDataType_Float, &currentVolume, &min, &max, "%.3lf");
+    changed |= ImGui::SliderScalar("Volume", ImGuiDataType_Float, &currentVolume, &min, &max, "%.3lf");
 
     if (currentVolume != previousVolume)
     {
         AudioManager::setMusicVolume(currentVolume);
         previousVolume = currentVolume;
     }
+
+    if (ImGui::Button("Rescan Music Folder", ImVec2(150, 0)))
+    {
+        scanMusicFolder();
+    }
+
+    ImGui::SameLine();
+    std::string trackCountText = "Tracks: " + std::to_string(trackCount);
+    ImGui::Text(trackCountText.c_str());
+
+    if (ImGui::Button("Reroll Music", ImVec2(150, 0)))
+    {
+        randomizeMusic(previousMusicID);
+    }
+
+    return changed;
+}
+
+void RandomizeMusic::loadSettings(const ConfigFile& cfg)
+{
+    currentVolume = cfg.get<float>("volume", 5);
+}
+
+void RandomizeMusic::saveSettings(ConfigFile& cfg)
+{
+    cfg.set<float>("volume", currentVolume);
+}
+
+void RandomizeMusic::onDebugGUI()
+{
+    uint16_t musicID = game->read<uint16_t>(GameOffsets::MusicID);
+    std::string musicText = "Music: " + std::to_string(musicID);
+    ImGui::Text(musicText.c_str());
+
+    if (musicID < MusicList.size())
+    {
+        std::string internalName = "Internal Name: " + MusicList[musicID];
+        ImGui::Text(internalName.c_str());
+    }
+
+    std::string validStackStr = "Stack: " + std::to_string(previousValidStack[0]) + " " + std::to_string(previousValidStack[1]);
+    ImGui::Text(validStackStr.c_str());
 }
 
 bool RandomizeMusic::isPlaying()
@@ -116,7 +161,7 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
     {
         if (game->read<uint8_t>(GameOffsets::MusicLock) == 1)
         {
-            if (game->getLastDialogText() == "Cloud ‘Hojo!  Stop right there!!’")
+            if (game->getWindowText(0) == "Cloud ‘Hojo!  Stop right there!!’")
             {
                 game->write<uint8_t>(GameOffsets::MusicLock, 0);
             }
@@ -126,7 +171,7 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
     // Keep in game music volume locked to 0
     if (overrideMusic)
     {
-        game->write<uint16_t>(GameOffsets::MusicVolume, 0);
+        game->write<uint16_t>(GameOffsets::MusicVolume, 1);
     }
 
     uint16_t musicID = game->read<uint16_t>(GameOffsets::MusicID);
@@ -149,46 +194,62 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
         // 0 and 1 are nothing so if thats switched to we need to pause any running tracks.
         if (musicID == 0 || musicID == 1)
         {
+            currentSong = "";
             AudioManager::pauseMusic();
             return;
         }
 
-        if (musicID >= MusicList.size() || musicMap.count(MusicList[musicID]) == 0)
+        // Reuse recent songs except in battle. The point of this is just for continuity when
+        // songs change temporarily. For example: when you sleep at an inn.
+        if (currentGameModule != GameModule::Battle && previousValidStack[1] == musicID)
         {
-            // No songs available for this music ID, stop overriding and let the game take over.
+            usePreviousTrackSelection = true;
+        }
+        std::swap(previousValidStack[0], previousValidStack[1]);
+        previousValidStack[0] = musicID;
+
+        bool didRandomize = false;
+
+        // Reuse previously selected random track.
+        if (usePreviousTrackSelection)
+        {
+            std::vector<Track> tracks = musicMap[MusicList[musicID]];
+            uint16_t selectedMusic = previousTrackSelection[musicID];
+
+            if (selectedMusic < tracks.size())
+            {
+                const Track& track = tracks[selectedMusic];
+                play(track);
+                didRandomize = true;
+            }
+        }
+        else 
+        {
+            didRandomize = randomizeMusic(musicID);
+        }
+
+        if (didRandomize)
+        {
+            overrideMusic = true;
+            game->write<uint16_t>(GameOffsets::MusicVolume, 1);
+        }
+        else
+        {
+            // No tracks available for this music ID, stop overriding and let the game take over.
+            currentSong = "";
             overrideMusic = false;
             game->write<uint16_t>(GameOffsets::MusicVolume, FullVolume);
             AudioManager::pauseMusic();
-            LOG("Resuming in game music.");
-            return;
+            LOG("No tracks available, resuming in-game music.");
         }
-
-        // Randomly select a track from the choices for this music ID
-        std::vector<Track> tracks = musicMap[MusicList[musicID]];
-        static std::mt19937 rng(std::random_device{}());
-        std::uniform_int_distribution<size_t> dist(0, tracks.size() - 1);
-        size_t selectedMusic = dist(rng);
-
-        if (usePreviousTrackSelection)
-        {
-            selectedMusic = previousTrackSelection[musicID];
-        }
-        previousTrackSelection[musicID] = (uint16_t)selectedMusic;
-
-        Track& track = tracks[selectedMusic];
-        std::filesystem::path p(track.path);
-        currentSong = p.stem().string();
-
-        AudioManager::playMusic(track.path, track.start, track.loopStart, track.loopEnd);
-        LOG("Playing: %s", track.path.c_str());
-
-        overrideMusic = true;
-        game->write<uint16_t>(GameOffsets::MusicVolume, 0);
     }
 }
 
 void RandomizeMusic::scanMusicFolder()
 {
+    musicMap.clear();
+    trackCount = 0;
+
     // Scan music folder
     const std::string basePath = "music";
 
@@ -199,7 +260,6 @@ void RandomizeMusic::scanMusicFolder()
         return;
     }
 
-    bool foundMusic = false;
     for (const std::string& name : MusicList)
     {
         if (name == "none" || name == "nothing")
@@ -227,12 +287,12 @@ void RandomizeMusic::scanMusicFolder()
             if (ext == ".mp3" || ext == ".wav")
             {
                 musicMap[name].push_back(loadTrack(entry.path().string()));
-                foundMusic = true;
+                trackCount++;
             }
         }
     }
 
-    if (foundMusic)
+    if (trackCount > 0)
     {
         disabled = false;
     }
@@ -251,22 +311,52 @@ Track RandomizeMusic::loadTrack(std::string path)
     std::string cfgFilename = Utilities::replaceExtension(path, ".mp3", ".cfg");
     cfgFilename = Utilities::replaceExtension(cfgFilename, ".wav", ".cfg");
 
-    std::unordered_map<std::string, std::string> cfg = Utilities::loadConfig(cfgFilename);
-
-    if (cfg.count("Start") > 0)
+    ConfigFile cfg;
+    if (!cfg.load(cfgFilename))
     {
-        track.start = std::stoull(cfg["Start"]);
+        return track;
     }
 
-    if (cfg.count("LoopStart") > 0)
-    {
-        track.loopStart = std::stoull(cfg["LoopStart"]);
-    }
-
-    if (cfg.count("LoopEnd") > 0)
-    {
-        track.loopEnd = std::stoull(cfg["LoopEnd"]);
-    }
+    track.start     = cfg.get<uint64_t>("Start", 0);
+    track.loopStart = cfg.get<uint64_t>("LoopStart", 0);
+    track.loopEnd   = cfg.get<uint64_t>("LoopEnd", UINT64_MAX);
+    track.playOnce  = cfg.get<bool>("PlayOnce", false);
 
     return track;
+}
+
+bool RandomizeMusic::randomizeMusic(uint16_t musicID)
+{
+    if (musicID >= MusicList.size() || musicMap.count(MusicList[musicID]) == 0)
+    {
+        return false;
+    }
+
+    // Get available tracks for this music ID
+    std::vector<Track> tracks = musicMap[MusicList[musicID]];
+    if (tracks.size() == 0)
+    {
+        return false;
+    }
+
+    // Randomly select a track from the choices for this music ID
+    static std::mt19937 rng(std::random_device{}());
+    std::uniform_int_distribution<size_t> dist(0, tracks.size() - 1);
+    uint16_t selectedMusic = (uint16_t)dist(rng);
+
+    // Play track
+    Track& track = tracks[selectedMusic];
+    play(track);
+    previousTrackSelection[musicID] = selectedMusic;
+
+    return true;
+}
+
+void RandomizeMusic::play(const Track& track)
+{
+    std::filesystem::path p(track.path);
+    currentSong = p.stem().string();
+
+    AudioManager::playMusic(track.path, track.start, track.loopStart, track.loopEnd, track.playOnce);
+    LOG("Playing: %s", track.path.c_str());
 }

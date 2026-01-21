@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="img/logo.png?raw=true" alt="IronMog FF7 Logo" title="IronMog FF7 Logo">
+  <img src="resources/logo.png?raw=true" alt="IronMog FF7 Logo" title="IronMog FF7 Logo">
 </p>
 
 Inspired by IronMon and IronMario 64, IronMog FF7 is a modification for Final Fantasy 7 (PS1, emulator only) that combines a randomizer with a difficult ruleset to create a new challange.

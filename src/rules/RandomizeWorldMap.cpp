@@ -1,6 +1,7 @@
 #include "RandomizeWorldMap.h"
 #include "core/game/GameData.h"
 #include "core/game/MemoryOffsets.h"
+#include "core/utilities/Flags.h"
 #include "core/utilities/Logging.h"
 #include "core/utilities/Utilities.h"
 
@@ -247,6 +248,24 @@ void RandomizeWorldMap::onFieldChanged(uint16_t fieldID)
     if (!fieldData.isValid())
     {
         return;
+    }
+
+    // If cosmo canyon has been randomized to something else and we let the buggy break down
+    // then we'll be stuck on that side of the river with no way back over. To fix this we
+    // reset the buggy to not being broken and place it in front of cosmo canyon.
+    uint16_t currentGameMoment = game->getGameMoment();
+    if (currentGameMoment >= 469 && currentGameMoment < 514)
+    {
+        Flags buggyFlags = game->read<uint8_t>(0x9D457);
+        if (buggyFlags.isBitSet(1))
+        {
+            game->write<uint32_t>(SavemapOffsets::BuggyHighwindPosition + 0, 0xd031543e);
+            game->write<uint32_t>(SavemapOffsets::BuggyHighwindPosition + 4, 0x18a6a0c6);
+
+            buggyFlags.setBit(1, false);
+            game->write<uint8_t>(0x9D457, buggyFlags.value());
+            LOG("Repaired buggy and moved it in front of cosmo canyon.");
+        }
     }
 
     for (int i = 0; i < fieldData.worldExits.size(); ++i)

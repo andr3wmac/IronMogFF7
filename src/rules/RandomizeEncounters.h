@@ -9,7 +9,9 @@ class RandomizeEncounters : public Rule
 public:
     void setup() override;
     bool hasSettings() override { return true; }
-    void onSettingsGUI() override;
+    bool onSettingsGUI() override;
+    void loadSettings(const ConfigFile& cfg) override;
+    void saveSettings(ConfigFile& cfg) override;
 
 private:
     void onStart();

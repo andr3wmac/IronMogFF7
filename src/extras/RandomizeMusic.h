@@ -12,6 +12,8 @@ struct Track
     uint64_t start = 0;
     uint64_t loopStart = 0;
     uint64_t loopEnd = UINT64_MAX;
+
+    bool playOnce = false;
 };
 
 class RandomizeMusic : public Extra
@@ -19,7 +21,11 @@ class RandomizeMusic : public Extra
 public:
     void setup() override;
     bool hasSettings() override { return true; }
-    void onSettingsGUI() override;
+    bool onSettingsGUI() override;
+    void loadSettings(const ConfigFile& cfg) override;
+    void saveSettings(ConfigFile& cfg) override;
+    bool hasDebugGUI() override { return true; }
+    void onDebugGUI() override;
 
     bool isPlaying();
     std::string getCurrentlyPlaying();
@@ -32,14 +38,18 @@ private:
 
     void scanMusicFolder();
     Track loadTrack(std::string path);
+    bool randomizeMusic(uint16_t musicID);
+    void play(const Track& track);
 
     bool disabled = false;
     bool overrideMusic = false;
+    int trackCount = 0;
     std::string currentSong = "";
     float currentVolume = 1.0f;
     float previousVolume = 1.0f;
     uint16_t previousMusicID = 0;
     uint8_t previousGameModule = 0;
+    uint16_t previousValidStack[2] = { 0, 0 };
     
     std::unordered_map<uint16_t, uint16_t> previousTrackSelection;
     std::unordered_map<std::string, std::vector<Track>> musicMap;

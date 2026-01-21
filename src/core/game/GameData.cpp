@@ -1,5 +1,6 @@
 #include "GameData.h"
 #include "core/game/MemoryOffsets.h"
+#include "core/utilities/Logging.h"
 #include "rules/Restrictions.h"
 
 static FieldData gInvalidField = { 0, "" };
@@ -14,6 +15,7 @@ std::vector<ESkill> GameData::eSkills;
 std::unordered_map<uint16_t, FieldData> GameData::fieldData;
 std::vector<WorldMapEntrance> GameData::worldMapEntrances;
 std::unordered_map<uint8_t, BattleScene> GameData::battleScenes;
+std::vector<Boss> GameData::bosses;
 std::vector<Model> GameData::models;
 std::vector<BattleModel> GameData::battleModels;
 
@@ -21,6 +23,7 @@ std::string GameData::getAccessoryName(uint8_t id)
 {
     if (accessoryNames.count(id) == 0)
     {
+        LOG("Invalid accessory ID: %d", id);
         return "";
     }
 
@@ -31,6 +34,7 @@ std::string GameData::getArmorName(uint8_t id)
 {
     if (armorNames.count(id) == 0)
     {
+        LOG("Invalid armor ID: %d", id);
         return "";
     }
 
@@ -41,6 +45,7 @@ std::string GameData::getItemName(uint8_t id)
 {
     if (itemNames.count(id) == 0)
     {
+        LOG("Invalid item ID: %d", id);
         return "";
     }
 
@@ -51,6 +56,7 @@ std::string GameData::getWeaponName(uint8_t id)
 {
     if (weaponNames.count(id) == 0)
     {
+        LOG("Invalid weapon ID: %d", id);
         return "";
     }
 
@@ -61,6 +67,7 @@ std::string GameData::getMateriaName(uint8_t id)
 {
     if (materiaNames.count(id) == 0)
     {
+        LOG("Invalid materia ID: %d", id);
         return "";
     }
 
@@ -203,26 +210,34 @@ uint16_t GameData::getRandomWeapon(std::mt19937_64& rng, bool excludeBanned)
     return keys[dist(rng)];
 }
 
-uint16_t GameData::getRandomFieldItem(uint16_t origFieldItemID, std::mt19937_64& rng, bool excludeBanned)
+uint16_t GameData::getRandomItemFromID(uint16_t origItemID, std::mt19937_64& rng, bool excludeBanned)
 {
-    if (origFieldItemID < 128)
+    /*
+      Item ID Conversion:
+        0   + X = Items
+        128 + X = Weapons
+        256 + X = Armor
+        288 + X = Accessories
+    */
+
+    if (origItemID < 128)
     {
         return getRandomItem(rng);
     }
-    else if (origFieldItemID < 256)
+    else if (origItemID < 256)
     {
-        return getRandomWeapon(rng);
+        return getRandomWeapon(rng) + 128;
     }
-    else if (origFieldItemID < 288)
+    else if (origItemID < 288)
     {
-        return getRandomWeapon(rng);
+        return getRandomArmor(rng) + 256;
     }
     else
     {
-        return getRandomAccessory(rng);
+        return getRandomAccessory(rng) + 288;
     }
 
-    return origFieldItemID;
+    return origItemID;
 }
 
 uint16_t GameData::getRandomMateria(std::mt19937_64& rng, bool excludeBanned)
@@ -269,10 +284,10 @@ FieldData GameData::getField(uint16_t id)
     return fieldData[id];
 }
 
-std::string GameData::getNameFromFieldScriptID(uint16_t fieldItemID)
+std::string GameData::getItemNameFromID(uint16_t fieldItemID)
 {
     /*
-    Field Item ID Conversion:
+      Item ID Conversion:
         0   + X = Items
         128 + X = Weapons
         256 + X = Armor
@@ -297,28 +312,6 @@ std::string GameData::getNameFromFieldScriptID(uint16_t fieldItemID)
     }
 }
 
-std::string GameData::getNameFromBattleDropID(uint16_t battleDropID)
-{
-    std::pair<uint8_t, uint16_t> data = unpackDropID(battleDropID);
-    if (data.first == DropType::Accessory)
-    {
-        return getAccessoryName((uint8_t)data.second);
-    }
-    if (data.first == DropType::Armor)
-    {
-        return getArmorName((uint8_t)data.second);
-    }
-    if (data.first == DropType::Item)
-    {
-        return getItemName((uint8_t)data.second);
-    }
-    if (data.first == DropType::Weapon)
-    {
-        return getWeaponName((uint8_t)data.second);
-    }
-    return "";
-}
-
 BattleModel* GameData::getBattleModel(std::string modelName)
 {
     for (BattleModel& model : battleModels)
@@ -330,6 +323,24 @@ BattleModel* GameData::getBattleModel(std::string modelName)
     }
 
     return nullptr;
+}
+
+std::vector<const Boss*> GameData::getBossesInScene(const BattleScene* scene)
+{
+    std::vector<const Boss*> result;
+    for (const Boss& boss : GameData::bosses)
+    {
+        bool bossInScene = false;
+        for (int bossSceneID : boss.sceneIDs)
+        {
+            if (bossSceneID == scene->id)
+            {
+                result.push_back(&boss);
+                break;
+            }
+        }
+    }
+    return result;
 }
 
 const char* normalChars[256] = {

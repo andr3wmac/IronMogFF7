@@ -130,35 +130,6 @@ public:
         return str.substr(start, end - start + 1);
     }
 
-    // Loads key/value pair config file, like a simpler ini format
-    static std::unordered_map<std::string, std::string> loadConfig(const std::string& filename) 
-    {
-        std::unordered_map<std::string, std::string> config;
-        std::ifstream file(filename);
-        std::string line;
-
-        if (!file.is_open()) 
-        {
-            return config;
-        }
-
-        while (std::getline(file, line)) 
-        {
-            // Ignore comments and empty lines
-            line = trim(line);
-            if (line.empty() || line[0] == '#') continue;
-
-            auto delimiterPos = line.find('=');
-            if (delimiterPos == std::string::npos) continue;
-
-            std::string key = trim(line.substr(0, delimiterPos));
-            std::string value = trim(line.substr(delimiterPos + 1));
-            config[key] = value;
-        }
-
-        return config;
-    }
-
     static std::string replaceExtension(const std::string& filename, const std::string& from, const std::string& to)
     {
         std::string result = filename;
@@ -203,12 +174,11 @@ public:
         return (value & (T(1) << bitIndex)) != 0;
     }
 
-    static uint64_t makeKey(uint32_t seed, uint16_t fieldID, uint8_t index)
+    static uint64_t makeSeed64(uint32_t seed, uint32_t data)
     {
-        uint32_t fieldKey = (uint32_t(fieldID) << 16 | index);
-        uint64_t combined = (uint64_t(fieldKey) << 32) | seed;
+        uint64_t combined = (uint64_t(data) << 32) | seed;
 
-        // Mix bits to spread entropy
+        // MurmurHash3 64-bit mixer
         combined ^= combined >> 33;
         combined *= 0xff51afd7ed558ccd;
         combined ^= combined >> 33;
@@ -218,10 +188,62 @@ public:
         return combined;
     }
 
+    static uint64_t makeSeed64(uint32_t seed, uint16_t data16, uint8_t data8)
+    {
+        // Pack: [16-bit data16 | 8-bit data8 | 8-bit padding/zero]
+        uint32_t packedData = (uint32_t(data16) << 16) | data8;
+        return makeSeed64(seed, packedData);
+    }
+
     static float getDistance(int x1, int y1, int x2, int y2)
     {
         int64_t dx = static_cast<int64_t>(x2) - x1;
         int64_t dy = static_cast<int64_t>(y2) - y1;
         return std::sqrt(static_cast<float>(dx * dx + dy * dy));
+    }
+
+    static std::string sanitizeName(const std::string& name) 
+    {
+        std::string result;
+        result.reserve(name.size());
+
+        for (unsigned char c : name) 
+        {
+            if (std::isalnum(c))
+            {
+                result += c;
+            }
+        }
+
+        return result;
+    }
+
+    static Color HSVtoRGB(float h, float s, float v) 
+    {
+        float f = h / 60.0f;
+        int hi = static_cast<int>(std::floor(f)) % 6;
+        f = f - std::floor(f);
+
+        float p = v * (1.0f - s);
+        float q = v * (1.0f - (f * s));
+        float t = v * (1.0f - ((1.0f - f) * s));
+
+        float r, g, b;
+        switch (hi) 
+        {
+            case 0: r = v; g = t; b = p; break;
+            case 1: r = q; g = v; b = p; break;
+            case 2: r = p; g = v; b = t; break;
+            case 3: r = p; g = q; b = v; break;
+            case 4: r = t; g = p; b = v; break;
+            case 5: r = v; g = p; b = q; break;
+        }
+
+        return Color
+        {
+            static_cast<uint8_t>(r * 255),
+            static_cast<uint8_t>(g * 255),
+            static_cast<uint8_t>(b * 255)
+        };
     }
 };

@@ -128,6 +128,7 @@ void RandomizeColors::onDebugGUI()
 
 Utilities::Color getRandomColor(std::mt19937& rng)
 {
+    /*
     std::uniform_int_distribution<uint32_t> dist(0, 255);
 
     Utilities::Color color;
@@ -135,9 +136,25 @@ Utilities::Color getRandomColor(std::mt19937& rng)
     color.g = dist(rng);
     color.b = dist(rng);
     return color;
+    */
+
+    // Uniformly pick any color on the rainbow
+    std::uniform_real_distribution<float> hueDist(0.0f, 360.0f);
+
+    // Keep saturation high so colors aren't gray/muddy
+    std::uniform_real_distribution<float> satDist(0.6f, 0.9f);
+
+    // Keep value high so colors aren't black/dim
+    std::uniform_real_distribution<float> valDist(0.7f, 1.0f);
+
+    float h = hueDist(rng);
+    float s = satDist(rng);
+    float v = valDist(rng);
+
+    return Utilities::HSVtoRGB(h, s, v);
 }
 
-void RandomizeColors::onSettingsGUI()
+bool RandomizeColors::onSettingsGUI()
 {
     if (ImGui::Button("Reroll Colors", ImVec2(120, 0)))
     {
@@ -157,6 +174,8 @@ void RandomizeColors::onSettingsGUI()
 
         applyColors();
     }
+
+    return false;
 }
 
 void RandomizeColors::onStart()
@@ -168,6 +187,7 @@ void RandomizeColors::onStart()
     std::mt19937 rng(game->getSeed());
 
     // Generate table of random colors
+    randomModelColors.clear();
     for (Model& model : GameData::models)
     {
         std::string& modelName = model.name;
@@ -212,13 +232,19 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
         shouldUpdate |= (lastFieldID == -1);
 
         // Hack fix for base of tower transition after wedge falls
-        if (lastFieldTrigger == 256 && game->getFieldID() == 156 && game->getGameMoment() == 218)
+        if (game->getFieldID() == 156 && game->getGameMoment() == 218 && lastFieldTrigger == 256)
         {
             // Waiting 240 frames was chosen arbitrarily and tested. Could be fragile.
             if (game->getFramesInField() == 240)
             {
                 shouldUpdate = true;
             }
+        }
+
+        // Hack fix for tifa and cloud scene before northern crater
+        if (game->getFieldID() == 771 && game->getGameMoment() == 1612 && lastFieldTrigger > 1 && lastFieldTrigger < 120)
+        {
+            shouldUpdate = true;
         }
 
         if (shouldUpdate)

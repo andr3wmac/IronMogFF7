@@ -16,10 +16,33 @@ void RandomizeShops::setup()
     BIND_EVENT(game->onShopOpened, RandomizeShops::onShopOpened);
 }
 
-void RandomizeShops::onSettingsGUI()
+bool RandomizeShops::onSettingsGUI()
 {
-    ImGui::Checkbox("Keep Prices", &keepPrices);
-    ImGui::SetItemTooltip("Keep prices the same as the original shop.");
+    bool changed = false;
+
+    changed |= ImGui::Checkbox("Disable Shops", &disableShops);
+    ImGui::SetItemTooltip("Completely disables all shops.");
+
+    ImGui::BeginDisabled(disableShops);
+    {
+        changed |= ImGui::Checkbox("Keep Prices", &keepPrices);
+        ImGui::SetItemTooltip("Keep prices the same as the original shop.");
+    }
+    ImGui::EndDisabled();
+
+    return changed;
+}
+
+void RandomizeShops::loadSettings(const ConfigFile& cfg)
+{
+    disableShops = cfg.get<bool>("disableShops", false);
+    keepPrices = cfg.get<bool>("keepPrices", true);
+}
+
+void RandomizeShops::saveSettings(ConfigFile& cfg)
+{
+    cfg.set<bool>("disableShops", disableShops);
+    cfg.set<bool>("keepPrices", keepPrices);
 }
 
 void RandomizeShops::onDebugGUI()
@@ -80,7 +103,7 @@ void RandomizeShops::onDebugGUI()
             else
             {
                 uint32_t price = game->read<uint32_t>(ShopOffsets::PricesStart + (itemID * 4));
-                std::string itemName = GameData::getNameFromFieldScriptID(itemID);
+                std::string itemName = GameData::getItemNameFromID(itemID);
 
                 std::string debugText = "Materia: " + itemName + " (" + std::to_string(price) + ")";
                 ImGui::Text(debugText.c_str());
@@ -100,6 +123,16 @@ void RandomizeShops::onFieldChanged(uint16_t fieldID)
     }
 
     lastFieldID = fieldID;
+
+    // Disable shops
+    if (disableShops)
+    {
+        for (int i = 0; i < fieldData.shops.size(); ++i)
+        {
+            // Overwrite the MENU opcode and parameters with 0x5F which is NOP
+            game->write<uint32_t>(FieldScriptOffsets::ScriptStart + fieldData.shops[i].offset, 0x5F5F5F5F);
+        }
+    }
 }
 
 struct ShopEntry
@@ -129,7 +162,7 @@ void RandomizeShops::onShopOpened()
             continue;
         }
 
-        rng.seed(Utilities::makeKey(game->getSeed(), lastFieldID, shopID));
+        rng.seed(Utilities::makeSeed64(game->getSeed(), lastFieldID, shopID));
 
         uintptr_t shopOffset = ShopOffsets::ShopStart + (84 * shopID);
         uint8_t invCount = game->read<uint8_t>(shopOffset + 2);
@@ -232,8 +265,8 @@ void RandomizeShops::onShopOpened()
                 game->write<uint32_t>(ShopOffsets::PricesStart + (newItem.id * 4), origItem.price);
             }
 
-            std::string oldItemName = GameData::getNameFromFieldScriptID((uint8_t)origItem.id);
-            std::string newItemName = GameData::getNameFromFieldScriptID((uint8_t)newItem.id);
+            std::string oldItemName = GameData::getItemNameFromID((uint8_t)origItem.id);
+            std::string newItemName = GameData::getItemNameFromID((uint8_t)newItem.id);
             LOG("Randomized item in shop %d: %s changed to: %s", shopID, oldItemName.c_str(), newItemName.c_str());
         }
         for (int j = 0; j < shopMateria.size(); ++j)

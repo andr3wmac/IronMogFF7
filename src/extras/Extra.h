@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/game/GameManager.h"
+#include "core/utilities/ConfigFile.h"
 
 class Extra
 {
@@ -11,7 +12,9 @@ public:
 
     virtual void setup() {}
     virtual bool hasSettings() { return false; }
-    virtual void onSettingsGUI() { }
+    virtual bool onSettingsGUI() { return false; }
+    virtual void loadSettings(const ConfigFile& cfg) {}
+    virtual void saveSettings(ConfigFile& cfg) {}
     virtual bool hasDebugGUI() { return false; }
     virtual void onDebugGUI() {}
 

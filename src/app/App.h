@@ -2,6 +2,7 @@
 
 #include "core/game/GameManager.h"
 #include "core/gui/GUI.h"
+#include "core/utilities/StringList.h"
 
 #include <atomic>
 #include <thread>
@@ -9,9 +10,9 @@
 #define APP_WINDOW_WIDTH 497
 #define APP_WINDOW_HEIGHT 665
 #define APP_VERSION_MAJOR 0
-#define APP_VERSION_MINOR 6
-#define APP_VERSION_PATCH 1
-#define APP_VERSION_STRING "v0.6.1"
+#define APP_VERSION_MINOR 7
+#define APP_VERSION_PATCH 0
+#define APP_VERSION_STRING "v0.7.0"
 
 class App
 {
@@ -40,6 +41,8 @@ public:
 
     void run();
     void generateSeed();
+    void loadSettings(const std::string& filePath);
+    void saveSettings(const std::string& filePath);
 
     void drawSettingsPanel();
     void drawTrackerPanel();
@@ -60,11 +63,14 @@ protected:
     GameManager* game = nullptr;
     std::thread* managerThread = nullptr;
     std::atomic<bool> managerRunning = false;
+    GameManager::GameState previousState = GameManager::GameState::BootScreen;
 
     EmulatorType selectedEmulatorType = EmulatorType::DuckStation;
 
-    std::vector<std::string> runningProcesses;
-    std::vector<const char*> runningProcessesCStr;
+    StringList availableSettings;
+    int selectedSettingsIdx = 0;
+
+    StringList runningProcesses;
     int selectedProcessIdx = 0;
     char processMemoryOffset[20];
     char seedValue[9];
@@ -74,7 +80,4 @@ protected:
 
     void onKeyPress(int key, int mods);
     void onStart();
-
-    // Debug Panel variables
-    char debugWarpFieldID[5];
 };

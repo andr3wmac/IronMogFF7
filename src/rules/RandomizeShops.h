@@ -9,7 +9,9 @@ class RandomizeShops : public Rule
 public:
     void setup() override;
     bool hasSettings() override { return true; }
-    void onSettingsGUI() override;
+    bool onSettingsGUI() override;
+    void loadSettings(const ConfigFile& cfg) override;
+    void saveSettings(ConfigFile& cfg) override;
     bool hasDebugGUI() override { return true; }
     void onDebugGUI() override;
 
@@ -24,5 +26,6 @@ private:
 
     std::mt19937_64 rng;
     uint16_t lastFieldID = 0;
+    bool disableShops = false;
     bool keepPrices = true;
 };

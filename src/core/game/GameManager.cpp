@@ -166,11 +166,7 @@ void GameManager::loadSaveData()
     }
     else 
     {
-        // Zero out the area.
-        for (int i = 0; i < 8; ++i)
-        {
-            write<uint32_t>(SavemapOffsets::IronMogSave + (i * 4), 0);
-        }
+        clearSaveData();
 
         // Write header and seed into save data area.
         write<uint16_t>(SavemapOffsets::IronMogSave, 0x4D49);
@@ -181,21 +177,67 @@ void GameManager::loadSaveData()
     }
 }
 
+void GameManager::clearSaveData()
+{
+    // Zero out the area.
+    for (int i = 0; i < 8; ++i)
+    {
+        write<uint32_t>(SavemapOffsets::IronMogSave + (i * 4), 0);
+    }
+}
+
+GameManager::GameState GameManager::getState()
+{
+    uint8_t gameModule = read<uint8_t>(GameOffsets::CurrentModule);
+
+    // Not really sure what this is actually meant for but its consistently
+    // 27 when on the main menu, and 26 when on game over screen.
+    uint8_t screenState = read<uint8_t>(0xEFBB1);
+
+    if (gameModule == 0 && screenState == 0)
+    {
+        return GameState::BootScreen;
+    }
+
+    if (gameModule == 0 && screenState == 27)
+    {
+        // Fresh boot, main menu.
+        return GameState::MainMenuCold;
+    }
+
+    if (gameModule != 0 && screenState == 27)
+    {
+        // Main menu after a soft reset or game over.
+        return GameState::MainMenuWarm;
+    }
+
+    return GameState::InGame;
+}
+
 void GameManager::update()
 {
-    uint8_t newGameModule = read<uint8_t>(GameOffsets::CurrentModule);
-    if (newGameModule == 0)
+    GameState state = getState();
     {
-        // At main menu
-        hasStarted = false;
-        return;
+        if (lastGameState == GameState::InGame && state != GameState::InGame)
+        {
+            // Clearing save data prevents stale state getting stuck from a game over.
+            clearSaveData();
+        }
+
+        if (lastGameState != GameState::InGame && state == GameState::InGame)
+        {
+            loadSaveData();
+            onStart.invoke();
+            lastFrameUpdateTime = Utilities::getTimeMS();
+        }
+
+        lastGameState = state;
     }
-    else if (!hasStarted)
+
+    // Only perform updates when we're actually in the game.
+    if (state != GameState::InGame)
     {
-        loadSaveData();
-        onStart.invoke();
-        hasStarted = true;
-        lastFrameUpdateTime = Utilities::getTimeMS();
+        return;
     }
 
     // We assume if 200ms has passed without the frame number advancing that the emulator is paused
@@ -212,6 +254,7 @@ void GameManager::update()
 
     onUpdate.invoke();
     
+    uint8_t newGameModule = read<uint8_t>(GameOffsets::CurrentModule);
     if (newGameModule != gameModule)
     {
         // Entered battle
@@ -447,7 +490,7 @@ bool GameManager::isBattleDataLoaded()
             // Maximum of 4 item slots per enemy
             for (int j = 0; j < 4; ++j)
             {
-                uint16_t dropID = read<uint16_t>(EnemyFormationOffsets::Enemies[i] + EnemyFormationOffsets::DropIDs[j]);
+                uint16_t dropID = read<uint16_t>(BattleSceneOffsets::Enemies[i] + BattleSceneOffsets::DropIDs[j]);
 
                 // Empty slot
                 if (dropID == 65535)
@@ -516,7 +559,8 @@ bool GameManager::isFieldDataLoaded()
     {
         FieldScriptMessage& message = fieldData.messages[i];
         uint8_t opCode = read<uint8_t>(FieldScriptOffsets::ScriptStart + message.offset);
-        if (opCode != 0x40)
+        uint8_t endChar = read<uint8_t>(FieldScriptOffsets::ScriptStart + message.strOffset + message.strLength);
+        if (opCode != 0x40 || endChar != 0xFF)
         {
             return false;
         }
@@ -615,7 +659,7 @@ int GameManager::findPickUpMessage(std::string itemName, uint8_t group, uint8_t 
         {
             continue;
         }
-        
+
         std::string msg = readString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength);
         if (msg.find(itemName) != std::string::npos)
         {
@@ -631,12 +675,35 @@ int GameManager::findPickUpMessage(std::string itemName, uint8_t group, uint8_t 
     return bestIndex;
 }
 
-std::string GameManager::getLastDialogText()
+std::string GameManager::getWindowText(uint8_t index)
 {
     if (getGameModule() != GameModule::Field)
     {
         return "";
     }
 
-    return readString(GameOffsets::DialogText, 256);
+    return readString(getWindowTextOffset(index), 256);
+}
+
+std::pair<BattleScene*, BattleFormation*> GameManager::getBattleFormation()
+{
+    if (getGameModule() != GameModule::Battle)
+    {
+        return { nullptr, nullptr };
+    }
+
+    uint16_t formationID = read<uint16_t>(BattleOffsets::FormationID);
+
+    for (auto& [id, scene] : GameData::battleScenes) 
+    {
+        for (BattleFormation& formation : scene.formations)
+        {
+            if (formation.id == formationID)
+            {
+                return { &scene, &formation };
+            }
+        }
+    }
+
+    return { nullptr, nullptr };
 }
