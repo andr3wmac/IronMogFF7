@@ -24,8 +24,11 @@ public:
     virtual bool write(uintptr_t offset, void* inValue, size_t size);
 
     bool verifyPS1MemoryOffset(uintptr_t offset);
+    bool pollErrors();
 
 protected:
     void* processHandle;
     uintptr_t ps1BaseAddress;
+    int readErrorCount = 0;
+    int writeErrorCount = 0;
 };

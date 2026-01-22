@@ -296,7 +296,7 @@ void App::drawBottomPanel()
     {
         if (ImGui::Button("Connect", ImVec2(120, 0)))
         {
-            connected();
+            connect();
         }
     }
     else

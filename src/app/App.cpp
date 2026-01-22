@@ -109,12 +109,23 @@ void App::run()
         ImGui::End();
 
         gui.endFrame();
+
+        // Check to see if the game manager thread exited from an error and clean up.
+        if (connectionState == ConnectionState::Error && !managerRunning && managerThread != nullptr)
+        {
+            managerRunning = false;
+            managerThread->join();
+            delete managerThread;
+            managerThread = nullptr;
+
+            AudioManager::pauseMusic();
+        }
     }
 
     gui.destroy();
 }
 
-void App::connected()
+void App::connect()
 {
     if (managerThread != nullptr)
     {
@@ -206,9 +217,16 @@ void App::runGameManager()
     managerRunning = true;
     while (managerRunning.load())
     {
-        game->update();
+        if (!game->update())
+        {
+            // If update returns false then a fatal error occured.
+            connectionState = ConnectionState::Error;
+            connectionStatus = "Connection lost.";
+            break;
+        }
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
+    managerRunning = false;
 }
 
 void App::generateSeed()

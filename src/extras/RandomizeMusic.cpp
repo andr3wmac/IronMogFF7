@@ -70,10 +70,12 @@ bool RandomizeMusic::onSettingsGUI()
     std::string trackCountText = "Tracks: " + std::to_string(trackCount);
     ImGui::Text(trackCountText.c_str());
 
+    ImGui::BeginDisabled(game == nullptr);
     if (ImGui::Button("Reroll Music", ImVec2(150, 0)))
     {
         randomizeMusic(previousMusicID);
     }
+    ImGui::EndDisabled();
 
     return changed;
 }

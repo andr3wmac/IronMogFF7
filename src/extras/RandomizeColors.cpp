@@ -156,6 +156,7 @@ Utilities::Color getRandomColor(std::mt19937& rng)
 
 bool RandomizeColors::onSettingsGUI()
 {
+    ImGui::BeginDisabled(game == nullptr);
     if (ImGui::Button("Reroll Colors", ImVec2(120, 0)))
     {
         rerollOffset++;
@@ -174,6 +175,7 @@ bool RandomizeColors::onSettingsGUI()
 
         applyColors();
     }
+    ImGui::EndDisabled();
 
     return false;
 }

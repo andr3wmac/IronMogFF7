@@ -214,8 +214,14 @@ GameManager::GameState GameManager::getState()
     return GameState::InGame;
 }
 
-void GameManager::update()
+bool GameManager::update()
 {
+    // If read/write errors have occured then connection has been broken.
+    if (emulator->pollErrors())
+    {
+        return false;
+    }
+
     GameState state = getState();
     {
         if (lastGameState == GameState::InGame && state != GameState::InGame)
@@ -237,7 +243,7 @@ void GameManager::update()
     // Only perform updates when we're actually in the game.
     if (state != GameState::InGame)
     {
-        return;
+        return true;
     }
 
     // We assume if 200ms has passed without the frame number advancing that the emulator is paused
@@ -363,7 +369,7 @@ void GameManager::update()
 
     // A jump in frame number likely indicates a load game or load save state.
     int frameDifference = std::abs((int)newFrameNumber - (int)frameNumber);
-    if (frameDifference > 10 && framesSinceReload > 10)
+    if (frameDifference > 30 && framesSinceReload > 30)
     {
         double timeGap = currentTime - lastFrameUpdateTime;
         LOG("Load detected, reloading rules %lf", timeGap);
@@ -391,6 +397,7 @@ void GameManager::update()
     }
 
     lastUpdateDuration = Utilities::getTimeMS() - currentTime;
+    return true;
 }
 
 std::array<uint8_t, 3> GameManager::getPartyIDs()

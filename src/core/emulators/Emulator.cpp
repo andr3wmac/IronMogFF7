@@ -86,6 +86,7 @@ bool Emulator::read(uintptr_t offset, void* outBuffer, size_t size)
 {
     if (!Platform::read(processHandle, ps1BaseAddress + offset, outBuffer, size))
     {
+        readErrorCount++;
         LOG("Failed to read memory from: %d", offset);
         return false;
     }
@@ -97,7 +98,8 @@ bool Emulator::write(uintptr_t offset, void* inValue, size_t size)
 {
     if (!Platform::write(processHandle, ps1BaseAddress + offset, inValue, size))
     {
-        LOG("Failed to read memory from: %d", offset);
+        writeErrorCount++;
+        LOG("Failed to write memory to: %d", offset);
         return false;
     }
 
@@ -132,4 +134,12 @@ bool Emulator::verifyPS1MemoryOffset(uintptr_t offset)
     }
 
     return (discCheckPassed && checksPassed == Emulator::ps1MemoryChecks.size());
+}
+
+bool Emulator::pollErrors()
+{
+    bool result = readErrorCount > 0 || writeErrorCount > 0;
+    readErrorCount = 0;
+    writeErrorCount = 0;
+    return result;
 }

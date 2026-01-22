@@ -37,7 +37,7 @@ public:
     void clearSaveData();
     inline uint32_t getSeed() { return seed; }
     GameState getState();
-    void update();
+    bool update();
 
     // Returns how long the last update() took in ms.
     double getLastUpdateDuration() { return lastUpdateDuration; }
