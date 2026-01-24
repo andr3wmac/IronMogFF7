@@ -2,27 +2,40 @@
   <img src="resources/logo.png?raw=true" alt="IronMog FF7 Logo" title="IronMog FF7 Logo">
 </p>
 
-Inspired by IronMon and IronMario 64, IronMog FF7 is a modification for Final Fantasy 7 (PS1, emulator only) that combines a randomizer with a difficult ruleset to create a new challange.
+Drawing inspiration from IronMon and IronMario 64, IronMog FF7 is a specialized mod for the PlayStation 1 version of Final Fantasy VII (designed for use with emulators). It combines a randomizer with specific gameplay restrictions to provide a fresh, challenging experience.
 
-The mod is currently in beta and the official IronMog challenge in not yet defined. For now it only functions as a flexible challenge randomizer until enough testing is done to come to a consensus on the official ruleset for the challenge.
+The mod is currently in beta, and the official "IronMog" challenge rules are still being developed. Until the community reaches a consensus on a standard ruleset, the mod serves as a flexible randomizer for players looking to create their own custom challenges.
+
+# Features
+The mod allows you to enforce restrictions such as no limit breaks, no summons, no escapes, etc. It can also randomize boss attributes, encounters, items, materia, shops, and more. 
+
+For a comprehensive breakdown of all available options, please visit the [Features wiki page](http://www.google.ca).
 
 # Requirements
 - Windows
 - PS1 Emulator (DuckStation or BizHawk recommended)
 - Final Fantasy VII US NTSC (SCUS-94163)
   
-For now it's recommended to configure your emulator with default settings and avoid enabling things like Runahead. It's also not recommended to use emulator features such as Fast Forward, or Rewind.
+To ensure the best experience with the mod, please use your emulator's default settings. We specifically recommend avoiding features like Runahead, as they may conflict with the mod's internal logic.
+
+Fast Forward and Rewind are also known to cause issues and should be avoided, but Save States are fully supported and do not interfere with the mod’s functions.
 
 # How to Play
-- Download the latest IronMog FF7 build from the Releases page
-- Open your emulator (DuckStation or BizHawk) and load Final Fantasy VII
-- Open IronMogFF7.exe
-- Wait until game is at the main menu
-- Select your emulator type, configure your settings, and press Connect
-- Once the light turns green you can start a new game
+- **Download**: Get the latest version of IronMog FF7 from the [Releases](https://github.com/andr3wmac/IronMogFF7/releases) page.
+- **Launch Game**: Open your emulator (DuckStation or BizHawk) and load Final Fantasy VII.
+- **Prepare**: Wait until the game reaches the Main Menu.
+- **Run Mod**: Open IronMogFF7.exe.
+- **Connect**: Select your emulator type, adjust your settings, and click Connect.
+- **Start**: Once the status light turns green, you are ready to start a New Game.
+
+To use an emulator other than DuckStation or BizHawk you must determine the memory address for the PS1 RAM and then select Custom under emulator and enter the address, then connect.
 
 # Music Randomization
-Music randomization works by muting the in-game music and then selecting and playing a random mp3 from a folder thats associated with the song the game is currently playing. Due to copyright issues the mp3s are not included in this repository nor are they in release files. Instead, a python script is provided that can download, process, and build the music folder featuring songs from Final Fantasy VI, VII, VIII, and XI.
+To provide music randomization, the mod mutes the original in-game music and plays a random MP3 from a designated folder mapped to that specific game track.
+
+Please note: Due to copyright restrictions, the MP3 files are not included in the repository or release files. Instead, we provide a Python script that automatically downloads and processes tracks from Final Fantasy VI, VII, VIII, and IX to build the curated music folder.
+
+You can find the instructions for this script [here](http://www.temp.com).
 
 # How to Build
 Currently only Windows platforms are supported and Microsoft Visual Studio 2022 is recommended.
