@@ -4,39 +4,25 @@
 
 Inspired by IronMon and IronMario 64, IronMog FF7 is a modification for Final Fantasy 7 (PS1, emulator only) that combines a randomizer with a difficult ruleset to create a new challange.
 
-# Rules
-| Rule | Description |
-| ---- | --- |
-| No Escapes | Escaping from battles is prohibited, including the use of Exit materia. |
-| No Limit Breaks | Limit breaks are disabled. |
-| No Saving | Saving your game is prohibited. |
-| No Summon Materia | Summon materia cannot be found or purchased. |
-| Permadeath Characters | If a character dies, they cannot be revived and will remain dead for the rest of the playthrough. |
-| Randomized Encounters | Field and world map encounters are randomized to any enemy formation within 5 levels of the one originally encountered. |
-| Randomized Enemy Drops | Enemy drops and steals are randomized. |
-| Randomized E.Skills | When you learn an Enemy Skill from an enemy, the skill you actually gain is randomized. |
-| Randomized Field Items | Any items obtained from the field (such as from boxes or chests) are randomized. |
-| Randomized Shops | Shop inventories are randomized. |
-| Randomized World Map | World map entrances are shuffled — entering Kalm might take you to Midgar. |
-
-# Extras
-| Extra | Description |
-| ---- | --- |
-| Randomized Colors | Playable characters’ clothing colors are randomized. |
-| Randomized Music | Music tracks are randomized and can include music from other games. This feature requires additional setup steps, described [here](music/README.md). |
+The mod is currently in beta and the official IronMog challenge in not yet defined. For now it only functions as a flexible challenge randomizer until enough testing is done to come to a consensus on the official ruleset for the challenge.
 
 # Requirements
 - Windows
 - PS1 Emulator (DuckStation or BizHawk recommended)
 - Final Fantasy VII US NTSC (SCUS-94163)
+  
+For now it's recommended to configure your emulator with default settings and avoid enabling things like Runahead. It's also not recommended to use emulator features such as Fast Forward, or Rewind.
 
 # How to Play
 - Download the latest IronMog FF7 build from the Releases page
 - Open your emulator (DuckStation or BizHawk) and load Final Fantasy VII
 - Open IronMogFF7.exe
 - Wait until game is at the main menu
-- Select your emulator type and press Connect
-- Begin playing
+- Select your emulator type, configure your settings, and press Connect
+- Once the light turns green you can start a new game
+
+# Music Randomization
+Music randomization works by muting the in-game music and then selecting and playing a random mp3 from a folder thats associated with the song the game is currently playing. Due to copyright issues the mp3s are not included in this repository nor are they in release files. Instead, a python script is provided that can download, process, and build the music folder featuring songs from Final Fantasy VI, VII, VIII, and XI.
 
 # How to Build
 Currently only Windows platforms are supported and Microsoft Visual Studio 2022 is recommended.
@@ -44,6 +30,11 @@ Currently only Windows platforms are supported and Microsoft Visual Studio 2022 
 - Run `GenerateProjectFiles.bat`
 - Open the generated `IronMogFF7.sln`
 - Build
+
+# Contributors
+- [Jordan Marczak](https://www.jordanmarczak.com/) - _Logo_
+- [Saturn Sounds](https://linktr.ee/saturn.sounds) - _Music curation_
+- [Zheal](https://www.twitch.tv/zheal) - _Consulting and testing_
 
 # Resources
 The following resources were referenced during development:
