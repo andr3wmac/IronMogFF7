@@ -106,7 +106,7 @@ bool Emulator::write(uintptr_t offset, void* inValue, size_t size)
     return true;
 }
 
-bool Emulator::verifyPS1MemoryOffset(uintptr_t offset)
+bool Emulator::verifyPS1MemoryOffset(uintptr_t address)
 {
     int checksPassed = 0;
     uint32_t checkValue = 0;
@@ -114,7 +114,7 @@ bool Emulator::verifyPS1MemoryOffset(uintptr_t offset)
     // Run through the memchecks to make sure we found the right memory space.
     for (int i = 0; i < Emulator::ps1MemoryChecks.size(); ++i)
     {
-        if (Platform::read(processHandle, offset + Emulator::ps1MemoryChecks[i].first, &checkValue, sizeof(checkValue)))
+        if (Platform::read(processHandle, address + Emulator::ps1MemoryChecks[i].first, &checkValue, sizeof(checkValue)))
         {
             if (checkValue == Emulator::ps1MemoryChecks[i].second)
             {
@@ -126,7 +126,7 @@ bool Emulator::verifyPS1MemoryOffset(uintptr_t offset)
     // Check the disc ID to ensure this is Final Fantasy 7
     bool discCheckPassed = false;
     uint8_t discID[11];
-    if (Platform::read(processHandle, offset + 0x9E19, &discID[0], 11))
+    if (Platform::read(processHandle, address + 0x9E19, &discID[0], 11))
     {
         discCheckPassed |= memcmp(&discID[0], &ff7Disc1ID[0], 11) == 0;
         discCheckPassed |= memcmp(&discID[0], &ff7Disc2ID[0], 11) == 0;
@@ -136,10 +136,13 @@ bool Emulator::verifyPS1MemoryOffset(uintptr_t offset)
     return (discCheckPassed && checksPassed == Emulator::ps1MemoryChecks.size());
 }
 
-bool Emulator::pollErrors()
+bool Emulator::pollErrors(int errorThreshold)
 {
-    bool result = readErrorCount > 0 || writeErrorCount > 0;
-    readErrorCount = 0;
-    writeErrorCount = 0;
+    bool result = readErrorCount > errorThreshold || writeErrorCount > errorThreshold;
+    if (result)
+    {
+        readErrorCount = 0;
+        writeErrorCount = 0;
+    }
     return result;
 }

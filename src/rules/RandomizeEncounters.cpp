@@ -41,9 +41,11 @@ bool RandomizeEncounters::onSettingsGUI()
 {
     bool changed = false;
 
-    ImGui::PushItemWidth(100);
-    changed |= ImGui::InputInt("Max Level Difference", &maxLevelDifference);
-    ImGui::PopItemWidth();
+    ImGui::Text("Max Level Difference");
+    ImGui::SetItemTooltip("How much higher or lower the max level of the random\nformation can be from the original formation.");
+    ImGui::SameLine(180.0f);
+    ImGui::SetNextItemWidth(80.0f);
+    changed |= ImGui::InputInt("##maxLevelDifference", &maxLevelDifference);
 
     return changed;
 }

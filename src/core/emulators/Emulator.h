@@ -23,8 +23,13 @@ public:
     virtual bool read(uintptr_t offset, void* outBuffer, size_t size);
     virtual bool write(uintptr_t offset, void* inValue, size_t size);
 
-    bool verifyPS1MemoryOffset(uintptr_t offset);
-    bool pollErrors();
+    // Returns true if the memory at the given address matches a number of
+    // heuristics used to identify PS1 FF7 memory space.
+    bool verifyPS1MemoryOffset(uintptr_t address);
+
+    // Returns true if the read or write errors exceeds the given threshold.
+    // Error counts are reset to 0 when this function returns true.
+    bool pollErrors(int errorThreshold = 5);
 
 protected:
     void* processHandle;
