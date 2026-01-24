@@ -2,7 +2,7 @@
   <img src="resources/logo.png?raw=true" alt="IronMog FF7 Logo" title="IronMog FF7 Logo">
 </p>
 
-Drawing inspiration from IronMon and IronMario 64, IronMog FF7 is a specialized mod for the PlayStation 1 version of Final Fantasy VII (designed for use with emulators). It combines a randomizer with specific gameplay restrictions to provide a fresh, challenging experience.
+Drawing inspiration from IronMon and IronMario 64, IronMog FF7 is a specialized mod for the PlayStation 1 version of Final Fantasy VII thats been designed for use with emulators. It combines a randomizer with specific gameplay restrictions to provide a challenging experience.
 
 The mod is currently in beta, and the official "IronMog" challenge rules are still being developed. Until the community reaches a consensus on a standard ruleset, the mod serves as a flexible randomizer for players looking to create their own custom challenges.
 
