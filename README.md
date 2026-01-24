@@ -55,3 +55,6 @@ The following resources were referenced during development:
 - [ff7-lib.rs](https://github.com/maciej-trebacz/ff7-lib.rs)
 - [FF7 - Final Fantasy Inside](https://wiki.ffrtt.ru/index.php/FF7)
 - [Qhimm.com Forums](https://forums.qhimm.com/)
+
+# License
+This project is open-source and released under the MIT License. You are free to use, modify, and distribute the software as long as the original copyright notice and license are included. For more details, see the LICENSE file in the repository.
