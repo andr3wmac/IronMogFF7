@@ -9,7 +9,7 @@ The mod is currently in beta, and the official "IronMog" challenge rules are sti
 # Features
 The mod allows you to enforce restrictions such as no limit breaks, no summons, no escapes, etc. It can also randomize boss attributes, encounters, items, materia, shops, and more. 
 
-For a comprehensive breakdown of all available options, please visit the [Features wiki page](http://www.google.ca).
+For a comprehensive breakdown of all available options, please visit the [Features wiki page](https://github.com/andr3wmac/IronMogFF7/wiki/Features).
 
 # Requirements
 - Windows
@@ -35,7 +35,7 @@ To provide music randomization, the mod mutes the original in-game music and pla
 
 Please note: Due to copyright restrictions, the MP3 files are not included in the repository or release files. Instead, we provide a Python script that automatically downloads and processes tracks from Final Fantasy VI, VII, VIII, and IX to build the curated music folder.
 
-You can find the instructions for this script [here](http://www.temp.com).
+You can find the instructions for this script [here](https://github.com/andr3wmac/IronMogFF7/tree/main/tools/music).
 
 # How to Build
 Currently only Windows platforms are supported and Microsoft Visual Studio 2022 is recommended.
