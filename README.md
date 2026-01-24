@@ -9,7 +9,7 @@ The mod is currently in beta, and the official "IronMog" challenge rules are sti
 # Features
 The mod allows you to enforce restrictions such as no limit breaks, no summons, no escapes, etc. It can also randomize boss attributes, encounters, items, materia, shops, and more. 
 
-For a comprehensive breakdown of all available options, please visit the [Features wiki page](http://www.google.ca).
+For a comprehensive breakdown of all available options, please visit the [Features wiki page](https://github.com/andr3wmac/IronMogFF7/wiki/Features).
 
 # Requirements
 - Windows
