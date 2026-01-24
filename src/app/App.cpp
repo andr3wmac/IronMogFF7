@@ -245,6 +245,9 @@ void App::loadSettings(const std::string& filePath)
     {
         LOG("Loaded settings from: %s", filePath.c_str());
 
+        std::string seedStr = cfg.get<std::string>("seed", seedValue);
+        snprintf(seedValue, sizeof(seedValue), "%s", seedStr.c_str());
+
         for (auto& rule : Rule::getList())
         {
             cfg.keyPrefix = Utilities::sanitizeName(rule->name) + ".";
@@ -263,9 +266,15 @@ void App::loadSettings(const std::string& filePath)
     }
 }
 
-void App::saveSettings(const std::string& filePath)
+void App::saveSettings(const std::string& filePath, bool saveSeed)
 {
     ConfigFile cfg;
+
+    if (saveSeed)
+    {
+        std::string seedStr(seedValue);
+        cfg.set<std::string>("seed", seedStr);
+    }
 
     for (auto& rule : Rule::getList())
     {

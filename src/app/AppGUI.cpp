@@ -31,7 +31,7 @@ void App::drawSettingsPanel()
         // Save the current configuration in case of a crash, etc
         if (previousState != GameManager::GameState::InGame && state == GameManager::GameState::InGame)
         {
-            saveSettings("settings/Last Settings.cfg");
+            saveSettings("settings/Last Settings.cfg", true);
         }
         previousState = state;
     }
@@ -70,18 +70,6 @@ void App::drawSettingsPanel()
         }
         ImGui::Spacing();
 
-        ImGui::SeparatorText("Seed");
-        {
-            ImGui::SetNextItemWidth(378.0f);
-            ImGui::InputText("##Seed", seedValue, 9);
-            ImGui::SameLine();
-            if (ImGui::Button("Regenerate"))
-            {
-                generateSeed();
-            }
-        }
-        ImGui::Spacing();
-
         ImGui::SeparatorText("Settings");
         {
             ImGui::SetNextItemWidth(410.0f);
@@ -113,6 +101,18 @@ void App::drawSettingsPanel()
                 }
             }
             ImGui::PopID();
+        }
+        ImGui::Spacing();
+
+        ImGui::SeparatorText("Seed");
+        {
+            ImGui::SetNextItemWidth(378.0f);
+            ImGui::InputText("##Seed", seedValue, 9);
+            ImGui::SameLine();
+            if (ImGui::Button("Regenerate"))
+            {
+                generateSeed();
+            }
         }
         ImGui::Spacing();
 

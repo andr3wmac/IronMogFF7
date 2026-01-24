@@ -1,4 +1,5 @@
 ﻿#include "GameManager.h"
+#include "core/audio/AudioManager.h"
 #include "core/game/GameData.h"
 #include "core/game/MemoryOffsets.h"
 #include "core/utilities/Logging.h"
@@ -216,6 +217,8 @@ GameManager::GameState GameManager::getState()
 
 bool GameManager::update()
 {
+    double currentTime = Utilities::getTimeMS();
+    
     // If read/write errors have occured then connection has been broken.
     if (emulator->pollErrors())
     {
@@ -228,6 +231,7 @@ bool GameManager::update()
         {
             // Clearing save data prevents stale state getting stuck from a game over.
             clearSaveData();
+            AudioManager::pauseMusic();
         }
 
         if (lastGameState != GameState::InGame && state == GameState::InGame)
@@ -247,7 +251,7 @@ bool GameManager::update()
     }
 
     // We assume if 200ms has passed without the frame number advancing that the emulator is paused
-    double currentTime = Utilities::getTimeMS();
+    
     if (currentTime - lastFrameUpdateTime > 200 && !emulatorPaused)
     {
         emulatorPaused = true;
@@ -670,7 +674,7 @@ int GameManager::findPickUpMessage(std::string itemName, uint8_t group, uint8_t 
         std::string msg = readString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength);
         if (msg.find(itemName) != std::string::npos)
         {
-            uint32_t distance = std::abs((int32_t)(fieldMsg.strOffset - offset));
+            uint32_t distance = std::abs((int32_t)(fieldMsg.offset - offset));
             if (distance < bestDistance)
             {
                 bestDistance = distance;

@@ -42,7 +42,7 @@ public:
     void run();
     void generateSeed();
     void loadSettings(const std::string& filePath);
-    void saveSettings(const std::string& filePath);
+    void saveSettings(const std::string& filePath, bool saveSeed = false);
 
     void drawSettingsPanel();
     void drawTrackerPanel();
