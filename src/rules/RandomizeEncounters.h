@@ -16,10 +16,13 @@ public:
 private:
     void onStart();
     void onFrame(uint32_t frameNumber);
+    void onBattleEnter();
     void onBattleExit();
     void generateRandomEncounterMap();
 
     int maxLevelDifference = 5;
+    float statMultiplier = 1.0f;
+    
     uint16_t lastFormation = 0;
     std::set<uint16_t> excludedFormations;
     std::unordered_map<uint16_t, std::vector<uint16_t>> randomEncounterMap;

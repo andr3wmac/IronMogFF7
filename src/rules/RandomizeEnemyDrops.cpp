@@ -6,6 +6,7 @@
 
 #include <imgui.h>
 #include <random>
+#include <set>
 
 REGISTER_RULE("Randomize Enemy Drops", RandomizeEnemyDrops)
 
@@ -97,7 +98,7 @@ void RandomizeEnemyDrops::onBattleEnter()
     BattleScene* scene = battleData.first;
     BattleFormation* formation = battleData.second;
 
-    std::vector<int> activeEnemyIDs;
+    std::set<int> activeEnemyIDs;
     for (int i = 0; i < 6; ++i)
     {
         if (formation->enemyIDs[i] == UINT16_MAX)
@@ -109,7 +110,7 @@ void RandomizeEnemyDrops::onBattleEnter()
         {
             if (formation->enemyIDs[i] == scene->enemyIDs[j])
             {
-                activeEnemyIDs.push_back(j);
+                activeEnemyIDs.insert(j);
             }
         }
 

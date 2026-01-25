@@ -16,6 +16,7 @@ void RandomizeEncounters::setup()
 {
     BIND_EVENT(game->onStart, RandomizeEncounters::onStart);
     BIND_EVENT_ONE_ARG(game->onFrame, RandomizeEncounters::onFrame);
+    BIND_EVENT(game->onBattleEnter, RandomizeEncounters::onBattleEnter);
     BIND_EVENT(game->onBattleExit, RandomizeEncounters::onBattleExit);
 
     // Chocobo fights
@@ -47,17 +48,25 @@ bool RandomizeEncounters::onSettingsGUI()
     ImGui::SetNextItemWidth(80.0f);
     changed |= ImGui::InputInt("##maxLevelDifference", &maxLevelDifference);
 
+    ImGui::Text("Stat Multiplier");
+    ImGui::SetItemTooltip("Multiplies each enemy's HP, MP, Strength, Magic,\nEvade, Speed, Luck, Defense, and MDefense.");
+    ImGui::SameLine(140.0f);
+    ImGui::SetNextItemWidth(50.0f);
+    changed |= ImGui::InputFloat("##encounterStatMultiplier", &statMultiplier, 0.0f, 0.0f, "%.2f");
+
     return changed;
 }
 
 void RandomizeEncounters::loadSettings(const ConfigFile& cfg)
 {
     maxLevelDifference = cfg.get<int>("maxLevelDifference", 5);
+    statMultiplier = cfg.get<float>("statMultiplier", 1.0f);
 }
 
 void RandomizeEncounters::saveSettings(ConfigFile& cfg)
 {
     cfg.set<int>("maxLevelDifference", maxLevelDifference);
+    cfg.set<float>("statMultiplier", statMultiplier);
 }
 
 void RandomizeEncounters::onStart()
@@ -87,6 +96,27 @@ void RandomizeEncounters::onFrame(uint32_t frameNumber)
         lastFormation = randomFormation;
 
         LOG("Randomized battle: %d to %d", formationID, randomFormation);
+    }
+}
+
+void RandomizeEncounters::onBattleEnter()
+{
+    if (statMultiplier == 1.0f)
+    {
+        return;
+    }
+
+    std::pair<BattleScene*, BattleFormation*> battleData = game->getBattleFormation();
+    BattleFormation* formation = battleData.second;
+
+    for (int i = 0; i < 6; ++i)
+    {
+        if (formation->enemyIDs[i] == UINT16_MAX)
+        {
+            continue;
+        }
+
+        game->applyBattleStatMultiplier(BattleOffsets::Enemies[i], statMultiplier);
     }
 }
 

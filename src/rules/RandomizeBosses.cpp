@@ -40,6 +40,12 @@ bool RandomizeBosses::onSettingsGUI()
 {
     bool changed = false;
 
+    ImGui::Text("Stat Multiplier");
+    ImGui::SetItemTooltip("Multiplies each boss' HP, MP, Strength, Magic,\nEvade, Speed, Luck, Defense, and MDefense.");
+    ImGui::SameLine(140.0f);
+    ImGui::SetNextItemWidth(50.0f);
+    changed |= ImGui::InputFloat("##bossStatMultiplier", &statMultiplier, 0.0f, 0.0f, "%.2f");
+
     if (ImGui::CollapsingHeader("Resistance and Weakness"))
     {
         int* randomModeInt = (int*)(&randomMode);
@@ -85,6 +91,7 @@ bool RandomizeBosses::onSettingsGUI()
 
 void RandomizeBosses::loadSettings(const ConfigFile& cfg)
 {
+    statMultiplier = cfg.get<float>("statMultiplier", 1.0f);
     randomMode = (RandomMode)cfg.get<int>("randomMode", 0);
 
     elementCount = cfg.get<int>("elementCount", elementCount);
@@ -96,6 +103,7 @@ void RandomizeBosses::loadSettings(const ConfigFile& cfg)
 
 void RandomizeBosses::saveSettings(ConfigFile& cfg)
 {
+    cfg.set<float>("statMultiplier", statMultiplier);
     cfg.set<int>("randomMode", (int)randomMode);
 
     cfg.set<int>("elementCount", elementCount);
@@ -283,6 +291,19 @@ void RandomizeBosses::onBattleEnter()
                 
                 break;
             }
+        }
+    }
+
+    if (statMultiplier != 1.0f)
+    {
+        for (int i = 0; i < 6; ++i)
+        {
+            if (formation->enemyIDs[i] == UINT16_MAX)
+            {
+                continue;
+            }
+
+            game->applyBattleStatMultiplier(BattleOffsets::Enemies[i], statMultiplier);
         }
     }
 }

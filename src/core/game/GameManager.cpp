@@ -718,3 +718,43 @@ std::pair<BattleScene*, BattleFormation*> GameManager::getBattleFormation()
 
     return { nullptr, nullptr };
 }
+
+template <typename T>
+void multiplyStat(GameManager* game, uintptr_t offset, float multiplier)
+{
+    T stat = game->read<T>(offset);
+    stat = Utilities::clampTo<T>(stat * multiplier);
+    game->write<T>(offset, stat);
+}
+
+void GameManager::applyBattleStatMultiplier(uintptr_t battleCharOffset, float multiplier, bool applyToHP, bool applyToMP, bool applyToStats)
+{
+    if (getGameModule() != GameModule::Battle)
+    {
+        LOG("Could not apply battle stat multiplier outside of battle.");
+        return;
+    }
+
+    if (applyToHP)
+    {
+        multiplyStat<uint32_t>(this, battleCharOffset + BattleOffsets::CurrentHP, multiplier);
+        multiplyStat<uint32_t>(this, battleCharOffset + BattleOffsets::MaxHP, multiplier);
+    }
+
+    if (applyToMP)
+    {
+        multiplyStat<uint32_t>(this, battleCharOffset + BattleOffsets::CurrentMP, multiplier);
+        multiplyStat<uint32_t>(this, battleCharOffset + BattleOffsets::MaxMP, multiplier);
+    }
+
+    if (applyToStats)
+    {
+        multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Strength, multiplier);
+        multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Magic, multiplier);
+        multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Evade, multiplier);
+        multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Speed, multiplier);
+        multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Luck, multiplier);
+        multiplyStat<uint16_t>(this, battleCharOffset + BattleOffsets::Defense, multiplier);
+        multiplyStat<uint16_t>(this, battleCharOffset + BattleOffsets::MDefense, multiplier);
+    }
+}
