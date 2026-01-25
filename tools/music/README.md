@@ -12,7 +12,7 @@ Before running the script, ensure you have the following installed:
 * **FFmpeg:** Required for the `ffmpeg-normalize` dependency. 
     * *Note:* Ensure FFmpeg is added to your system's **PATH** so the script can access it.
 
-## Installation
+## Setup
 
 1. **Clone or Download** this repository to your local machine.
 2. **Open a Terminal** (Command Prompt or PowerShell) in the script's folder.
@@ -23,7 +23,7 @@ Before running the script, ensure you have the following installed:
 
 ## Usage
 
-The process is fully automated. To build your music library, simply run the build script:
+The process is fully automated. To build the music library, simply run the build script:
   ```bash
 python build.py
   ```
