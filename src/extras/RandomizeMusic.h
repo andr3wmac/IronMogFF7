@@ -38,9 +38,11 @@ private:
 
     void scanMusicFolder();
     Track loadTrack(std::string path);
+    void addUniqueTrack(const Track& newTrack);
     bool randomizeMusic(uint16_t musicID);
     void play(const Track& track);
 
+    bool useCuratedMusic = true;
     bool disabled = false;
     bool overrideMusic = false;
     int trackCount = 0;
@@ -53,4 +55,5 @@ private:
     
     std::unordered_map<uint16_t, uint16_t> previousTrackSelection;
     std::unordered_map<std::string, std::vector<Track>> musicMap;
+    std::vector<Track> uniqueTrackList;
 };
