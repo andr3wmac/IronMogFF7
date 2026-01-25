@@ -31,11 +31,11 @@ Fast Forward and Rewind are known to cause issues and should be avoided, but Sav
 To use an emulator other than DuckStation or BizHawk you must determine the memory address for the PS1 RAM and then enter that address under Custom emulator, then connect.
 
 # Music Randomization
-To provide music randomization, the mod mutes the original in-game music and plays a random MP3 from a designated folder mapped to that specific game track. This part is optional and the mod will run fine without it.
+To provide music randomization, the mod mutes the original in-game music and plays a random MP3 from a designated folder mapped to that specific game track. 
 
 Please note: Due to copyright restrictions, the MP3 files are not included in the repository or release files. Instead, we provide a Python script that automatically downloads and processes tracks from Final Fantasy VI, VII, VIII, and IX to build the curated music folder.
 
-You can find the instructions for this script [here](https://github.com/andr3wmac/IronMogFF7/tree/main/tools/music).
+You can find the instructions for this script [here](https://github.com/andr3wmac/IronMogFF7/tree/main/tools/music). This feature is optional and not required to play.
 
 # How to Build
 Currently only Windows platforms are supported and Microsoft Visual Studio 2022 is recommended.
