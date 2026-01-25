@@ -2,7 +2,7 @@
   <img src="resources/logo.png?raw=true" alt="IronMog FF7 Logo" title="IronMog FF7 Logo">
 </p>
 
-Drawing inspiration from IronMon and IronMario 64, IronMog FF7 is a specialized mod for the PlayStation 1 version of Final Fantasy VII thats been designed for use with emulators. It combines a randomizer with gameplay restrictions to provide a challenging experience.
+Drawing inspiration from IronMon and IronMario 64, IronMog FF7 is a specialized mod for the PlayStation 1 version of Final Fantasy VII that combines a randomizer with gameplay restrictions to provide a challenging experience.
 
 The mod is currently in beta, and the official "IronMog" challenge rules are still being developed. Until the community reaches a consensus on a standard ruleset, the mod serves as a flexible randomizer for players looking to create their own custom challenges.
 
@@ -16,7 +16,7 @@ For a comprehensive breakdown of all available options, please visit the [Featur
 - PS1 Emulator (DuckStation or BizHawk recommended)
 - Final Fantasy VII US NTSC (SCUS-94163)
   
-To ensure the best experience with the mod, please use your emulator's default settings. We recommend avoiding features like Runahead, as they may conflict with the mod's internal logic.
+The mod is designed to be played with an emulator and cannot be played on console. To ensure the best experience with the mod, please use your emulator's default settings. We recommend avoiding features like Runahead, as they may conflict with the mod's internal logic.
 
 Fast Forward and Rewind are known to cause issues and should be avoided, but Save States are fully supported and do not interfere with the mod’s functions.
 
