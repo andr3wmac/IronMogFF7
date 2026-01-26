@@ -78,7 +78,7 @@ void RandomizeEnemyDrops::onDebugGUI()
                 continue;
             }
 
-            std::string dropText = "  Drop " + std::to_string(j) + ": " + GameData::getItemNameFromID(dropID) + "(" + std::to_string(dropID) + ")";
+            std::string dropText = "  Drop " + std::to_string(j) + ": " + GameData::getItemName(dropID) + "(" + std::to_string(dropID) + ")";
             ImGui::Text(dropText.c_str());
         }
     }
@@ -137,8 +137,8 @@ void RandomizeEnemyDrops::onBattleEnter()
             uint16_t newDropID = GameData::getRandomItemFromID(dropID, rng, true);
             game->write<uint16_t>(BattleSceneOffsets::Enemies[id] + BattleSceneOffsets::DropIDs[i], newDropID);
 
-            std::string oldItemName = GameData::getItemNameFromID(dropID);
-            std::string newItemName = GameData::getItemNameFromID(newDropID);
+            std::string oldItemName = GameData::getItemName(dropID);
+            std::string newItemName = GameData::getItemName(newDropID);
             LOG("Randomized enemy drop in formation %d: %s changed to %s", formationID, oldItemName.c_str(), newItemName.c_str());
         }
     }

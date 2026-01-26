@@ -245,8 +245,8 @@ void RandomizeFieldItems::apply()
         game->write<uint16_t>(itemIDOffset, newItem.id);
         game->write<uint8_t>(itemQuantityOffset, newItem.quantity);
 
-        std::string oldItemName = GameData::getItemNameFromID(oldItem.id);
-        std::string newItemName = GameData::getItemNameFromID(newItem.id);
+        std::string oldItemName = GameData::getItemName(oldItem.id);
+        std::string newItemName = GameData::getItemName(newItem.id);
         LOG("Randomized item on field %d: %s (%d) changed to: %s (%d)", fieldData.id, oldItemName.c_str(), oldItem.quantity, newItemName.c_str(), newItem.quantity);
 
         // Overwrite the popup message
@@ -326,7 +326,7 @@ void RandomizeFieldItems::overwriteMessage(const FieldData& fieldData, const Fie
         int strMsgCount = 0;
         for (const FieldScriptItem& compareItem : fieldData.items)
         {
-            std::string compareItemName = GameData::getItemNameFromID(compareItem.id);
+            std::string compareItemName = GameData::getItemName(compareItem.id);
             int compareMsgIndex = game->findPickUpMessage(compareItemName, compareItem.group, compareItem.script, compareItem.offset);
             if (compareMsgIndex >= 0)
             {

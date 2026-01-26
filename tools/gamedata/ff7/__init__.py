@@ -30,6 +30,7 @@ from . import world
 from . import data
 from . import cd
 from . import models
+from . import menu
 
 # Decompress an 8-bit string from GZIP format.
 def decompressGzip(data):

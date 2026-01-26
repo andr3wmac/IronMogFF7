@@ -9,6 +9,12 @@
 #define SHOP_ITEM_MAX 10
 #define ESKILL_EMPTY 562949953421567
 
+struct Item
+{
+    std::string name = "";
+    uint32_t price = 0;
+};
+
 struct ESkill
 {
     std::string name = "";
@@ -80,6 +86,18 @@ struct WorldMapEntrance
     uint32_t centerZ = 0;
 };
 
+struct ShopItem
+{
+    uint8_t index;
+    uint16_t id;
+};
+
+struct Shop
+{
+    std::vector<ShopItem> items;
+    std::vector<ShopItem> materia;
+};
+
 struct BattleFormation
 {
     uint16_t id = 0;
@@ -149,15 +167,16 @@ struct BattleModel
 class GameData
 {
 public:
-    static std::unordered_map<uint8_t, std::string> accessoryNames;
-    static std::unordered_map<uint8_t, std::string> armorNames;
-    static std::unordered_map<uint8_t, std::string> itemNames;
-    static std::unordered_map<uint8_t, std::string> weaponNames;
-    static std::unordered_map<uint8_t, std::string> materiaNames;
+    static std::unordered_map<uint8_t, Item> accessories;
+    static std::unordered_map<uint8_t, Item> armors;
+    static std::unordered_map<uint8_t, Item> items;
+    static std::unordered_map<uint8_t, Item> weapons;
+    static std::unordered_map<uint8_t, Item> materia;
 
     static std::vector<ESkill> eSkills;
     static std::unordered_map<uint16_t, FieldData> fieldData;
     static std::vector<WorldMapEntrance> worldMapEntrances;
+    static std::unordered_map<uint8_t, Shop> shops;
     static std::unordered_map<uint8_t, BattleScene> battleScenes;
     static std::vector<Boss> bosses;
     static std::vector<Model> models;
@@ -165,11 +184,11 @@ public:
 
     static void loadGameData();
 
-    static void addAccessory(uint8_t id, std::string name)      { accessoryNames[id] = name; }
-    static void addArmor(uint8_t id, const std::string& name)   { armorNames[id] = name; }
-    static void addItem(uint8_t id, const std::string& name)    { itemNames[id] = name; }
-    static void addWeapon(uint8_t id, const std::string& name)  { weaponNames[id] = name; }
-    static void addMateria(uint8_t id, const std::string& name) { materiaNames[id] = name; }
+    static void addAccessory(uint8_t id, std::string name, uint32_t shopPrice)      { accessories[id] = { name, shopPrice }; }
+    static void addArmor(uint8_t id, const std::string& name, uint32_t shopPrice)   { armors[id] = { name, shopPrice }; }
+    static void addItem(uint8_t id, const std::string& name, uint32_t shopPrice)    { items[id] = { name, shopPrice }; }
+    static void addWeapon(uint8_t id, const std::string& name, uint32_t shopPrice)  { weapons[id] = { name, shopPrice }; }
+    static void addMateria(uint8_t id, const std::string& name, uint32_t shopPrice) { materia[id] = { name, shopPrice }; }
 
     static void addESkill(const std::string& name, uint8_t targetFlags, uint32_t mpCost, uint8_t idx) {
         GameData::eSkills.push_back({ name, targetFlags, mpCost, idx });
@@ -207,6 +226,22 @@ public:
         GameData::worldMapEntrances.push_back({ offset, fieldID, fieldName, centerX, centerZ });
     }
 
+    static void addShop(uint8_t shopID, std::vector<uint16_t> itemData) 
+    {
+        Shop& shop = GameData::shops[shopID];
+        for (uint8_t i = 0; i < itemData.size(); ++i)
+        {
+            if (itemData[i] >= 512)
+            {
+                shop.materia.push_back({ i, itemData[i] - 512u });
+            }
+            else 
+            {
+                shop.items.push_back({ i, itemData[i] });
+            }
+        }
+    }
+
     static void addBattleScene(uint8_t sceneID, uint16_t id0, uint16_t id1, uint16_t id2, uint8_t lvl0, uint8_t lvl1, uint8_t lvl2) {
         GameData::battleScenes[sceneID] = { sceneID, {id0, id1, id2}, {lvl0, lvl1, lvl2} };
     }
@@ -227,11 +262,11 @@ public:
         GameData::battleModels.push_back({ modelName, headerSize, parts });
     }
 
-    static std::string getAccessoryName(uint8_t id);
-    static std::string getArmorName(uint8_t id);
-    static std::string getItemName(uint8_t id);
-    static std::string getWeaponName(uint8_t id);
-    static std::string getMateriaName(uint8_t id);
+    static Item* getAccessory(uint8_t id);
+    static Item* getArmor(uint8_t id);
+    static Item* getItem(uint8_t id);
+    static Item* getWeapon(uint8_t id);
+    static Item* getMateria(uint8_t id);
 
     static uint16_t getRandomAccessory(std::mt19937_64& rng, bool excludeBanned = true);
     static uint16_t getRandomArmor(std::mt19937_64& rng, bool excludeBanned = true);
@@ -243,7 +278,10 @@ public:
     static uint16_t getRandomItemFromID(uint16_t origItemID, std::mt19937_64& rng, bool excludeBanned = true);
 
     static FieldData getField(uint16_t id);
-    static std::string getItemNameFromID(uint16_t fieldScriptID);
+    static std::string getItemName(uint16_t fieldScriptID);
+    static uint32_t getItemPrice(uint16_t fieldScriptID);
+    static std::string getMateriaName(uint8_t id);
+    static uint32_t getMateriaPrice(uint8_t id);
 
     static BattleModel* getBattleModel(std::string modelName);
     static std::vector<const Boss*> getBossesInScene(const BattleScene* scene);

@@ -355,6 +355,9 @@ struct ShopOffsets
     CONST_PTR ShopStart  = 0x1D4714;
     CONST_PTR ShopStride = 84;
 
+    // uint8_t thats set to 0 for Buy, 1 for Sell, and 2 for Exit.
+    CONST_PTR MenuIndex = 0x1D95F2;
+
     // All prices are stored in uint32_t and are just an array of them in order of:
     // Items, Weapons, Armor, Accessories.
     CONST_PTR PricesStart = 0x1D6854;

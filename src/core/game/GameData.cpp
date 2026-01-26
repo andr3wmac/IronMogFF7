@@ -5,73 +5,160 @@
 
 static FieldData gInvalidField = { 0, "" };
 
-std::unordered_map<uint8_t, std::string> GameData::accessoryNames;
-std::unordered_map<uint8_t, std::string> GameData::armorNames;
-std::unordered_map<uint8_t, std::string> GameData::itemNames;
-std::unordered_map<uint8_t, std::string> GameData::weaponNames;
-std::unordered_map<uint8_t, std::string> GameData::materiaNames;
+std::unordered_map<uint8_t, Item> GameData::accessories;
+std::unordered_map<uint8_t, Item> GameData::armors;
+std::unordered_map<uint8_t, Item> GameData::items;
+std::unordered_map<uint8_t, Item> GameData::weapons;
+std::unordered_map<uint8_t, Item> GameData::materia;
 
 std::vector<ESkill> GameData::eSkills;
 std::unordered_map<uint16_t, FieldData> GameData::fieldData;
 std::vector<WorldMapEntrance> GameData::worldMapEntrances;
 std::unordered_map<uint8_t, BattleScene> GameData::battleScenes;
 std::vector<Boss> GameData::bosses;
+std::unordered_map<uint8_t, Shop> GameData::shops;
 std::vector<Model> GameData::models;
 std::vector<BattleModel> GameData::battleModels;
 
-std::string GameData::getAccessoryName(uint8_t id)
+Item* GameData::getAccessory(uint8_t id)
 {
-    if (accessoryNames.count(id) == 0)
+    if (accessories.count(id) == 0)
     {
         LOG("Invalid accessory ID: %d", id);
-        return "";
+        return nullptr;
     }
 
-    return accessoryNames[id];
+    return &accessories[id];
 }
 
-std::string GameData::getArmorName(uint8_t id)
+Item* GameData::getArmor(uint8_t id)
 {
-    if (armorNames.count(id) == 0)
+    if (armors.count(id) == 0)
     {
         LOG("Invalid armor ID: %d", id);
-        return "";
+        return nullptr;
     }
 
-    return armorNames[id];
+    return &armors[id];
 }
 
-std::string GameData::getItemName(uint8_t id)
+Item* GameData::getItem(uint8_t id)
 {
-    if (itemNames.count(id) == 0)
+    if (items.count(id) == 0)
     {
         LOG("Invalid item ID: %d", id);
-        return "";
+        return nullptr;
     }
 
-    return itemNames[id];
+    return &items[id];
 }
 
-std::string GameData::getWeaponName(uint8_t id)
+Item* GameData::getWeapon(uint8_t id)
 {
-    if (weaponNames.count(id) == 0)
+    if (weapons.count(id) == 0)
     {
         LOG("Invalid weapon ID: %d", id);
+        return nullptr;
+    }
+
+    return &weapons[id];
+}
+
+Item* GameData::getMateria(uint8_t id)
+{
+    if (materia.count(id) == 0)
+    {
+        LOG("Invalid materia ID: %d", id);
+        return nullptr;
+    }
+
+    return &materia[id];
+}
+
+std::string GameData::getItemName(uint16_t fieldScriptID)
+{
+    /*
+      Item ID Conversion:
+        0   + X = Items
+        128 + X = Weapons
+        256 + X = Armor
+        288 + X = Accessories
+    */
+
+    Item* item = nullptr;
+
+    if (fieldScriptID < 128)
+    {
+        item = getItem((uint8_t)fieldScriptID);
+    }
+    else if (fieldScriptID < 256)
+    {
+        item = getWeapon((uint8_t)(fieldScriptID - 128));
+    }
+    else if (fieldScriptID < 288)
+    {
+        item = getArmor((uint8_t)(fieldScriptID - 256));
+    }
+    else
+    {
+        item = getAccessory((uint8_t)(fieldScriptID - 288));
+    }
+
+    if (item == nullptr)
+    {
         return "";
     }
 
-    return weaponNames[id];
+    return item->name;
+}
+
+uint32_t GameData::getItemPrice(uint16_t fieldScriptID)
+{
+    Item* item = nullptr;
+
+    if (fieldScriptID < 128)
+    {
+        item = getItem((uint8_t)fieldScriptID);
+    }
+    else if (fieldScriptID < 256)
+    {
+        item = getWeapon((uint8_t)(fieldScriptID - 128));
+    }
+    else if (fieldScriptID < 288)
+    {
+        item = getArmor((uint8_t)(fieldScriptID - 256));
+    }
+    else
+    {
+        item = getAccessory((uint8_t)(fieldScriptID - 288));
+    }
+
+    if (item == nullptr)
+    {
+        return 0;
+    }
+
+    return item->price;
 }
 
 std::string GameData::getMateriaName(uint8_t id)
 {
-    if (materiaNames.count(id) == 0)
+    Item* materia = getMateria(id);
+    if (materia == nullptr)
     {
-        LOG("Invalid materia ID: %d", id);
         return "";
     }
+    return materia->name;
+}
 
-    return materiaNames[id];
+uint32_t GameData::getMateriaPrice(uint8_t id)
+{
+    Item* materia = getMateria(id);
+    if (materia == nullptr)
+    {
+        return 0;
+    }
+    return materia->price;
 }
 
 uint16_t GameData::getRandomAccessory(std::mt19937_64& rng, bool excludeBanned)
@@ -81,7 +168,7 @@ uint16_t GameData::getRandomAccessory(std::mt19937_64& rng, bool excludeBanned)
         static std::vector<uint16_t> keysWithoutBanned;
         if (keysWithoutBanned.empty())
         {
-            for (const auto& pair : GameData::accessoryNames)
+            for (const auto& pair : GameData::accessories)
             {
                 if (Restrictions::isAccessoryBanned(pair.first))
                 {
@@ -98,7 +185,7 @@ uint16_t GameData::getRandomAccessory(std::mt19937_64& rng, bool excludeBanned)
     static std::vector<uint16_t> keys;
     if (keys.empty())
     {
-        for (const auto& pair : GameData::accessoryNames)
+        for (const auto& pair : GameData::accessories)
         {
             keys.push_back(pair.first);
         }
@@ -115,7 +202,7 @@ uint16_t GameData::getRandomArmor(std::mt19937_64& rng, bool excludeBanned)
         static std::vector<uint16_t> keysWithoutBanned;
         if (keysWithoutBanned.empty())
         {
-            for (const auto& pair : GameData::armorNames)
+            for (const auto& pair : GameData::armors)
             {
                 if (Restrictions::isArmorBanned(pair.first))
                 {
@@ -132,7 +219,7 @@ uint16_t GameData::getRandomArmor(std::mt19937_64& rng, bool excludeBanned)
     static std::vector<uint16_t> keys;
     if (keys.empty())
     {
-        for (const auto& pair : GameData::armorNames)
+        for (const auto& pair : GameData::armors)
         {
             keys.push_back(pair.first);
         }
@@ -149,7 +236,7 @@ uint16_t GameData::getRandomItem(std::mt19937_64& rng, bool excludeBanned)
         static std::vector<uint16_t> keysWithoutBanned;
         if (keysWithoutBanned.empty())
         {
-            for (const auto& pair : GameData::itemNames)
+            for (const auto& pair : GameData::items)
             {
                 if (Restrictions::isItemBanned(pair.first))
                 {
@@ -166,7 +253,7 @@ uint16_t GameData::getRandomItem(std::mt19937_64& rng, bool excludeBanned)
     static std::vector<uint16_t> keys;
     if (keys.empty())
     {
-        for (const auto& pair : GameData::itemNames)
+        for (const auto& pair : GameData::items)
         {
             keys.push_back(pair.first);
         }
@@ -183,7 +270,7 @@ uint16_t GameData::getRandomWeapon(std::mt19937_64& rng, bool excludeBanned)
         static std::vector<uint16_t> keysWithoutBanned;
         if (keysWithoutBanned.empty())
         {
-            for (const auto& pair : GameData::weaponNames)
+            for (const auto& pair : GameData::weapons)
             {
                 if (Restrictions::isWeaponBanned(pair.first))
                 {
@@ -200,7 +287,7 @@ uint16_t GameData::getRandomWeapon(std::mt19937_64& rng, bool excludeBanned)
     static std::vector<uint16_t> keys;
     if (keys.empty())
     {
-        for (const auto& pair : GameData::weaponNames)
+        for (const auto& pair : GameData::weapons)
         {
             keys.push_back(pair.first);
         }
@@ -222,19 +309,19 @@ uint16_t GameData::getRandomItemFromID(uint16_t origItemID, std::mt19937_64& rng
 
     if (origItemID < 128)
     {
-        return getRandomItem(rng);
+        return getRandomItem(rng, excludeBanned);
     }
     else if (origItemID < 256)
     {
-        return getRandomWeapon(rng) + 128;
+        return getRandomWeapon(rng, excludeBanned) + 128;
     }
     else if (origItemID < 288)
     {
-        return getRandomArmor(rng) + 256;
+        return getRandomArmor(rng, excludeBanned) + 256;
     }
     else
     {
-        return getRandomAccessory(rng) + 288;
+        return getRandomAccessory(rng, excludeBanned) + 288;
     }
 
     return origItemID;
@@ -247,7 +334,7 @@ uint16_t GameData::getRandomMateria(std::mt19937_64& rng, bool excludeBanned)
         static std::vector<uint16_t> keysWithoutBanned;
         if (keysWithoutBanned.empty())
         {
-            for (const auto& pair : GameData::materiaNames)
+            for (const auto& pair : GameData::materia)
             {
                 if (Restrictions::isMateriaBanned(pair.first))
                 {
@@ -264,7 +351,7 @@ uint16_t GameData::getRandomMateria(std::mt19937_64& rng, bool excludeBanned)
     static std::vector<uint16_t> keys;
     if (keys.empty()) 
     {
-        for (const auto& pair : GameData::materiaNames) 
+        for (const auto& pair : GameData::materia) 
         {
             keys.push_back(pair.first);
         }
@@ -282,34 +369,6 @@ FieldData GameData::getField(uint16_t id)
     }
 
     return fieldData[id];
-}
-
-std::string GameData::getItemNameFromID(uint16_t fieldItemID)
-{
-    /*
-      Item ID Conversion:
-        0   + X = Items
-        128 + X = Weapons
-        256 + X = Armor
-        288 + X = Accessories
-    */
-
-    if (fieldItemID < 128)
-    {
-        return getItemName((uint8_t)fieldItemID);
-    }
-    else if (fieldItemID < 256)
-    {
-        return getWeaponName((uint8_t)(fieldItemID - 128));
-    }
-    else if (fieldItemID < 288)
-    {
-        return getArmorName((uint8_t)(fieldItemID - 256));
-    }
-    else
-    {
-        return getAccessoryName((uint8_t)(fieldItemID - 288));
-    }
 }
 
 BattleModel* GameData::getBattleModel(std::string modelName)

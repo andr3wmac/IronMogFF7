@@ -2,6 +2,7 @@
 #include "core/game/MemoryOffsets.h"
 #include "core/gui/IconsFontAwesome5.h"
 #include "core/utilities/Logging.h"
+#include "core/utilities/MemorySearch.h"
 #include "core/utilities/Platform.h"
 #include "core/utilities/Utilities.h"
 #include "extras/Extra.h"
@@ -430,6 +431,30 @@ void App::drawDebugPanel()
         ImGui::Text(positionText.c_str());
     }
 
+    if (ImGui::CollapsingHeader("Advanced"))
+    {
+        ImGui::Indent(25.0f);
+
+        if (ImGui::Button("Save Memory to Disk"))
+        {
+            MemorySearch memSearch(game);
+            memSearch.saveMemoryState("SavedMemory.bin");
+        }
+
+        // Warp
+        static char debugWarpFieldID[5] = "";
+        ImGui::InputText("##DebugWarpFieldID", debugWarpFieldID, 5);
+        ImGui::SameLine();
+        if (ImGui::Button("Warp To Field"))
+        {
+            uint16_t warpFieldID = atoi(debugWarpFieldID);
+            game->write<uint16_t>(GameOffsets::FieldWarpID, warpFieldID);
+            game->write<uint8_t>(GameOffsets::FieldWarpTrigger, 1);
+        }
+
+        ImGui::Unindent(25.0f);
+    }
+
     if (ImGui::CollapsingHeader("Cheats"))
     {
         ImGui::Indent(25.0f);
@@ -460,24 +485,6 @@ void App::drawDebugPanel()
                 uint16_t maxHP = game->read<uint16_t>(characterOffset + CharacterDataOffsets::MaxHP);
                 game->write<uint16_t>(characterOffset + CharacterDataOffsets::CurrentHP, maxHP);
             }
-        }
-
-        ImGui::Unindent(25.0f);
-    }
-
-    if (ImGui::CollapsingHeader("Warp"))
-    {
-        ImGui::Indent(25.0f);
-
-        // Debug Panel variables
-        static char debugWarpFieldID[5] = "";
-        ImGui::InputText("##DebugWarpFieldID", debugWarpFieldID, 5);
-        ImGui::SameLine();
-        if (ImGui::Button("Warp To Field"))
-        {
-            uint16_t warpFieldID = atoi(debugWarpFieldID);
-            game->write<uint16_t>(GameOffsets::FieldWarpID, warpFieldID);
-            game->write<uint8_t>(GameOffsets::FieldWarpTrigger, 1);
         }
 
         ImGui::Unindent(25.0f);
