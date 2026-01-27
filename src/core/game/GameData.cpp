@@ -161,143 +161,115 @@ uint32_t GameData::getMateriaPrice(uint8_t id)
     return materia->price;
 }
 
-uint16_t GameData::getRandomAccessory(std::mt19937_64& rng, bool excludeBanned)
+uint16_t GameData::getRandomAccessory(std::mt19937_64& rng, bool excludeBanned, bool excludeRare, const std::set<uint16_t>& excludeSet)
 {
-    if (excludeBanned)
+    std::vector<uint16_t> candidates;
+    candidates.reserve(GameData::accessories.size());
+
+    for (const auto& [id, data] : GameData::accessories)
     {
-        static std::vector<uint16_t> keysWithoutBanned;
-        if (keysWithoutBanned.empty())
+        if ((excludeBanned && Restrictions::isAccessoryBanned(id)) ||
+            (excludeRare && data.price == 2) ||
+            (excludeSet.count(288 + id) > 0))
         {
-            for (const auto& pair : GameData::accessories)
-            {
-                if (Restrictions::isAccessoryBanned(pair.first))
-                {
-                    continue;
-                }
-                keysWithoutBanned.push_back(pair.first);
-            }
+            continue;
         }
 
-        std::uniform_int_distribution<size_t> dist(0, keysWithoutBanned.size() - 1);
-        return keysWithoutBanned[dist(rng)];
+        candidates.push_back(id);
     }
 
-    static std::vector<uint16_t> keys;
-    if (keys.empty())
+    if (candidates.empty())
     {
-        for (const auto& pair : GameData::accessories)
-        {
-            keys.push_back(pair.first);
-        }
+        LOG("No accessory selected from getRandomAccessory.");
+        return 0;
     }
 
-    std::uniform_int_distribution<size_t> dist(0, keys.size() - 1);
-    return keys[dist(rng)];
+    std::uniform_int_distribution<size_t> dist(0, candidates.size() - 1);
+    return candidates[dist(rng)];
 }
 
-uint16_t GameData::getRandomArmor(std::mt19937_64& rng, bool excludeBanned)
+uint16_t GameData::getRandomArmor(std::mt19937_64& rng, bool excludeBanned, bool excludeRare, const std::set<uint16_t>& excludeSet)
 {
-    if (excludeBanned)
+    std::vector<uint16_t> candidates;
+    candidates.reserve(GameData::armors.size());
+
+    for (const auto& [id, data] : GameData::armors)
     {
-        static std::vector<uint16_t> keysWithoutBanned;
-        if (keysWithoutBanned.empty())
+        if ((excludeBanned && Restrictions::isArmorBanned(id)) ||
+            (excludeRare && data.price == 2) ||
+            (excludeSet.count(256 + id) > 0))
         {
-            for (const auto& pair : GameData::armors)
-            {
-                if (Restrictions::isArmorBanned(pair.first))
-                {
-                    continue;
-                }
-                keysWithoutBanned.push_back(pair.first);
-            }
+            continue;
         }
 
-        std::uniform_int_distribution<size_t> dist(0, keysWithoutBanned.size() - 1);
-        return keysWithoutBanned[dist(rng)];
+        candidates.push_back(id);
     }
 
-    static std::vector<uint16_t> keys;
-    if (keys.empty())
+    if (candidates.empty())
     {
-        for (const auto& pair : GameData::armors)
-        {
-            keys.push_back(pair.first);
-        }
+        LOG("No armor selected from getRandomArmor.");
+        return 0;
     }
 
-    std::uniform_int_distribution<size_t> dist(0, keys.size() - 1);
-    return keys[dist(rng)];
+    std::uniform_int_distribution<size_t> dist(0, candidates.size() - 1);
+    return candidates[dist(rng)];
 }
 
-uint16_t GameData::getRandomItem(std::mt19937_64& rng, bool excludeBanned)
+uint16_t GameData::getRandomItem(std::mt19937_64& rng, bool excludeBanned, bool excludeRare, const std::set<uint16_t>& excludeSet)
 {
-    if (excludeBanned)
+    std::vector<uint16_t> candidates;
+    candidates.reserve(GameData::items.size());
+
+    for (const auto& [id, data] : GameData::items)
     {
-        static std::vector<uint16_t> keysWithoutBanned;
-        if (keysWithoutBanned.empty())
+        if ((excludeBanned && Restrictions::isItemBanned(id)) ||
+            (excludeRare && data.price == 2) ||
+            (excludeSet.count(id) > 0))
         {
-            for (const auto& pair : GameData::items)
-            {
-                if (Restrictions::isItemBanned(pair.first))
-                {
-                    continue;
-                }
-                keysWithoutBanned.push_back(pair.first);
-            }
+            continue;
         }
 
-        std::uniform_int_distribution<size_t> dist(0, keysWithoutBanned.size() - 1);
-        return keysWithoutBanned[dist(rng)];
+        candidates.push_back(id);
     }
 
-    static std::vector<uint16_t> keys;
-    if (keys.empty())
+    if (candidates.empty())
     {
-        for (const auto& pair : GameData::items)
-        {
-            keys.push_back(pair.first);
-        }
+        LOG("No item selected from getRandomItem.");
+        return 0;
     }
 
-    std::uniform_int_distribution<size_t> dist(0, keys.size() - 1);
-    return keys[dist(rng)];
+    std::uniform_int_distribution<size_t> dist(0, candidates.size() - 1);
+    return candidates[dist(rng)];
 }
 
-uint16_t GameData::getRandomWeapon(std::mt19937_64& rng, bool excludeBanned)
+uint16_t GameData::getRandomWeapon(std::mt19937_64& rng, bool excludeBanned, bool excludeRare, const std::set<uint16_t>& excludeSet)
 {
-    if (excludeBanned)
+    std::vector<uint16_t> candidates;
+    candidates.reserve(GameData::weapons.size());
+
+    for (const auto& [id, data] : GameData::weapons)
     {
-        static std::vector<uint16_t> keysWithoutBanned;
-        if (keysWithoutBanned.empty())
+        if ((excludeBanned && Restrictions::isWeaponBanned(id)) ||
+            (excludeRare && data.price == 2) ||
+            (excludeSet.count(128 + id) > 0))
         {
-            for (const auto& pair : GameData::weapons)
-            {
-                if (Restrictions::isWeaponBanned(pair.first))
-                {
-                    continue;
-                }
-                keysWithoutBanned.push_back(pair.first);
-            }
+            continue;
         }
 
-        std::uniform_int_distribution<size_t> dist(0, keysWithoutBanned.size() - 1);
-        return keysWithoutBanned[dist(rng)];
+        candidates.push_back(id);
     }
 
-    static std::vector<uint16_t> keys;
-    if (keys.empty())
+    if (candidates.empty())
     {
-        for (const auto& pair : GameData::weapons)
-        {
-            keys.push_back(pair.first);
-        }
+        LOG("No weapon selected from getRandomWeapon.");
+        return 0;
     }
 
-    std::uniform_int_distribution<size_t> dist(0, keys.size() - 1);
-    return keys[dist(rng)];
+    std::uniform_int_distribution<size_t> dist(0, candidates.size() - 1);
+    return candidates[dist(rng)];
 }
 
-uint16_t GameData::getRandomItemFromID(uint16_t origItemID, std::mt19937_64& rng, bool excludeBanned)
+uint16_t GameData::getRandomItemFromID(uint16_t origItemID, std::mt19937_64& rng, bool excludeBanned, bool excludeRare, const std::set<uint16_t>& excludeSet)
 {
     /*
       Item ID Conversion:
@@ -309,56 +281,49 @@ uint16_t GameData::getRandomItemFromID(uint16_t origItemID, std::mt19937_64& rng
 
     if (origItemID < 128)
     {
-        return getRandomItem(rng, excludeBanned);
+        return getRandomItem(rng, excludeBanned, excludeRare, excludeSet);
     }
     else if (origItemID < 256)
     {
-        return getRandomWeapon(rng, excludeBanned) + 128;
+        return getRandomWeapon(rng, excludeBanned, excludeRare, excludeSet) + 128;
     }
     else if (origItemID < 288)
     {
-        return getRandomArmor(rng, excludeBanned) + 256;
+        return getRandomArmor(rng, excludeBanned, excludeRare, excludeSet) + 256;
     }
     else
     {
-        return getRandomAccessory(rng, excludeBanned) + 288;
+        return getRandomAccessory(rng, excludeBanned, excludeRare, excludeSet) + 288;
     }
 
     return origItemID;
 }
 
-uint16_t GameData::getRandomMateria(std::mt19937_64& rng, bool excludeBanned)
+uint16_t GameData::getRandomMateria(std::mt19937_64& rng, bool excludeBanned, bool excludeRare, const std::set<uint16_t>& excludeSet)
 {
-    if (excludeBanned)
+    std::vector<uint16_t> candidates;
+    candidates.reserve(GameData::materia.size());
+
+    for (const auto& [id, data] : GameData::materia)
     {
-        static std::vector<uint16_t> keysWithoutBanned;
-        if (keysWithoutBanned.empty())
+        if ((excludeBanned && Restrictions::isMateriaBanned(id)) ||
+            (excludeRare && data.price == 1) ||
+            (excludeSet.count(id) > 0))
         {
-            for (const auto& pair : GameData::materia)
-            {
-                if (Restrictions::isMateriaBanned(pair.first))
-                {
-                    continue;
-                }
-                keysWithoutBanned.push_back(pair.first);
-            }
+            continue;
         }
 
-        std::uniform_int_distribution<size_t> dist(0, keysWithoutBanned.size() - 1);
-        return keysWithoutBanned[dist(rng)];
+        candidates.push_back(id);
     }
 
-    static std::vector<uint16_t> keys;
-    if (keys.empty()) 
+    if (candidates.empty())
     {
-        for (const auto& pair : GameData::materia) 
-        {
-            keys.push_back(pair.first);
-        }
+        LOG("No materia selected from getRandomMateria.");
+        return 0;
     }
 
-    std::uniform_int_distribution<size_t> dist(0, keys.size() - 1);
-    return keys[dist(rng)];
+    std::uniform_int_distribution<size_t> dist(0, candidates.size() - 1);
+    return candidates[dist(rng)];
 }
 
 FieldData GameData::getField(uint16_t id)

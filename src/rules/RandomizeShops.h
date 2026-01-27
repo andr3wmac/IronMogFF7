@@ -6,7 +6,7 @@
 
 struct RandomizedShopItem
 {
-    uintptr_t offset;   // offset to where the entry is in the shop data
+    uintptr_t offset; // offset to where the entry is in the shop data
     uint16_t id;
     uint32_t price;
 };
@@ -37,13 +37,12 @@ private:
     void onShopOpened();
     void onFrame(uint32_t frameNumber);
 
-    uint16_t randomizeShopItem(uint16_t itemID);
-    uint16_t randomizeShopItem(uint16_t itemID, std::set<uint16_t> previouslyChosen);
-    uint16_t randomizeShopMateria(uint16_t materiaID);
-    uint16_t randomizeShopMateria(uint16_t materiaID, std::set<uint16_t> previouslyChosen);
+    uint16_t randomizeShopItem(uint16_t itemID, const std::set<uint16_t>& previouslyChosen);
+    uint16_t randomizeShopMateria(uint16_t materiaID, const std::set<uint16_t>& previouslyChosen);
 
     bool disableShops = false;
     bool keepPrices = true;
+    bool excludeRareItems = false;
 
     std::mt19937_64 rng;
     std::unordered_map<uint8_t, RandomizedShop> randomizedShops;
@@ -52,6 +51,7 @@ private:
     std::set<uint8_t> fieldShopIDs;
     int shopMenuIndex = -1;
 
+    // Used exclusively for overwriting sell prices, decoupled from buy prices.
     std::array<uint32_t, 320> itemSellPrices;
     std::array<uint32_t, 91> materiaSellPrices;
 };

@@ -3,6 +3,7 @@
 #include <array>
 #include <cstdint>
 #include <random>
+#include <set>
 #include <string>
 #include <unordered_map>
 
@@ -268,14 +269,14 @@ public:
     static Item* getWeapon(uint8_t id);
     static Item* getMateria(uint8_t id);
 
-    static uint16_t getRandomAccessory(std::mt19937_64& rng, bool excludeBanned = true);
-    static uint16_t getRandomArmor(std::mt19937_64& rng, bool excludeBanned = true);
-    static uint16_t getRandomItem(std::mt19937_64& rng, bool excludeBanned = true);
-    static uint16_t getRandomWeapon(std::mt19937_64& rng, bool excludeBanned = true);
-    static uint16_t getRandomMateria(std::mt19937_64& rng, bool excludeBanned = true);
+    static uint16_t getRandomAccessory(std::mt19937_64& rng, bool excludeBanned = true, bool excludeRare = false, const std::set<uint16_t>& excludeSet = {});
+    static uint16_t getRandomArmor(std::mt19937_64& rng, bool excludeBanned = true, bool excludeRare = false, const std::set<uint16_t>& excludeSet = {});
+    static uint16_t getRandomItem(std::mt19937_64& rng, bool excludeBanned = true, bool excludeRare = false, const std::set<uint16_t>& excludeSet = {});
+    static uint16_t getRandomWeapon(std::mt19937_64& rng, bool excludeBanned = true, bool excludeRare = false, const std::set<uint16_t>& excludeSet = {});
+    static uint16_t getRandomMateria(std::mt19937_64& rng, bool excludeBanned = true, bool excludeRare = false, const std::set<uint16_t>& excludeSet = {});
 
     // Returns a random item ID thats the same type as origItemID
-    static uint16_t getRandomItemFromID(uint16_t origItemID, std::mt19937_64& rng, bool excludeBanned = true);
+    static uint16_t getRandomItemFromID(uint16_t origItemID, std::mt19937_64& rng, bool excludeBanned = true, bool excludeRare = false, const std::set<uint16_t>& excludeSet = {});
 
     static FieldData getField(uint16_t id);
     static std::string getItemName(uint16_t fieldScriptID);

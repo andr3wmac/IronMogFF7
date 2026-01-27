@@ -1,4 +1,5 @@
 #include "App.h"
+#include "core/game/GameData.h"
 #include "core/game/MemoryOffsets.h"
 #include "core/gui/IconsFontAwesome5.h"
 #include "core/utilities/Logging.h"
@@ -450,6 +451,71 @@ void App::drawDebugPanel()
             uint16_t warpFieldID = atoi(debugWarpFieldID);
             game->write<uint16_t>(GameOffsets::FieldWarpID, warpFieldID);
             game->write<uint8_t>(GameOffsets::FieldWarpTrigger, 1);
+        }
+
+        ImGui::Unindent(25.0f);
+    }
+
+    if (ImGui::CollapsingHeader("Battle"))
+    {
+        ImGui::Indent(25.0f);
+
+        std::pair<BattleScene*, BattleFormation*> battleData = game->getBattleFormation();
+        BattleFormation* formation = battleData.second;
+
+        if (formation != nullptr)
+        {
+            for (int i = 0; i < 6; ++i)
+            {
+                if (formation->enemyIDs[i] == UINT16_MAX)
+                {
+                    continue;
+                }
+
+                std::string enemyText = "Enemy " + std::to_string(i);
+                ImGui::Text(enemyText.c_str());
+                ImGui::Indent(25.0f);
+
+                uint32_t curHP = game->read<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::CurrentHP);
+                uint32_t maxHP = game->read<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::MaxHP);
+                std::string hpText = "HP: " + std::to_string(curHP) + "/" + std::to_string(maxHP);
+                ImGui::Text(hpText.c_str());
+
+                uint16_t curMP = game->read<uint16_t>(BattleOffsets::Enemies[i] + BattleOffsets::CurrentMP);
+                uint16_t maxMP = game->read<uint16_t>(BattleOffsets::Enemies[i] + BattleOffsets::MaxMP);
+                std::string mpText = "MP: " + std::to_string(curMP) + "/" + std::to_string(maxMP);
+                ImGui::Text(mpText.c_str());
+
+                uint8_t str = game->read<uint8_t>(BattleOffsets::Enemies[i] + BattleOffsets::Strength);
+                std::string strText = "Strength: " + std::to_string(str);
+                ImGui::Text(strText.c_str());
+
+                uint8_t magic = game->read<uint8_t>(BattleOffsets::Enemies[i] + BattleOffsets::Magic);
+                std::string magicText = "Magic: " + std::to_string(magic);
+                ImGui::Text(magicText.c_str());
+
+                uint8_t evade = game->read<uint8_t>(BattleOffsets::Enemies[i] + BattleOffsets::Evade);
+                std::string evadeText = "Evade: " + std::to_string(evade);
+                ImGui::Text(evadeText.c_str());
+
+                uint8_t spd = game->read<uint8_t>(BattleOffsets::Enemies[i] + BattleOffsets::Speed);
+                std::string spdText = "Speed: " + std::to_string(spd);
+                ImGui::Text(spdText.c_str());
+
+                uint8_t luck = game->read<uint8_t>(BattleOffsets::Enemies[i] + BattleOffsets::Luck);
+                std::string luckText = "Luck: " + std::to_string(luck);
+                ImGui::Text(luckText.c_str());
+
+                uint16_t def = game->read<uint16_t>(BattleOffsets::Enemies[i] + BattleOffsets::Defense);
+                std::string defText = "Defense: " + std::to_string(def);
+                ImGui::Text(defText.c_str());
+
+                uint16_t mDef = game->read<uint16_t>(BattleOffsets::Enemies[i] + BattleOffsets::MDefense);
+                std::string mDefText = "Magic Defense: " + std::to_string(mDef);
+                ImGui::Text(mDefText.c_str());
+
+                ImGui::Unindent(25.0f);
+            }
         }
 
         ImGui::Unindent(25.0f);

@@ -95,7 +95,7 @@ void RandomizeEncounters::onFrame(uint32_t frameNumber)
         game->write<uint16_t>(GameOffsets::NextFormationID, randomFormation);
         lastFormation = randomFormation;
 
-        LOG("Randomized battle: %d to %d", formationID, randomFormation);
+        LOG("Randomized battle: %d to %d (Candidates: %d)", formationID, randomFormation, candidates.size());
     }
 }
 
@@ -108,6 +108,15 @@ void RandomizeEncounters::onBattleEnter()
 
     std::pair<BattleScene*, BattleFormation*> battleData = game->getBattleFormation();
     BattleFormation* formation = battleData.second;
+    if (formation == nullptr)
+    {
+        return;
+    }
+
+    if (randomEncounterMap.count(formation->id) == 0)
+    {
+        return;
+    }
 
     for (int i = 0; i < 6; ++i)
     {

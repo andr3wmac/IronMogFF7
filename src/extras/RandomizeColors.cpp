@@ -186,7 +186,7 @@ void RandomizeColors::onStart()
     lastFieldID = -1;
     waitingForField = true;
 
-    std::mt19937 rng(game->getSeed());
+    std::mt19937 rng(game->getSeed() + rerollOffset);
 
     // Generate table of random colors
     randomModelColors.clear();

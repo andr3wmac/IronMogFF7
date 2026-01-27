@@ -260,6 +260,8 @@ void RandomizeBosses::onBattleEnter()
         return;
     }
 
+    bool inBossFight = false;
+
     std::vector<const Boss*> bosses = GameData::getBossesInScene(scene);
     for (const Boss* boss : bosses)
     {
@@ -288,13 +290,14 @@ void RandomizeBosses::onBattleEnter()
                     std::string elementsStr = buildElementsString(randomizedElements.first, randomizedElements.second);
                     LOG("Randomized weakness and resistance on boss %s to: %s", boss->name.c_str(), elementsStr.c_str());
                 }
-                
+    
+                inBossFight = true;
                 break;
             }
         }
     }
 
-    if (statMultiplier != 1.0f)
+    if (inBossFight && statMultiplier != 1.0f)
     {
         for (int i = 0; i < 6; ++i)
         {

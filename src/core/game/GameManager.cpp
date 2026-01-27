@@ -743,8 +743,8 @@ void GameManager::applyBattleStatMultiplier(uintptr_t battleCharOffset, float mu
 
     if (applyToMP)
     {
-        multiplyStat<uint32_t>(this, battleCharOffset + BattleOffsets::CurrentMP, multiplier);
-        multiplyStat<uint32_t>(this, battleCharOffset + BattleOffsets::MaxMP, multiplier);
+        multiplyStat<uint16_t>(this, battleCharOffset + BattleOffsets::CurrentMP, multiplier);
+        multiplyStat<uint16_t>(this, battleCharOffset + BattleOffsets::MaxMP, multiplier);
     }
 
     if (applyToStats)

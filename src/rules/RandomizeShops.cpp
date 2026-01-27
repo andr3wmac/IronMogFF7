@@ -29,6 +29,9 @@ bool RandomizeShops::onSettingsGUI()
     {
         changed |= ImGui::Checkbox("Keep Prices", &keepPrices);
         ImGui::SetItemTooltip("Keep prices the same as the original shop.");
+
+        changed |= ImGui::Checkbox("Exclude Rare Items", &excludeRareItems);
+        ImGui::SetItemTooltip("Items and materia which are not intended to be bought and\nsold (1 gil price) will not be included in shop randomization.");
     }
     ImGui::EndDisabled();
 
@@ -37,29 +40,20 @@ bool RandomizeShops::onSettingsGUI()
 
 void RandomizeShops::loadSettings(const ConfigFile& cfg)
 {
-    disableShops = cfg.get<bool>("disableShops", false);
-    keepPrices = cfg.get<bool>("keepPrices", true);
+    disableShops     = cfg.get<bool>("disableShops", false);
+    keepPrices       = cfg.get<bool>("keepPrices", true);
+    excludeRareItems = cfg.get<bool>("excludeRareItems", false);
 }
 
 void RandomizeShops::saveSettings(ConfigFile& cfg)
 {
     cfg.set<bool>("disableShops", disableShops);
     cfg.set<bool>("keepPrices", keepPrices);
+    cfg.set<bool>("excludeRareItems", excludeRareItems);
 }
 
 void RandomizeShops::onDebugGUI()
 {
-    /*if (game->getGameModule() != GameModule::Menu)
-    {
-        return;
-    }
-
-    uint8_t menuType = game->read<uint8_t>(GameOffsets::MenuType);
-    if (menuType != MenuType::Shop)
-    {
-        return;
-    }*/
-
     FieldData fieldData = GameData::getField(lastFieldID);
     if (!fieldData.isValid())
     {
@@ -75,7 +69,7 @@ void RandomizeShops::onDebugGUI()
             continue;
         }
 
-        uintptr_t shopOffset = ShopOffsets::ShopStart + (84 * shopID);
+        uintptr_t shopOffset = ShopOffsets::ShopStart + (ShopOffsets::ShopStride * shopID);
         uint8_t invCount = game->read<uint8_t>(shopOffset + 2);
 
         if (invCount > SHOP_ITEM_MAX)
@@ -144,11 +138,8 @@ void RandomizeShops::generateRandomizedShops()
     // assigned to the highest value original item. When Keep Prices is enabled this
     // adds a minor degree of balance.
 
-    for (const auto& fieldDataPair : GameData::fieldData)
+    for (const auto& [fieldID, fieldData] : GameData::fieldData)
     {
-        uint16_t fieldID = fieldDataPair.first;
-        const FieldData& fieldData = fieldDataPair.second;
-
         for (int i = 0; i < fieldData.shops.size(); ++i)
         {
             uint8_t shopID = fieldData.shops[i].shopID;
@@ -159,9 +150,9 @@ void RandomizeShops::generateRandomizedShops()
 
             rng.seed(Utilities::makeSeed64(game->getSeed(), fieldID, shopID));
 
-            Shop& shop = GameData::shops[shopID];
+            const Shop& shop = GameData::shops[shopID];
             RandomizedShop& randomizedShop = randomizedShops[shopID];
-            uintptr_t shopOffset = ShopOffsets::ShopStart + (84 * shopID);
+            uintptr_t shopOffset = ShopOffsets::ShopStart + (ShopOffsets::ShopStride * shopID);
 
             for (int j = 0; j < shop.items.size(); ++j)
             {
@@ -348,8 +339,8 @@ void RandomizeShops::onFrame(uint32_t frameNumber)
                         game->write<uint32_t>(ShopOffsets::PricesStart + (newItem.id * 4), origItem.price);
                     }
 
-                    std::string oldItemName = GameData::getItemName((uint8_t)origItem.id);
-                    std::string newItemName = GameData::getItemName((uint8_t)newItem.id);
+                    std::string oldItemName = GameData::getItemName(origItem.id);
+                    std::string newItemName = GameData::getItemName(newItem.id);
                     LOG("Randomized item in shop %d: %s changed to: %s", shopID, oldItemName.c_str(), newItemName.c_str());
                 }
                 for (int j = 0; j < shop.materia.size(); ++j)
@@ -384,63 +375,35 @@ void RandomizeShops::onFrame(uint32_t frameNumber)
     }
 }
 
-uint16_t RandomizeShops::randomizeShopItem(uint16_t itemID)
+uint16_t RandomizeShops::randomizeShopItem(uint16_t itemID, const std::set<uint16_t>& previouslyChosen)
 {
     uint16_t selectedID = itemID;
 
     // Item
     if (itemID < 128)
     {
-        selectedID = GameData::getRandomItem(rng);
+        selectedID = GameData::getRandomItem(rng, true, excludeRareItems, previouslyChosen);
     }
     // Weapon
     else if (itemID < 256)
     {
-        selectedID = 128 + GameData::getRandomWeapon(rng);
+        selectedID = 128 + GameData::getRandomWeapon(rng, true, excludeRareItems, previouslyChosen);
     }
     // Armor
     else if (itemID < 288)
     {
-        selectedID = 256 + GameData::getRandomArmor(rng);
+        selectedID = 256 + GameData::getRandomArmor(rng, true, excludeRareItems, previouslyChosen);
     }
     // Accessory
     else
     {
-        selectedID = 288 + GameData::getRandomAccessory(rng);
+        selectedID = 288 + GameData::getRandomAccessory(rng, true, excludeRareItems, previouslyChosen);
     }
 
     return selectedID;
 }
 
-uint16_t RandomizeShops::randomizeShopItem(uint16_t itemID, std::set<uint16_t> previouslyChosen)
+uint16_t RandomizeShops::randomizeShopMateria(uint16_t materiaID, const std::set<uint16_t>& previouslyChosen)
 {
-    while (true)
-    {
-        uint16_t chosen = randomizeShopItem(itemID);
-        if (previouslyChosen.count(chosen) == 0)
-        {
-            return chosen;
-        }
-    }
-
-    return 0;
-}
-
-uint16_t RandomizeShops::randomizeShopMateria(uint16_t materiaID)
-{
-    return GameData::getRandomMateria(rng);
-}
-
-uint16_t RandomizeShops::randomizeShopMateria(uint16_t materiaID, std::set<uint16_t> previouslyChosen)
-{
-    while (true)
-    {
-        uint16_t chosen = randomizeShopMateria(materiaID);
-        if (previouslyChosen.count(chosen) == 0)
-        {
-            return chosen;
-        }
-    }
-
-    return 0;
+    return GameData::getRandomMateria(rng, true, excludeRareItems, previouslyChosen);
 }
