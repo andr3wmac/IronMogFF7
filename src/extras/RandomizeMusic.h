@@ -19,6 +19,8 @@ struct Track
 class RandomizeMusic : public Extra
 {
 public:
+    RandomizeMusic();
+
     void setup() override;
     bool hasSettings() override { return true; }
     bool onSettingsGUI() override;

@@ -366,6 +366,7 @@ void RandomizeShops::onFrame(uint32_t frameNumber)
         {
             if (keepPrices)
             {
+                LOG("Applied global sell prices.");
                 game->write(ShopOffsets::PricesStart, (uint8_t*)itemSellPrices.data(), sizeof(itemSellPrices));
                 game->write(ShopOffsets::MateriaPricesStart, (uint8_t*)materiaSellPrices.data(), sizeof(materiaSellPrices));
             }

@@ -10,8 +10,6 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
-REGISTER_EXTRA("Randomize Music", RandomizeMusic)
-
 const uint16_t UnsetMusicID = 65535;
 const uint16_t FullVolume = 0x7F;
 
@@ -30,6 +28,13 @@ const std::vector<std::string> MusicList = {
     "sensui", "ro", "jyro", "nointro", "riku", "si", "mogu", "pre",
     "fin", "heart", "roll"
 };
+
+REGISTER_EXTRA("Randomize Music", RandomizeMusic)
+
+RandomizeMusic::RandomizeMusic()
+{
+    scanMusicFolder();
+}
 
 void RandomizeMusic::setup()
 {

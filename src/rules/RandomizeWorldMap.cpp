@@ -105,8 +105,9 @@ void RandomizeWorldMap::onStart()
     }
 
     // Random generator
+    uint32_t seed = game->getSeed();
     std::random_device rd;
-    std::mt19937 rng(game->getSeed());
+    std::mt19937 rng(seed);
 
     for (int i = 0; i < entranceGroups.size(); ++i)
     {
@@ -133,7 +134,11 @@ void RandomizeWorldMap::onStart()
             WorldMapEntrance& entrance1 = GameData::worldMapEntrances[groupKeys[j]];
             WorldMapEntrance& entrance2 = GameData::worldMapEntrances[groupValues[j]];
 
-            LOG("World Map Entrance %s (%d) -> %s (%d)", entrance1.fieldName.c_str(), entrance1.fieldID, entrance2.fieldName.c_str(), entrance2.fieldID);
+            // Only log if we haven't already for this seed, otherwise this is just log spam.
+            if (lastLoggedSeed != seed)
+            {
+                LOG("World Map Entrance %s (%d) -> %s (%d)", entrance1.fieldName.c_str(), entrance1.fieldID, entrance2.fieldName.c_str(), entrance2.fieldID);
+            }
         }
     }
 
@@ -141,6 +146,8 @@ void RandomizeWorldMap::onStart()
     uint8_t seenZolom = game->read<uint8_t>(0x9D457);
     seenZolom |= (1u << 3);
     game->write<uint8_t>(0x9D457, seenZolom);
+
+    lastLoggedSeed = seed;
 }
 
 void RandomizeWorldMap::onFrame(uint32_t frameNumber)
