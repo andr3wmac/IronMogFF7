@@ -10,8 +10,6 @@
 #include <filesystem>
 namespace fs = std::filesystem;
 
-REGISTER_EXTRA("Randomize Music", RandomizeMusic)
-
 const uint16_t UnsetMusicID = 65535;
 const uint16_t FullVolume = 0x7F;
 
@@ -30,6 +28,13 @@ const std::vector<std::string> MusicList = {
     "sensui", "ro", "jyro", "nointro", "riku", "si", "mogu", "pre",
     "fin", "heart", "roll"
 };
+
+REGISTER_EXTRA("Randomize Music", RandomizeMusic)
+
+RandomizeMusic::RandomizeMusic()
+{
+    scanMusicFolder();
+}
 
 void RandomizeMusic::setup()
 {
@@ -50,10 +55,17 @@ bool RandomizeMusic::onSettingsGUI()
         ImGui::Text("No music found, randomization disabled.");
     }
 
+    // Curated Music
+    ImGui::Checkbox("Use Curated Music", &useCuratedMusic);
+    ImGui::SetItemTooltip("Limits music randomization to songs chosen\nto be appropriate replacements.\ne.g. Battle music randomizes to battle music.");
+
+    // Volume
     constexpr float min = 0.0f;
     constexpr float max = 2.0f;
-
-    changed |= ImGui::SliderScalar("Volume", ImGuiDataType_Float, &currentVolume, &min, &max, "%.3lf");
+    ImGui::Text("Volume");
+    ImGui::SameLine(75.0f);
+    ImGui::SetNextItemWidth(250.0f);
+    changed |= ImGui::SliderScalar("##musicVolume", ImGuiDataType_Float, &currentVolume, &min, &max, "%.3lf");
 
     if (currentVolume != previousVolume)
     {
@@ -61,6 +73,7 @@ bool RandomizeMusic::onSettingsGUI()
         previousVolume = currentVolume;
     }
 
+    // Rescan
     if (ImGui::Button("Rescan Music Folder", ImVec2(150, 0)))
     {
         scanMusicFolder();
@@ -70,21 +83,26 @@ bool RandomizeMusic::onSettingsGUI()
     std::string trackCountText = "Tracks: " + std::to_string(trackCount);
     ImGui::Text(trackCountText.c_str());
 
+    // Reroll
+    ImGui::BeginDisabled(game == nullptr);
     if (ImGui::Button("Reroll Music", ImVec2(150, 0)))
     {
         randomizeMusic(previousMusicID);
     }
+    ImGui::EndDisabled();
 
     return changed;
 }
 
 void RandomizeMusic::loadSettings(const ConfigFile& cfg)
 {
+    useCuratedMusic = cfg.get<bool>("useCuratedMusic", true);
     currentVolume = cfg.get<float>("volume", 5);
 }
 
 void RandomizeMusic::saveSettings(ConfigFile& cfg)
 {
+    cfg.set<bool>("useCuratedMusic", useCuratedMusic);
     cfg.set<float>("volume", currentVolume);
 }
 
@@ -213,14 +231,27 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
         // Reuse previously selected random track.
         if (usePreviousTrackSelection)
         {
-            std::vector<Track> tracks = musicMap[MusicList[musicID]];
-            uint16_t selectedMusic = previousTrackSelection[musicID];
-
-            if (selectedMusic < tracks.size())
+            if (useCuratedMusic)
             {
-                const Track& track = tracks[selectedMusic];
-                play(track);
-                didRandomize = true;
+                std::vector<Track> tracks = musicMap[MusicList[musicID]];
+                uint16_t selectedMusic = previousTrackSelection[musicID];
+
+                if (selectedMusic < tracks.size())
+                {
+                    const Track& track = tracks[selectedMusic];
+                    play(track);
+                    didRandomize = true;
+                }
+            }
+            else
+            {
+                uint16_t selectedMusic = previousTrackSelection[musicID];
+                if (selectedMusic < uniqueTrackList.size())
+                {
+                    const Track& track = uniqueTrackList[selectedMusic];
+                    play(track);
+                    didRandomize = true;
+                }
             }
         }
         else 
@@ -248,6 +279,7 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
 void RandomizeMusic::scanMusicFolder()
 {
     musicMap.clear();
+    uniqueTrackList.clear();
     trackCount = 0;
 
     // Scan music folder
@@ -286,7 +318,9 @@ void RandomizeMusic::scanMusicFolder()
 
             if (ext == ".mp3" || ext == ".wav")
             {
-                musicMap[name].push_back(loadTrack(entry.path().string()));
+                Track track = loadTrack(entry.path().string());
+                musicMap[name].push_back(track);
+                addUniqueTrack(track);
                 trackCount++;
             }
         }
@@ -325,6 +359,35 @@ Track RandomizeMusic::loadTrack(std::string path)
     return track;
 }
 
+void RandomizeMusic::addUniqueTrack(const Track& newTrack)
+{
+    // Extract the filename once before starting the loop for efficiency
+    std::string newFileName = fs::path(newTrack.path).filename().string();
+    bool isDuplicate = false;
+
+    for (const Track& track : uniqueTrackList) 
+    {
+        // Extract the filename of the track currently being inspected
+        std::string existingFileName = fs::path(track.path).filename().string();
+
+        // Check if filename and parameters all match
+        if (existingFileName == newFileName &&
+            track.start == newTrack.start &&
+            track.loopStart == newTrack.loopStart &&
+            track.loopEnd == newTrack.loopEnd &&
+            track.playOnce == newTrack.playOnce)
+        {
+            isDuplicate = true;
+            break;
+        }
+    }
+
+    if (!isDuplicate) 
+    {
+        uniqueTrackList.push_back(newTrack);
+    }
+}
+
 bool RandomizeMusic::randomizeMusic(uint16_t musicID)
 {
     if (musicID >= MusicList.size() || musicMap.count(MusicList[musicID]) == 0)
@@ -332,22 +395,37 @@ bool RandomizeMusic::randomizeMusic(uint16_t musicID)
         return false;
     }
 
-    // Get available tracks for this music ID
-    std::vector<Track> tracks = musicMap[MusicList[musicID]];
-    if (tracks.size() == 0)
-    {
-        return false;
-    }
-
-    // Randomly select a track from the choices for this music ID
     static std::mt19937 rng(std::random_device{}());
-    std::uniform_int_distribution<size_t> dist(0, tracks.size() - 1);
-    uint16_t selectedMusic = (uint16_t)dist(rng);
 
-    // Play track
-    Track& track = tracks[selectedMusic];
-    play(track);
-    previousTrackSelection[musicID] = selectedMusic;
+    if (useCuratedMusic)
+    {
+        // Get available tracks for this music ID
+        std::vector<Track> tracks = musicMap[MusicList[musicID]];
+        if (tracks.size() == 0)
+        {
+            return false;
+        }
+
+        // Randomly select a track from the choices for this music ID
+        std::uniform_int_distribution<size_t> dist(0, tracks.size() - 1);
+        uint16_t selectedMusic = (uint16_t)dist(rng);
+
+        // Play track
+        Track& track = tracks[selectedMusic];
+        play(track);
+        previousTrackSelection[musicID] = selectedMusic;
+    }
+    else 
+    {
+        // Randomly select a track from the unique song list
+        std::uniform_int_distribution<size_t> dist(0, uniqueTrackList.size() - 1);
+        uint16_t selectedMusic = (uint16_t)dist(rng);
+
+        // Play track
+        Track& track = uniqueTrackList[selectedMusic];
+        play(track);
+        previousTrackSelection[musicID] = selectedMusic;
+    }
 
     return true;
 }
@@ -357,6 +435,7 @@ void RandomizeMusic::play(const Track& track)
     std::filesystem::path p(track.path);
     currentSong = p.stem().string();
 
+    overrideMusic = true;
     AudioManager::playMusic(track.path, track.start, track.loopStart, track.loopEnd, track.playOnce);
     LOG("Playing: %s", track.path.c_str());
 }

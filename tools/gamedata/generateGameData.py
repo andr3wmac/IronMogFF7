@@ -35,6 +35,9 @@ def outputInventory(gen, discPath, version):
     kernelDataFile = ff7.game.retrieveFile(discPath, "INIT", "KERNEL.BIN")
     kernelBin = ff7.kernel.Archive(kernelDataFile)
 
+    # Extract shop price lists
+    shopData = ff7.menu.ShopMenuData(ff7.game.retrieveFile(discPath, "MENU", "SHOPMENU.MNU"))
+
     # Extract all string lists
     for index, numStrings, compressed, transDir, transFileName in ff7.data.kernelStringData:
         stringList = ff7.kernel.StringList(kernelBin.getFile(9, index).getData(), numStrings, ff7.game.isJapanese(version))
@@ -48,7 +51,10 @@ def outputInventory(gen, discPath, version):
                 if (item_name == ""):
                     continue
 
-                gen.write_line("addItem(" + str(idx) + ", \"" + item_name + "\");", 4)  
+                item_id = idx
+                item_price = shopData.item_prices[item_id]
+
+                gen.write_line("addItem(" + str(idx) + ", \"" + item_name + "\", " + str(item_price) + ");", 4)  
                 gen.item_names.append(item_name)
             gen.write_line("")
 
@@ -60,7 +66,10 @@ def outputInventory(gen, discPath, version):
                 if (item_name == ""):
                     continue
                 
-                gen.write_line("addWeapon(" + str(idx) + ", \"" + item_name + "\");", 4)  
+                item_id = idx + 128
+                item_price = shopData.item_prices[item_id]
+
+                gen.write_line("addWeapon(" + str(idx) + ", \"" + item_name + "\", " + str(item_price) + ");", 4)  
                 gen.item_names.append(item_name)
             gen.write_line("")
 
@@ -72,7 +81,10 @@ def outputInventory(gen, discPath, version):
                 if (item_name == ""):
                     continue
                 
-                gen.write_line("addArmor(" + str(idx) + ", \"" + item_name + "\");", 4)  
+                item_id = idx + 256
+                item_price = shopData.item_prices[item_id]
+
+                gen.write_line("addArmor(" + str(idx) + ", \"" + item_name + "\", " + str(item_price) + ");", 4)  
                 gen.item_names.append(item_name)
             gen.write_line("")
 
@@ -84,7 +96,10 @@ def outputInventory(gen, discPath, version):
                 if (item_name == ""):
                     continue
                 
-                gen.write_line("addAccessory(" + str(idx) + ", \"" + item_name + "\");", 4)   
+                item_id = idx + 288
+                item_price = shopData.item_prices[item_id]
+
+                gen.write_line("addAccessory(" + str(idx) + ", \"" + item_name + "\", " + str(item_price) + ");", 4)   
                 gen.item_names.append(item_name)
             gen.write_line("")
 
@@ -92,12 +107,15 @@ def outputInventory(gen, discPath, version):
         if (index == 14):
             gen.write_line("// Materia", 4)
             for idx in range(0, len(lines)):
-                item_name = lines[idx]
-                if (item_name == ""):
+                materia_name = lines[idx]
+                if (materia_name == ""):
                     continue
+
+                materia_id = idx
+                materia_price = shopData.materia_prices[materia_id]
                 
-                gen.write_line("addMateria(" + str(idx) + ", \"" + item_name + "\");", 4) 
-                gen.item_names.append(item_name) 
+                gen.write_line("addMateria(" + str(idx) + ", \"" + materia_name + "\", " + str(materia_price) + ");", 4) 
+                gen.item_names.append(materia_name) 
             gen.write_line("")
 
 def outputOther(gen, discPath, version):
@@ -337,6 +355,24 @@ def outputBattles(gen, discPath, version):
 
     gen.write_line("")
 
+def outputShops(gen, discPath, verison):
+    shopData = ff7.menu.ShopMenuData(ff7.game.retrieveFile(discPath, "MENU", "SHOPMENU.MNU"))
+
+    shopID = 0
+    for shop in shopData.shops:
+        items = []
+        for item in shop.items:
+            if item.isMateria:
+                items.append(item.id + 512)
+            else:
+                items.append(item.id)
+
+        shopItems = ", ".join(map(str, items))
+        gen.write_line("addShop(" + str(shopID) + ", {" + shopItems + "});", 4)
+        shopID += 1
+
+    gen.write_line("")
+
 def outputBosses(gen, discPath, version):
     sceneBin = ff7.scene.Archive(ff7.game.retrieveFile(discPath, "BATTLE", "SCENE.BIN"))
 
@@ -540,6 +576,7 @@ outputInventory(gen, discPath, version)
 outputOther(gen, discPath, version)
 outputFields(gen, discPath, version)
 outputWorldMap(gen, discPath, version)
+outputShops(gen, discPath, version)
 outputBattles(gen, discPath, version)
 outputBosses(gen, discPath, version)
 outputModels(gen, discPath, version)

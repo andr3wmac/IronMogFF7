@@ -6,6 +6,7 @@
 
 #include <imgui.h>
 #include <random>
+#include <set>
 
 REGISTER_RULE("Randomize Enemy Drops", RandomizeEnemyDrops)
 
@@ -77,7 +78,7 @@ void RandomizeEnemyDrops::onDebugGUI()
                 continue;
             }
 
-            std::string dropText = "  Drop " + std::to_string(j) + ": " + GameData::getItemNameFromID(dropID) + "(" + std::to_string(dropID) + ")";
+            std::string dropText = "  Drop " + std::to_string(j) + ": " + GameData::getItemName(dropID) + "(" + std::to_string(dropID) + ")";
             ImGui::Text(dropText.c_str());
         }
     }
@@ -97,7 +98,7 @@ void RandomizeEnemyDrops::onBattleEnter()
     BattleScene* scene = battleData.first;
     BattleFormation* formation = battleData.second;
 
-    std::vector<int> activeEnemyIDs;
+    std::set<int> activeEnemyIDs;
     for (int i = 0; i < 6; ++i)
     {
         if (formation->enemyIDs[i] == UINT16_MAX)
@@ -109,7 +110,7 @@ void RandomizeEnemyDrops::onBattleEnter()
         {
             if (formation->enemyIDs[i] == scene->enemyIDs[j])
             {
-                activeEnemyIDs.push_back(j);
+                activeEnemyIDs.insert(j);
             }
         }
 
@@ -136,8 +137,8 @@ void RandomizeEnemyDrops::onBattleEnter()
             uint16_t newDropID = GameData::getRandomItemFromID(dropID, rng, true);
             game->write<uint16_t>(BattleSceneOffsets::Enemies[id] + BattleSceneOffsets::DropIDs[i], newDropID);
 
-            std::string oldItemName = GameData::getItemNameFromID(dropID);
-            std::string newItemName = GameData::getItemNameFromID(newDropID);
+            std::string oldItemName = GameData::getItemName(dropID);
+            std::string newItemName = GameData::getItemName(newDropID);
             LOG("Randomized enemy drop in formation %d: %s changed to %s", formationID, oldItemName.c_str(), newItemName.c_str());
         }
     }

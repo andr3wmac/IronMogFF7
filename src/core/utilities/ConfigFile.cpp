@@ -81,6 +81,10 @@ T ConfigFile::get(const std::string& key, T defaultValue) const
 
         return false; // Default for "false", "0", "no", "off", or garbage text
     }
+    else if constexpr (std::is_same_v<T, std::string>)
+    {
+        return value;
+    }
     else 
     {
         static_assert(sizeof(T) == 0, "Unsupported type for get<T>");
@@ -94,6 +98,10 @@ void ConfigFile::set(const std::string& key, T value)
     {
         configData[keyPrefix + key] = value ? "true" : "false";
     }
+    else if constexpr (std::is_same_v<T, std::string>)
+    {
+        configData[keyPrefix + key] = value;
+    }
     else 
     {
         configData[keyPrefix + key] = std::to_string(value);
@@ -104,8 +112,10 @@ template int ConfigFile::get(const std::string& key, int defaultValue) const;
 template float ConfigFile::get(const std::string& key, float defaultValue) const;
 template uint64_t ConfigFile::get(const std::string& key, uint64_t defaultValue) const;
 template bool ConfigFile::get(const std::string& key, bool defaultValue) const;
+template std::string ConfigFile::get(const std::string& key, std::string defaultValue) const;
 
 template void ConfigFile::set(const std::string& key, int value);
 template void ConfigFile::set(const std::string& key, float value);
 template void ConfigFile::set(const std::string& key, uint64_t value);
 template void ConfigFile::set(const std::string& key, bool value);
+template void ConfigFile::set(const std::string& key, std::string value);

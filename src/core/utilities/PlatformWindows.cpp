@@ -7,6 +7,7 @@
 #include <psapi.h>
 
 #include <set>
+#include <thread>
 
 // NtWriteVirtualMemory function signature
 typedef NTSTATUS(WINAPI* NtWriteVirtualMemory_t)(
@@ -61,13 +62,17 @@ bool Platform::write(void* processHandle, uintptr_t address, void* memIn, size_t
     PVOID target = (PVOID)address;
     SIZE_T bytesWritten = 0;
 
-    NTSTATUS status = NtWriteVirtualMemoryFn(
-        processHandle,
-        target,
-        memIn,
-        sizeInBytes,
-        &bytesWritten
-    );
+    NTSTATUS status = NtWriteVirtualMemoryFn(processHandle, target, memIn, sizeInBytes, &bytesWritten);
+
+    // STATUS_PARTIAL_COPY
+    if (status == 0x8000000D)
+    {
+        LOG("Platform::write NtWriteVirtualMemory returned partial copy, retrying..");
+
+        // Give the OS a chance to finish other things then try the write again.
+        std::this_thread::yield();
+        status = NtWriteVirtualMemoryFn(processHandle, target, memIn, sizeInBytes, &bytesWritten);
+    }
 
     if (status < 0) // NT_SUCCESS(status)
     {

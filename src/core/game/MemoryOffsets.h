@@ -207,17 +207,21 @@ struct BattleOffsets
     CONST_PTR Allies[]  = { 0xF83E0, 0xF8448, 0xF84B0 };
     CONST_PTR Enemies[] = { 0xF8580, 0xF85E8, 0xF8650, 0xF86B8, 0xF8720, 0xF8788 };
 
-    CONST_PTR Status    = 0x00;
-    CONST_PTR Level     = 0x09;
-    CONST_PTR Strength  = 0x0D;
-    CONST_PTR Evade     = 0x0F;
-    CONST_PTR Speed     = 0x14;
-    CONST_PTR Luck      = 0x15;
-    CONST_PTR ID        = 0x24;
-    CONST_PTR CurrentHP = 0x2C;
-    CONST_PTR MaxHP     = 0x30;
-    CONST_PTR Gil       = 0x58;
-    CONST_PTR Exp       = 0x5C;
+    CONST_PTR Status    = 0x00; // uint16_t
+    CONST_PTR Level     = 0x09; // uint8_t
+    CONST_PTR Strength  = 0x0D; // uint8_t
+    CONST_PTR Magic     = 0x0E; // uint8_t
+    CONST_PTR Evade     = 0x0F; // uint8_t
+    CONST_PTR Speed     = 0x14; // uint8_t
+    CONST_PTR Luck      = 0x15; // uint8_t
+    CONST_PTR Defense   = 0x20; // uint16_t
+    CONST_PTR MDefense  = 0x22; // uint16_t
+    CONST_PTR CurrentMP = 0x28; // uint16_t
+    CONST_PTR MaxMP     = 0x2A; // uint16_t
+    CONST_PTR CurrentHP = 0x2C; // uint32_t
+    CONST_PTR MaxHP     = 0x30; // uint32_t
+    CONST_PTR Gil       = 0x58; // uint32_t
+    CONST_PTR Exp       = 0x5C; // uint32_t
 
     // Graphics Data
     CONST_PTR AllyModels[] = { 0x103200, 0x112200, 0x121200 };
@@ -350,6 +354,9 @@ struct ShopOffsets
 {
     CONST_PTR ShopStart  = 0x1D4714;
     CONST_PTR ShopStride = 84;
+
+    // uint8_t thats set to 0 for Buy, 1 for Sell, and 2 for Exit.
+    CONST_PTR MenuIndex = 0x1D95F2;
 
     // All prices are stored in uint32_t and are just an array of them in order of:
     // Items, Weapons, Armor, Accessories.

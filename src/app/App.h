@@ -11,8 +11,8 @@
 #define APP_WINDOW_HEIGHT 665
 #define APP_VERSION_MAJOR 0
 #define APP_VERSION_MINOR 7
-#define APP_VERSION_PATCH 0
-#define APP_VERSION_STRING "v0.7.0"
+#define APP_VERSION_PATCH 1
+#define APP_VERSION_STRING "v0.7.1"
 
 class App
 {
@@ -42,14 +42,14 @@ public:
     void run();
     void generateSeed();
     void loadSettings(const std::string& filePath);
-    void saveSettings(const std::string& filePath);
+    void saveSettings(const std::string& filePath, bool saveSeed = false);
 
     void drawSettingsPanel();
     void drawTrackerPanel();
     void drawBottomPanel();
     void drawDebugPanel();
 
-    void connected();
+    void connect();
     void disconnect();
     void runGameManager();
 

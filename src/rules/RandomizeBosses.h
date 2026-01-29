@@ -24,6 +24,8 @@ private:
         WeightedRandom = 1
     };
 
+    float statMultiplier = 1.0f;
+
     RandomMode randomMode = RandomMode::Shuffle;
     std::mt19937_64 rng;
     int elementCount = 7;

@@ -1,4 +1,5 @@
 ﻿#include "GameManager.h"
+#include "core/audio/AudioManager.h"
 #include "core/game/GameData.h"
 #include "core/game/MemoryOffsets.h"
 #include "core/utilities/Logging.h"
@@ -214,14 +215,23 @@ GameManager::GameState GameManager::getState()
     return GameState::InGame;
 }
 
-void GameManager::update()
+bool GameManager::update()
 {
+    double currentTime = Utilities::getTimeMS();
+    
+    // If read/write errors have occured then connection has been broken.
+    if (emulator->pollErrors())
+    {
+        return false;
+    }
+
     GameState state = getState();
     {
         if (lastGameState == GameState::InGame && state != GameState::InGame)
         {
             // Clearing save data prevents stale state getting stuck from a game over.
             clearSaveData();
+            AudioManager::pauseMusic();
         }
 
         if (lastGameState != GameState::InGame && state == GameState::InGame)
@@ -237,11 +247,11 @@ void GameManager::update()
     // Only perform updates when we're actually in the game.
     if (state != GameState::InGame)
     {
-        return;
+        return true;
     }
 
     // We assume if 200ms has passed without the frame number advancing that the emulator is paused
-    double currentTime = Utilities::getTimeMS();
+    
     if (currentTime - lastFrameUpdateTime > 200 && !emulatorPaused)
     {
         emulatorPaused = true;
@@ -363,7 +373,7 @@ void GameManager::update()
 
     // A jump in frame number likely indicates a load game or load save state.
     int frameDifference = std::abs((int)newFrameNumber - (int)frameNumber);
-    if (frameDifference > 10 && framesSinceReload > 10)
+    if (frameDifference > 30 && framesSinceReload > 30)
     {
         double timeGap = currentTime - lastFrameUpdateTime;
         LOG("Load detected, reloading rules %lf", timeGap);
@@ -391,6 +401,7 @@ void GameManager::update()
     }
 
     lastUpdateDuration = Utilities::getTimeMS() - currentTime;
+    return true;
 }
 
 std::array<uint8_t, 3> GameManager::getPartyIDs()
@@ -663,7 +674,7 @@ int GameManager::findPickUpMessage(std::string itemName, uint8_t group, uint8_t 
         std::string msg = readString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength);
         if (msg.find(itemName) != std::string::npos)
         {
-            uint32_t distance = std::abs((int32_t)(fieldMsg.strOffset - offset));
+            uint32_t distance = std::abs((int32_t)(fieldMsg.offset - offset));
             if (distance < bestDistance)
             {
                 bestDistance = distance;
@@ -706,4 +717,44 @@ std::pair<BattleScene*, BattleFormation*> GameManager::getBattleFormation()
     }
 
     return { nullptr, nullptr };
+}
+
+template <typename T>
+void multiplyStat(GameManager* game, uintptr_t offset, float multiplier)
+{
+    T stat = game->read<T>(offset);
+    stat = Utilities::clampTo<T>(stat * multiplier);
+    game->write<T>(offset, stat);
+}
+
+void GameManager::applyBattleStatMultiplier(uintptr_t battleCharOffset, float multiplier, bool applyToHP, bool applyToMP, bool applyToStats)
+{
+    if (getGameModule() != GameModule::Battle)
+    {
+        LOG("Could not apply battle stat multiplier outside of battle.");
+        return;
+    }
+
+    if (applyToHP)
+    {
+        multiplyStat<uint32_t>(this, battleCharOffset + BattleOffsets::CurrentHP, multiplier);
+        multiplyStat<uint32_t>(this, battleCharOffset + BattleOffsets::MaxHP, multiplier);
+    }
+
+    if (applyToMP)
+    {
+        multiplyStat<uint16_t>(this, battleCharOffset + BattleOffsets::CurrentMP, multiplier);
+        multiplyStat<uint16_t>(this, battleCharOffset + BattleOffsets::MaxMP, multiplier);
+    }
+
+    if (applyToStats)
+    {
+        multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Strength, multiplier);
+        multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Magic, multiplier);
+        multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Evade, multiplier);
+        multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Speed, multiplier);
+        multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Luck, multiplier);
+        multiplyStat<uint16_t>(this, battleCharOffset + BattleOffsets::Defense, multiplier);
+        multiplyStat<uint16_t>(this, battleCharOffset + BattleOffsets::MDefense, multiplier);
+    }
 }

@@ -37,7 +37,7 @@ public:
     void clearSaveData();
     inline uint32_t getSeed() { return seed; }
     GameState getState();
-    void update();
+    bool update();
 
     // Returns how long the last update() took in ms.
     double getLastUpdateDuration() { return lastUpdateDuration; }
@@ -68,6 +68,9 @@ public:
 
     // Returns the current battle scene and formation.
     std::pair<BattleScene*, BattleFormation*> getBattleFormation();
+
+    // Given an offset to a battle character this function will apply a multiplier to each of the chosen stats.
+    void applyBattleStatMultiplier(uintptr_t battleCharOffset, float multiplier, bool applyToHP = true, bool applyToMP = true, bool applyToStats = true);
 
     // Returns the pointer to the line of field script last executed for a given group index.
     uint16_t getScriptExecutionPointer(uint8_t groupIndex) { return fieldScriptExecutionTable[groupIndex]; }

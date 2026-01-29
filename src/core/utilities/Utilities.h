@@ -246,4 +246,14 @@ public:
             static_cast<uint8_t>(b * 255)
         };
     }
+
+    template <typename Target, typename Source>
+    static Target clampTo(Source value) 
+    {
+        double dValue = static_cast<double>(value);
+        double minB = static_cast<double>(std::numeric_limits<Target>::min());
+        double maxB = static_cast<double>(std::numeric_limits<Target>::max());
+
+        return static_cast<Target>(std::clamp(dValue, minB, maxB));
+    }
 };

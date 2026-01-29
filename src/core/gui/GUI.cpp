@@ -137,6 +137,7 @@ bool GUI::initialize(int width, int height, const char* windowTitle)
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    io.IniFilename = "settings/imgui.ini";
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
