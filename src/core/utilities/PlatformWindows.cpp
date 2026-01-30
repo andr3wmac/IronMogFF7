@@ -67,14 +67,13 @@ bool Platform::write(void* processHandle, uintptr_t address, void* memIn, size_t
     // STATUS_PARTIAL_COPY
     if (status == 0x8000000D)
     {
+        // In the event a partial copy we fall back to the slower less error prone approach.
         LOG("Platform::write NtWriteVirtualMemory returned partial copy, retrying..");
-
-        // Give the OS a chance to finish other things then try the write again.
-        std::this_thread::yield();
-        status = NtWriteVirtualMemoryFn(processHandle, target, memIn, sizeInBytes, &bytesWritten);
+        status = WriteProcessMemory(processHandle, target, memIn, sizeInBytes, &bytesWritten);
     }
 
-    if (status < 0) // NT_SUCCESS(status)
+    // NT_SUCCESS
+    if (status < 0) 
     {
         LOG("Platform::write NtWriteVirtualMemory failed: offset=%llu status=0x%08X", (unsigned long long)address, status);
         return false;
