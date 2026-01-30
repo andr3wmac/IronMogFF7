@@ -15,9 +15,8 @@ REGISTER_RULE("Randomize Encounters", RandomizeEncounters)
 void RandomizeEncounters::setup()
 {
     BIND_EVENT(game->onStart, RandomizeEncounters::onStart);
-    BIND_EVENT_ONE_ARG(game->onFrame, RandomizeEncounters::onFrame);
+    BIND_EVENT_ONE_ARG(game->onFieldChanged, RandomizeEncounters::onFieldChanged);
     BIND_EVENT(game->onBattleEnter, RandomizeEncounters::onBattleEnter);
-    BIND_EVENT(game->onBattleExit, RandomizeEncounters::onBattleExit);
 
     // Chocobo fights
     excludedFormations.insert({ 56, 57, 60, 61, 78, 79, 80, 81, 98, 99, 104, 105, 152, 153, 156, 157, 162, 163, 166, 167, 202, 203, 206, 207, 214, 215, 218, 219 });
@@ -69,33 +68,102 @@ void RandomizeEncounters::saveSettings(ConfigFile& cfg)
     cfg.set<float>("statMultiplier", statMultiplier);
 }
 
+void RandomizeEncounters::onDebugGUI()
+{
+    if (game->getGameModule() != GameModule::Field)
+    {
+        ImGui::Text("Not currently in field.");
+        return;
+    }
+
+    // Display field encounter table randomization
+    {
+        FieldData fieldData = GameData::getField(game->getFieldID());
+        if (!fieldData.isValid())
+        {
+            ImGui::Text("Invalid field.");
+            return;
+        }
+
+        for (int t = 0; t < 2; ++t)
+        {
+            uintptr_t tableOffset = FieldScriptOffsets::EncounterStart + fieldData.encounterOffset + (t * FieldScriptOffsets::EncounterTableStride);
+
+            uint8_t tableEnabled = game->read<uint8_t>(tableOffset);
+            if (tableEnabled == 1)
+            {
+                uint16_t dbgEncTable[10];
+                game->read(tableOffset + 2, sizeof(uint16_t) * 10, (uint8_t*)dbgEncTable);
+
+                std::string encTableText = "Encounter Table " + std::to_string(t);
+                ImGui::Text(encTableText.c_str());
+
+                for (int i = 0; i < 10; ++i)
+                {
+                    uint8_t  prob = dbgEncTable[i] >> 10;
+                    uint16_t encounterID = dbgEncTable[i] & 0x03FF;
+
+                    if (encounterID == 0 && prob == 0)
+                    {
+                        continue;
+                    }
+
+                    auto [origProb, origEncounterID] = fieldData.getEncounter(t, i);
+
+                    std::string encText = std::to_string(i) + ") " + std::to_string(origEncounterID) + " to " + std::to_string(encounterID);
+                    ImGui::Text(encText.c_str());
+                }
+            }
+        }
+    }
+}
+
 void RandomizeEncounters::onStart()
 {
     rng.seed(game->getSeed());
     generateRandomEncounterMap();
 }
 
-void RandomizeEncounters::onFrame(uint32_t frameNumber)
+void RandomizeEncounters::onFieldChanged(uint16_t fieldID)
 {
-    uint16_t formationID = game->read<uint16_t>(GameOffsets::NextFormationID);
-    if (formationID == lastFormation)
+    updateEncounterTable(fieldID);
+}
+
+void RandomizeEncounters::updateEncounterTable(uint16_t fieldID)
+{
+    FieldData fieldData = GameData::getField(fieldID);
+    if (!fieldData.isValid())
     {
         return;
     }
-    lastFormation = formationID;
 
-    if (randomEncounterMap.count(formationID) > 0)
+    // Two encounter tables per field
+    for (int t = 0; t < 2; ++t)
     {
-        std::vector<uint16_t> candidates = randomEncounterMap[formationID];
+        uintptr_t tableOffset = FieldScriptOffsets::EncounterStart + fieldData.encounterOffset + (t * FieldScriptOffsets::EncounterTableStride);
 
-        // Originally tried choosing the battle once in generateRandomEncounterMap but it didn't feel
-        // random enough so choosing from the candidates on each encounter is done instead.
-        std::uniform_int_distribution<std::size_t> dist(0, candidates.size() - 1);
-        uint16_t randomFormation = candidates[dist(rng)];
-        game->write<uint16_t>(GameOffsets::NextFormationID, randomFormation);
-        lastFormation = randomFormation;
+        for (int i = 0; i < 10; ++i)
+        {
+            auto [origProb, origEncounterID] = fieldData.getEncounter(t, i);
+            if (origProb == 0 && origEncounterID == 0)
+            {
+                continue;
+            }
 
-        LOG("Randomized battle: %d to %d (Candidates: %d)", formationID, randomFormation, candidates.size());
+            std::vector<uint16_t> candidates = randomEncounterMap[origEncounterID];
+            if (candidates.size() == 0)
+            {
+                LOG("No random encounter candidates for formation %d", origEncounterID);
+                continue;
+            }
+
+            std::uniform_int_distribution<std::size_t> dist(0, candidates.size() - 1);
+            uint16_t randomEncounterID = candidates[dist(rng)];
+            uint16_t newEncounter = (origProb << 10) | (randomEncounterID & 0x03FF);
+
+            game->write<uint16_t>(tableOffset + 2 + (sizeof(uint16_t) * i), newEncounter);
+            LOG("Randomized battle: %d to %d (Candidates: %d, Table: %d)", origEncounterID, randomEncounterID, candidates.size(), t);
+        }
     }
 }
 
@@ -127,11 +195,6 @@ void RandomizeEncounters::onBattleEnter()
 
         game->applyBattleStatMultiplier(BattleOffsets::Enemies[i], statMultiplier);
     }
-}
-
-void RandomizeEncounters::onBattleExit()
-{
-    lastFormation = 0;
 }
 
 void RandomizeEncounters::generateRandomEncounterMap()

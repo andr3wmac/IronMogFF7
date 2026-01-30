@@ -12,18 +12,20 @@ public:
     bool onSettingsGUI() override;
     void loadSettings(const ConfigFile& cfg) override;
     void saveSettings(ConfigFile& cfg) override;
+    bool hasDebugGUI() override { return true; }
+    void onDebugGUI() override;
 
 private:
     void onStart();
-    void onFrame(uint32_t frameNumber);
+    void onFieldChanged(uint16_t fieldID);
     void onBattleEnter();
-    void onBattleExit();
+
     void generateRandomEncounterMap();
+    void updateEncounterTable(uint16_t fieldID);
 
     int maxLevelDifference = 5;
     float statMultiplier = 1.0f;
     
-    uint16_t lastFormation = 0;
     std::set<uint16_t> excludedFormations;
     std::unordered_map<uint16_t, std::vector<uint16_t>> randomEncounterMap;
     std::mt19937 rng;

@@ -48,8 +48,7 @@ void RandomizeColors::onDebugGUI()
 
     if (ImGui::Button("Force Update", ImVec2(120, 0)))
     {
-        waitingForField = true;
-        lastFieldID = -1;
+        // TOOD: handle this better.
         waitingForWorld = true;
         waitingForBattle = true;
     }
@@ -182,10 +181,6 @@ bool RandomizeColors::onSettingsGUI()
 
 void RandomizeColors::onStart()
 {
-    lastFieldTrigger = 0;
-    lastFieldID = -1;
-    waitingForField = true;
-
     std::mt19937 rng(game->getSeed() + rerollOffset);
 
     // Generate table of random colors
@@ -211,8 +206,8 @@ void RandomizeColors::onModuleChanged(uint8_t newModule)
 
 void RandomizeColors::onFieldChanged(uint16_t fieldID)
 {
-    lastFieldTrigger = game->read<uint16_t>(GameOffsets::ScreenFade);
-    waitingForField = true;
+    modelEditor.findFieldModels();
+    applyColors();
 }
 
 void RandomizeColors::onBattleEnter()
@@ -223,50 +218,33 @@ void RandomizeColors::onBattleEnter()
 void RandomizeColors::onFrame(uint32_t frameNumber)
 {
     uint8_t gameModule = game->getGameModule();
-
-    if (gameModule == GameModule::Field && waitingForField)
+    
+    if (gameModule == GameModule::Field)
     {
-        uint16_t fieldTrigger = game->read<uint16_t>(GameOffsets::ScreenFade);
-
-        // Update if we've hit peak fade out and started coming back down
-        // or if the last field is unset.
-        bool shouldUpdate = (lastFieldTrigger == 0x100 && fieldTrigger < lastFieldTrigger);
-        shouldUpdate |= (lastFieldID == -1);
+        uint16_t screenFade = game->read<uint16_t>(GameOffsets::ScreenFade);
 
         // Hack fix for base of tower transition after wedge falls
-        if (game->getFieldID() == 156 && game->getGameMoment() == 218 && lastFieldTrigger == 256)
+        if (game->getFieldID() == 156 && game->getGameMoment() == 218)
         {
             // Waiting 240 frames was chosen arbitrarily and tested. Could be fragile.
             if (game->getFramesInField() == 240)
             {
-                shouldUpdate = true;
+                modelEditor.findFieldModels();
+                applyColors();
             }
         }
 
         // Hack fix for tifa and cloud scene before northern crater
-        if (game->getFieldID() == 771 && game->getGameMoment() == 1612 && lastFieldTrigger > 1 && lastFieldTrigger < 120)
-        {
-            shouldUpdate = true;
-        }
-
-        if (shouldUpdate)
+        if (game->getFieldID() == 771 && game->getGameMoment() == 1612 && screenFade > 1 && screenFade < 120)
         {
             modelEditor.findFieldModels();
             applyColors();
-
-            waitingForField = false;
-            lastFieldID = game->getFieldID();
         }
 
-        lastFieldTrigger = fieldTrigger;
-    }
-
-    // Hack fix for aerith forest scene after demons gate.
-    // Her model seems to have the colors reloaded after they do a bright white
-    // effect to it. Its reloaded behind the tree, so we detect when her models
-    // at the position behind the tree then reapply coloring.
-    if (gameModule == GameModule::Field && !waitingForField)
-    {
+        // Hack fix for aerith forest scene after demons gate.
+        // Her model seems to have the colors reloaded after they do a bright white
+        // effect to it. Its reloaded behind the tree, so we detect when her models
+        // at the position behind the tree then reapply coloring.
         if (game->getFieldID() == 618 && game->getGameMoment() < 638)
         {
             int32_t aerithPositionX = game->read<int32_t>(0x7503C);

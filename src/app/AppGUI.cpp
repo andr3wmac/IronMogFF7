@@ -558,7 +558,7 @@ void App::drawDebugPanel()
 
     for (auto& rule : Rule::getList())
     {
-        if (!rule->hasDebugGUI())
+        if (!rule->hasDebugGUI() || !rule->enabled)
         {
             continue;
         }
@@ -573,7 +573,7 @@ void App::drawDebugPanel()
 
     for (auto& extra : Extra::getList())
     {
-        if (!extra->hasDebugGUI())
+        if (!extra->hasDebugGUI() || !extra->enabled)
         {
             continue;
         }

@@ -72,6 +72,12 @@ class MapData:
 
     def getModelSection(self):
         return ModelSection(self.sections[Section.MODEL])
+    
+    def getEncounterSection(self):
+        return EncounterSection(self.sections[Section.ENCOUNTER])
+
+    def getEncounterSectionStart(self):
+        return self.sectionStarts[Section.ENCOUNTER]
 
     # Replace the event section data.
     def setEventSection(self, event):
@@ -458,6 +464,25 @@ class ModelSection:
             arr = FieldModel(data, offset)
             self.models.append(arr)
             offset += 8
+
+class EncounterTable:
+    def __init__(self, data, offset):
+        unpacked = struct.unpack_from("<BB6H4HH", data, offset)
+        
+        self.enabled = unpacked[0]
+        self.rate = unpacked[1]
+        self.encounters = list(unpacked[2:12])
+        self.pad = unpacked[12]
+
+class EncounterSection:
+    def __init__(self, data):
+        offset = 0
+
+        self.table0 = EncounterTable(data, offset)
+        offset += 24
+
+        self.table1 = EncounterTable(data, offset)
+        offset += 24
 
 # Mnemonic and operand length for each script opcode
 opcodes = [

@@ -57,6 +57,14 @@ struct FieldScriptShop
     uint8_t shopID = 0;
 };
 
+struct FieldScriptBattle
+{
+    uint8_t group = 0;
+    uint8_t script = 0;
+    uint32_t offset = 0;
+    uint16_t battleID = 0;
+};
+
 struct FieldWorldExit
 {
     uint32_t offset = 0;
@@ -72,10 +80,32 @@ struct FieldData
     std::vector<FieldScriptItem> materia;
     std::vector<FieldScriptMessage> messages;
     std::vector<FieldScriptShop> shops;
+    std::vector<FieldScriptBattle> battles;
     std::vector<FieldWorldExit> worldExits;
     std::vector<uint8_t> modelIDs;
 
+    uint32_t encounterOffset = 0;
+    std::array<uint16_t, 10> encounterTable0{};
+    std::array<uint16_t, 10> encounterTable1{};
+
     bool isValid() { return name != ""; }
+
+    std::pair<uint8_t, uint16_t> getEncounter(uint8_t table, uint8_t index)
+    {
+        if (table == 0)
+        {
+            uint8_t prob = encounterTable0[index] >> 10;
+            uint16_t encounterID = encounterTable0[index] & 0x03FF;
+            return { prob, encounterID };
+        }
+        if (table == 1)
+        {
+            uint8_t prob = encounterTable1[index] >> 10;
+            uint16_t encounterID = encounterTable1[index] & 0x03FF;
+            return { prob, encounterID };
+        }
+        return { 0, 0 };
+    }
 };
 
 struct WorldMapEntrance
@@ -103,8 +133,8 @@ struct BattleFormation
 {
     uint16_t id = 0;
     bool noEscape = false;
-    std::array<uint16_t, 6> enemyIDs;
-    std::array<uint16_t, 4> arenaIDs;
+    std::array<uint16_t, 6> enemyIDs{};
+    std::array<uint16_t, 4> arenaIDs{};
 
     inline bool isArenaBattle()
     {
@@ -115,8 +145,8 @@ struct BattleFormation
 struct BattleScene
 {
     uint8_t id = 0;
-    std::array<uint16_t, 3> enemyIDs;
-    std::array<uint8_t, 3> enemyLevels;
+    std::array<uint16_t, 3> enemyIDs{};
+    std::array<uint8_t, 3> enemyLevels{};
     std::vector<BattleFormation> formations;
 };
 
@@ -215,12 +245,22 @@ public:
         GameData::fieldData[fieldID].shops.push_back({ groupIdx, scriptIdx, offset, shopID });
     }
 
+    static void addFieldScriptBattle(uint16_t fieldID, uint8_t groupIdx, uint8_t scriptIdx, uint32_t offset, uint16_t battleID) {
+        GameData::fieldData[fieldID].battles.push_back({ groupIdx, scriptIdx, offset, battleID });
+    }
+
     static void addFieldWorldExit(uint16_t fieldID, uint32_t offset, uint8_t index, uint16_t targetFieldID) {
         GameData::fieldData[fieldID].worldExits.push_back({ offset, index, targetFieldID });
     }
 
     static void addFieldModels(uint16_t fieldID, std::vector<uint8_t> modelIDs) {
         GameData::fieldData[fieldID].modelIDs = modelIDs;
+    }
+
+    static void addFieldEncounters(uint16_t fieldID, uint32_t encounterOffset, std::array<uint16_t, 10> encounterTable0, std::array<uint16_t, 10> encounterTable1) {
+        GameData::fieldData[fieldID].encounterOffset = encounterOffset;
+        GameData::fieldData[fieldID].encounterTable0 = encounterTable0;
+        GameData::fieldData[fieldID].encounterTable1 = encounterTable1;
     }
 
     static void addWorldMapEntrance(uint32_t offset, uint16_t fieldID, const std::string& fieldName, uint32_t centerX, uint32_t centerZ) {

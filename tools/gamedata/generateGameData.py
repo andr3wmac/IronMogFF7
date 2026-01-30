@@ -242,6 +242,14 @@ def outputFields(gen, discPath, version):
                 if values[3] == 8:
                     gen.write_line("addFieldScriptShop(" + fieldID + ", "+ str(groupIndex) + ", " + str(scriptIndex) + ", " + f"0x{addr:X}" + ", " + str(values[4]) + ");", 4)
 
+            if (mnemonic == "batle"):
+                if values[2] == 0:
+                    encounterID = values[3] | (values[4] << 8)
+                    print(map.lower() + " Encounter: " + str(encounterID))
+                    gen.write_line("addFieldScriptBattle(" + fieldID + ", "+ str(groupIndex) + ", " + str(scriptIndex) + ", " + f"0x{addr:X}" + ", " + str(encounterID) + ");", 4)
+                else:
+                    print("Field script battle uses memory fetch: " + str(values))
+
             offset += size
 
         # World Map Exits
@@ -263,6 +271,21 @@ def outputFields(gen, discPath, version):
         for model in modelSection.models:
             globalModelIDs.append(model.globalModelID)
         gen.write_line("addFieldModels(" + fieldID + ", {" + ",".join(str(x) for x in globalModelIDs) + "});", 4)    
+
+        # Field Encounters
+        encounterSection = mapData.getEncounterSection()
+        encounterSectionStart = mapData.getEncounterSectionStart()
+
+        table0Str = "{}"
+        if any(encounterSection.table0.encounters):
+            table0Str = "{" + ",".join(str(x) for x in encounterSection.table0.encounters) + "}"
+
+        table1Str = "{}"
+        if any(encounterSection.table1.encounters):
+            table1Str = "{" + ",".join(str(x) for x in encounterSection.table1.encounters) + "}"
+        
+        if not table0Str == "{}" or not table1Str == "{}":
+            gen.write_line("addFieldEncounters(" + fieldID + ", " + f"0x{encounterSectionStart:X}" + ", " + table0Str + ", " + table1Str + ");", 4)    
 
     gen.write_line("")
 

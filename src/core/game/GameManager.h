@@ -137,6 +137,7 @@ private:
     bool isBattleDataLoaded();
 
     bool waitingForFieldData = false;
+    int lastScreenFade = 0;
     bool isFieldDataLoaded();
 
     bool waitingForShopData = false;

@@ -26,13 +26,8 @@ private:
     std::unordered_map<std::string, std::vector<Utilities::Color>> randomModelColors;
     int rerollOffset = 0;
 
-    bool waitingForField = false;
-    int lastFieldID = -1;
-    int lastFieldTrigger = 0;
-
     bool waitingForWorld = false;
     int lastWorldTrigger = 0;
-
     bool waitingForBattle = false;
 
     // Debug variables

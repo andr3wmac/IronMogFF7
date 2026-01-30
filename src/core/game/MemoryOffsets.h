@@ -69,11 +69,12 @@ struct FieldScriptOffsets
     CONST_PTR TriggersStart = 0x114FF6;
     CONST_PTR ScriptStart   = 0x115000;
 
+    CONST_PTR EncounterStart       = 0x114FE4;
+    CONST_PTR EncounterTableStride = 24;
+
     CONST_PTR ItemID        = 0x02; // uint16_t
     CONST_PTR ItemQuantity  = 0x04; // uint8_t
-
-    // TODO: get the real number
-    CONST_PTR MateriaID = 0x03;     // uint8_t
+    CONST_PTR MateriaID     = 0x03; // uint8_t
 };
 
 struct WorldOffsets

@@ -332,6 +332,8 @@ bool GameManager::update()
             if (fieldID == fieldWarpID)
             {
                 waitingForFieldData = true;
+                framesInField = 0;
+                lastScreenFade = read<uint16_t>(GameOffsets::ScreenFade);
             }
         }
 
@@ -341,10 +343,12 @@ bool GameManager::update()
             waitingForFieldData = true;
             fieldID = newFieldID;
             framesInField = 0;
+            lastScreenFade = read<uint16_t>(GameOffsets::ScreenFade);
         }
 
         if (waitingForFieldData && isFieldDataLoaded())
         {
+            LOG("Loaded Field: %d", fieldID);
             onFieldChanged.invoke(fieldID);
             waitingForFieldData = false;
         }
@@ -589,7 +593,40 @@ bool GameManager::isFieldDataLoaded()
         }
     }
 
-    return true;
+    // Encounter data
+    {
+        for (int t = 0; t < 2; ++t)
+        {
+            uintptr_t tableOffset = FieldScriptOffsets::EncounterStart + fieldData.encounterOffset + (t * FieldScriptOffsets::EncounterTableStride);
+
+            uint16_t encTable[10];
+            read(tableOffset + 2, sizeof(uint16_t) * 10, (uint8_t*)encTable);
+
+            for (int i = 0; i < 10; ++i)
+            {
+                auto [origProb, origEncounterID] = fieldData.getEncounter(t, i);
+                if (origProb == 0 && origEncounterID == 0)
+                {
+                    continue;
+                }
+
+                uint8_t  prob = encTable[i] >> 10;
+                uint16_t encounterID = encTable[i] & 0x03FF;
+
+                if (origProb != prob || origEncounterID != encounterID)
+                {
+                    return false;
+                }
+            }
+        }
+    }
+
+    // Screen is ready if we've hit peak fade out and started coming back down.
+    uint16_t screenFade = read<uint16_t>(GameOffsets::ScreenFade);
+    bool isScreenReady = (lastScreenFade == 0x100 && screenFade < lastScreenFade);
+    lastScreenFade = screenFade;
+
+    return isScreenReady;
 }
 
 // Detect if shop data is fully loaded by verifying the set of information
