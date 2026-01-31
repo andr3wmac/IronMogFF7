@@ -1,12 +1,11 @@
 #pragma once
 
 #include "core/emulators/Emulator.h"
+#include "core/game/GameData.h"
 #include "core/utilities/Event.h"
 #include <string>
 #include <array>
 
-struct BattleScene;
-struct BattleFormation;
 class Extra;
 class Rule;
 
@@ -75,6 +74,9 @@ public:
     // Returns the pointer to the line of field script last executed for a given group index.
     uint16_t getScriptExecutionPointer(uint8_t groupIndex) { return fieldScriptExecutionTable[groupIndex]; }
 
+    // Returns pointer to the captured state of the world map encounter table after entering world map
+    Encounter* getWorldMapEncounterTable() { return worldMapEncounterTable; }
+
     // Events
     Event<> onStart;
     Event<> onUpdate;
@@ -86,6 +88,7 @@ public:
     Event<> onBattleExit;
     Event<uint16_t> onFieldChanged;
     Event<> onShopOpened;
+    Event<> onWorldMapEnter;
 
     // Read/Write RAM Functions
     template <typename T>
@@ -126,9 +129,9 @@ private:
     uint32_t frameNumber = 0;
     double lastFrameUpdateTime = 0.0;
     int framesSinceReload = 0;
-
     uint16_t fieldID = 0;
     int framesInField = 0;
+    Encounter worldMapEncounterTable[1024];
 
     // A set of pointers to the last line of field script executed within each group. 
     uint16_t fieldScriptExecutionTable[64];
@@ -143,4 +146,7 @@ private:
     bool waitingForShopData = false;
     bool wasInShopMenu = false;
     bool isShopDataLoaded();
+
+    bool waitingForWorldData = false;
+    bool isWorldDataLoaded();
 };

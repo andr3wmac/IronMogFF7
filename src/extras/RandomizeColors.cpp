@@ -234,14 +234,14 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
             }
         }
 
-        // Hack fix for tifa and cloud scene before northern crater
+        // Hack fix for Tifa and Cloud scene before northern crater
         if (game->getFieldID() == 771 && game->getGameMoment() == 1612 && screenFade > 1 && screenFade < 120)
         {
             modelEditor.findFieldModels();
             applyColors();
         }
 
-        // Hack fix for aerith forest scene after demons gate.
+        // Hack fix for Aerith forest scene after demons gate.
         // Her model seems to have the colors reloaded after they do a bright white
         // effect to it. Its reloaded behind the tree, so we detect when her models
         // at the position behind the tree then reapply coloring.

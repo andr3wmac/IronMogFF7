@@ -18,10 +18,10 @@ public:
 private:
     void onStart();
     void onFieldChanged(uint16_t fieldID);
+    void onWorldMapEnter();
     void onBattleEnter();
 
     void generateRandomEncounterMap();
-    void updateEncounterTable(uint16_t fieldID);
 
     int maxLevelDifference = 5;
     float statMultiplier = 1.0f;

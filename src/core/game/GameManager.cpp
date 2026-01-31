@@ -284,6 +284,11 @@ bool GameManager::update()
             waitingForFieldData = true;
         }
 
+        if (gameModule != GameModule::World && newGameModule == GameModule::World)
+        {
+            waitingForWorldData = true;
+        }
+
         if (gameModule != GameModule::Menu && newGameModule == GameModule::Menu)
         {
             uint8_t menuType = read<uint8_t>(GameOffsets::MenuType);
@@ -356,12 +361,19 @@ bool GameManager::update()
 
     if (gameModule == GameModule::World)
     {
-        // When exiting onto the world map field ID is updated to your exit location
-        // We don't trigger the onFieldChanged event for this but its important we update
-        // this value in case we re-enter the field we just left.
-        uint16_t newFieldID = read<uint16_t>(GameOffsets::FieldID);
-        fieldID = newFieldID;
-        waitingForFieldData = false;
+        if (waitingForWorldData && isWorldDataLoaded())
+        {
+            // When exiting onto the world map field ID is updated to your exit location
+            // We don't trigger the onFieldChanged event for this but its important we update
+            // this value in case we re-enter the field we just left.
+            uint16_t newFieldID = read<uint16_t>(GameOffsets::FieldID);
+            fieldID = newFieldID;
+            waitingForFieldData = false;
+
+            LOG("Entered world map.");
+            onWorldMapEnter.invoke();
+            waitingForWorldData = false;
+        }
     }
 
     if (gameModule == GameModule::Menu)
@@ -599,21 +611,18 @@ bool GameManager::isFieldDataLoaded()
         {
             uintptr_t tableOffset = FieldScriptOffsets::EncounterStart + fieldData.encounterOffset + (t * FieldScriptOffsets::EncounterTableStride);
 
-            uint16_t encTable[10];
+            Encounter encTable[10];
             read(tableOffset + 2, sizeof(uint16_t) * 10, (uint8_t*)encTable);
 
             for (int i = 0; i < 10; ++i)
             {
-                auto [origProb, origEncounterID] = fieldData.getEncounter(t, i);
-                if (origProb == 0 && origEncounterID == 0)
+                Encounter& origEncounter = fieldData.getEncounter(t, i);
+                if (origEncounter.prob == 0 && origEncounter.id == 0)
                 {
                     continue;
                 }
 
-                uint8_t  prob = encTable[i] >> 10;
-                uint16_t encounterID = encTable[i] & 0x03FF;
-
-                if (origProb != prob || origEncounterID != encounterID)
+                if (origEncounter.prob != encTable[i].prob || origEncounter.id != encTable[i].id)
                 {
                     return false;
                 }
@@ -680,6 +689,40 @@ bool GameManager::isShopDataLoaded()
 
         uint32_t lastMateriaPrice = read<uint32_t>(ShopOffsets::MateriaPricesStart + (68 * 4));
         if (lastMateriaPrice != 9000) { return false; }
+    }
+
+    return true;
+}
+
+bool GameManager::isWorldDataLoaded()
+{
+    read(WorldOffsets::EncounterStart, 2048, (uint8_t*)worldMapEncounterTable);
+
+    for (int r = 0; r < 16; ++r)
+    {
+        WorldMapEncounters& origEncounters = GameData::worldMapEncounters[r];
+
+        for (int s = 0; s < 4; ++s)
+        {
+            std::vector<Encounter>& origEncSet = origEncounters.sets[s];
+            if (origEncSet.size() == 0)
+            {
+                continue;
+            }
+
+            uintptr_t dataOffset = (r * 64) + (s * 16) + 1;
+
+            for (int i = 0; i < 14; ++i)
+            {
+                Encounter& origEnc = origEncSet[i];
+                Encounter& encData = worldMapEncounterTable[dataOffset + i];
+
+                if (origEnc.raw != encData.raw)
+                {
+                    return false;
+                }
+            }
+        }
     }
 
     return true;

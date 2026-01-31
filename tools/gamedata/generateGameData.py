@@ -245,7 +245,6 @@ def outputFields(gen, discPath, version):
             if (mnemonic == "batle"):
                 if values[2] == 0:
                     encounterID = values[3] | (values[4] << 8)
-                    print(map.lower() + " Encounter: " + str(encounterID))
                     gen.write_line("addFieldScriptBattle(" + fieldID + ", "+ str(groupIndex) + ", " + str(scriptIndex) + ", " + f"0x{addr:X}" + ", " + str(encounterID) + ");", 4)
                 else:
                     print("Field script battle uses memory fetch: " + str(values))
@@ -335,6 +334,26 @@ def outputWorldMap(gen, discPath, version):
     gen.write_line("addWorldMapEntrance(0x5cda, 0x39, \"Corel Valley\", 162994, 86357);", 4)
     gen.write_line("addWorldMapEntrance(0x5d10, 0x3A, \"Forgotten Capital\", 162051, 81137);", 4)
     gen.write_line("")
+
+    worldData = ff7.world.WorldBin(ff7.game.retrieveFile(discPath, "WORLD", "WORLD.BIN"))
+
+    for region in worldData.encounterTables:
+        region_str = ""
+
+        first = True
+        for encounterSet in region:
+            encStr = ", ".join(map(str, encounterSet))
+
+            if first:
+                region_str += "{" + encStr + "}"
+            else:
+                region_str += ", {" + encStr + "}"
+
+            first = False
+
+        gen.write_line("addWorldMapEncounters(" + region_str + ");", 4)
+        
+    gen.write_line("")  
 
 def outputBattles(gen, discPath, version):
     sceneBin = ff7.scene.Archive(ff7.game.retrieveFile(discPath, "BATTLE", "SCENE.BIN"))

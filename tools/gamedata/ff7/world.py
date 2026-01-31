@@ -10,13 +10,12 @@
 
 import struct
 import math
+import zlib
 
 from . import lzss
 
-
 def _enum(**enums):
     return type('Enum', (), enums)
-
 
 # Some selected opcodes
 Op = _enum(
@@ -29,7 +28,6 @@ Op = _enum(
     ASK = 0x326
 )
 
-
 # Find the size (number of 16-bit values) of the given instruction.
 def instructionSize(op):
     if op > 0x100 and op < 0x200:  # push
@@ -38,7 +36,6 @@ def instructionSize(op):
         return 2
     else:
         return 1
-
 
 # World map TXZ file
 class WorldMap:
@@ -101,7 +98,6 @@ class WorldMap:
         fileobj.write(struct.pack("<L", len(cmpData)))
         fileobj.write(cmpData)
 
-
 # Map opcodes to mnemonics
 opcodes = {
     0x015: "neg",
@@ -130,7 +126,6 @@ opcodes = {
     0x325: "mes",
     0x326: "ask"
 }
-
 
 # Disassemble script code.
 def disassemble(script):
@@ -270,3 +265,35 @@ class WorldMapEV:
             fn_offset += fn.realSize
             self.functions.append(fn)
             offset += fn._size  # advance by 4 bytes per entry
+
+class WorldBin:
+    def __init__(self, fileobj):
+        cmpData = fileobj.read()
+
+        (size,) = struct.unpack_from("<I", cmpData, 0)
+        self.data = zlib.decompress(cmpData[8:], 16 | 15)
+        if len(self.data) != size:
+            print("Failed to decompress world bin data.")
+            return
+        
+        encountersOffset = 0x1D9E8
+
+        self.encounterTables = []
+        for r in range(16):
+            region = []
+
+            for s in range(4):
+                enc_set = []
+
+                table_offset = encountersOffset + (r * 128) + (s * 32)
+                set_enabled = struct.unpack_from("<B", self.data, table_offset)[0]
+                
+                if set_enabled == 1:
+                    for i in range(14):
+                        data_offset = table_offset + 2 + (i * 2)
+                        encounter = struct.unpack_from("<H", self.data, data_offset)[0]
+                        enc_set.append(encounter)
+
+                region.append(enc_set)
+
+            self.encounterTables.append(region)

@@ -83,6 +83,9 @@ struct WorldOffsets
     CONST_PTR WorldY = 0xE5700; // int32_t
     CONST_PTR WorldZ = 0xE5704; // int32_t
 
+    // 16 encounter tables, 4 sets each, 14 in each of those. Each table has 2 byte header. 2048 total.
+    CONST_PTR EncounterStart = 0xBD9E8;
+
     // Add offset from GameData to get to memory address.
     CONST_PTR ScriptStart = 0xD0B6A;
 
@@ -226,6 +229,8 @@ struct BattleOffsets
 
     // Graphics Data
     CONST_PTR AllyModels[] = { 0x103200, 0x112200, 0x121200 };
+
+    CONST_PTR Inventory = 0x1671B8; // 6 bytes per inventory. uint16_t item id, uint8_t quantity, other 3 bytes unknown.
 };
 
 struct BattleStateOffsets
