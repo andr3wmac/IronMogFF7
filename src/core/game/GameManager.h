@@ -140,7 +140,7 @@ private:
     bool isBattleDataLoaded();
 
     bool waitingForFieldData = false;
-    int lastScreenFade = 0;
+    int lastFieldScreenFade = 0;
     bool isFieldDataLoaded();
 
     bool waitingForShopData = false;
@@ -148,5 +148,6 @@ private:
     bool isShopDataLoaded();
 
     bool waitingForWorldData = false;
+    int lastWorldScreenFade = 0;
     bool isWorldDataLoaded();
 };

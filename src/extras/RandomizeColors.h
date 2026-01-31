@@ -16,9 +16,9 @@ public:
 
 private:
     void onStart();
-    void onModuleChanged(uint8_t newModule);
     void onFieldChanged(uint16_t fieldID);
     void onBattleEnter();
+    void onWorldMapEnter();
     void onFrame(uint32_t frameNumber);
     void applyColors();
 
@@ -26,8 +26,6 @@ private:
     std::unordered_map<std::string, std::vector<Utilities::Color>> randomModelColors;
     int rerollOffset = 0;
 
-    bool waitingForWorld = false;
-    int lastWorldTrigger = 0;
     bool waitingForBattle = false;
 
     // Debug variables

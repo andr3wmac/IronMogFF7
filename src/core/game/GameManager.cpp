@@ -287,6 +287,7 @@ bool GameManager::update()
         if (gameModule != GameModule::World && newGameModule == GameModule::World)
         {
             waitingForWorldData = true;
+            lastWorldScreenFade = read<uint8_t>(GameOffsets::WorldScreenFade);
         }
 
         if (gameModule != GameModule::Menu && newGameModule == GameModule::Menu)
@@ -338,7 +339,7 @@ bool GameManager::update()
             {
                 waitingForFieldData = true;
                 framesInField = 0;
-                lastScreenFade = read<uint16_t>(GameOffsets::ScreenFade);
+                lastFieldScreenFade = read<uint16_t>(GameOffsets::FieldScreenFade);
             }
         }
 
@@ -348,7 +349,7 @@ bool GameManager::update()
             waitingForFieldData = true;
             fieldID = newFieldID;
             framesInField = 0;
-            lastScreenFade = read<uint16_t>(GameOffsets::ScreenFade);
+            lastFieldScreenFade = read<uint16_t>(GameOffsets::FieldScreenFade);
         }
 
         if (waitingForFieldData && isFieldDataLoaded())
@@ -630,10 +631,10 @@ bool GameManager::isFieldDataLoaded()
         }
     }
 
-    // Screen is ready if we've hit peak fade out and started coming back down.
-    uint16_t screenFade = read<uint16_t>(GameOffsets::ScreenFade);
-    bool isScreenReady = (lastScreenFade == 0x100 && screenFade < lastScreenFade);
-    lastScreenFade = screenFade;
+    // Field is ready if we've hit peak fade out and started coming back down.
+    uint16_t screenFade = read<uint16_t>(GameOffsets::FieldScreenFade);
+    bool isScreenReady = (lastFieldScreenFade == 0x100 && screenFade < lastFieldScreenFade);
+    lastFieldScreenFade = screenFade;
 
     return isScreenReady;
 }
@@ -725,7 +726,12 @@ bool GameManager::isWorldDataLoaded()
         }
     }
 
-    return true;
+    // World is ready if we've hit peak fade out and started coming back down.
+    uint8_t screenFade = read<uint8_t>(GameOffsets::WorldScreenFade);
+    bool isScreenReady = (lastWorldScreenFade == 0xFF && screenFade < lastWorldScreenFade);
+    lastWorldScreenFade = screenFade;
+
+    return isScreenReady;
 }
 
 // The goal here is to find the message thats closest in memory (offset) that also contains

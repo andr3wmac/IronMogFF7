@@ -16,7 +16,7 @@ struct GameOffsets
     CONST_PTR MenuType          = 0x9ABF5;  // uint8_t 8 = shop, 9 = main menu
     CONST_PTR FieldWarpTrigger  = 0x9ABF5;  // uint8_t, set to 1 to warp to field warp ID below
     CONST_PTR FieldWarpID       = 0x9ABF6;  // uint16_t
-    CONST_PTR ScreenFade        = 0x9AC42;  // uint16_t, 0 - 256 how much screen is faded for loading transition
+    CONST_PTR FieldScreenFade   = 0x9AC42;  // uint16_t, 0 - 256 how much screen is faded for loading transitions in fields
     CONST_PTR CurrentModule     = 0x9C560;  // uint8_t
     CONST_PTR PartyIDList       = 0x9CBDC;  // 3 uint8_t in a row.
     CONST_PTR Inventory         = 0x9CBE0;  // 320 item list, uint16_t ids.
@@ -27,6 +27,7 @@ struct GameOffsets
     CONST_PTR MenuLockingMask   = 0x9D2A6;  // uint16_t bitmask of options disabled in the menu. 
     CONST_PTR PHSVisibilityMask = 0x9D78A;  // uint16_t bitmask of which characters are on PHS
     CONST_PTR WindowText        = 0xE4944;  // Array of window text entries, each window gets 256 characters, terminated by 0xFF.
+    CONST_PTR WorldScreenFade   = 0x10B488; // uint8_t, 0 - 255 how much screen is faded for loading world map
 };
 
 inline uintptr_t getWindowTextOffset(uint8_t index)
