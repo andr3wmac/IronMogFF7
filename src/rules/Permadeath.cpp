@@ -7,7 +7,7 @@
 #include <imgui.h>
 #include <random>
 
-REGISTER_RULE("Permadeath", Permadeath)
+REGISTER_RULE(Permadeath, "Permadeath", "If a character dies, they cannot be revived and will remain dead for the rest of the playthrough.")
 
 #define RUFUS_FIELD_ID 268
 #define DYNE_FIELD_ID 480

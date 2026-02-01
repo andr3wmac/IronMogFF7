@@ -29,7 +29,7 @@ const std::vector<std::string> MusicList = {
     "fin", "heart", "roll"
 };
 
-REGISTER_EXTRA("Randomize Music", RandomizeMusic)
+REGISTER_EXTRA(RandomizeMusic, "Randomize Music", "Music tracks are randomized and can include music from other games.")
 
 RandomizeMusic::RandomizeMusic()
 {

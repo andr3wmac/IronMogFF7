@@ -7,7 +7,7 @@
 #include <imgui.h>
 #include <random>
 
-REGISTER_RULE("Randomize Bosses", RandomizeBosses)
+REGISTER_RULE(RandomizeBosses, "Randomize Bosses", "Does not actually randomize which boss you encounter but instead modifies the boss fights themselves.")
 
 RandomizeBosses::RandomizeBosses()
 {

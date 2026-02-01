@@ -8,7 +8,7 @@
 #include <imgui.h>
 #include <random>
 
-REGISTER_RULE("Randomize World Map", RandomizeWorldMap)
+REGISTER_RULE(RandomizeWorldMap, "Randomize World Map", "World map entrances are shuffled so entering Kalm might take you to Midgar.")
 
 void RandomizeWorldMap::setup()
 {

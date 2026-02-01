@@ -8,6 +8,7 @@ class Extra
 public:
     bool enabled = true;
     std::string name = "";
+    std::string description = "";
     bool settingsVisible = false;
 
     virtual void setup() {}
@@ -39,12 +40,13 @@ public:
     }
 };
 
-#define REGISTER_EXTRA(NameStr, ClassName) \
+#define REGISTER_EXTRA(ClassName, NameStr, DescStr) \
     namespace { \
         struct ClassName##AutoRegister { \
             ClassName##AutoRegister() { \
                 ClassName* tmp = new ClassName(); \
                 tmp->name = NameStr; \
+                tmp->description = DescStr; \
                 Extra::registerExtra(NameStr, tmp); \
             } \
         }; \

@@ -425,3 +425,15 @@ void GUI::drawColorGrid(const std::string& name, std::vector<Utilities::Color>& 
     //int totalRows = static_cast<int>((colors.size() + colorsPerRow - 1) / colorsPerRow);
     //ImGui::Dummy(ImVec2(0.0f, totalRows * (boxSize + spacing)));
 }
+
+void GUI::wrappedTooltip(const std::string& text, float maxWidth)
+{
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::BeginTooltip();
+        ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + maxWidth);
+        ImGui::TextWrapped(text.c_str());
+        ImGui::PopTextWrapPos();
+        ImGui::EndTooltip();
+    }
+}

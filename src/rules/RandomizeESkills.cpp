@@ -8,7 +8,7 @@
 #include <set>
 #include <unordered_set>
 
-REGISTER_RULE("Randomize E.Skills", RandomizeESkills)
+REGISTER_RULE(RandomizeESkills, "Randomize E.Skills", "When you learn an Enemy Skill from an enemy, the skill you actually gain is randomized.")
 
 // The concept here is when we enter battle we find any enemy skill materia on any characters
 // and track its value. When we exit the fight we look for any newly flipped bits, meaning a 

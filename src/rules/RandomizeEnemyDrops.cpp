@@ -8,7 +8,7 @@
 #include <random>
 #include <set>
 
-REGISTER_RULE("Randomize Enemy Drops", RandomizeEnemyDrops)
+REGISTER_RULE(RandomizeEnemyDrops, "Randomize Enemy Drops", "Enemy drops and steals are randomized.")
 
 void RandomizeEnemyDrops::setup()
 {

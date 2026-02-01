@@ -7,7 +7,7 @@
 #include <imgui.h>
 #include <sstream>
 
-REGISTER_RULE("No Duping", NoDuping)
+REGISTER_RULE(NoDuping, "No Duping", "Prevents duping with W-Item.")
 
 void NoDuping::setup()
 {

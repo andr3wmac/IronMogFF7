@@ -8,6 +8,7 @@ class Rule
 public:
     bool enabled = true;
     std::string name = "";
+    std::string description = "";
     bool settingsVisible = false;
     bool debugVisible = false;
 
@@ -40,12 +41,13 @@ public:
     }
 };
 
-#define REGISTER_RULE(NameStr, ClassName) \
+#define REGISTER_RULE(ClassName, NameStr, DescStr) \
     namespace { \
         struct ClassName##AutoRegister { \
             ClassName##AutoRegister() { \
                 ClassName* tmp = new ClassName(); \
                 tmp->name = NameStr; \
+                tmp->description = DescStr; \
                 Rule::registerRule(NameStr, tmp); \
             } \
         }; \

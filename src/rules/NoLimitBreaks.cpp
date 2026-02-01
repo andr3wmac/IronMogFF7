@@ -1,7 +1,7 @@
 #include "NoLimitBreaks.h"
 #include "core/game/MemoryOffsets.h"
 
-REGISTER_RULE("No Limit Breaks", NoLimitBreaks)
+REGISTER_RULE(NoLimitBreaks, "No Limit Breaks", "Limit breaks are disabled.")
 
 void NoLimitBreaks::setup()
 {

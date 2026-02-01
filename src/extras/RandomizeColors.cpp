@@ -10,7 +10,7 @@
 
 #include <imgui.h>
 
-REGISTER_EXTRA("Randomize Colors", RandomizeColors)
+REGISTER_EXTRA(RandomizeColors, "Randomize Colors", "Playable characters’ clothing colors are randomized.")
 
 // Give each model 16 colors each to future proof against later changes
 #define COLORS_PER_MODEL 16

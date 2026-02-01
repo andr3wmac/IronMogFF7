@@ -10,7 +10,7 @@
 #include <imgui.h>
 #include <random>
 
-REGISTER_RULE("Randomize Encounters", RandomizeEncounters)
+REGISTER_RULE(RandomizeEncounters, "Randomize Encounters", "Field, world map, and/or scripted encounters are randomized to any enemy formation within set specifications.")
 
 void RandomizeEncounters::setup()
 {

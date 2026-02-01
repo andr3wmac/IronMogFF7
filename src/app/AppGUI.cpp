@@ -125,6 +125,7 @@ void App::drawSettingsPanel()
             for (auto& rule : Rule::getList())
             {
                 changed |= ImGui::Checkbox(rule->name.c_str(), &rule->enabled);
+                GUI::wrappedTooltip(rule->description.c_str());
 
                 if (rule->hasSettings())
                 {
@@ -166,6 +167,7 @@ void App::drawSettingsPanel()
         for (auto& extra : Extra::getList())
         {
             changed |= ImGui::Checkbox(extra->name.c_str(), &extra->enabled);
+            GUI::wrappedTooltip(extra->description.c_str());
 
             if (extra->hasSettings())
             {

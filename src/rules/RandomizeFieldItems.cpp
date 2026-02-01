@@ -9,7 +9,7 @@
 #include <imgui.h>
 #include <random>
 
-REGISTER_RULE("Randomize Field Items", RandomizeFieldItems)
+REGISTER_RULE(RandomizeFieldItems, "Randomize Field Items", "Any items obtained from the field (such as from boxes or chests) are randomized.")
 
 void RandomizeFieldItems::setup()
 {
