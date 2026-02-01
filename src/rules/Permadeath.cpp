@@ -101,6 +101,7 @@ void Permadeath::onStart()
 {
     deadCharacters = game->read<uint16_t>(SavemapOffsets::IronMogPermadeath);
     appliedRufusRandom = false;
+    waitingOnBattleExit = false;
 }
 
 void Permadeath::onFrame(uint32_t frameNumber)
@@ -182,24 +183,47 @@ void Permadeath::onFrame(uint32_t frameNumber)
 
 void Permadeath::onFieldChanged(uint16_t fieldID)
 {
-    if (fieldID == DYNE_FIELD_ID)
+    if (fieldID == RUFUS_FIELD_ID && isCharacterDead(CLOUD_ID))
     {
-        // We only need to do something if Barret is dead.
-        if (!isCharacterDead(BARRET_ID))
+        if (game->getGameMoment() < 320)
         {
-            return;
-        }
+            int randomCharacter = selectRandomLivingCharacter(fieldID, CLOUD_ID);
+            if (randomCharacter > -1)
+            {
+                // Overwrite two commands related to hiding Rufus. This seems to be harmless.
+                constexpr uintptr_t RufusHideScript = FieldScriptOffsets::ScriptStart + 0x952;
 
+                // Overwrite the command that triggers the Rufus fight trigger with this 
+                // command to switch to party to a different character.
+                game->write<uint8_t>(RufusHideScript + 0, 0xCA);
+                game->write<uint8_t>(RufusHideScript + 1, (uint8_t)randomCharacter);
+                game->write<uint8_t>(RufusHideScript + 2, 0xFE);
+                game->write<uint8_t>(RufusHideScript + 3, 0xFE);
+
+                appliedRufusRandom = true;
+                LOG("Replaced Cloud with %s in Rufus fight due to Cloud being dead.", getCharacterName(randomCharacter).c_str());
+            }
+            else 
+            {
+                // Everyone is dead, do nothing.
+                LOG("Did not replace Cloud in Rufus fight because all characters are dead.");
+            }
+        }
+    }
+
+    if (fieldID == DYNE_FIELD_ID && isCharacterDead(BARRET_ID))
+    {
         // Select a random living character other than Barret.
         int randomCharacter = selectRandomLivingCharacter(fieldID, BARRET_ID);
         if (randomCharacter == -1)
         {
             // Everyone is dead, do nothing.
+            LOG("Did not Barret Cloud in Dyne fight because all characters are dead.");
             return;
         }
 
         // Overwrite the command that swaps party before the dyne 
-        // fight to use a character other than barret since hes dead.
+        // fight to use a character other than Barret since hes dead.
         constexpr uintptr_t DynePartyCommand = FieldScriptOffsets::ScriptStart + 0x4FE;
         game->write<uint8_t>(DynePartyCommand + 1, (uint8_t)randomCharacter);
 
@@ -286,7 +310,7 @@ int Permadeath::selectRandomLivingCharacter(uint16_t fieldID, uint8_t ignoreChar
 }
 
 // There are two fights in the game where its scripted that you will only have a single character.
-// If that character is permadead then you just instantly gameover. Rather than letting that happen
+// If that character is permadead then you just instantly game over. Rather than letting that happen
 // we swap in a living character for just that fight then swap it back after.
 // Shoutout to Zheal for this idea.
 void Permadeath::updateOverrideFights()
@@ -304,32 +328,10 @@ void Permadeath::updateOverrideFights()
         return;
     }
 
-    if (fieldID == RUFUS_FIELD_ID && !appliedRufusRandom)
-    {
-        std::string lastText = game->getWindowText(0);
-        if (lastText == "Rufus ‘I see.     I guess this means we won't become friends.’")
-        {
-            // Select a random living character other than Cloud.
-            int randomCharacter = selectRandomLivingCharacter(fieldID, CLOUD_ID);
-
-            if (randomCharacter == -1)
-            {
-                // Everyone is dead, do nothing.
-                return;
-            }
-
-            // Overwrite Cloud in the party ID list with a living character.
-            // This works because the battle loads the party using this list.
-            game->write<uint8_t>(GameOffsets::PartyIDList + 0, (uint8_t)randomCharacter);
-            appliedRufusRandom = true;
-            LOG("Replaced Cloud with %s in Rufus fight due to Cloud being dead.", getCharacterName(randomCharacter).c_str());
-        }
-    }
-
     if (waitingOnBattleExit)
     {
         // Monitor screen fade for when it starts to drop to know we're revealing the field.
-        uint16_t fieldTrigger = game->read<uint16_t>(GameOffsets::ScreenFade);
+        uint16_t fieldTrigger = game->read<uint16_t>(GameOffsets::FieldScreenFade);
         if (fieldTrigger == 256)
         {
             constexpr uintptr_t ScriptAfterRufus = FieldScriptOffsets::ScriptStart + 0x45E;
@@ -340,25 +342,19 @@ void Permadeath::updateOverrideFights()
             game->write<uint8_t>(ScriptAfterRufus + 1, CLOUD_ID);
             game->write<uint8_t>(ScriptAfterRufus + 2, 0xFE);
             game->write<uint8_t>(ScriptAfterRufus + 3, 0xFE);
-            game->write<uint8_t>(ScriptAfterRufus + 4, 0x5F);
-            game->write<uint8_t>(ScriptAfterRufus + 5, 0x5F);
+
+            // MAPJUMP to the same map in the same place. This makes the game reload cloud properly.
+            game->write<uint8_t>(ScriptAfterRufus + 4, 0x60);
+            game->write<uint16_t>(ScriptAfterRufus + 5, 268);
+            game->write<uint16_t>(ScriptAfterRufus + 7, 134);
+            game->write<uint16_t>(ScriptAfterRufus + 9, 1617);
+            game->write<uint16_t>(ScriptAfterRufus + 11, 16);
+            game->write<uint8_t>(ScriptAfterRufus + 14, 0);
 
             // Overwrite the game moment to where it should be after the Rufus fight.
             game->write<uint16_t>(GameOffsets::GameMoment, 320);
-        }
-
-        if (lastFieldTrigger == 256 && fieldTrigger < 256)
-        {
-            if (appliedRufusRandom)
-            {
-                // Lastly we transition to the same scene again in order to reload everything properly.
-                game->write<uint16_t>(GameOffsets::FieldWarpID, fieldID);
-                game->write<uint8_t>(GameOffsets::FieldWarpTrigger, 1);
-                appliedRufusRandom = false;
-            }
 
             waitingOnBattleExit = false;
-            lastFieldTrigger = 0;
         }
 
         lastFieldTrigger = fieldTrigger;

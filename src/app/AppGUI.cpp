@@ -432,6 +432,10 @@ void App::drawDebugPanel()
 
         std::string positionText = "Position: " + std::to_string(fx) + ", " + std::to_string(fy) + ", " + std::to_string(fz);
         ImGui::Text(positionText.c_str());
+
+        uint16_t triangle = game->read<uint16_t>(FieldOffsets::Triangle);
+        std::string triangleText = "Triangle: " + std::to_string(triangle);
+        ImGui::Text(triangleText.c_str());
     }
 
     if (ImGui::CollapsingHeader("Advanced"))

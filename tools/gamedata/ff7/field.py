@@ -156,6 +156,43 @@ class EventSection:
             self.actorScripts.append(scripts)
             self.scriptEntryAddresses |= set(scripts)
 
+        # Clean duplicate empty entries from the end of the lists
+        cleanedScripts = []
+        for actorScript in self.actorScripts:
+            cleanScript = actorScript.copy()
+            if cleanScript:
+                last_val = cleanScript[-1]
+                while len(cleanScript) > 1 and cleanScript[-1] == cleanScript[-2]:
+                    cleanScript.pop()
+            cleanedScripts.append(cleanScript)
+
+        # Calculate the span (start and end byte) of each script entry
+        self.scriptSpans = []
+        for i, currentGroup in enumerate(cleanedScripts):
+            groupSpans = []
+            
+            # Determine the 'boundary' for the very last script in this group
+            if i + 1 < len(cleanedScripts):
+                # Boundary is the start of the next group
+                groupLimit = cleanedScripts[i + 1][0]
+            else:
+                # Boundary is the start of the string table
+                groupLimit = stringTableOffset
+
+            # Iterate through the offsets in the current group to determine their ends
+            for j in range(len(currentGroup)):
+                start = currentGroup[j]
+                if j + 1 < len(currentGroup):
+                    # Normal case: the next offset in the same list
+                    end = currentGroup[j+1]
+                else:
+                    # End of group case: use the boundary we found above
+                    end = groupLimit
+                    
+                groupSpans.append([start, end])
+                    
+            self.scriptSpans.append(groupSpans)
+
         # Read the script code (assumptions: the script data immediately
         # follows the actor script offset table, and the start of the string
         # table marks the end of the script data)
@@ -331,10 +368,11 @@ class EventSection:
         return data
     
     def findGroupAndScript(self, addr):
-        for i, sub in enumerate(self.actorScripts):
-            for j in range(len(sub) - 1):
-                if sub[j] <= addr < sub[j + 1]:
-                    return i, j
+        for i, script in enumerate(self.scriptSpans):
+            for j, span in enumerate(script):
+                if span[0] <= addr < span[1]:
+                        return i, j
+        
         return 0, 0
 
 class Range:

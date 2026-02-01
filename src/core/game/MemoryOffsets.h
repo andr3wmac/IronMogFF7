@@ -60,6 +60,8 @@ struct FieldOffsets
     CONST_PTR FieldX = 0x74EB0; // int32_t
     CONST_PTR FieldY = 0x74EB4; // int32_t
     CONST_PTR FieldZ = 0x74EB8; // int32_t
+
+    CONST_PTR Triangle = 0x74F16; // uint16_t representing the triangle we're standing on.
 };
 
 struct FieldScriptOffsets
