@@ -553,6 +553,59 @@ void App::drawDebugPanel()
             }
         }
 
+        // Add item to inventory
+        static char debugAddItem[5] = "";
+        ImGui::InputText("##debugAddItem", debugAddItem, 5);
+        ImGui::SameLine();
+        if (ImGui::Button("Add Item"))
+        {
+            uint16_t addItemID = atoi(debugAddItem);
+            bool foundExistingItem = false;
+
+            for (uint16_t i = 0; i < 320; ++i)
+            {
+                uint16_t itemData = game->read<uint16_t>(GameOffsets::Inventory + (i * 2));
+                uint8_t itemQuantity = (itemData >> 9);
+                uint16_t itemID = (itemData & 0x01FF);
+
+                if (itemID == addItemID)
+                {
+                    itemQuantity++;
+                    if (itemQuantity > 99)
+                    {
+                        itemQuantity = 99;
+                    }
+
+                    uint16_t newItemData = (static_cast<uint16_t>(itemQuantity) << 9) | (itemID & 0x01FF);
+                    game->write<uint16_t>(GameOffsets::Inventory + (i * 2), newItemData);
+
+                    LOG("Cheats: increased inventory item %d to %d", itemID, itemQuantity);
+                    foundExistingItem = true;
+                    break;
+                }
+            }
+
+            if (!foundExistingItem)
+            {
+                for (uint16_t i = 0; i < 320; ++i)
+                {
+                    uint16_t itemData = game->read<uint16_t>(GameOffsets::Inventory + (i * 2));
+
+                    if (itemData != 0xFFFF)
+                    {
+                        continue;
+                    }
+
+                    uint8_t itemQuantity = 1;
+                    uint16_t itemID = addItemID;
+                    uint16_t newItemData = (static_cast<uint16_t>(itemQuantity) << 9) | (itemID & 0x01FF);
+                    game->write<uint16_t>(GameOffsets::Inventory + (i * 2), newItemData);
+                    LOG("Cheats: added item %d to inventory", itemID);
+                    break;
+                }
+            }
+        }
+
         ImGui::Unindent(25.0f);
     }
 

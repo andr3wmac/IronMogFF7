@@ -30,6 +30,10 @@ class GameDataGenerator:
     def write_footer(self):
         self.write_line("}", 0)
 
+def listToCPPArray(src_list):
+    list_string = ", ".join(map(str, src_list))
+    return "{" + list_string + "}"
+
 def outputInventory(gen, discPath, version):
     # Retrieve the kernel data file
     kernelDataFile = ff7.game.retrieveFile(discPath, "INIT", "KERNEL.BIN")
@@ -342,12 +346,10 @@ def outputWorldMap(gen, discPath, version):
 
         first = True
         for encounterSet in region:
-            encStr = ", ".join(map(str, encounterSet))
-
             if first:
-                region_str += "{" + encStr + "}"
+                region_str += listToCPPArray(encounterSet)
             else:
-                region_str += ", {" + encStr + "}"
+                region_str += ", " + listToCPPArray(encounterSet)
 
             first = False
 
@@ -390,9 +392,7 @@ def outputBattles(gen, discPath, version):
             if not formation.canEscape():
                 noEscape = "true"
 
-            enemyIDs = ", ".join(map(str, formation.enemyIDs))
-            battleArenaIDs = ", ".join(map(str, formation.battleArenaCandidates))
-            gen.write_line("addBattleFormation(" + str(i) + ", " + str(formationID) + ", " + noEscape + ", {" + enemyIDs + "}, {" + battleArenaIDs + "});", 4)
+            gen.write_line("addBattleFormation(" + str(i) + ", " + str(formationID) + ", " + noEscape + ", " + listToCPPArray(formation.enemyIDs) + ", " + listToCPPArray(formation.battleArenaCandidates) + ");", 4)
             formationIndex += 1
 
     gen.write_line("")
@@ -409,8 +409,7 @@ def outputShops(gen, discPath, verison):
             else:
                 items.append(item.id)
 
-        shopItems = ", ".join(map(str, items))
-        gen.write_line("addShop(" + str(shopID) + ", {" + shopItems + "});", 4)
+        gen.write_line("addShop(" + str(shopID) + ", " + listToCPPArray(items) + ");", 4)
         shopID += 1
 
     gen.write_line("")
@@ -497,12 +496,11 @@ def outputBosses(gen, discPath, version):
             print("Did not find boss: " + name)
 
         final_name = name.replace("‧", "-")
-        scenes_string = ", ".join(str(s) for s in scenes)
 
         uint64_elemTypes = f"0x{bytes(elementTypes).hex().upper()}ULL"
         uint64_elemRates = f"0x{bytes(elementRates).hex().upper()}ULL"
 
-        gen.write_line("addBoss(\"" + final_name + "\", " + str(enemyID) + ", { " + scenes_string + " }, " + uint64_elemTypes + ", " + uint64_elemRates + ");", 4)
+        gen.write_line("addBoss(\"" + final_name + "\", " + str(enemyID) + ", " + listToCPPArray(scenes) + ", " + uint64_elemTypes + ", " + uint64_elemRates + ");", 4)
 
     gen.write_line("")
 
@@ -513,8 +511,7 @@ def outputModel(modelName, model):
         model_part_string = "{" + str(len(part.quad_color_tex)) + ", " + str(len(part.tri_color_tex)) + ", " + str(len(part.quad_mono_tex)) + ", " + str(len(part.tri_mono_tex)) + ", " + str(len(part.tri_mono)) + ", " + str(len(part.quad_mono)) + ", " + str(len(part.tri_color)) + ", " + str(len(part.quad_color)) + "}"
         parts_strings.append(model_part_string)
 
-    parts_string = ", ".join(parts_strings)
-    gen.write_line("addModel(\"" + modelName + "\", " + str(model.poly_count) + ", {" + parts_string +  "});", 4)
+    gen.write_line("addModel(\"" + modelName + "\", " + str(model.poly_count) + ", " + listToCPPArray(parts_strings) + ");", 4)
 
 def outputModelFromField(discPath, fieldFile, modelIndex, modelName):
     models = ff7.models.loadModelsFromBSX(ff7.game.retrieveFile(discPath, "FIELD", fieldFile), discPath)
@@ -573,16 +570,16 @@ def outputModels(gen, discPath, version):
 
     # These were determined with memory inspection at runtime. Part of it is skeleton data, but the rest is unknown for now.
     battleModelHeaderSizes = {
-        "BARRET":   636, 
-        "CID":      668,
-        "CLOUD":    652,
-        "HICLOUD":  652,
-        "AERITH":   712,
-        "CAITSITH": 812, 
-        "REDXIII":  804,
-        "TIFA":     700, 
-        "VINCENT":  840,
-        "YUFFIE":   688
+        "BARRET":   [636, 640], 
+        "CID":      [668],
+        "CLOUD":    [652],
+        "HICLOUD":  [652],
+        "AERITH":   [712],
+        "CAITSITH": [812], 
+        "REDXIII":  [804],
+        "TIFA":     [700], 
+        "VINCENT":  [840],
+        "YUFFIE":   [688]
     }
 
     for modelName, modelFile in battleModelFiles.items():
@@ -599,8 +596,7 @@ def outputModels(gen, discPath, version):
 
             part_strings.append("{" + str(totalSize) + ", " + str(len(part.vertices)) + ", " + str(len(part.tri_mono_tex)) + ", " + str(len(part.quad_mono_tex)) + ", " + str(len(part.tri_color)) + ", " + str(len(part.quad_color)) + "}")
             
-        parts_string = ", ".join(part_strings)
-        gen.write_line("addBattleModel(\"" + modelName + "\", " + str(battleModelHeaderSizes[modelName]) + ", {" + parts_string + "});", 4)
+        gen.write_line("addBattleModel(\"" + modelName + "\", " + listToCPPArray(battleModelHeaderSizes[modelName]) + ", " + listToCPPArray(part_strings) + ");", 4)
 
 discPath = sys.argv[1]
 

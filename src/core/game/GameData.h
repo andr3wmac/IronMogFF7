@@ -206,7 +206,7 @@ struct BattleModelPart
 struct BattleModel
 {
     std::string name = "";
-    int headerSize = 0;
+    std::vector<int> headerSizes;
     std::vector<BattleModelPart> parts;
 };
 
@@ -335,9 +335,9 @@ public:
         GameData::models.push_back({ modelName, polyCount, parts });
     }
 
-    static void addBattleModel(const std::string& modelName, int headerSize, std::vector<BattleModelPart> parts) 
+    static void addBattleModel(const std::string& modelName, std::vector<int> headerSizes, std::vector<BattleModelPart> parts) 
     {
-        GameData::battleModels.push_back({ modelName, headerSize, parts });
+        GameData::battleModels.push_back({ modelName, headerSizes, parts });
     }
 
     static Item* getAccessory(uint8_t id);
