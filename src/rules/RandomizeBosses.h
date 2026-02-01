@@ -24,7 +24,14 @@ private:
         WeightedRandom = 1
     };
 
-    float statMultiplier = 1.0f;
+    void onStart();
+    void generateShuffledBosses();
+    void generateBossStatMultipliers();
+    std::pair<uint64_t, uint64_t> getWeightedRandomElements(uint16_t bossID);
+    void onBattleEnter();
+
+    float minStatMultiplier = 1.0f;
+    float maxStatMultiplier = 1.0f;
 
     RandomMode randomMode = RandomMode::Shuffle;
     std::mt19937_64 rng;
@@ -32,9 +39,5 @@ private:
     std::vector<std::string> randomNames;
     std::vector<int> randomWeights;
     std::unordered_map<uint16_t, Boss> shuffledBosses;
-
-    void onStart();
-    void generateShuffledBosses();
-    std::pair<uint64_t, uint64_t> getWeightedRandomElements(uint16_t bossID);
-    void onBattleEnter();
+    std::unordered_map<uint16_t, StatMultiplierSet> bossStatMultipliers;
 };

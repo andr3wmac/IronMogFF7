@@ -37,7 +37,7 @@ void RandomizeEncounters::setup()
     // Emerald Weapon
     excludedFormations.insert({ 984, 985, 986, 987 });
 
-    // Get all boss formations
+    // Add all boss formations to excluded formations
     {
         std::set<uint16_t> bossIDs;
         for (const Boss& boss : GameData::bosses)
@@ -78,10 +78,16 @@ bool RandomizeEncounters::onSettingsGUI()
     changed |= ImGui::InputInt("##maxLevelDifference", &maxLevelDifference);
 
     ImGui::Text("Stat Multiplier");
-    ImGui::SetItemTooltip("Multiplies each enemy's HP, MP, Strength, Magic,\nEvade, Speed, Luck, Defense, and MDefense.");
-    ImGui::SameLine(140.0f);
-    ImGui::SetNextItemWidth(50.0f);
-    changed |= ImGui::InputFloat("##encounterStatMultiplier", &statMultiplier, 0.0f, 0.0f, "%.2f");
+    ImGui::SetItemTooltip("Multiplies each enemy's HP, MP, Strength, Magic, Evade,\nSpeed, Luck, Defense, and MDefense.\nMultiplier is randomly chosen for each stat for each enemy.");
+    ImGui::SameLine();
+
+    ImGui::PushItemWidth(60);
+    changed |= ImGui::InputFloat("##encMinStatMultiplier", &minStatMultiplier, 0, 0, "%.2f");
+    ImGui::SameLine();
+    ImGui::Text("to");
+    ImGui::SameLine();
+    changed |= ImGui::InputFloat("##encMaxStatMultiplier", &maxStatMultiplier, 0, 0, "%.2f");
+    ImGui::PopItemWidth();
 
     return changed;
 }
@@ -92,16 +98,18 @@ void RandomizeEncounters::loadSettings(const ConfigFile& cfg)
     scriptedEncounters = cfg.get<bool>("scriptedEncounters", true);
     worldMapEncounters = cfg.get<bool>("worldMapEncounters", true);
     maxLevelDifference = cfg.get<int>("maxLevelDifference", 5);
-    statMultiplier     = cfg.get<float>("statMultiplier", 1.0f);
+    minStatMultiplier  = cfg.get<float>("minStatMultiplier", 1.0f);
+    maxStatMultiplier  = cfg.get<float>("maxStatMultiplier", 1.0f);
 }
 
 void RandomizeEncounters::saveSettings(ConfigFile& cfg)
 {
-    cfg.set<bool>("randomEncounters", randomEncounters);
+    cfg.set<bool>("randomEncounters",   randomEncounters);
     cfg.set<bool>("scriptedEncounters", scriptedEncounters);
     cfg.set<bool>("worldMapEncounters", worldMapEncounters);
-    cfg.set<int>("maxLevelDifference", maxLevelDifference);
-    cfg.set<float>("statMultiplier", statMultiplier);
+    cfg.set<int>("maxLevelDifference",  maxLevelDifference);
+    cfg.set<float>("minStatMultiplier", minStatMultiplier);
+    cfg.set<float>("maxStatMultiplier", maxStatMultiplier);
 }
 
 void RandomizeEncounters::onDebugGUI()
@@ -179,6 +187,7 @@ void RandomizeEncounters::onStart()
 {
     rng.seed(game->getSeed());
     generateRandomEncounterMap();
+    generateEnemyStatMultipliers();
 }
 
 void RandomizeEncounters::onFieldChanged(uint16_t fieldID)
@@ -293,7 +302,7 @@ void RandomizeEncounters::onWorldMapEnter()
 
 void RandomizeEncounters::onBattleEnter()
 {
-    if (statMultiplier == 1.0f)
+    if (minStatMultiplier == 1.0f && maxStatMultiplier == 1.0f)
     {
         return;
     }
@@ -317,13 +326,18 @@ void RandomizeEncounters::onBattleEnter()
             continue;
         }
 
-        game->applyBattleStatMultiplier(BattleOffsets::Enemies[i], statMultiplier);
+        if (enemyStatMultipliers.count(formation->enemyIDs[i]) == 0)
+        {
+            continue;
+        }
+
+        game->applyBattleStatMultiplier(BattleOffsets::Enemies[i], enemyStatMultipliers[formation->enemyIDs[i]]);
     }
 }
 
 void RandomizeEncounters::generateRandomEncounterMap()
 {
-
+    randomEncounterMap.clear();
 
     for (const auto& kv : GameData::battleScenes)
     {
@@ -394,5 +408,47 @@ void RandomizeEncounters::generateRandomEncounterMap()
 
             randomEncounterMap[formation.id] = candidateFormationIDs;
         }
+    }
+}
+
+void RandomizeEncounters::generateEnemyStatMultipliers()
+{
+    enemyStatMultipliers.clear();
+
+    // Get list of all enemies
+    std::set<uint16_t> enemyIDs;
+    for (auto& [id, scene] : GameData::battleScenes)
+    {
+        for (BattleFormation& formation : scene.formations)
+        {
+            for (uint16_t enemyID : formation.enemyIDs)
+            {
+                if (enemyID != 0xFFFF)
+                {
+                    enemyIDs.insert(enemyID);
+                }
+            }
+        }
+    }
+
+    std::uniform_real_distribution<float> dist(minStatMultiplier, maxStatMultiplier);
+
+    for (uint16_t enemyID : enemyIDs)
+    {
+        StatMultiplierSet enemySet;
+
+        enemySet.currentHP  = dist(rng);
+        enemySet.maxHP      = dist(rng);
+        enemySet.currentMP  = dist(rng);
+        enemySet.maxMP      = dist(rng);
+        enemySet.strength   = dist(rng);
+        enemySet.magic      = dist(rng);
+        enemySet.evade      = dist(rng);
+        enemySet.speed      = dist(rng);
+        enemySet.luck       = dist(rng);
+        enemySet.defense    = dist(rng);
+        enemySet.mDefense   = dist(rng);
+
+        enemyStatMultipliers[enemyID] = enemySet;
     }
 }

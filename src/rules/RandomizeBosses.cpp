@@ -41,10 +41,16 @@ bool RandomizeBosses::onSettingsGUI()
     bool changed = false;
 
     ImGui::Text("Stat Multiplier");
-    ImGui::SetItemTooltip("Multiplies each boss' HP, MP, Strength, Magic,\nEvade, Speed, Luck, Defense, and MDefense.");
-    ImGui::SameLine(140.0f);
-    ImGui::SetNextItemWidth(50.0f);
-    changed |= ImGui::InputFloat("##bossStatMultiplier", &statMultiplier, 0.0f, 0.0f, "%.2f");
+    ImGui::SetItemTooltip("Multiplies each boss' HP, MP, Strength, Magic, Evade,\nSpeed, Luck, Defense, and MDefense.\nMultiplier is randomly chosen for each stat for each boss.");
+    ImGui::SameLine();
+
+    ImGui::PushItemWidth(60);
+    changed |= ImGui::InputFloat("##bossMinStatMultiplier", &minStatMultiplier, 0, 0, "%.2f");
+    ImGui::SameLine();
+    ImGui::Text("to");
+    ImGui::SameLine();
+    changed |= ImGui::InputFloat("##bossMaxStatMultiplier", &maxStatMultiplier, 0, 0, "%.2f");
+    ImGui::PopItemWidth();
 
     if (ImGui::CollapsingHeader("Resistance and Weakness"))
     {
@@ -91,7 +97,8 @@ bool RandomizeBosses::onSettingsGUI()
 
 void RandomizeBosses::loadSettings(const ConfigFile& cfg)
 {
-    statMultiplier = cfg.get<float>("statMultiplier", 1.0f);
+    minStatMultiplier = cfg.get<float>("minStatMultiplier", 1.0f);
+    maxStatMultiplier = cfg.get<float>("maxStatMultiplier", 1.0f);
     randomMode = (RandomMode)cfg.get<int>("randomMode", 0);
 
     elementCount = cfg.get<int>("elementCount", elementCount);
@@ -103,7 +110,8 @@ void RandomizeBosses::loadSettings(const ConfigFile& cfg)
 
 void RandomizeBosses::saveSettings(ConfigFile& cfg)
 {
-    cfg.set<float>("statMultiplier", statMultiplier);
+    cfg.set<float>("minStatMultiplier", minStatMultiplier);
+    cfg.set<float>("maxStatMultiplier", maxStatMultiplier);
     cfg.set<int>("randomMode", (int)randomMode);
 
     cfg.set<int>("elementCount", elementCount);
@@ -181,6 +189,7 @@ void RandomizeBosses::onStart()
 {
     rng.seed(game->getSeed());
     generateShuffledBosses();
+    generateBossStatMultipliers();
 }
 
 void RandomizeBosses::generateShuffledBosses()
@@ -200,6 +209,32 @@ void RandomizeBosses::generateShuffledBosses()
     for (int i = 0; i < bossIDs.size(); ++i)
     {
         shuffledBosses[bossIDs[i]] = bosses[i];
+    }
+}
+
+void RandomizeBosses::generateBossStatMultipliers()
+{
+    bossStatMultipliers.clear();
+
+    std::uniform_real_distribution<float> dist(minStatMultiplier, maxStatMultiplier);
+
+    for (const Boss& boss : GameData::bosses)
+    {
+        StatMultiplierSet enemySet;
+
+        enemySet.currentHP  = dist(rng);
+        enemySet.maxHP      = dist(rng);
+        enemySet.currentMP  = dist(rng);
+        enemySet.maxMP      = dist(rng);
+        enemySet.strength   = dist(rng);
+        enemySet.magic      = dist(rng);
+        enemySet.evade      = dist(rng);
+        enemySet.speed      = dist(rng);
+        enemySet.luck       = dist(rng);
+        enemySet.defense    = dist(rng);
+        enemySet.mDefense   = dist(rng);
+
+        bossStatMultipliers[boss.id] = enemySet;
     }
 }
 
@@ -297,7 +332,7 @@ void RandomizeBosses::onBattleEnter()
         }
     }
 
-    if (inBossFight && statMultiplier != 1.0f)
+    if (inBossFight && (minStatMultiplier != 1.0f || maxStatMultiplier != 1.0f))
     {
         for (int i = 0; i < 6; ++i)
         {
@@ -306,7 +341,12 @@ void RandomizeBosses::onBattleEnter()
                 continue;
             }
 
-            game->applyBattleStatMultiplier(BattleOffsets::Enemies[i], statMultiplier);
+            if (bossStatMultipliers.count(formation->enemyIDs[i]) == 0)
+            {
+                continue;
+            }
+
+            game->applyBattleStatMultiplier(BattleOffsets::Enemies[i], bossStatMultipliers[formation->enemyIDs[i]]);
         }
     }
 }

@@ -15,9 +15,12 @@ public:
     void onDebugGUI() override;
 
 private:
-    std::mt19937_64 rng;
-    float gilMultiplier = 1.0f;
-    float expMultiplier = 1.0f;
-
+    void onStart();
     void onBattleEnter();
+
+    std::mt19937_64 rng;
+    float minGilMultiplier = 1.0f;
+    float maxGilMultiplier = 1.0f;
+    float minExpMultiplier = 1.0f;
+    float maxExpMultiplier = 1.0f;
 };

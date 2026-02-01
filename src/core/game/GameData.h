@@ -210,6 +210,21 @@ struct BattleModel
     std::vector<BattleModelPart> parts;
 };
 
+struct StatMultiplierSet
+{
+    float currentHP = 1.0f;
+    float maxHP     = 1.0f;
+    float currentMP = 1.0f;
+    float maxMP     = 1.0f;
+    float strength  = 1.0f;
+    float magic     = 1.0f;
+    float evade     = 1.0f;
+    float speed     = 1.0f;
+    float luck      = 1.0f;
+    float defense   = 1.0f;
+    float mDefense  = 1.0f;
+};
+
 class GameData
 {
 public:

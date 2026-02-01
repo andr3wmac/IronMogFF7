@@ -24,10 +24,6 @@ public:
     }
 
 private:
-    std::vector<PermadeathExemption> exemptions;
-    Flags<uint16_t> deadCharacters;
-    std::set<uint8_t> justDiedCharacters;
-
     void onStart();
     void onFrame(uint32_t frameNumber);
     void onFieldChanged(uint16_t fieldID);
@@ -38,6 +34,10 @@ private:
     int selectRandomLivingCharacter(uint16_t fieldID, uint8_t ignoreCharacter);
     void updateOverrideFights();
     
+    std::vector<PermadeathExemption> exemptions;
+    Flags<uint16_t> deadCharacters;
+    std::set<uint8_t> justDiedCharacters;
+
     bool appliedRufusRandom = false;
     bool appliedDyneRandom = false;
     bool waitingOnBattleExit = false;

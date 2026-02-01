@@ -22,14 +22,17 @@ private:
     void onBattleEnter();
 
     void generateRandomEncounterMap();
+    void generateEnemyStatMultipliers();
 
     bool randomEncounters = true;
     bool scriptedEncounters = true;
     bool worldMapEncounters = true;
     int maxLevelDifference = 5;
-    float statMultiplier = 1.0f;
-    
+    float minStatMultiplier = 1.0f;
+    float maxStatMultiplier = 1.0f;
+
     std::set<uint16_t> excludedFormations;
     std::unordered_map<uint16_t, std::vector<uint16_t>> randomEncounterMap;
+    std::unordered_map<uint16_t, StatMultiplierSet> enemyStatMultipliers;
     std::mt19937 rng;
 };
