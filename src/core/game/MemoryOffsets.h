@@ -231,7 +231,18 @@ struct BattleOffsets
     // Graphics Data
     CONST_PTR AllyModels[] = { 0x103200, 0x112200, 0x121200 };
 
-    CONST_PTR Inventory = 0x1671B8; // 6 bytes per inventory. uint16_t item id, uint8_t quantity, other 3 bytes unknown.
+    CONST_PTR ControllerInputs  = 0x62D78;  // uint16_t bitflags for controller state. Is stable even if buttons are remapped.
+    CONST_PTR Inventory         = 0x1671B8; // 6 bytes per inventory. uint16_t item id, uint8_t quantity, other 3 bytes unknown.
+};
+
+struct BattleMenuOffsets
+{
+    CONST_PTR ActivePlayer = 0xF38A0; // uint8_t, index of party member whos menu is open currently.
+    CONST_PTR PlayerMenu[] = { 0xF90BF, 0xF92FF, 0xF953F };
+
+    CONST_PTR MenuIndex      = 0x00; // uint8_t index for menu item selected (eg Attack = 0, Item = 3)
+    CONST_PTR ItemMenuScroll = 0x09; // uint8_t number of items we've scrolled down by
+    CONST_PTR ItemMenuIndex  = 0x12; // uint8_t which line of the item window we're highlighting
 };
 
 struct BattleStateOffsets
