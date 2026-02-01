@@ -76,7 +76,7 @@ struct FieldScriptBattle
     uint8_t group = 0;
     uint8_t script = 0;
     uint32_t offset = 0;
-    uint16_t battleID = 0;
+    uint16_t formationID = 0;
 };
 
 struct FieldWorldExit

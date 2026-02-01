@@ -23,6 +23,9 @@ private:
 
     void generateRandomEncounterMap();
 
+    bool randomEncounters = true;
+    bool scriptedEncounters = true;
+    bool worldMapEncounters = true;
     int maxLevelDifference = 5;
     float statMultiplier = 1.0f;
     

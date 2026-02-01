@@ -36,11 +36,40 @@ void RandomizeEncounters::setup()
 
     // Emerald Weapon
     excludedFormations.insert({ 984, 985, 986, 987 });
+
+    // Get all boss formations
+    {
+        std::set<uint16_t> bossIDs;
+        for (const Boss& boss : GameData::bosses)
+        {
+            bossIDs.insert(boss.id);
+        }
+
+        for (auto& [id, scene] : GameData::battleScenes)
+        {
+            for (BattleFormation& formation : scene.formations)
+            {
+                for (int i = 0; i < 6; ++i)
+                {
+                    if (bossIDs.count(formation.enemyIDs[i]) > 0)
+                    {
+                        excludedFormations.insert(formation.id);
+                        break;
+                    }
+                }
+            }
+        }
+    }
 }
 
 bool RandomizeEncounters::onSettingsGUI()
 {
     bool changed = false;
+
+    changed |= ImGui::Checkbox("Random Encounters", &randomEncounters);
+    changed |= ImGui::Checkbox("Scripted Encounters", &scriptedEncounters);
+    ImGui::SetItemTooltip("Randomize fights triggered from scripts excluding boss fights.");
+    changed |= ImGui::Checkbox("World Map Encounters", &worldMapEncounters);
 
     ImGui::Text("Max Level Difference");
     ImGui::SetItemTooltip("How much higher or lower the max level of the random\nformation can be from the original formation.");
@@ -59,12 +88,18 @@ bool RandomizeEncounters::onSettingsGUI()
 
 void RandomizeEncounters::loadSettings(const ConfigFile& cfg)
 {
+    randomEncounters   = cfg.get<bool>("randomEncounters", true);
+    scriptedEncounters = cfg.get<bool>("scriptedEncounters", true);
+    worldMapEncounters = cfg.get<bool>("worldMapEncounters", true);
     maxLevelDifference = cfg.get<int>("maxLevelDifference", 5);
-    statMultiplier = cfg.get<float>("statMultiplier", 1.0f);
+    statMultiplier     = cfg.get<float>("statMultiplier", 1.0f);
 }
 
 void RandomizeEncounters::saveSettings(ConfigFile& cfg)
 {
+    cfg.set<bool>("randomEncounters", randomEncounters);
+    cfg.set<bool>("scriptedEncounters", scriptedEncounters);
+    cfg.set<bool>("worldMapEncounters", worldMapEncounters);
     cfg.set<int>("maxLevelDifference", maxLevelDifference);
     cfg.set<float>("statMultiplier", statMultiplier);
 }
@@ -154,38 +189,65 @@ void RandomizeEncounters::onFieldChanged(uint16_t fieldID)
         return;
     }
 
-    // Two encounter tables per field
-    for (int t = 0; t < 2; ++t)
+    if (randomEncounters)
     {
-        uintptr_t tableOffset = FieldScriptOffsets::EncounterStart + fieldData.encounterOffset + (t * FieldScriptOffsets::EncounterTableStride);
-
-        for (int i = 0; i < 10; ++i)
+        // Two encounter tables per field
+        for (int t = 0; t < 2; ++t)
         {
-            Encounter& origEncounter = fieldData.getEncounter(t, i);
-            if (origEncounter.prob == 0 && origEncounter.id == 0)
-            {
-                continue;
-            }
+            uintptr_t tableOffset = FieldScriptOffsets::EncounterStart + fieldData.encounterOffset + (t * FieldScriptOffsets::EncounterTableStride);
 
-            std::vector<uint16_t> candidates = randomEncounterMap[origEncounter.id];
+            for (int i = 0; i < 10; ++i)
+            {
+                Encounter& origEncounter = fieldData.getEncounter(t, i);
+                if (origEncounter.prob == 0 && origEncounter.id == 0)
+                {
+                    continue;
+                }
+
+                std::vector<uint16_t> candidates = randomEncounterMap[origEncounter.id];
+                if (candidates.size() == 0)
+                {
+                    LOG("No random encounter candidates for formation %d", origEncounter.id);
+                    continue;
+                }
+
+                std::uniform_int_distribution<std::size_t> dist(0, candidates.size() - 1);
+                uint16_t randomEncounterID = candidates[dist(rng)];
+                uint16_t newEncounter = (origEncounter.prob << 10) | (randomEncounterID & 0x03FF);
+
+                game->write<uint16_t>(tableOffset + 2 + (sizeof(uint16_t) * i), newEncounter);
+                LOG("Randomized battle: %d to %d (Candidates: %d, Table: %d)", origEncounter.id, randomEncounterID, candidates.size(), t);
+            }
+        }
+    }
+
+    if (scriptedEncounters)
+    {
+        for (FieldScriptBattle& battle : fieldData.battles)
+        {
+            std::vector<uint16_t> candidates = randomEncounterMap[battle.formationID];
             if (candidates.size() == 0)
             {
-                LOG("No random encounter candidates for formation %d", origEncounter.id);
+                LOG("No random encounter candidates for formation %d", battle.formationID);
                 continue;
             }
 
             std::uniform_int_distribution<std::size_t> dist(0, candidates.size() - 1);
-            uint16_t randomEncounterID = candidates[dist(rng)];
-            uint16_t newEncounter = (origEncounter.prob << 10) | (randomEncounterID & 0x03FF);
+            uint16_t randomFormationID = candidates[dist(rng)];
 
-            game->write<uint16_t>(tableOffset + 2 + (sizeof(uint16_t) * i), newEncounter);
-            LOG("Randomized battle: %d to %d (Candidates: %d, Table: %d)", origEncounter.id, randomEncounterID, candidates.size(), t);
+            uintptr_t battleIDOffset = FieldScriptOffsets::ScriptStart + battle.offset + 2;
+            game->write<uint16_t>(battleIDOffset, randomFormationID);
         }
     }
 }
 
 void RandomizeEncounters::onWorldMapEnter()
 {
+    if (!worldMapEncounters)
+    {
+        return;
+    }
+
     for (int r = 0; r < 16; ++r)
     {
         WorldMapEncounters& encounters = GameData::worldMapEncounters[r];
@@ -261,6 +323,8 @@ void RandomizeEncounters::onBattleEnter()
 
 void RandomizeEncounters::generateRandomEncounterMap()
 {
+
+
     for (const auto& kv : GameData::battleScenes)
     {
         BattleScene scene = kv.second;
@@ -279,12 +343,6 @@ void RandomizeEncounters::generateRandomEncounterMap()
         for (int i = 0; i < 4; ++i)
         {
             BattleFormation formation = scene.formations[i];
-
-            // We don't randomize battles with no escape flag, they're probably important.
-            if (formation.noEscape)
-            {
-                continue;
-            }
 
             // Don't randomize excluded formations
             if (excludedFormations.count(formation.id) > 0)
@@ -318,10 +376,6 @@ void RandomizeEncounters::generateRandomEncounterMap()
                 for (int j = 0; j < 4; ++j)
                 {
                     BattleFormation candidateFormation = candidateScene.formations[j];
-                    if (candidateFormation.noEscape)
-                    {
-                        continue;
-                    }
 
                     if (candidateFormation.isArenaBattle())
                     {
