@@ -160,6 +160,9 @@ bool GUI::initialize(int width, int height, const char* windowTitle)
     // Google's Inter font
     fonts["Inter"] = io.Fonts->AddFontFromFileTTF("resources/Inter_18pt-Regular.ttf", 18.0f);
 
+    // Reactor7 font
+    fonts["Reactor7"] = io.Fonts->AddFontFromFileTTF("resources/Reactor7.ttf", 18.0f);
+
     // Setup style
     setupStyle();
 

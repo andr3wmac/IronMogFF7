@@ -124,6 +124,78 @@ Extra* GameManager::getExtra(std::string extraName)
     return nullptr;
 }
 
+std::string GameManager::getSettingsSummary()
+{
+    std::map<std::string, std::vector<std::string>> groups;
+
+    for (Rule* rule : Rule::getList())
+    {
+        if (!rule->enabled)
+        {
+            continue;
+        }
+
+        std::string ruleName = rule->name;
+        size_t spacePos = ruleName.find(' ');
+        if (spacePos == std::string::npos) 
+        {
+            groups[ruleName] = {};
+            continue;
+        }
+
+        std::string prefix = ruleName.substr(0, spacePos);
+        std::string subject = ruleName.substr(spacePos + 1);
+        std::transform(subject.begin(), subject.end(), subject.begin(), [](unsigned char c) { return std::tolower(c); });
+        groups[prefix].push_back(subject);
+    }
+
+    for (Extra* extra : Extra::getList())
+    {
+        if (!extra->enabled)
+        {
+            continue;
+        }
+
+        std::string extraName = extra->name;
+        size_t spacePos = extraName.find(' ');
+        if (spacePos == std::string::npos)
+        {
+            groups[extraName] = {};
+            continue;
+        }
+
+        std::string prefix = extraName.substr(0, spacePos);
+        std::string subject = extraName.substr(spacePos + 1);
+        std::transform(subject.begin(), subject.end(), subject.begin(), [](unsigned char c) { return std::tolower(c); });
+        groups[prefix].push_back(subject);
+    }
+
+    std::stringstream ss;
+    for (auto& [prefix, subjects] : groups) 
+    {
+        std::sort(subjects.begin(), subjects.end());
+
+        ss << "- " << prefix;
+        if (subjects.size() > 0)
+        {
+            std::string connector = " and ";
+            if (prefix == "No")
+            {
+                connector = " or ";
+            }
+
+            ss << " ";
+            for (size_t i = 0; i < subjects.size(); ++i)
+            {
+                ss << subjects[i] << (i == subjects.size() - 1 ? "" : (i == subjects.size() - 2 ? connector : ", "));
+            }
+        }
+        ss << ".\n";
+    }
+
+    return ss.str();
+}
+
 void GameManager::setup(uint32_t inputSeed)
 {
     // Note: seed may change after loading a save file, so its important to not utilize it in rule setup.

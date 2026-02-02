@@ -207,7 +207,7 @@ void App::drawSettingsPanel()
 void App::drawTrackerPanel()
 {
     GUI::drawImage(logo, logo.width / 2, logo.height / 2);
-    gui.pushFont("Inter");
+    gui.pushFont("Reactor7");
 
     ImGui::Spacing();
     ImGui::BeginChild("##ScrollBox", ImVec2(0, APP_WINDOW_HEIGHT - 212));
@@ -269,6 +269,11 @@ void App::drawTrackerPanel()
                     ImGui::Text(currentSongText.c_str());
                 }
             }
+            
+            // Rule summary
+            ImGui::Spacing();
+            std::string summaryText = game->getSettingsSummary();
+            ImGui::TextWrapped(summaryText.c_str());
         }
     }
     ImGui::EndChild();

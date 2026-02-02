@@ -30,6 +30,7 @@ public:
     Rule* getRule(std::string ruleName);
     bool isExtraEnabled(std::string extraName);
     Extra* getExtra(std::string extraName);
+    std::string getSettingsSummary();
 
     void setup(uint32_t inputSeed);
     void loadSaveData();
