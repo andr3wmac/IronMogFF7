@@ -158,6 +158,10 @@ inline uintptr_t getCharacterDataOffset(uint8_t characterID)
         case 6: return CharacterDataOffsets::CaitSith;
         case 7: return CharacterDataOffsets::Vincent;
         case 8: return CharacterDataOffsets::Cid;
+
+        // Kalm flashback
+        case 9:  return CharacterDataOffsets::CaitSith;
+        case 10: return CharacterDataOffsets::Vincent;
     }
 
     return CharacterDataOffsets::Cloud;
@@ -176,6 +180,10 @@ inline std::string getCharacterName(uint8_t characterID)
         case 6: return "CAITSITH";
         case 7: return "VINCENT";
         case 8: return "CID";
+
+        // Kalm flashback
+        case 9:  return "CLOUD";
+        case 10: return "SEPHIROTH";
     }
 
     return "CLOUD";

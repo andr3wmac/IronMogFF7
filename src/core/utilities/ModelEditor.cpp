@@ -253,7 +253,15 @@ bool ModelEditor::areBattleModelsLoaded()
             continue;
         }
 
-        BattleModel* model = GameData::getBattleModel(getCharacterName(id));
+        std::string modelName = getCharacterName(id);
+        if (modelName == "SEPHIROTH")
+        {
+            // In Kalm flashback Sephiroth is in our party. No color changes
+            // for him so we just skip evaluating this one.
+            continue;
+        }
+
+        BattleModel* model = GameData::getBattleModel(modelName);
         if (model == nullptr)
         {
             return false;
