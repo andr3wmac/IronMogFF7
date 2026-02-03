@@ -248,6 +248,8 @@ void App::drawTrackerPanel()
 
             ImGui::Spacing();
             ImGui::Spacing();
+            ImGui::Spacing();
+            ImGui::Indent(10.0f);
 
             // Seed
             std::string seedText = "Seed: " + std::string(seedValue);
@@ -274,6 +276,8 @@ void App::drawTrackerPanel()
             ImGui::Spacing();
             std::string summaryText = game->getSettingsSummary();
             ImGui::TextWrapped(summaryText.c_str());
+
+            ImGui::Unindent(10.0f);
         }
     }
     ImGui::EndChild();

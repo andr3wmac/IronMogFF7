@@ -226,7 +226,7 @@ if populate_music:
     music["fiddle"] = ['FF7 - Fiddle de Chocobo.mp3']
     music["fin"] = ['FF7 - World Crisis.mp3']
     music["geki"] = ['FF6 - Kefka.mp3', 'FF6 - Mog.mp3', 'FF6 - Spinach Rag.mp3', 'FF7 - Debut.mp3', 'FF8 - Slide Show Part 1.mp3', "FF9 - Moogle's Theme.mp3", 'FF9 - Slew of Love Letters.mp3', 'FF9 - The Sneaky Frog and the Scoundrel.mp3']
-    music["gold1"] = ['FF6 - Johnny C. Bad.mp3', 'FF7 - Gold Saucer.mp3', 'FF8 - Shuffle or Boogie.mp3', "FF9 - Black Mage's Village.mp3", 'FF9 - Jesters of the Moon.mp3', 'FF9 - Prima Vista Band.mp3']
+    music["gold1"] = ['FF6 - Johnny C. Bad.mp3', 'FF7 - Gold Saucer.mp3', 'FF8 - Celebration (Irish Jig).mp3', 'FF8 - Shuffle or Boogie.mp3', "FF9 - Black Mage's Village.mp3", 'FF9 - Jesters of the Moon.mp3', 'FF9 - Prima Vista Band.mp3']
     music["guitar2"] = ['FF6 - Coin Song.mp3', 'FF6 - Forever Rachel!.mp3', 'FF7 - On the Other Side of the Mountain.mp3', 'FF8 - Julia.mp3', 'FF8 - Roses and Wine.mp3', 'FF9 - Dissipating Sorrow.mp3', 'FF9 - Song of Memories.mp3']
     music["gun"] = ['FF7 - Full-Scale Attack.mp3', 'FF8 - Never Look Back.mp3', 'FF8 - The Mission.mp3', 'FF8 - The Stage is Set.mp3', 'FF9 - Ambush Attack.mp3', 'FF9 - Assault of the White Dragons.mp3', "FF9 - Hunter's Chance.mp3"]
     music["hen"] = ['FF6 - Another World of Beasts.mp3', 'FF7 - Who Am I.mp3', 'FF8 - Compression of Time.mp3', 'FF8 - Find Your Way.mp3', 'FF8 - Junction.mp3', 'FF8 - Lunatic Pandora.mp3', 'FF9 - A Transient Past.mp3', 'FF9 - Black Waltz.mp3', "FF9 - Cleyra's Trunk.mp3", 'FF9 - Extraction.mp3', 'FF9 - Footsteps of Desire.mp3', 'FF9 - The Chosen Summoner.mp3']

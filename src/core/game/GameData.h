@@ -167,8 +167,8 @@ struct BattleScene
 
 struct Boss
 {
-    std::string name = "";
     uint16_t id = 0;
+    std::string name = "";
     std::vector<int> sceneIDs;
     uint64_t elementTypes = 0;
     uint64_t elementRates = 0;
@@ -340,9 +340,9 @@ public:
         GameData::battleScenes[sceneID].formations.push_back({ formationID, noEscape, enemyIDs, arenaIDs });
     }
 
-    static void addBoss(const std::string& name, uint16_t enemyID, std::vector<int> sceneIDs, uint64_t elemTypes, uint64_t elemRates) 
+    static void addBoss(uint16_t enemyID, const std::string& name, std::vector<int> sceneIDs, uint64_t elemTypes, uint64_t elemRates)
     {
-        GameData::bosses.push_back({ name, enemyID, sceneIDs, elemTypes, elemRates });
+        GameData::bosses.push_back({ enemyID, name, sceneIDs, elemTypes, elemRates });
     }
 
     static void addModel(const std::string& modelName, int polyCount, std::vector<ModelPart> parts) 

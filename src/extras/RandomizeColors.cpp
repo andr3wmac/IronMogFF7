@@ -219,17 +219,6 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
     {
         uint16_t screenFade = game->read<uint16_t>(GameOffsets::FieldScreenFade);
 
-        // Hack fix for base of tower transition after wedge falls
-        if (game->getFieldID() == 156 && game->getGameMoment() == 218)
-        {
-            // Waiting 240 frames was chosen arbitrarily and tested. Could be fragile.
-            if (game->getFramesInField() == 240)
-            {
-                modelEditor.findFieldModels();
-                applyColors();
-            }
-        }
-
         // Hack fix for Tifa and Cloud scene before northern crater
         if (game->getFieldID() == 771 && game->getGameMoment() == 1612 && screenFade > 1 && screenFade < 120)
         {

@@ -28,15 +28,6 @@ void RandomizeEncounters::setup()
     // Midgar Zolom
     excludedFormations.insert({ 469, 470 });
 
-    // Turks
-    excludedFormations.insert({ 841, 842, 843 });
-
-    // Ruby Weapon
-    excludedFormations.insert({ 982, 983 });
-
-    // Emerald Weapon
-    excludedFormations.insert({ 984, 985, 986, 987 });
-
     // Add all boss formations to excluded formations
     {
         std::set<uint16_t> bossIDs;

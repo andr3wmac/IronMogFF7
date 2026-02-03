@@ -418,89 +418,111 @@ def outputBosses(gen, discPath, version):
     sceneBin = ff7.scene.Archive(ff7.game.retrieveFile(discPath, "BATTLE", "SCENE.BIN"))
 
     # Based on: https://pastebin.com/2QGwVma3
-    bosses = {
-        "Guard Scorpion": [81], 
-        "Air Buster": [91],
-        "Aps": [96], 
-        "Turks:Reno": [103], 
-        "Sample:H0512": [114],
-        "Hundred Gunner": [115], 
-        "Heli Gunner": [115],
-        "Rufus": [116],
-        "Dark Nation": [116],
-        "Motor Ball": [117], 
-        "Bottomswell": [120],
-        "Jenova‧BIRTH": [122],
-        "Dyne": [131],
-        "Turks:Reno": [134],
-        "Turks:Rude": [134],
-        "Gi Nattak": [138],
-        "Materia Keeper": [148],
-        "Palmer": [150],
-        "Red Dragon": [163],
-        "Demons Gate": [161],
-        "Jenova‧LIFE": [167],
-        "Schizo(Right)": [185],
-        "Schizo(Left)": [185],
-        "Jenova‧DEATH": [185],
-        "Eagle Gun": [202],
-        "Carry Armor": [195],
-        "Turks:Reno": [201],
-        "Turks:Rude": [201],
-        "Turks:Rude": [204],
-        "Lost Number": [144],
-        "Rapps": [154],
-        "Gorkii": [155],
-        "Shake": [156],
-        "Chekhov": [156],
-        "Staniv": [156],
-        "Godo": [157],
-        "Diamond Weapon": [245],
-        "Turks:Elena": [210],
-        "Turks:Reno": [210],
-        "Turks:Rude": [210],
-        "Hojo": [214],
-        "Helletic Hojo": [215],
-        "Lifeform-Hojo N": [216],
-        "Ultimate Weapon": [70],
-        "Emerald Weapon": [246],
-        "Ruby Weapon": [245],
-        "Jenova‧SYNTHESIS": [227],
-        "Bizarro‧Sephiroth": [228],
-        "Safer‧Sephiroth": [231],
-        "Sephiroth": [231],
-    }
+    bosses = [
+        "Guard Scorpion", 
+        "Air Buster",
+        "Aps", 
+        "Turks:Reno", 
+        "Sample:H0512",
+        "Hundred Gunner", 
+        "Heli Gunner",
+        "Rufus",
+        "Dark Nation",
+        "Motor Ball", 
+        "Bottomswell",
+        "Jenova‧BIRTH",
+        "Dyne",
+        "Turks:Rude",
+        "Gi Nattak",
+        "Materia Keeper",
+        "Palmer",
+        "Red Dragon",
+        "Demons Gate",
+        "Jenova‧LIFE",
+        "Schizo(Right)",
+        "Schizo(Left)",
+        "Jenova‧DEATH",
+        "Eagle Gun",
+        "Carry Armor",
+        "Lost Number",
+        "Rapps",
+        "Gorkii",
+        "Shake",
+        "Chekhov",
+        "Staniv",
+        "Godo",
+        "Diamond Weapon",
+        "Turks:Elena",
+        "Hojo",
+        "Helletic Hojo",
+        "Lifeform-Hojo N",
+        "Ultimate Weapon",
+        "Emerald Weapon",
+        "Ruby Weapon",
+        "Jenova‧SYNTHESIS",
+        "Bizarro‧Sephiroth",
+        "Safer‧Sephiroth",
+        "Sephiroth",
+    ]
 
-    for name, scenes in bosses.items():
-        foundEnemy = False
+    enemyIDsByName = {}
+    enemyScenesByID = {}
+    for i in range(0, sceneBin.numScenes()):
+        scene = sceneBin.getScene(i)
 
-        elementTypes = []
-        elementRates = []
-        enemyID = 0
+        enemies = scene.getEnemies(ff7.game.isJapanese(version))
+        for j in range(0, len(enemies)):
+            enemy = enemies[j]
+            id = scene.enemyIDs[j]
 
-        for i in scenes:
-            scene = sceneBin.getScene(i)
+            if id == 65535:
+                continue
 
-            enemies = scene.getEnemies(ff7.game.isJapanese(version))
-            for j in range(0, len(enemies)):
-                enemy = enemies[j]
-                id = scene.enemyIDs[j]
+            name = enemy.name.strip()
 
-                if enemy.name.strip() == name:
-                    foundEnemy = True
-                    elementTypes = enemy.elementTypes
-                    elementRates = enemy.elementRates
-                    enemyID = id
+            if not name in enemyIDsByName:
+                enemyIDsByName[name] = []
 
-        if not foundEnemy:
-            print("Did not find boss: " + name)
+            if not id in enemyScenesByID:
+                enemyScenesByID[id] = []
 
-        final_name = name.replace("‧", "-")
+            enemyIDsByName[name].append(id)
+            enemyScenesByID[id].append(i)
 
-        uint64_elemTypes = f"0x{bytes(elementTypes).hex().upper()}ULL"
-        uint64_elemRates = f"0x{bytes(elementRates).hex().upper()}ULL"
+    for bossName in bosses:
+        if not bossName in enemyIDsByName:
+            print("Error! Boss not found: " + bossName)
+            continue
 
-        gen.write_line("addBoss(\"" + final_name + "\", " + str(enemyID) + ", " + listToCPPArray(scenes) + ", " + uint64_elemTypes + ", " + uint64_elemRates + ");", 4)
+        for bossID in enemyIDsByName[bossName]:
+            scenes = enemyScenesByID[bossID]
+
+            foundBoss = False
+            elementTypes = []
+            elementRates = []
+
+            for i in scenes:
+                scene = sceneBin.getScene(i)
+
+                enemies = scene.getEnemies(ff7.game.isJapanese(version))
+                for j in range(0, len(enemies)):
+                    enemy = enemies[j]
+                    id = scene.enemyIDs[j]
+
+                    if bossID == id:
+                        elementTypes = enemy.elementTypes
+                        elementRates = enemy.elementRates
+                        foundBoss = True
+
+            if not foundBoss:
+                print("Error! Did not find boss " + bossName + " in the scene list.")
+
+            final_name = bossName.replace("‧", "-")
+
+            uint64_elemTypes = f"0x{bytes(elementTypes).hex().upper()}ULL"
+            uint64_elemRates = f"0x{bytes(elementRates).hex().upper()}ULL"
+
+            gen.write_line("addBoss(" + str(bossID) + ", \"" + final_name + "\", " + listToCPPArray(scenes) + ", " + uint64_elemTypes + ", " + uint64_elemRates + ");", 4)
 
     gen.write_line("")
 

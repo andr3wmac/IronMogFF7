@@ -355,9 +355,9 @@ std::vector<const Boss*> GameData::getBossesInScene(const BattleScene* scene)
     std::vector<const Boss*> result;
     for (const Boss& boss : GameData::bosses)
     {
-        for (int bossSceneID : boss.sceneIDs)
+        for (int enemyID : scene->enemyIDs)
         {
-            if (bossSceneID == scene->id)
+            if (enemyID == boss.id)
             {
                 result.push_back(&boss);
                 break;

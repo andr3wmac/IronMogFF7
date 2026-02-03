@@ -708,6 +708,28 @@ bool GameManager::isFieldDataLoaded()
     bool isScreenReady = (lastFieldScreenFade == 0x100 && screenFade < lastFieldScreenFade);
     lastFieldScreenFade = screenFade;
 
+    // Hack fix for base of tower transition after wedge falls. For whatever reason 
+    // FieldScreenFade stays at 256 the whole time.
+    {
+        if (fieldID == 156 && getGameMoment() == 218)
+        {
+            uint16_t fieldWarpID = read<uint16_t>(GameOffsets::FieldWarpID);
+            uint8_t screenBlack = read<uint8_t>(0x9AC40);
+            if (fieldID != fieldWarpID && screenBlack == 0)
+            {
+                isScreenReady = true;
+            }
+        }
+
+        // Due to the previous problem of FieldScreenFade being stuck at 256 we need a special
+        // case for the transition to the next scene going up the tower.
+        if (fieldID == 158 && getGameMoment() == 221)
+        {
+            uint8_t screenBlack = read<uint8_t>(0x9AC40);
+            isScreenReady = (screenFade == 0 && screenBlack == 0);
+        }
+    }
+
     return isScreenReady;
 }
 
