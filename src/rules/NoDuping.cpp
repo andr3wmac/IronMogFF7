@@ -38,6 +38,22 @@ void NoDuping::onDebugGUI()
         std::string entryText = " " + std::to_string(i) + ") " + std::to_string(itemIndex) + " " + std::to_string(itemQuantity);
         ImGui::Text(entryText.c_str());
     }
+
+    // Battle Inventory State
+    if (ImGui::CollapsingHeader("Battle Inventory"))
+    {
+        for (int i = 0; i < 320; ++i)
+        {
+            uint16_t itemID = game->read<uint16_t>(BattleOffsets::Inventory + (i * 6));
+            uint8_t itemQuantity = game->read<uint8_t>(BattleOffsets::Inventory + (i * 6) + 2);
+            uint8_t unknown0 = game->read<uint8_t>(BattleOffsets::Inventory + (i * 6) + 3);
+            uint8_t unknown1 = game->read<uint8_t>(BattleOffsets::Inventory + (i * 6) + 4);
+            uint8_t unknown2 = game->read<uint8_t>(BattleOffsets::Inventory + (i * 6) + 5);
+
+            std::string entryText = " " + std::to_string(i) + ") " + std::to_string(itemID) + " " + std::to_string(itemQuantity) + " " + std::to_string(unknown0) + " " + std::to_string(unknown1) + " " + std::to_string(unknown2);
+            ImGui::Text(entryText.c_str());
+        }
+    }
 }
 
 void NoDuping::onStart()
@@ -196,10 +212,20 @@ void NoDuping::onFrame(uint32_t frameNumber)
                 uint8_t currentQuantity = game->read<uint8_t>(BattleOffsets::Inventory + (itemIndex * 6) + 2);
                 if (currentQuantity > previousQuantity)
                 {
-                    game->write<uint8_t>(BattleOffsets::Inventory + (itemIndex * 6) + 2, previousQuantity);
-
                     uint16_t itemID = game->read<uint16_t>(BattleOffsets::Inventory + (itemIndex * 6));
-                    LOG("Item duplication prevented: %d", itemID);
+                    
+                    if (previousQuantity > 0)
+                    {
+                        game->write<uint8_t>(BattleOffsets::Inventory + (itemIndex * 6) + 2, previousQuantity);
+                        LOG("Item duplication prevented: %d", itemID);
+                    }
+                    else 
+                    {
+                        // Previous quantity is zero so write an empty slot.
+                        uint8_t inventoryEntry[] = { 0xFF, 0xFF, 0x00, 0x00, 11, 0x00 };
+                        game->write(BattleOffsets::Inventory + (i * 6), inventoryEntry, 6);
+                        LOG("Item duplication prevented (zero quantity): %d", itemID);
+                    }
                 }
             }
         }
