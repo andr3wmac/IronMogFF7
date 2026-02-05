@@ -27,6 +27,11 @@ void ModelEditor::setup(GameManager* gameManager)
     openModels.clear();
 }
 
+void ModelEditor::clear()
+{
+    openModels.clear();
+}
+
 void ModelEditor::findFieldModels()
 {
     openModels.clear();

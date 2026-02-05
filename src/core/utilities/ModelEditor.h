@@ -34,6 +34,7 @@ public:
     ~ModelEditor();
 
     void setup(GameManager* gameManager);
+    void clear();
     void findFieldModels();
     void openBattleModels();
     bool areBattleModelsLoaded();

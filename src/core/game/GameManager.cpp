@@ -291,7 +291,7 @@ bool GameManager::update()
 {
     double currentTime = Utilities::getTimeMS();
     
-    // If read/write errors have occured then connection has been broken.
+    // If read/write errors have occurred then connection has been broken.
     if (emulator->pollErrors())
     {
         return false;
@@ -323,7 +323,6 @@ bool GameManager::update()
     }
 
     // We assume if 200ms has passed without the frame number advancing that the emulator is paused
-    
     if (currentTime - lastFrameUpdateTime > 200 && !emulatorPaused)
     {
         emulatorPaused = true;
@@ -418,13 +417,14 @@ bool GameManager::update()
         uint16_t newFieldID = read<uint16_t>(GameOffsets::FieldID);
         if (newFieldID != fieldID)
         {
+            lastFieldScreenFade = read<uint16_t>(GameOffsets::FieldScreenFade);
             waitingForFieldData = true;
             fieldID = newFieldID;
             framesInField = 0;
-            lastFieldScreenFade = read<uint16_t>(GameOffsets::FieldScreenFade);
         }
 
-        if (waitingForFieldData && isFieldDataLoaded())
+        bool justConnected = fieldID == 0 || framesSinceReload == 0;
+        if (waitingForFieldData && isFieldDataLoaded(justConnected))
         {
             LOG("Loaded Field: %d", fieldID);
             onFieldChanged.invoke(fieldID);
@@ -461,6 +461,7 @@ bool GameManager::update()
     uint32_t newFrameNumber = read<uint32_t>(GameOffsets::FrameNumber);
 
     // A jump in frame number likely indicates a load game or load save state.
+    framesSinceReload++;
     int frameDifference = std::abs((int)newFrameNumber - (int)frameNumber);
     if (frameDifference > 30 && framesSinceReload > 30)
     {
@@ -470,7 +471,6 @@ bool GameManager::update()
         onStart.invoke();
         framesSinceReload = 0;
     }
-    framesSinceReload++;
 
     // Detect change in frame number and trigger event
     if (newFrameNumber != frameNumber)
@@ -611,7 +611,7 @@ bool GameManager::isBattleDataLoaded()
 
 // Detect if field data is fully loaded by verifying the set of information
 // we know about the field is confirmed in memory.
-bool GameManager::isFieldDataLoaded()
+bool GameManager::isFieldDataLoaded(bool justConnected)
 {
     if (gameModule != GameModule::Field)
     {
@@ -707,6 +707,11 @@ bool GameManager::isFieldDataLoaded()
     uint16_t screenFade = read<uint16_t>(GameOffsets::FieldScreenFade);
     bool isScreenReady = (lastFieldScreenFade == 0x100 && screenFade < lastFieldScreenFade);
     lastFieldScreenFade = screenFade;
+
+    if (justConnected && screenFade == 0)
+    {
+        isScreenReady = true;
+    }
 
     // Hack fix for base of tower transition after wedge falls. For whatever reason 
     // FieldScreenFade stays at 256 the whole time.

@@ -143,7 +143,7 @@ private:
 
     bool waitingForFieldData = false;
     int lastFieldScreenFade = 0;
-    bool isFieldDataLoaded();
+    bool isFieldDataLoaded(bool justConnected = false);
 
     bool waitingForShopData = false;
     bool wasInShopMenu = false;

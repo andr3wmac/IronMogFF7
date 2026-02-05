@@ -27,6 +27,7 @@ private:
     int rerollOffset = 0;
 
     bool waitingForBattle = false;
+    bool appliedHackFix = false;
 
     // Debug variables
     char debugStartNum[20];

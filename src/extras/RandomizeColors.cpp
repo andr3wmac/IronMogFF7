@@ -192,12 +192,15 @@ void RandomizeColors::onStart()
             randomModelColors[modelName].push_back(getRandomColor(rng));
         }
     }
+
+    modelEditor.clear();
 }
 
 void RandomizeColors::onFieldChanged(uint16_t fieldID)
 {
     modelEditor.findFieldModels();
     applyColors();
+    appliedHackFix = false;
 }
 
 void RandomizeColors::onBattleEnter()
@@ -215,7 +218,7 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
 {
     uint8_t gameModule = game->getGameModule();
     
-    if (gameModule == GameModule::Field)
+    if (gameModule == GameModule::Field && !appliedHackFix)
     {
         uint16_t screenFade = game->read<uint16_t>(GameOffsets::FieldScreenFade);
 
@@ -224,6 +227,7 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
         {
             modelEditor.findFieldModels();
             applyColors();
+            appliedHackFix = true;
         }
 
         // Hack fix for Aerith forest scene after demons gate.
@@ -237,6 +241,7 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
             if (aerithPositionX > 975000 && aerithPositionY == -499712)
             {
                 applyColors();
+                appliedHackFix = true;
             }
         }
     }
