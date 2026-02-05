@@ -19,6 +19,8 @@ namespace fs = std::filesystem;
 
 void App::run()
 {
+    LOG("IronMog FF7 %s", APP_VERSION_STRING);
+
     processMemoryOffset[0] = '\0';
 
     if (!gui.initialize(APP_WINDOW_WIDTH, APP_WINDOW_HEIGHT, "IronMog FF7 " APP_VERSION_STRING))

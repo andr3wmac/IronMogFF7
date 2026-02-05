@@ -192,9 +192,6 @@ void Permadeath::onFieldChanged(uint16_t fieldID)
             {
                 // Overwrite two commands related to hiding Rufus. This seems to be harmless.
                 constexpr uintptr_t RufusHideScript = FieldScriptOffsets::ScriptStart + 0x952;
-
-                // Overwrite the command that triggers the Rufus fight trigger with this 
-                // command to switch to party to a different character.
                 game->write<uint8_t>(RufusHideScript + 0, 0xCA);
                 game->write<uint8_t>(RufusHideScript + 1, (uint8_t)randomCharacter);
                 game->write<uint8_t>(RufusHideScript + 2, 0xFE);
@@ -218,7 +215,7 @@ void Permadeath::onFieldChanged(uint16_t fieldID)
         if (randomCharacter == -1)
         {
             // Everyone is dead, do nothing.
-            LOG("Did not Barret Cloud in Dyne fight because all characters are dead.");
+            LOG("Did not replace Barret in Dyne fight because all characters are dead.");
             return;
         }
 

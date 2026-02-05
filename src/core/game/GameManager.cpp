@@ -408,9 +408,9 @@ bool GameManager::update()
             uint16_t fieldWarpID = read<uint16_t>(GameOffsets::FieldWarpID);
             if (fieldID == fieldWarpID)
             {
+                lastFieldScreenFade = read<uint16_t>(GameOffsets::FieldScreenFade);
                 waitingForFieldData = true;
                 framesInField = 0;
-                lastFieldScreenFade = read<uint16_t>(GameOffsets::FieldScreenFade);
             }
         }
 
@@ -419,8 +419,8 @@ bool GameManager::update()
         {
             lastFieldScreenFade = read<uint16_t>(GameOffsets::FieldScreenFade);
             waitingForFieldData = true;
-            fieldID = newFieldID;
             framesInField = 0;
+            fieldID = newFieldID;
         }
 
         bool justConnected = fieldID == 0 || framesSinceReload == 0;
@@ -810,6 +810,7 @@ bool GameManager::isWorldDataLoaded()
                 continue;
             }
 
+            // worldMapEncounterTable is uint16_t so these are two byte strides.
             uintptr_t dataOffset = (r * 64) + (s * 16) + 1;
 
             for (int i = 0; i < 14; ++i)
