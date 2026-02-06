@@ -27,6 +27,11 @@ void ModelEditor::setup(GameManager* gameManager)
     openModels.clear();
 }
 
+void ModelEditor::clear()
+{
+    openModels.clear();
+}
+
 void ModelEditor::findFieldModels()
 {
     openModels.clear();
@@ -164,7 +169,7 @@ void ModelEditor::openBattleModels()
         BattleModel* model = GameData::getBattleModel("HICLOUD");
         if (model != nullptr)
         {
-            if (openBattleModel(model->headerSize / 4, *model))
+            if (openBattleModel(model->headerSizes[0] / 4, *model))
             {
                 DEBUG_LOG("Opened battle model: %s %d", model->name.c_str(), bufferAddress + (bufferIdx * 4));
             }
@@ -190,14 +195,22 @@ void ModelEditor::openBattleModels()
             continue;
         }
 
+        bool openedModel = false;
         bufferIdx = (int)(BattleOffsets::AllyModels[i] - BattleOffsets::AllyModels[0]) / 4;
-        bufferIdx += model->headerSize / 4;
 
-        if (openBattleModel(bufferIdx, *model))
+        for (int headerSize : model->headerSizes)
         {
-            DEBUG_LOG("Opened battle model: %s %d", model->name.c_str(), bufferAddress + (bufferIdx * 4));
+            int tmpBufferIdx = bufferIdx + (headerSize / 4);
+            if (openBattleModel(tmpBufferIdx, *model))
+            {
+                bufferIdx = tmpBufferIdx;
+                DEBUG_LOG("Opened battle model: %s %d", model->name.c_str(), bufferAddress + (bufferIdx * 4));
+                openedModel = true;
+                break;
+            }
         }
-        else
+
+        if (!openedModel)
         {
             DEBUG_LOG("Failed to open battle model: %s", model->name.c_str());
         }
@@ -218,7 +231,7 @@ bool ModelEditor::areBattleModelsLoaded()
         if (model != nullptr)
         {
             // Check the last parts vertex count so we can ensure the full model is loaded.
-            uintptr_t lastPartStartAddress = BattleOffsets::AllyModels[0] + model->headerSize;
+            uintptr_t lastPartStartAddress = BattleOffsets::AllyModels[0] + model->headerSizes[0];
             for (int i = 0; i < model->parts.size() - 1; ++i)
             {
                 lastPartStartAddress += model->parts[i].sizeInBytes;
@@ -245,23 +258,42 @@ bool ModelEditor::areBattleModelsLoaded()
             continue;
         }
 
-        BattleModel* model = GameData::getBattleModel(getCharacterName(id));
+        std::string modelName = getCharacterName(id);
+        if (modelName == "SEPHIROTH")
+        {
+            // In Kalm flashback Sephiroth is in our party. No color changes
+            // for him so we just skip evaluating this one.
+            continue;
+        }
+
+        BattleModel* model = GameData::getBattleModel(modelName);
         if (model == nullptr)
         {
             return false;
         }
 
-        // Check the last parts vertex count so we can ensure the full model is loaded.
-        uintptr_t lastPartStartAddress = BattleOffsets::AllyModels[i] + model->headerSize;
-        for (int i = 0; i < model->parts.size() - 1; ++i)
-        {
-            lastPartStartAddress += model->parts[i].sizeInBytes;
-        }
-        const BattleModelPart& lastPart = model->parts[model->parts.size() - 1];
+        bool foundValidLastPart = false;
 
-        uint32_t vertexCountData = game->read<uint32_t>(lastPartStartAddress);
-        uint16_t vertexCount = (vertexCountData & 0xFFFF) / 8;
-        if (vertexCount != lastPart.vertexCount)
+        for (int headerSize : model->headerSizes)
+        {
+            // Check the last parts vertex count so we can ensure the full model is loaded.
+            uintptr_t lastPartStartAddress = BattleOffsets::AllyModels[i] + headerSize;
+            for (int j = 0; j < model->parts.size() - 1; ++j)
+            {
+                lastPartStartAddress += model->parts[j].sizeInBytes;
+            }
+            const BattleModelPart& lastPart = model->parts[model->parts.size() - 1];
+
+            uint32_t vertexCountData = game->read<uint32_t>(lastPartStartAddress);
+            uint16_t vertexCount = (vertexCountData & 0xFFFF) / 8;
+            if (vertexCount == lastPart.vertexCount)
+            {
+                foundValidLastPart = true;
+                break;
+            }
+        }
+
+        if (!foundValidLastPart)
         {
             return false;
         }

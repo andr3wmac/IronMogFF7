@@ -4,7 +4,7 @@
 #include "core/utilities/Logging.h"
 #include "rules/Restrictions.h"
 
-REGISTER_RULE("No Summons", NoSummons)
+REGISTER_RULE(NoSummons, "No Summons", "Summon materia cannot be found or purchased.")
 
 void NoSummons::setup()
 {

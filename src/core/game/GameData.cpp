@@ -14,6 +14,7 @@ std::unordered_map<uint8_t, Item> GameData::materia;
 std::vector<ESkill> GameData::eSkills;
 std::unordered_map<uint16_t, FieldData> GameData::fieldData;
 std::vector<WorldMapEntrance> GameData::worldMapEntrances;
+std::vector<WorldMapEncounters> GameData::worldMapEncounters;
 std::unordered_map<uint8_t, BattleScene> GameData::battleScenes;
 std::vector<Boss> GameData::bosses;
 std::unordered_map<uint8_t, Shop> GameData::shops;
@@ -354,10 +355,9 @@ std::vector<const Boss*> GameData::getBossesInScene(const BattleScene* scene)
     std::vector<const Boss*> result;
     for (const Boss& boss : GameData::bosses)
     {
-        bool bossInScene = false;
-        for (int bossSceneID : boss.sceneIDs)
+        for (int enemyID : scene->enemyIDs)
         {
-            if (bossSceneID == scene->id)
+            if (enemyID == boss.id)
             {
                 result.push_back(&boss);
                 break;

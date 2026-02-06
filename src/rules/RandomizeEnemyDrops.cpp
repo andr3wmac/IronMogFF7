@@ -8,10 +8,11 @@
 #include <random>
 #include <set>
 
-REGISTER_RULE("Randomize Enemy Drops", RandomizeEnemyDrops)
+REGISTER_RULE(RandomizeEnemyDrops, "Randomize Enemy Drops", "Enemy drops and steals are randomized.")
 
 void RandomizeEnemyDrops::setup()
 {
+    BIND_EVENT(game->onStart, RandomizeEnemyDrops::onStart);
     BIND_EVENT(game->onBattleEnter, RandomizeEnemyDrops::onBattleEnter);
 }
 
@@ -21,29 +22,45 @@ bool RandomizeEnemyDrops::onSettingsGUI()
 
     ImGui::Text("Gil Multiplier");
     ImGui::SetItemTooltip("Multiplies the gil dropped by each enemy.");
-    ImGui::SameLine(140.0f);
-    ImGui::SetNextItemWidth(50.0f);
-    changed |= ImGui::InputFloat("##gilMultiplier", &gilMultiplier, 0.0f, 0.0f, "%.2f");
+    ImGui::SameLine();
+
+    ImGui::PushItemWidth(60);
+    changed |= ImGui::InputFloat("##minGilMultiplier", &minGilMultiplier, 0, 0, "%.2f");
+    ImGui::SameLine();
+    ImGui::Text("to");
+    ImGui::SameLine();
+    changed |= ImGui::InputFloat("##maxGilMultiplier", &maxGilMultiplier, 0, 0, "%.2f");
+    ImGui::PopItemWidth();
 
     ImGui::Text("Exp Multiplier");
     ImGui::SetItemTooltip("Multiplies the exp obtained from each enemy.");
-    ImGui::SameLine(140.0f);
-    ImGui::SetNextItemWidth(50.0f);
-    changed |= ImGui::InputFloat("##expMultiplier", &expMultiplier, 0.0f, 0.0f, "%.2f");
+    ImGui::SameLine();
+
+    ImGui::PushItemWidth(60);
+    changed |= ImGui::InputFloat("##minExpMultiplier", &minExpMultiplier, 0, 0, "%.2f");
+    ImGui::SameLine();
+    ImGui::Text("to");
+    ImGui::SameLine();
+    changed |= ImGui::InputFloat("##maxExpMultiplier", &maxExpMultiplier, 0, 0, "%.2f");
+    ImGui::PopItemWidth();
 
     return changed;
 }
 
 void RandomizeEnemyDrops::loadSettings(const ConfigFile& cfg)
 {
-    gilMultiplier = cfg.get<float>("gilMultiplier", 1.0f);
-    expMultiplier = cfg.get<float>("expMultiplier", 1.0f);
+    minGilMultiplier = cfg.get<float>("minGilMultiplier", 1.0f);
+    maxGilMultiplier = cfg.get<float>("maxGilMultiplier", 1.0f);
+    minExpMultiplier = cfg.get<float>("minExpMultiplier", 1.0f);
+    maxExpMultiplier = cfg.get<float>("maxExpMultiplier", 1.0f);
 }
 
 void RandomizeEnemyDrops::saveSettings(ConfigFile& cfg)
 {
-    cfg.set<float>("gilMultiplier", gilMultiplier);
-    cfg.set<float>("expMultiplier", expMultiplier);
+    cfg.set<float>("minGilMultiplier", minGilMultiplier);
+    cfg.set<float>("maxGilMultiplier", maxGilMultiplier);
+    cfg.set<float>("minExpMultiplier", minExpMultiplier);
+    cfg.set<float>("maxExpMultiplier", maxExpMultiplier);
 }
 
 void RandomizeEnemyDrops::onDebugGUI()
@@ -84,15 +101,15 @@ void RandomizeEnemyDrops::onDebugGUI()
     }
 }
 
+void RandomizeEnemyDrops::onStart()
+{
+    rng.seed(game->getSeed());
+}
+
 void RandomizeEnemyDrops::onBattleEnter()
 {
-    // Seed the RNG for this particular battle formation on this field.
-    // This produces predictable drops based on the game seed.
     uint16_t fieldID = game->getFieldID();
     uint16_t formationID = game->read<uint16_t>(BattleOffsets::FormationID);
-    uint32_t battleIDSeed = (uint32_t(fieldID) << 16) | formationID;
-    uint64_t combinedSeed = Utilities::makeSeed64(game->getSeed(), battleIDSeed);
-    rng.seed(combinedSeed);
 
     std::pair<BattleScene*, BattleFormation*> battleData = game->getBattleFormation();
     BattleScene* scene = battleData.first;
@@ -114,11 +131,17 @@ void RandomizeEnemyDrops::onBattleEnter()
             }
         }
 
+        std::uniform_real_distribution<float> gilDist(minGilMultiplier, maxGilMultiplier);
+        float gilMultiplier = gilDist(rng);
+
+        std::uniform_real_distribution<float> expDist(minExpMultiplier, maxExpMultiplier);
+        float expMultiplier = expDist(rng);
+
         // Gil and EXP Multipliers
         uint32_t gil = game->read<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::Gil);
         uint32_t exp = game->read<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::Exp);
-        uint32_t newGil = (uint32_t)std::clamp(gil * gilMultiplier, 0.0f, FLT_MAX);
-        uint32_t newExp = (uint32_t)std::clamp(exp * expMultiplier, 0.0f, FLT_MAX);
+        uint32_t newGil = Utilities::clampTo<uint32_t>(gil * gilMultiplier);
+        uint32_t newExp = Utilities::clampTo<uint32_t>(exp * expMultiplier);
         game->write<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::Gil, newGil);
         game->write<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::Exp, newExp);
     }

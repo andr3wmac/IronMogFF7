@@ -16,7 +16,7 @@ struct GameOffsets
     CONST_PTR MenuType          = 0x9ABF5;  // uint8_t 8 = shop, 9 = main menu
     CONST_PTR FieldWarpTrigger  = 0x9ABF5;  // uint8_t, set to 1 to warp to field warp ID below
     CONST_PTR FieldWarpID       = 0x9ABF6;  // uint16_t
-    CONST_PTR ScreenFade        = 0x9AC42;  // uint16_t, 0 - 256 how much screen is faded for loading transition
+    CONST_PTR FieldScreenFade   = 0x9AC42;  // uint16_t, 0 - 256 how much screen is faded for loading transitions in fields
     CONST_PTR CurrentModule     = 0x9C560;  // uint8_t
     CONST_PTR PartyIDList       = 0x9CBDC;  // 3 uint8_t in a row.
     CONST_PTR Inventory         = 0x9CBE0;  // 320 item list, uint16_t ids.
@@ -27,6 +27,7 @@ struct GameOffsets
     CONST_PTR MenuLockingMask   = 0x9D2A6;  // uint16_t bitmask of options disabled in the menu. 
     CONST_PTR PHSVisibilityMask = 0x9D78A;  // uint16_t bitmask of which characters are on PHS
     CONST_PTR WindowText        = 0xE4944;  // Array of window text entries, each window gets 256 characters, terminated by 0xFF.
+    CONST_PTR WorldScreenFade   = 0x10B488; // uint8_t, 0 - 255 how much screen is faded for loading world map
 };
 
 inline uintptr_t getWindowTextOffset(uint8_t index)
@@ -59,6 +60,8 @@ struct FieldOffsets
     CONST_PTR FieldX = 0x74EB0; // int32_t
     CONST_PTR FieldY = 0x74EB4; // int32_t
     CONST_PTR FieldZ = 0x74EB8; // int32_t
+
+    CONST_PTR Triangle = 0x74F16; // uint16_t representing the triangle we're standing on.
 };
 
 struct FieldScriptOffsets
@@ -69,11 +72,12 @@ struct FieldScriptOffsets
     CONST_PTR TriggersStart = 0x114FF6;
     CONST_PTR ScriptStart   = 0x115000;
 
+    CONST_PTR EncounterStart       = 0x114FE4;
+    CONST_PTR EncounterTableStride = 24;
+
     CONST_PTR ItemID        = 0x02; // uint16_t
     CONST_PTR ItemQuantity  = 0x04; // uint8_t
-
-    // TODO: get the real number
-    CONST_PTR MateriaID = 0x03;     // uint8_t
+    CONST_PTR MateriaID     = 0x03; // uint8_t
 };
 
 struct WorldOffsets
@@ -81,6 +85,9 @@ struct WorldOffsets
     CONST_PTR WorldX = 0xE56FC; // int32_t
     CONST_PTR WorldY = 0xE5700; // int32_t
     CONST_PTR WorldZ = 0xE5704; // int32_t
+
+    // 16 encounter tables, 4 sets each, 14 in each of those. Each table has 2 byte header. 2048 total.
+    CONST_PTR EncounterStart = 0xBD9E8;
 
     // Add offset from GameData to get to memory address.
     CONST_PTR ScriptStart = 0xD0B6A;
@@ -151,6 +158,10 @@ inline uintptr_t getCharacterDataOffset(uint8_t characterID)
         case 6: return CharacterDataOffsets::CaitSith;
         case 7: return CharacterDataOffsets::Vincent;
         case 8: return CharacterDataOffsets::Cid;
+
+        // Kalm flashback
+        case 9:  return CharacterDataOffsets::CaitSith;
+        case 10: return CharacterDataOffsets::Vincent;
     }
 
     return CharacterDataOffsets::Cloud;
@@ -169,6 +180,10 @@ inline std::string getCharacterName(uint8_t characterID)
         case 6: return "CAITSITH";
         case 7: return "VINCENT";
         case 8: return "CID";
+
+        // Kalm flashback
+        case 9:  return "CLOUD";
+        case 10: return "SEPHIROTH";
     }
 
     return "CLOUD";
@@ -225,6 +240,19 @@ struct BattleOffsets
 
     // Graphics Data
     CONST_PTR AllyModels[] = { 0x103200, 0x112200, 0x121200 };
+
+    CONST_PTR ControllerInputs  = 0x62D78;  // uint16_t bitflags for controller state. Is stable even if buttons are remapped.
+    CONST_PTR Inventory         = 0x1671B8; // 6 bytes per inventory. uint16_t item id, uint8_t quantity, other 3 bytes unknown.
+};
+
+struct BattleMenuOffsets
+{
+    CONST_PTR ActivePlayer = 0xF38A0; // uint8_t, index of party member whos menu is open currently.
+    CONST_PTR PlayerMenu[] = { 0xF90BF, 0xF92FF, 0xF953F };
+
+    CONST_PTR MenuIndex      = 0x00; // uint8_t index for menu item selected (eg Attack = 0, Item = 3)
+    CONST_PTR ItemMenuScroll = 0x09; // uint8_t number of items we've scrolled down by
+    CONST_PTR ItemMenuIndex  = 0x12; // uint8_t which line of the item window we're highlighting
 };
 
 struct BattleStateOffsets

@@ -125,6 +125,7 @@ void App::drawSettingsPanel()
             for (auto& rule : Rule::getList())
             {
                 changed |= ImGui::Checkbox(rule->name.c_str(), &rule->enabled);
+                GUI::wrappedTooltip(rule->description.c_str());
 
                 if (rule->hasSettings())
                 {
@@ -166,6 +167,7 @@ void App::drawSettingsPanel()
         for (auto& extra : Extra::getList())
         {
             changed |= ImGui::Checkbox(extra->name.c_str(), &extra->enabled);
+            GUI::wrappedTooltip(extra->description.c_str());
 
             if (extra->hasSettings())
             {
@@ -205,7 +207,7 @@ void App::drawSettingsPanel()
 void App::drawTrackerPanel()
 {
     GUI::drawImage(logo, logo.width / 2, logo.height / 2);
-    gui.pushFont("Inter");
+    gui.pushFont("Reactor7");
 
     ImGui::Spacing();
     ImGui::BeginChild("##ScrollBox", ImVec2(0, APP_WINDOW_HEIGHT - 212));
@@ -246,6 +248,8 @@ void App::drawTrackerPanel()
 
             ImGui::Spacing();
             ImGui::Spacing();
+            ImGui::Spacing();
+            ImGui::Indent(10.0f);
 
             // Seed
             std::string seedText = "Seed: " + std::string(seedValue);
@@ -267,6 +271,13 @@ void App::drawTrackerPanel()
                     ImGui::Text(currentSongText.c_str());
                 }
             }
+            
+            // Rule summary
+            ImGui::Spacing();
+            std::string summaryText = game->getSettingsSummary();
+            ImGui::TextWrapped(summaryText.c_str());
+
+            ImGui::Unindent(10.0f);
         }
     }
     ImGui::EndChild();
@@ -430,6 +441,10 @@ void App::drawDebugPanel()
 
         std::string positionText = "Position: " + std::to_string(fx) + ", " + std::to_string(fy) + ", " + std::to_string(fz);
         ImGui::Text(positionText.c_str());
+
+        uint16_t triangle = game->read<uint16_t>(FieldOffsets::Triangle);
+        std::string triangleText = "Triangle: " + std::to_string(triangle);
+        ImGui::Text(triangleText.c_str());
     }
 
     if (ImGui::CollapsingHeader("Advanced"))
@@ -553,12 +568,65 @@ void App::drawDebugPanel()
             }
         }
 
+        // Add item to inventory
+        static char debugAddItem[5] = "";
+        ImGui::InputText("##debugAddItem", debugAddItem, 5);
+        ImGui::SameLine();
+        if (ImGui::Button("Add Item"))
+        {
+            uint16_t addItemID = atoi(debugAddItem);
+            bool foundExistingItem = false;
+
+            for (uint16_t i = 0; i < 320; ++i)
+            {
+                uint16_t itemData = game->read<uint16_t>(GameOffsets::Inventory + (i * 2));
+                uint8_t itemQuantity = (itemData >> 9);
+                uint16_t itemID = (itemData & 0x01FF);
+
+                if (itemID == addItemID)
+                {
+                    itemQuantity++;
+                    if (itemQuantity > 99)
+                    {
+                        itemQuantity = 99;
+                    }
+
+                    uint16_t newItemData = (static_cast<uint16_t>(itemQuantity) << 9) | (itemID & 0x01FF);
+                    game->write<uint16_t>(GameOffsets::Inventory + (i * 2), newItemData);
+
+                    LOG("Cheats: increased inventory item %d to %d", itemID, itemQuantity);
+                    foundExistingItem = true;
+                    break;
+                }
+            }
+
+            if (!foundExistingItem)
+            {
+                for (uint16_t i = 0; i < 320; ++i)
+                {
+                    uint16_t itemData = game->read<uint16_t>(GameOffsets::Inventory + (i * 2));
+
+                    if (itemData != 0xFFFF)
+                    {
+                        continue;
+                    }
+
+                    uint8_t itemQuantity = 1;
+                    uint16_t itemID = addItemID;
+                    uint16_t newItemData = (static_cast<uint16_t>(itemQuantity) << 9) | (itemID & 0x01FF);
+                    game->write<uint16_t>(GameOffsets::Inventory + (i * 2), newItemData);
+                    LOG("Cheats: added item %d to inventory", itemID);
+                    break;
+                }
+            }
+        }
+
         ImGui::Unindent(25.0f);
     }
 
     for (auto& rule : Rule::getList())
     {
-        if (!rule->hasDebugGUI())
+        if (!rule->hasDebugGUI() || !rule->enabled)
         {
             continue;
         }
@@ -573,7 +641,7 @@ void App::drawDebugPanel()
 
     for (auto& extra : Extra::getList())
     {
-        if (!extra->hasDebugGUI())
+        if (!extra->hasDebugGUI() || !extra->enabled)
         {
             continue;
         }

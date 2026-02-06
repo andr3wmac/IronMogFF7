@@ -124,6 +124,78 @@ Extra* GameManager::getExtra(std::string extraName)
     return nullptr;
 }
 
+std::string GameManager::getSettingsSummary()
+{
+    std::map<std::string, std::vector<std::string>> groups;
+
+    for (Rule* rule : Rule::getList())
+    {
+        if (!rule->enabled)
+        {
+            continue;
+        }
+
+        std::string ruleName = rule->name;
+        size_t spacePos = ruleName.find(' ');
+        if (spacePos == std::string::npos) 
+        {
+            groups[ruleName] = {};
+            continue;
+        }
+
+        std::string prefix = ruleName.substr(0, spacePos);
+        std::string subject = ruleName.substr(spacePos + 1);
+        std::transform(subject.begin(), subject.end(), subject.begin(), [](unsigned char c) { return std::tolower(c); });
+        groups[prefix].push_back(subject);
+    }
+
+    for (Extra* extra : Extra::getList())
+    {
+        if (!extra->enabled)
+        {
+            continue;
+        }
+
+        std::string extraName = extra->name;
+        size_t spacePos = extraName.find(' ');
+        if (spacePos == std::string::npos)
+        {
+            groups[extraName] = {};
+            continue;
+        }
+
+        std::string prefix = extraName.substr(0, spacePos);
+        std::string subject = extraName.substr(spacePos + 1);
+        std::transform(subject.begin(), subject.end(), subject.begin(), [](unsigned char c) { return std::tolower(c); });
+        groups[prefix].push_back(subject);
+    }
+
+    std::stringstream ss;
+    for (auto& [prefix, subjects] : groups) 
+    {
+        std::sort(subjects.begin(), subjects.end());
+
+        ss << "- " << prefix;
+        if (subjects.size() > 0)
+        {
+            std::string connector = " and ";
+            if (prefix == "No")
+            {
+                connector = " or ";
+            }
+
+            ss << " ";
+            for (size_t i = 0; i < subjects.size(); ++i)
+            {
+                ss << subjects[i] << (i == subjects.size() - 1 ? "" : (i == subjects.size() - 2 ? connector : ", "));
+            }
+        }
+        ss << ".\n";
+    }
+
+    return ss.str();
+}
+
 void GameManager::setup(uint32_t inputSeed)
 {
     // Note: seed may change after loading a save file, so its important to not utilize it in rule setup.
@@ -219,7 +291,7 @@ bool GameManager::update()
 {
     double currentTime = Utilities::getTimeMS();
     
-    // If read/write errors have occured then connection has been broken.
+    // If read/write errors have occurred then connection has been broken.
     if (emulator->pollErrors())
     {
         return false;
@@ -251,7 +323,6 @@ bool GameManager::update()
     }
 
     // We assume if 200ms has passed without the frame number advancing that the emulator is paused
-    
     if (currentTime - lastFrameUpdateTime > 200 && !emulatorPaused)
     {
         emulatorPaused = true;
@@ -284,6 +355,12 @@ bool GameManager::update()
             waitingForFieldData = true;
         }
 
+        if (gameModule != GameModule::World && newGameModule == GameModule::World)
+        {
+            waitingForWorldData = true;
+            lastWorldScreenFade = read<uint8_t>(GameOffsets::WorldScreenFade);
+        }
+
         if (gameModule != GameModule::Menu && newGameModule == GameModule::Menu)
         {
             uint8_t menuType = read<uint8_t>(GameOffsets::MenuType);
@@ -311,6 +388,8 @@ bool GameManager::update()
         gameModule = newGameModule;
         onModuleChanged.invoke(gameModule);
     }
+    
+    bool justConnected = fieldID == 0 || framesSinceReload == 0;
 
     if (gameModule == GameModule::Battle)
     {
@@ -331,20 +410,24 @@ bool GameManager::update()
             uint16_t fieldWarpID = read<uint16_t>(GameOffsets::FieldWarpID);
             if (fieldID == fieldWarpID)
             {
+                lastFieldScreenFade = read<uint16_t>(GameOffsets::FieldScreenFade);
                 waitingForFieldData = true;
+                framesInField = 0;
             }
         }
 
         uint16_t newFieldID = read<uint16_t>(GameOffsets::FieldID);
         if (newFieldID != fieldID)
         {
+            lastFieldScreenFade = read<uint16_t>(GameOffsets::FieldScreenFade);
             waitingForFieldData = true;
-            fieldID = newFieldID;
             framesInField = 0;
+            fieldID = newFieldID;
         }
 
-        if (waitingForFieldData && isFieldDataLoaded())
+        if (waitingForFieldData && isFieldDataLoaded(justConnected))
         {
+            LOG("Loaded Field: %d", fieldID);
             onFieldChanged.invoke(fieldID);
             waitingForFieldData = false;
         }
@@ -352,12 +435,19 @@ bool GameManager::update()
 
     if (gameModule == GameModule::World)
     {
-        // When exiting onto the world map field ID is updated to your exit location
-        // We don't trigger the onFieldChanged event for this but its important we update
-        // this value in case we re-enter the field we just left.
-        uint16_t newFieldID = read<uint16_t>(GameOffsets::FieldID);
-        fieldID = newFieldID;
-        waitingForFieldData = false;
+        if (waitingForWorldData && isWorldDataLoaded(justConnected))
+        {
+            // When exiting onto the world map field ID is updated to your exit location
+            // We don't trigger the onFieldChanged event for this but its important we update
+            // this value in case we re-enter the field we just left.
+            uint16_t newFieldID = read<uint16_t>(GameOffsets::FieldID);
+            fieldID = newFieldID;
+            waitingForFieldData = false;
+
+            LOG("Entered world map.");
+            onWorldMapEnter.invoke();
+            waitingForWorldData = false;
+        }
     }
 
     if (gameModule == GameModule::Menu)
@@ -372,6 +462,7 @@ bool GameManager::update()
     uint32_t newFrameNumber = read<uint32_t>(GameOffsets::FrameNumber);
 
     // A jump in frame number likely indicates a load game or load save state.
+    framesSinceReload++;
     int frameDifference = std::abs((int)newFrameNumber - (int)frameNumber);
     if (frameDifference > 30 && framesSinceReload > 30)
     {
@@ -381,7 +472,6 @@ bool GameManager::update()
         onStart.invoke();
         framesSinceReload = 0;
     }
-    framesSinceReload++;
 
     // Detect change in frame number and trigger event
     if (newFrameNumber != frameNumber)
@@ -522,7 +612,7 @@ bool GameManager::isBattleDataLoaded()
 
 // Detect if field data is fully loaded by verifying the set of information
 // we know about the field is confirmed in memory.
-bool GameManager::isFieldDataLoaded()
+bool GameManager::isFieldDataLoaded(bool justConnected)
 {
     if (gameModule != GameModule::Field)
     {
@@ -589,7 +679,64 @@ bool GameManager::isFieldDataLoaded()
         }
     }
 
-    return true;
+    // Encounter data
+    {
+        for (int t = 0; t < 2; ++t)
+        {
+            uintptr_t tableOffset = FieldScriptOffsets::EncounterStart + fieldData.encounterOffset + (t * FieldScriptOffsets::EncounterTableStride);
+
+            Encounter encTable[10];
+            read(tableOffset + 2, sizeof(uint16_t) * 10, (uint8_t*)encTable);
+
+            for (int i = 0; i < 10; ++i)
+            {
+                Encounter& origEncounter = fieldData.getEncounter(t, i);
+                if (origEncounter.prob == 0 && origEncounter.id == 0)
+                {
+                    continue;
+                }
+
+                if (origEncounter.prob != encTable[i].prob || origEncounter.id != encTable[i].id)
+                {
+                    return false;
+                }
+            }
+        }
+    }
+
+    // Field is ready if we've hit peak fade out and started coming back down.
+    uint16_t screenFade = read<uint16_t>(GameOffsets::FieldScreenFade);
+    bool isScreenReady = (lastFieldScreenFade == 0x100 && screenFade < lastFieldScreenFade);
+    lastFieldScreenFade = screenFade;
+
+    if (justConnected && screenFade == 0)
+    {
+        isScreenReady = true;
+    }
+
+    // Hack fix for base of tower transition after wedge falls. For whatever reason 
+    // FieldScreenFade stays at 256 the whole time.
+    {
+        if (fieldID == 156 && getGameMoment() == 218)
+        {
+            uint16_t fieldWarpID = read<uint16_t>(GameOffsets::FieldWarpID);
+            uint8_t screenBlack = read<uint8_t>(0x9AC40);
+            if (fieldID != fieldWarpID && screenBlack == 0)
+            {
+                isScreenReady = true;
+            }
+        }
+
+        // Due to the previous problem of FieldScreenFade being stuck at 256 we need a special
+        // case for the transition to the next scene going up the tower.
+        if (fieldID == 158 && getGameMoment() == 221)
+        {
+            uint8_t screenBlack = read<uint8_t>(0x9AC40);
+            isScreenReady = (screenFade == 0 && screenBlack == 0);
+        }
+    }
+
+    return isScreenReady;
 }
 
 // Detect if shop data is fully loaded by verifying the set of information
@@ -646,6 +793,51 @@ bool GameManager::isShopDataLoaded()
     }
 
     return true;
+}
+
+bool GameManager::isWorldDataLoaded(bool justConnected)
+{
+    read(WorldOffsets::EncounterStart, 2048, (uint8_t*)worldMapEncounterTable);
+
+    for (int r = 0; r < 16; ++r)
+    {
+        WorldMapEncounters& origEncounters = GameData::worldMapEncounters[r];
+
+        for (int s = 0; s < 4; ++s)
+        {
+            std::vector<Encounter>& origEncSet = origEncounters.sets[s];
+            if (origEncSet.size() == 0)
+            {
+                continue;
+            }
+
+            // worldMapEncounterTable is uint16_t so these are two byte strides.
+            uintptr_t dataOffset = (r * 64) + (s * 16) + 1;
+
+            for (int i = 0; i < 14; ++i)
+            {
+                Encounter& origEnc = origEncSet[i];
+                Encounter& encData = worldMapEncounterTable[dataOffset + i];
+
+                if (origEnc.raw != encData.raw)
+                {
+                    return false;
+                }
+            }
+        }
+    }
+
+    // World is ready if we've hit peak fade out and started coming back down.
+    uint8_t screenFade = read<uint8_t>(GameOffsets::WorldScreenFade);
+    bool isScreenReady = (lastWorldScreenFade == 0xFF && screenFade < lastWorldScreenFade);
+    lastWorldScreenFade = screenFade;
+
+    if (justConnected && screenFade == 0)
+    {
+        isScreenReady = true;
+    }
+
+    return isScreenReady;
 }
 
 // The goal here is to find the message thats closest in memory (offset) that also contains
@@ -722,9 +914,35 @@ std::pair<BattleScene*, BattleFormation*> GameManager::getBattleFormation()
 template <typename T>
 void multiplyStat(GameManager* game, uintptr_t offset, float multiplier)
 {
+    if (multiplier == 1.0f)
+    {
+        return;
+    }
+
     T stat = game->read<T>(offset);
     stat = Utilities::clampTo<T>(stat * multiplier);
     game->write<T>(offset, stat);
+}
+
+void GameManager::applyBattleStatMultiplier(uintptr_t battleCharOffset, StatMultiplierSet& multiplierSet)
+{
+    if (getGameModule() != GameModule::Battle)
+    {
+        LOG("Could not apply battle stat multiplier outside of battle.");
+        return;
+    }
+
+    multiplyStat<uint32_t>(this, battleCharOffset + BattleOffsets::CurrentHP, multiplierSet.currentHP);
+    multiplyStat<uint32_t>(this, battleCharOffset + BattleOffsets::MaxHP, multiplierSet.maxHP);
+    multiplyStat<uint16_t>(this, battleCharOffset + BattleOffsets::CurrentMP, multiplierSet.currentMP);
+    multiplyStat<uint16_t>(this, battleCharOffset + BattleOffsets::MaxMP, multiplierSet.maxMP);
+    multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Strength, multiplierSet.strength);
+    multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Magic, multiplierSet.magic);
+    multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Evade, multiplierSet.evade);
+    multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Speed, multiplierSet.speed);
+    multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Luck, multiplierSet.luck);
+    multiplyStat<uint16_t>(this, battleCharOffset + BattleOffsets::Defense, multiplierSet.defense);
+    multiplyStat<uint16_t>(this, battleCharOffset + BattleOffsets::MDefense, multiplierSet.mDefense);
 }
 
 void GameManager::applyBattleStatMultiplier(uintptr_t battleCharOffset, float multiplier, bool applyToHP, bool applyToMP, bool applyToStats)

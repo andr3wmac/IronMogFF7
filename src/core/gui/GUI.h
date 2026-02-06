@@ -33,6 +33,7 @@ private:
 public:
     static void drawImage(GUIImage& image, int width, int height, float alpha = 1.0f);
     static void drawColorGrid(const std::string& name, std::vector<Utilities::Color>& colors, std::function<void(int, Utilities::Color)> onClickCallback = {}, float boxSize = 16.0f, float spacing = 2.0f, int colorsPerRow = 24);
+    static void wrappedTooltip(const std::string& text, float maxWidth = 400.0f);
 };
 
 struct GUIImage

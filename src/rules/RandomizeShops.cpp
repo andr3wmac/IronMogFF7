@@ -8,7 +8,7 @@
 
 #include <imgui.h>
 
-REGISTER_RULE("Randomize Shops", RandomizeShops)
+REGISTER_RULE(RandomizeShops, "Randomize Shops", "Shop inventories are randomized.")
 
 void RandomizeShops::setup()
 {

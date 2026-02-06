@@ -11,8 +11,8 @@
 #define APP_WINDOW_HEIGHT 665
 #define APP_VERSION_MAJOR 0
 #define APP_VERSION_MINOR 7
-#define APP_VERSION_PATCH 1
-#define APP_VERSION_STRING "v0.7.1"
+#define APP_VERSION_PATCH 2
+#define APP_VERSION_STRING "v0.7.2"
 
 class App
 {

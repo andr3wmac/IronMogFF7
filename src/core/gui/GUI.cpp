@@ -160,6 +160,9 @@ bool GUI::initialize(int width, int height, const char* windowTitle)
     // Google's Inter font
     fonts["Inter"] = io.Fonts->AddFontFromFileTTF("resources/Inter_18pt-Regular.ttf", 18.0f);
 
+    // Reactor7 font
+    fonts["Reactor7"] = io.Fonts->AddFontFromFileTTF("resources/Reactor7.ttf", 18.0f);
+
     // Setup style
     setupStyle();
 
@@ -424,4 +427,16 @@ void GUI::drawColorGrid(const std::string& name, std::vector<Utilities::Color>& 
     // advance cursor so the next ImGui item doesn't overlap
     //int totalRows = static_cast<int>((colors.size() + colorsPerRow - 1) / colorsPerRow);
     //ImGui::Dummy(ImVec2(0.0f, totalRows * (boxSize + spacing)));
+}
+
+void GUI::wrappedTooltip(const std::string& text, float maxWidth)
+{
+    if (ImGui::IsItemHovered())
+    {
+        ImGui::BeginTooltip();
+        ImGui::PushTextWrapPos(ImGui::GetCursorPos().x + maxWidth);
+        ImGui::TextWrapped(text.c_str());
+        ImGui::PopTextWrapPos();
+        ImGui::EndTooltip();
+    }
 }

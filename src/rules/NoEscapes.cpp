@@ -2,7 +2,7 @@
 #include "core/game/MemoryOffsets.h"
 #include "rules/Restrictions.h"
 
-REGISTER_RULE("No Escapes", NoEscapes)
+REGISTER_RULE(NoEscapes, "No Escapes", "Escaping from battles is prohibited, including the use of Exit materia.")
 
 void NoEscapes::setup()
 {

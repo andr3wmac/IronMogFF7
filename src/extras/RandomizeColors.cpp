@@ -10,24 +10,17 @@
 
 #include <imgui.h>
 
-REGISTER_EXTRA("Randomize Colors", RandomizeColors)
+REGISTER_EXTRA(RandomizeColors, "Randomize Colors", "Playable characters’ clothing colors are randomized.")
 
 // Give each model 16 colors each to future proof against later changes
 #define COLORS_PER_MODEL 16
 
-// This was found using the PatternMemoryMonitor looking for decreasing values when leaving a field
-// and going onto the world map. I thought this was a screen fade value because it jumps to 34 then
-// decreases down to 0 however when we leave the northern crater it actually doesn't jump in value
-// until we land the airship, then it goes down to 0. It works for our use case but I don't know what
-// it actually is.
-#define WORLD_TRIGGER_ADDR 0x9C65C
-
 void RandomizeColors::setup()
 {
     BIND_EVENT(game->onStart, RandomizeColors::onStart);
-    BIND_EVENT_ONE_ARG(game->onModuleChanged, RandomizeColors::onModuleChanged);
     BIND_EVENT_ONE_ARG(game->onFieldChanged, RandomizeColors::onFieldChanged);
     BIND_EVENT(game->onBattleEnter, RandomizeColors::onBattleEnter);
+    BIND_EVENT(game->onWorldMapEnter, RandomizeColors::onWorldMapEnter);
     BIND_EVENT_ONE_ARG(game->onFrame, RandomizeColors::onFrame);
 
     debugStartNum[0] = '\0';
@@ -38,20 +31,25 @@ void RandomizeColors::setup()
 
 void RandomizeColors::onDebugGUI()
 {
-    uint16_t fieldTrigger = game->read<uint16_t>(GameOffsets::ScreenFade);
-    std::string fieldTriggerStr = "Field Trigger: " + std::to_string(fieldTrigger);
-    ImGui::Text(fieldTriggerStr.c_str());
+    uint16_t fieldScreenFade = game->read<uint16_t>(GameOffsets::FieldScreenFade);
+    std::string fieldFadeStr = "Field Screen Fade: " + std::to_string(fieldScreenFade);
+    ImGui::Text(fieldFadeStr.c_str());
 
-    uint8_t worldTrigger = game->read<uint8_t>(WORLD_TRIGGER_ADDR);
-    std::string worldTriggerStr = "World Trigger: " + std::to_string(worldTrigger);
-    ImGui::Text(worldTriggerStr.c_str());
+    uint8_t worldScreenFade = game->read<uint8_t>(GameOffsets::WorldScreenFade);
+    std::string worldFadeStr = "World Screen Fade: " + std::to_string(worldScreenFade);
+    ImGui::Text(worldFadeStr.c_str());
 
     if (ImGui::Button("Force Update", ImVec2(120, 0)))
     {
-        waitingForField = true;
-        lastFieldID = -1;
-        waitingForWorld = true;
-        waitingForBattle = true;
+        if (game->getGameModule() == GameModule::Battle)
+        {
+            waitingForBattle = true;
+        }
+        else 
+        {
+            modelEditor.findFieldModels();
+            applyColors();
+        }
     }
 
     if (ImGui::CollapsingHeader("Current Models"))
@@ -182,10 +180,6 @@ bool RandomizeColors::onSettingsGUI()
 
 void RandomizeColors::onStart()
 {
-    lastFieldTrigger = 0;
-    lastFieldID = -1;
-    waitingForField = true;
-
     std::mt19937 rng(game->getSeed() + rerollOffset);
 
     // Generate table of random colors
@@ -198,21 +192,15 @@ void RandomizeColors::onStart()
             randomModelColors[modelName].push_back(getRandomColor(rng));
         }
     }
-}
 
-void RandomizeColors::onModuleChanged(uint8_t newModule)
-{
-    if (newModule == GameModule::World)
-    {
-        lastWorldTrigger = game->read<uint8_t>(WORLD_TRIGGER_ADDR);
-        waitingForWorld = true;
-    }
+    modelEditor.clear();
 }
 
 void RandomizeColors::onFieldChanged(uint16_t fieldID)
 {
-    lastFieldTrigger = game->read<uint16_t>(GameOffsets::ScreenFade);
-    waitingForField = true;
+    modelEditor.findFieldModels();
+    applyColors();
+    appliedHackFix = false;
 }
 
 void RandomizeColors::onBattleEnter()
@@ -220,53 +208,32 @@ void RandomizeColors::onBattleEnter()
     waitingForBattle = true;
 }
 
+void RandomizeColors::onWorldMapEnter()
+{
+    modelEditor.findFieldModels();
+    applyColors();
+}
+
 void RandomizeColors::onFrame(uint32_t frameNumber)
 {
     uint8_t gameModule = game->getGameModule();
-
-    if (gameModule == GameModule::Field && waitingForField)
+    
+    if (gameModule == GameModule::Field && !appliedHackFix)
     {
-        uint16_t fieldTrigger = game->read<uint16_t>(GameOffsets::ScreenFade);
+        uint16_t screenFade = game->read<uint16_t>(GameOffsets::FieldScreenFade);
 
-        // Update if we've hit peak fade out and started coming back down
-        // or if the last field is unset.
-        bool shouldUpdate = (lastFieldTrigger == 0x100 && fieldTrigger < lastFieldTrigger);
-        shouldUpdate |= (lastFieldID == -1);
-
-        // Hack fix for base of tower transition after wedge falls
-        if (game->getFieldID() == 156 && game->getGameMoment() == 218 && lastFieldTrigger == 256)
-        {
-            // Waiting 240 frames was chosen arbitrarily and tested. Could be fragile.
-            if (game->getFramesInField() == 240)
-            {
-                shouldUpdate = true;
-            }
-        }
-
-        // Hack fix for tifa and cloud scene before northern crater
-        if (game->getFieldID() == 771 && game->getGameMoment() == 1612 && lastFieldTrigger > 1 && lastFieldTrigger < 120)
-        {
-            shouldUpdate = true;
-        }
-
-        if (shouldUpdate)
+        // Hack fix for Tifa and Cloud scene before northern crater
+        if (game->getFieldID() == 771 && game->getGameMoment() == 1612 && screenFade > 1 && screenFade < 120)
         {
             modelEditor.findFieldModels();
             applyColors();
-
-            waitingForField = false;
-            lastFieldID = game->getFieldID();
+            appliedHackFix = true;
         }
 
-        lastFieldTrigger = fieldTrigger;
-    }
-
-    // Hack fix for aerith forest scene after demons gate.
-    // Her model seems to have the colors reloaded after they do a bright white
-    // effect to it. Its reloaded behind the tree, so we detect when her models
-    // at the position behind the tree then reapply coloring.
-    if (gameModule == GameModule::Field && !waitingForField)
-    {
+        // Hack fix for Aerith forest scene after demons gate.
+        // Her model seems to have the colors reloaded after they do a bright white
+        // effect to it. Its reloaded behind the tree, so we detect when her models
+        // at the position behind the tree then reapply coloring.
         if (game->getFieldID() == 618 && game->getGameMoment() < 638)
         {
             int32_t aerithPositionX = game->read<int32_t>(0x7503C);
@@ -274,26 +241,9 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
             if (aerithPositionX > 975000 && aerithPositionY == -499712)
             {
                 applyColors();
+                appliedHackFix = true;
             }
         }
-    }
-
-    if (gameModule == GameModule::World && waitingForWorld)
-    {
-        uint8_t worldTrigger = game->read<uint8_t>(WORLD_TRIGGER_ADDR);
-        
-        // Update if the world trigger value was higher than 10 and is now 
-        // lower than 10. In practice this seems to be enough buffer to ensure
-        // the model has been loaded.
-        if (lastWorldTrigger >= 10 && worldTrigger < 10)
-        {
-            modelEditor.findFieldModels();
-            applyColors();
-
-            waitingForWorld = false;
-        }
-
-        lastWorldTrigger = worldTrigger;
     }
 
     if (gameModule == GameModule::Battle && waitingForBattle)

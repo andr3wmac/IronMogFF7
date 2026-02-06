@@ -3,7 +3,7 @@
 #include "core/utilities/Flags.h"
 #include "core/utilities/Logging.h"
 
-REGISTER_RULE("No Saving", NoSaving)
+REGISTER_RULE(NoSaving, "No Saving", "Saving your game is prohibited.")
 
 void NoSaving::setup()
 {
