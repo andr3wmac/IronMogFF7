@@ -14,6 +14,7 @@ void RandomizeWorldMap::setup()
 {
     BIND_EVENT(game->onStart, RandomizeWorldMap::onStart);
     BIND_EVENT_ONE_ARG(game->onFrame, RandomizeWorldMap::onFrame);
+    BIND_EVENT(game->onWorldMapEnter, RandomizeWorldMap::onWorldMapEnter);
     BIND_EVENT_ONE_ARG(game->onFieldChanged, RandomizeWorldMap::onFieldChanged);
 }
 
@@ -235,6 +236,18 @@ void RandomizeWorldMap::onFrame(uint32_t frameNumber)
     }
 }
 
+void RandomizeWorldMap::onWorldMapEnter()
+{
+    // Overwrite the scripts that stop you from using vehicles during Yuffie side quest.
+    // This prevents a soft lock where you get stuck on Wutai island.
+    uint16_t chocoboFix[2] = { 0x0200, 0x14DA };
+    game->write(0xD336A, (uint8_t*)chocoboFix, 4);
+    uint16_t broncoFix[2] = { 0x0200, 0x20E0 };
+    game->write(0xD4B76, (uint8_t*)broncoFix, 4);
+    uint16_t highwindFix[2] = { 0x0200, 0x2391 };
+    game->write(0xD50D8, (uint8_t*)highwindFix, 4);
+}
+
 uint16_t findWorldEntranceIndex(uint16_t fieldID)
 {
     for (int i = 0; i < GameData::worldMapEntrances.size(); ++i)
@@ -273,6 +286,16 @@ void RandomizeWorldMap::onFieldChanged(uint16_t fieldID)
             game->write<uint8_t>(0x9D457, buggyFlags.value());
             LOG("Repaired buggy and moved it in front of Cosmo Canyon.");
         }
+    }
+
+    // When doing the Yuffie Wutai side quest it ends by teleporting us onto the world map
+    // next to Wutai we need to correct that to the randomized location.
+    if (fieldID == 581)
+    {
+        uint16_t exitIndex = getRandomEntrance(22);
+        WorldMapEntrance& randEntrance = GameData::worldMapEntrances[exitIndex];
+        game->write<uint16_t>(FieldScriptOffsets::ScriptStart + 0xDFF, randEntrance.fieldID);
+        LOG("Changed Wutai side quest ending cutscene exit to: %d", randEntrance.fieldID);
     }
 
     for (int i = 0; i < fieldData.worldExits.size(); ++i)

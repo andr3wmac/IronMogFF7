@@ -151,5 +151,5 @@ private:
 
     bool waitingForWorldData = false;
     int lastWorldScreenFade = 0;
-    bool isWorldDataLoaded();
+    bool isWorldDataLoaded(bool justConnected = false);
 };

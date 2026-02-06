@@ -6,6 +6,6 @@
 class ScriptUtilities
 {
 public:
-    static void decompileWorldScript(uint8_t* data, size_t sizeInBytes);
+    static void decompileWorldScript(GameManager* game, uintptr_t startAddress, size_t sizeInBytes);
     static void findWorldScripts(GameManager* game, uintptr_t startAddress, uintptr_t endAddress);
 };

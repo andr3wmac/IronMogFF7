@@ -14,6 +14,7 @@ public:
 private:
     void onStart();
     void onFrame(uint32_t frameNumber);
+    void onWorldMapEnter();
     void onFieldChanged(uint16_t fieldID);
     uint16_t getRandomEntrance(uint16_t entranceIndex);
 

@@ -388,6 +388,8 @@ bool GameManager::update()
         gameModule = newGameModule;
         onModuleChanged.invoke(gameModule);
     }
+    
+    bool justConnected = fieldID == 0 || framesSinceReload == 0;
 
     if (gameModule == GameModule::Battle)
     {
@@ -423,7 +425,6 @@ bool GameManager::update()
             fieldID = newFieldID;
         }
 
-        bool justConnected = fieldID == 0 || framesSinceReload == 0;
         if (waitingForFieldData && isFieldDataLoaded(justConnected))
         {
             LOG("Loaded Field: %d", fieldID);
@@ -434,7 +435,7 @@ bool GameManager::update()
 
     if (gameModule == GameModule::World)
     {
-        if (waitingForWorldData && isWorldDataLoaded())
+        if (waitingForWorldData && isWorldDataLoaded(justConnected))
         {
             // When exiting onto the world map field ID is updated to your exit location
             // We don't trigger the onFieldChanged event for this but its important we update
@@ -794,7 +795,7 @@ bool GameManager::isShopDataLoaded()
     return true;
 }
 
-bool GameManager::isWorldDataLoaded()
+bool GameManager::isWorldDataLoaded(bool justConnected)
 {
     read(WorldOffsets::EncounterStart, 2048, (uint8_t*)worldMapEncounterTable);
 
@@ -830,6 +831,11 @@ bool GameManager::isWorldDataLoaded()
     uint8_t screenFade = read<uint8_t>(GameOffsets::WorldScreenFade);
     bool isScreenReady = (lastWorldScreenFade == 0xFF && screenFade < lastWorldScreenFade);
     lastWorldScreenFade = screenFade;
+
+    if (justConnected && screenFade == 0)
+    {
+        isScreenReady = true;
+    }
 
     return isScreenReady;
 }
