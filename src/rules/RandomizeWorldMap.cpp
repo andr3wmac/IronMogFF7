@@ -248,7 +248,7 @@ void RandomizeWorldMap::onWorldMapEnter()
     game->write(0xD50D8, (uint8_t*)highwindFix, 4);
 }
 
-uint16_t findWorldEntranceIndex(uint16_t fieldID)
+int findWorldEntranceIndex(uint16_t fieldID)
 {
     for (int i = 0; i < GameData::worldMapEntrances.size(); ++i)
     {
@@ -259,7 +259,7 @@ uint16_t findWorldEntranceIndex(uint16_t fieldID)
         }
     }
 
-    return 0;
+    return -1;
 }
 
 void RandomizeWorldMap::onFieldChanged(uint16_t fieldID)
@@ -301,8 +301,12 @@ void RandomizeWorldMap::onFieldChanged(uint16_t fieldID)
     for (int i = 0; i < fieldData.worldExits.size(); ++i)
     {
         FieldWorldExit& exit = fieldData.worldExits[i];
-        uint16_t exitIndex = findWorldEntranceIndex(exit.fieldID);
-        
+        int exitIndex = findWorldEntranceIndex(exit.fieldID);
+        if (exitIndex == -1)
+        {
+            continue;
+        }
+
         int randIndex = exitIndex;
         for (auto entry : randomizedEntrances)
         {
