@@ -12,7 +12,13 @@ class Rule;
 class GameManager
 {
 public:
-    enum class GameState : int
+    enum class GameVersion : uint8_t
+    {
+        PlayStationUS = 0,
+        PlayStationUS_CSR = 1
+    };
+
+    enum class GameState : uint8_t
     {
         BootScreen   = 0,
         MainMenuCold = 1,
@@ -32,7 +38,7 @@ public:
     Extra* getExtra(std::string extraName);
     std::string getSettingsSummary();
 
-    void setup(uint32_t inputSeed);
+    void setup(GameVersion version, uint32_t inputSeed);
     void loadSaveData();
     void clearSaveData();
     inline uint32_t getSeed() { return seed; }
@@ -122,6 +128,7 @@ public:
 
 private:
     Emulator* emulator;
+    GameVersion gameVersion = GameVersion::PlayStationUS;
 
     GameState lastGameState = GameState::BootScreen;
     bool emulatorPaused = false;

@@ -250,6 +250,7 @@ public:
 
     static void clearGameData();
     static void loadGameData();
+    static void loadGameDataCSR();
 
     static void addItem(uint16_t id, const std::string& name, uint32_t shopPrice) 
     { 

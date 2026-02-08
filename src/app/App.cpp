@@ -182,7 +182,7 @@ void App::runGameManager()
     // Reset any global restrictions as we might be using a different set of rules on this run.
     Restrictions::reset();
 
-    game->setup(Utilities::hexStringToSeed(seedValue));
+    game->setup(selectedGameVersion, Utilities::hexStringToSeed(seedValue));
 
     managerRunning = true;
     while (managerRunning.load())

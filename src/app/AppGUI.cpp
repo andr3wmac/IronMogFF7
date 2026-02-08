@@ -13,6 +13,7 @@
 
 #include <imgui.h>
 
+static const char* gameVersions[]{ "PlayStation | US (Original)", "PlayStation | US (CSR v0.13.0)"};
 static const char* emulators[]{ "DuckStation", "BizHawk", "Custom" };
 
 static ImColor dotRed(1.0f, 0.0f, 0.0f, 1.0f);
@@ -73,9 +74,19 @@ void App::drawSettingsPanel()
     {
         ImGui::SeparatorText("Game");
         {
-            ImGui::Text("Emulator:");
-            ImGui::SameLine();
+            // Game Version
+            ImGui::Text("Version:");
+            ImGui::SameLine(70.0f);
+            ImGui::SetNextItemWidth(393.0f);
+            int versionIndex = (int)selectedGameVersion;
+            if (ImGui::Combo("##VersionList", &versionIndex, gameVersions, IM_ARRAYSIZE(gameVersions)))
+            {
+                selectedGameVersion = (GameManager::GameVersion)versionIndex;
+            }
 
+            // Emulator Type
+            ImGui::Text("Emulator:");
+            ImGui::SameLine(70.0f);
             ImGui::SetNextItemWidth(393.0f);
             int emulatorIndex = (int)selectedEmulatorType;
             if (ImGui::Combo("##EmulatorList", &emulatorIndex, emulators, IM_ARRAYSIZE(emulators)))

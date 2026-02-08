@@ -196,8 +196,23 @@ std::string GameManager::getSettingsSummary()
     return ss.str();
 }
 
-void GameManager::setup(uint32_t inputSeed)
+void GameManager::setup(GameVersion version, uint32_t inputSeed)
 {
+    // Prepare game data based on version
+    gameVersion = version;
+    if (gameVersion == GameManager::GameVersion::PlayStationUS)
+    {
+        LOG("Loading game data for PlayStation US (Original)");
+        GameData::clearGameData();
+        GameData::loadGameData();
+    }
+    if (gameVersion == GameManager::GameVersion::PlayStationUS_CSR)
+    {
+        LOG("Loading game data for PlayStation US (CSR)");
+        GameData::clearGameData();
+        GameData::loadGameDataCSR();
+    }
+
     // Note: seed may change after loading a save file, so its important to not utilize it in rule setup.
     seed = inputSeed;
 
