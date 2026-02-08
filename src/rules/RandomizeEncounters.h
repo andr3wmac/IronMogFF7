@@ -21,6 +21,7 @@ private:
     void onWorldMapEnter();
     void onBattleEnter();
 
+    std::vector<uint16_t> findCandidates(int maxLevel);
     void generateRandomEncounterMap();
     void generateEnemyStatMultipliers();
 

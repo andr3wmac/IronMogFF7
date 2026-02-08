@@ -329,6 +329,66 @@ void RandomizeEncounters::onBattleEnter()
     }
 }
 
+uint8_t getMaxLevelInFormation(const BattleScene& scene, const BattleFormation& formation)
+{
+    uint8_t maxLevel = 0;
+
+    for (int i = 0; i < 6; ++i)
+    {
+        if (formation.enemyIDs[i] == 0xFFFF)
+        {
+            continue;
+        }
+
+        for (int j = 0; j < 3; ++j)
+        {
+            if (scene.enemyIDs[j] == formation.enemyIDs[i])
+            {
+                maxLevel = std::max(maxLevel, scene.enemyLevels[j]);
+            }
+        }
+    }
+
+    return maxLevel;
+}
+
+std::vector<uint16_t> RandomizeEncounters::findCandidates(int maxLevel)
+{
+    std::vector<uint16_t> candidates;
+
+    for (const auto& [candidateSceneID, candidateScene] : GameData::battleScenes)
+    {
+        // Check each formation in this scene.
+        for (int j = 0; j < 4; ++j)
+        {
+            BattleFormation candidateFormation = candidateScene.formations[j];
+
+            // Skip excluded formations
+            if (excludedFormations.count(candidateFormation.id) > 0)
+            {
+                continue;
+            }
+
+            // We don't want a formation that triggers multiple fights sequentially
+            if (candidateFormation.isArenaBattle())
+            {
+                continue;
+            }
+
+            // Skip formation if it exceeds the max level difference
+            uint8_t candidateMaxLevel = getMaxLevelInFormation(candidateScene, candidateFormation);
+            if (std::abs(maxLevel - candidateMaxLevel) > maxLevelDifference)
+            {
+                continue;
+            }
+
+            candidates.push_back(candidateFormation.id);
+        }
+    }
+
+    return candidates;
+}
+
 void RandomizeEncounters::generateRandomEncounterMap()
 {
     randomEncounterMap.clear();
@@ -336,17 +396,6 @@ void RandomizeEncounters::generateRandomEncounterMap()
     for (const auto& kv : GameData::battleScenes)
     {
         BattleScene scene = kv.second;
-
-        // Determine max enemy level in the scene
-        uint8_t maxLevel = 0;
-        for (int i = 0; i < 3; ++i)
-        {
-            if (scene.enemyLevels[i] == 255)
-            {
-                continue;
-            }
-            maxLevel = std::max(maxLevel, scene.enemyLevels[i]);
-        }
 
         for (int i = 0; i < 4; ++i)
         {
@@ -358,49 +407,8 @@ void RandomizeEncounters::generateRandomEncounterMap()
                 continue;
             }
 
-            std::vector<uint16_t> candidateFormationIDs;
-            for (const auto& candidateKv : GameData::battleScenes)
-            {
-                BattleScene candidateScene = candidateKv.second;
-
-                // Determine max enemy level in the candidate scene
-                uint8_t candidateMaxLevel = 0;
-                for (int j = 0; j < 3; ++j)
-                {
-                    if (candidateScene.enemyLevels[j] == 255)
-                    {
-                        continue;
-                    }
-                    candidateMaxLevel = std::max(candidateMaxLevel, candidateScene.enemyLevels[j]);
-                }
-
-                // Skip the entire scene if max level exceeds max difference
-                if (std::abs(maxLevel - candidateMaxLevel) > maxLevelDifference)
-                {
-                    continue;
-                }
-
-                // Check each formation in this scene, avoiding no escapes.
-                for (int j = 0; j < 4; ++j)
-                {
-                    BattleFormation candidateFormation = candidateScene.formations[j];
-
-                    if (candidateFormation.isArenaBattle())
-                    {
-                        continue;
-                    }
-
-                    // Skip excluded formations
-                    if (excludedFormations.count(candidateFormation.id) > 0)
-                    {
-                        continue;
-                    }
-
-                    candidateFormationIDs.push_back(candidateFormation.id);
-                }
-            }
-
-            randomEncounterMap[formation.id] = candidateFormationIDs;
+            uint8_t maxLevel = getMaxLevelInFormation(scene, formation);
+            randomEncounterMap[formation.id] = findCandidates(maxLevel);
         }
     }
 }
