@@ -4,8 +4,9 @@ import ff7
 from ff7.field import opcodes, specialOpcodes, Op, fieldIDTable
 
 class GameDataGenerator:
-    def __init__(self, filepath="GameDataGenerated.cpp"):
+    def __init__(self, filepath="GameDataGenerated.cpp", functionName="loadGameData"):
         self.filepath = filepath
+        self.functionName = functionName
         self.file = None
         self.item_names = []
 
@@ -24,7 +25,7 @@ class GameDataGenerator:
         self.write_line("// Auto-generated game data file", 0)
         self.write_line("#include \"GameData.h\"", 0)
         self.write_line("", 0)
-        self.write_line("void GameData::loadGameData()", 0)
+        self.write_line("void GameData::" + self.functionName + "()", 0)
         self.write_line("{", 0)
 
     def write_footer(self):
@@ -58,7 +59,7 @@ def outputInventory(gen, discPath, version):
                 item_id = idx
                 item_price = shopData.item_prices[item_id]
 
-                gen.write_line("addItem(" + str(idx) + ", \"" + item_name + "\", " + str(item_price) + ");", 4)  
+                gen.write_line("addItem(" + str(item_id) + ", \"" + item_name + "\", " + str(item_price) + ");", 4)  
                 gen.item_names.append(item_name)
             gen.write_line("")
 
@@ -73,7 +74,7 @@ def outputInventory(gen, discPath, version):
                 item_id = idx + 128
                 item_price = shopData.item_prices[item_id]
 
-                gen.write_line("addWeapon(" + str(idx) + ", \"" + item_name + "\", " + str(item_price) + ");", 4)  
+                gen.write_line("addItem(" + str(item_id) + ", \"" + item_name + "\", " + str(item_price) + ");", 4)  
                 gen.item_names.append(item_name)
             gen.write_line("")
 
@@ -88,7 +89,7 @@ def outputInventory(gen, discPath, version):
                 item_id = idx + 256
                 item_price = shopData.item_prices[item_id]
 
-                gen.write_line("addArmor(" + str(idx) + ", \"" + item_name + "\", " + str(item_price) + ");", 4)  
+                gen.write_line("addItem(" + str(item_id) + ", \"" + item_name + "\", " + str(item_price) + ");", 4)  
                 gen.item_names.append(item_name)
             gen.write_line("")
 
@@ -103,7 +104,7 @@ def outputInventory(gen, discPath, version):
                 item_id = idx + 288
                 item_price = shopData.item_prices[item_id]
 
-                gen.write_line("addAccessory(" + str(idx) + ", \"" + item_name + "\", " + str(item_price) + ");", 4)   
+                gen.write_line("addItem(" + str(item_id) + ", \"" + item_name + "\", " + str(item_price) + ");", 4)   
                 gen.item_names.append(item_name)
             gen.write_line("")
 
@@ -628,7 +629,15 @@ if not os.path.isdir(discPath):
 # Check that this is a FF7 disc
 version, discNumber, execFileName = ff7.game.checkDisc(discPath)
 
-gen = GameDataGenerator()
+outputFileName = "GameDataGenerated.cpp"
+outputFunction = "loadGameData"
+
+if len(sys.argv) > 2:
+    outputFileName = sys.argv[2]
+if len(sys.argv) > 3:
+    outputFunction = sys.argv[3]
+
+gen = GameDataGenerator(outputFileName, outputFunction)
 gen.open_file()
 gen.write_header()
 

@@ -68,7 +68,7 @@ void App::drawSettingsPanel()
     }
 
     ImGui::Spacing();
-    ImGui::BeginChild("##ScrollBox", ImVec2(0, gui.windowHeight - 212));
+    ImGui::BeginChild("##ScrollBox", ImVec2(0, (float)(gui.windowHeight - 212)));
     ImGui::BeginDisabled(lockSettings);
     {
         ImGui::SeparatorText("Game");
@@ -239,7 +239,7 @@ void App::drawTrackerPanel()
     gui.pushFont("Reactor7");
 
     ImGui::Spacing();
-    ImGui::BeginChild("##ScrollBox", ImVec2(0, gui.windowHeight - 212));
+    ImGui::BeginChild("##ScrollBox", ImVec2(0, (float)(gui.windowHeight - 212)));
     {
         if (connectionState == ConnectionState::Connected)
         {

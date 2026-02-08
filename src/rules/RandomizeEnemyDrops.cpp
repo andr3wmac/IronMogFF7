@@ -157,7 +157,7 @@ void RandomizeEnemyDrops::onBattleEnter()
                 continue;
             }
 
-            uint16_t newDropID = GameData::getRandomItemFromID(dropID, rng, true);
+            uint16_t newDropID = GameData::getRandomItemSameType(dropID, rng, true);
             game->write<uint16_t>(BattleSceneOffsets::Enemies[id] + BattleSceneOffsets::DropIDs[i], newDropID);
 
             std::string oldItemName = GameData::getItemName(dropID);

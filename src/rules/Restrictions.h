@@ -7,17 +7,8 @@ class Restrictions
 public:
     static void reset();
 
-    static void banAccessory(uint8_t id);
-    static bool isAccessoryBanned(uint8_t id);
-    static void banArmor(uint8_t id);
-    static bool isArmorBanned(uint8_t id);
-    static void banItem(uint8_t id);
-    static bool isItemBanned(uint8_t id);
-    static void banWeapon(uint8_t id);
-    static bool isWeaponBanned(uint8_t id);
-
-    static bool isFieldItemBanned(uint16_t fieldItemID);
-
-    static void banMateria(uint8_t materiaID);
-    static bool isMateriaBanned(uint8_t materiaID);
+    static void banItem(uint16_t id);
+    static bool isItemBanned(uint16_t itemID);
+    static void banMateria(uint16_t materiaID);
+    static bool isMateriaBanned(uint16_t materiaID);
 };

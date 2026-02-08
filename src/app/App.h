@@ -24,7 +24,6 @@ public:
         Debug       = 2
     };
 
-    enum EmulatorType : uint8_t
     enum class EmulatorType : uint8_t
     {
         DuckStation = 0,

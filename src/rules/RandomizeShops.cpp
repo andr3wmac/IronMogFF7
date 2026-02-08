@@ -123,14 +123,14 @@ void RandomizeShops::generateRandomizedShops()
     // then will be reduced if any shop randomizes them to a lower price. This
     // prevents infinite money glitches from being possible.
 
-    for (uint16_t i = 0; i < 320; ++i)
+    for (const auto& [id, item] : GameData::items)
     {
-        itemSellPrices[i] = GameData::getItemPrice(i);
+        itemSellPrices[id] = item.price;
     }
 
-    for (uint8_t i = 0; i < 91; ++i)
+    for (const auto& [id, materia] : GameData::materia)
     {
-        materiaSellPrices[i] = GameData::getMateriaPrice(i);
+        materiaSellPrices[id] = materia.price;
     }
 
     // Below we randomize each shops items/materia. There is an extra step thats done
@@ -378,30 +378,7 @@ void RandomizeShops::onFrame(uint32_t frameNumber)
 
 uint16_t RandomizeShops::randomizeShopItem(uint16_t itemID, const std::set<uint16_t>& previouslyChosen)
 {
-    uint16_t selectedID = itemID;
-
-    // Item
-    if (itemID < 128)
-    {
-        selectedID = GameData::getRandomItem(rng, true, excludeRareItems, previouslyChosen);
-    }
-    // Weapon
-    else if (itemID < 256)
-    {
-        selectedID = 128 + GameData::getRandomWeapon(rng, true, excludeRareItems, previouslyChosen);
-    }
-    // Armor
-    else if (itemID < 288)
-    {
-        selectedID = 256 + GameData::getRandomArmor(rng, true, excludeRareItems, previouslyChosen);
-    }
-    // Accessory
-    else
-    {
-        selectedID = 288 + GameData::getRandomAccessory(rng, true, excludeRareItems, previouslyChosen);
-    }
-
-    return selectedID;
+    return GameData::getRandomItemSameType(itemID, rng, true, excludeRareItems, previouslyChosen);
 }
 
 uint16_t RandomizeShops::randomizeShopMateria(uint16_t materiaID, const std::set<uint16_t>& previouslyChosen)

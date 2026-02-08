@@ -233,13 +233,13 @@ void RandomizeFieldItems::apply()
         {
             // Pick random one based on key.
             std::mt19937_64 rng64(Utilities::makeSeed64(game->getSeed(), fieldData.id, i));
-            newItem.id = GameData::getRandomItemFromID(newItem.id, rng64);
+            newItem.id = GameData::getRandomItemSameType(newItem.id, rng64);
         }
         
-        if (Restrictions::isFieldItemBanned(newItem.id))
+        if (Restrictions::isItemBanned(newItem.id))
         {
             std::mt19937_64 rng64(Utilities::makeSeed64(game->getSeed(), fieldData.id, i));
-            newItem.id = GameData::getRandomItemFromID(newItem.id, rng64);
+            newItem.id = GameData::getRandomItemSameType(newItem.id, rng64);
         }
 
         game->write<uint16_t>(itemIDOffset, newItem.id);

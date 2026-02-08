@@ -133,6 +133,7 @@ void App::disconnect()
 
 void App::runGameManager()
 {
+    // Prepare game manager
     if (game != nullptr)
     {
         delete game;
