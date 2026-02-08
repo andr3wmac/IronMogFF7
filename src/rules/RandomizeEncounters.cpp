@@ -71,6 +71,9 @@ bool RandomizeEncounters::onSettingsGUI()
     ImGui::SetNextItemWidth(80.0f);
     changed |= ImGui::InputInt("##maxLevelDifference", &maxLevelDifference);
 
+    changed |= ImGui::Checkbox("Match Layouts", &matchLayouts);
+    ImGui::SetItemTooltip("Will only randomize Back Attacks to other Back Attacks, etc");
+
     ImGui::Text("Stat Multiplier");
     ImGui::SetItemTooltip("Multiplies each enemy's HP, MP, Strength, Magic, Evade,\nSpeed, Luck, Defense, and MDefense.\nMultiplier is randomly chosen for each stat for each enemy.");
     ImGui::SameLine();
@@ -92,6 +95,7 @@ void RandomizeEncounters::loadSettings(const ConfigFile& cfg)
     scriptedEncounters = cfg.get<bool>("scriptedEncounters", true);
     worldMapEncounters = cfg.get<bool>("worldMapEncounters", true);
     maxLevelDifference = cfg.get<int>("maxLevelDifference", 5);
+    matchLayouts       = cfg.get<bool>("matchLayouts", true);
     minStatMultiplier  = cfg.get<float>("minStatMultiplier", 1.0f);
     maxStatMultiplier  = cfg.get<float>("maxStatMultiplier", 1.0f);
 }
@@ -102,6 +106,7 @@ void RandomizeEncounters::saveSettings(ConfigFile& cfg)
     cfg.set<bool>("scriptedEncounters", scriptedEncounters);
     cfg.set<bool>("worldMapEncounters", worldMapEncounters);
     cfg.set<int>("maxLevelDifference",  maxLevelDifference);
+    cfg.set<bool>("matchLayouts",       matchLayouts);
     cfg.set<float>("minStatMultiplier", minStatMultiplier);
     cfg.set<float>("maxStatMultiplier", maxStatMultiplier);
 }
@@ -352,7 +357,7 @@ uint8_t getMaxLevelInFormation(const BattleScene& scene, const BattleFormation& 
     return maxLevel;
 }
 
-std::vector<uint16_t> RandomizeEncounters::findCandidates(int maxLevel)
+std::vector<uint16_t> RandomizeEncounters::findCandidates(int maxLevel, int layout)
 {
     std::vector<uint16_t> candidates;
 
@@ -378,6 +383,12 @@ std::vector<uint16_t> RandomizeEncounters::findCandidates(int maxLevel)
             // Skip formation if it exceeds the max level difference
             uint8_t candidateMaxLevel = getMaxLevelInFormation(candidateScene, candidateFormation);
             if (std::abs(maxLevel - candidateMaxLevel) > maxLevelDifference)
+            {
+                continue;
+            }
+
+            // Skip non-matching layouts if enabled
+            if (matchLayouts && candidateFormation.layout != layout)
             {
                 continue;
             }
@@ -408,7 +419,7 @@ void RandomizeEncounters::generateRandomEncounterMap()
             }
 
             uint8_t maxLevel = getMaxLevelInFormation(scene, formation);
-            randomEncounterMap[formation.id] = findCandidates(maxLevel);
+            randomEncounterMap[formation.id] = findCandidates(maxLevel, formation.layout);
         }
     }
 }

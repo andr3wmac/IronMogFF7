@@ -21,7 +21,7 @@ private:
     void onWorldMapEnter();
     void onBattleEnter();
 
-    std::vector<uint16_t> findCandidates(int maxLevel);
+    std::vector<uint16_t> findCandidates(int maxLevel, int layout);
     void generateRandomEncounterMap();
     void generateEnemyStatMultipliers();
 
@@ -29,6 +29,7 @@ private:
     bool scriptedEncounters = true;
     bool worldMapEncounters = true;
     int maxLevelDifference = 5;
+    bool matchLayouts = true;
     float minStatMultiplier = 1.0f;
     float maxStatMultiplier = 1.0f;
 
