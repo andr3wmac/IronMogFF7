@@ -17,7 +17,7 @@
 class App
 {
 public:
-    enum Panels : uint8_t
+    enum class Panels : uint8_t
     {
         Settings    = 0,
         Tracker     = 1,
@@ -25,13 +25,14 @@ public:
     };
 
     enum EmulatorType : uint8_t
+    enum class EmulatorType : uint8_t
     {
         DuckStation = 0,
         BizHawk     = 1,
         Custom      = 2
     };
 
-    enum ConnectionState : uint8_t
+    enum class ConnectionState : uint8_t
     {
         NotConnected = 0,
         Connecting   = 1,
@@ -44,6 +45,7 @@ public:
     void loadSettings(const std::string& filePath);
     void saveSettings(const std::string& filePath, bool saveSeed = false);
 
+    void draw();
     void drawSettingsPanel();
     void drawTrackerPanel();
     void drawBottomPanel();
@@ -52,6 +54,7 @@ public:
     void connect();
     void disconnect();
     void runGameManager();
+    void stopGameManager();
 
 protected:
     GUI gui;
@@ -79,5 +82,6 @@ protected:
     std::string connectionStatus = "Not Connected";
 
     void onKeyPress(int key, int mods);
+    void onResize(int width, int height);
     void onStart();
 };

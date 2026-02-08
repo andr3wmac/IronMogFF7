@@ -30,6 +30,7 @@ void App::run()
     }
 
     BIND_EVENT_TWO_ARG(gui.onKeyPress, App::onKeyPress);
+    BIND_EVENT_TWO_ARG(gui.onResize, App::onResize);
     generateSeed();
 
     // Load images
@@ -86,40 +87,12 @@ void App::run()
             break;
         }
 
-        if (!gui.beginFrame())
-        {
-            continue;
-        }
-
-        ImGui::Begin("IronMogFF7", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize);
-        {
-            switch (currentPanel)
-            {
-                case Panels::Settings:
-                    drawSettingsPanel();
-                    break;
-
-                case Panels::Tracker:
-                    drawTrackerPanel();
-                    break;
-
-                case Panels::Debug:
-                    drawDebugPanel();
-                    break;
-            }
-        }
-        ImGui::End();
-
-        gui.endFrame();
+        draw();
 
         // Check to see if the game manager thread exited from an error and clean up.
         if (connectionState == ConnectionState::Error && !managerRunning && managerThread != nullptr)
         {
-            managerRunning = false;
-            managerThread->join();
-            delete managerThread;
-            managerThread = nullptr;
-
+            stopGameManager();
             AudioManager::pauseMusic();
         }
     }
@@ -133,10 +106,7 @@ void App::connect()
     {
         if (connectionState == ConnectionState::Error)
         {
-            managerRunning = false;
-            managerThread->join();
-            delete managerThread;
-            managerThread = nullptr;
+            stopGameManager();
         }
         else 
         {
@@ -157,11 +127,7 @@ void App::disconnect()
         return;
     }
 
-    managerRunning = false;
-    managerThread->join();
-    delete managerThread;
-    managerThread = nullptr;
-
+    stopGameManager();
     AudioManager::pauseMusic();
 }
 
@@ -176,6 +142,7 @@ void App::runGameManager()
     game = new GameManager();
     BIND_EVENT(game->onStart, App::onStart);
 
+    // Connect
     connectionState = ConnectionState::Connecting;
     connectionStatus = "Connecting to Emulator..";
 
@@ -229,6 +196,14 @@ void App::runGameManager()
         std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
     managerRunning = false;
+}
+
+void App::stopGameManager()
+{
+    managerRunning = false;
+    managerThread->join();
+    delete managerThread;
+    managerThread = nullptr;
 }
 
 void App::generateSeed()
@@ -304,7 +279,7 @@ void App::onKeyPress(int key, int mods)
     // Ctrl + D
     if (key == 68 && (mods & 2))
     {
-        if (currentPanel == Panels::Settings)
+        if (currentPanel == Panels::Settings || currentPanel == Panels::Tracker)
         {
             currentPanel = Panels::Debug;
         }
@@ -313,6 +288,12 @@ void App::onKeyPress(int key, int mods)
             currentPanel = Panels::Settings;
         }
     }
+}
+
+void App::onResize(int width, int height)
+{
+    // This makes the UI redraw as we're resizing so it looks nice and smooth.
+    draw();
 }
 
 void App::onStart()

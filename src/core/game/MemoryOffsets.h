@@ -20,7 +20,7 @@ struct GameOffsets
     CONST_PTR CurrentModule     = 0x9C560;  // uint8_t
     CONST_PTR PartyIDList       = 0x9CBDC;  // 3 uint8_t in a row.
     CONST_PTR Inventory         = 0x9CBE0;  // 320 item list, uint16_t ids.
-    CONST_PTR MateriaInventory  = 0x9C360;  // 200 item list, uint32_t ids.
+    CONST_PTR MateriaInventory  = 0x9CE60;  // 200 item list, uint32_t ids.
     CONST_PTR Gil               = 0x9D260;  // uint32_t party gil
     CONST_PTR InGameTime        = 0x9D264;  // uint32_t in seconds
     CONST_PTR GameMoment        = 0x9D288;  // uint16_t

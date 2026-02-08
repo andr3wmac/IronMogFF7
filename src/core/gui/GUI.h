@@ -9,7 +9,10 @@ struct GUIImage;
 class GUI
 {
 public:
+    int windowWidth = 0;
+    int windowHeight = 0;
     Event<int, int> onKeyPress;
+    Event<int, int> onResize;
 
     bool initialize(int width, int height, const char* windowTitle);
     void destroy();
@@ -28,6 +31,7 @@ public:
 private:
     GLFWwindow* window;
 
+    void onResizeCallback(GLFWwindow* window, int width, int height);
     void onKeyCallback(int key, int scancode, int action, int mods);
 
 public:

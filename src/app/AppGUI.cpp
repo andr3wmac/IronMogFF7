@@ -19,6 +19,35 @@ static ImColor dotRed(1.0f, 0.0f, 0.0f, 1.0f);
 static ImColor dotYellow(1.0f, 1.0f, 0.0f, 1.0f);
 static ImColor dotGreen(0.0f, 1.0f, 0.0f, 1.0f);
 
+void App::draw()
+{
+    if (!gui.beginFrame())
+    {
+        return;
+    }
+
+    ImGui::Begin("IronMogFF7", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize);
+    {
+        switch (currentPanel)
+        {
+            case Panels::Settings:
+                drawSettingsPanel();
+                break;
+
+            case Panels::Tracker:
+                drawTrackerPanel();
+                break;
+
+            case Panels::Debug:
+                drawDebugPanel();
+                break;
+        }
+    }
+    ImGui::End();
+
+    gui.endFrame();
+}
+
 void App::drawSettingsPanel()
 {
     GUI::drawImage(logo, logo.width / 2, logo.height / 2);
@@ -39,7 +68,7 @@ void App::drawSettingsPanel()
     }
 
     ImGui::Spacing();
-    ImGui::BeginChild("##ScrollBox", ImVec2(0, APP_WINDOW_HEIGHT - 212));
+    ImGui::BeginChild("##ScrollBox", ImVec2(0, gui.windowHeight - 212));
     ImGui::BeginDisabled(lockSettings);
     {
         ImGui::SeparatorText("Game");
@@ -210,7 +239,7 @@ void App::drawTrackerPanel()
     gui.pushFont("Reactor7");
 
     ImGui::Spacing();
-    ImGui::BeginChild("##ScrollBox", ImVec2(0, APP_WINDOW_HEIGHT - 212));
+    ImGui::BeginChild("##ScrollBox", ImVec2(0, gui.windowHeight - 212));
     {
         if (connectionState == ConnectionState::Connected)
         {
@@ -602,22 +631,41 @@ void App::drawDebugPanel()
 
             if (!foundExistingItem)
             {
-                for (uint16_t i = 0; i < 320; ++i)
+                for (int i = 0; i < 320; ++i)
                 {
                     uint16_t itemData = game->read<uint16_t>(GameOffsets::Inventory + (i * 2));
-
                     if (itemData != 0xFFFF)
                     {
                         continue;
                     }
 
                     uint8_t itemQuantity = 1;
-                    uint16_t itemID = addItemID;
-                    uint16_t newItemData = (static_cast<uint16_t>(itemQuantity) << 9) | (itemID & 0x01FF);
+                    uint16_t newItemData = (static_cast<uint16_t>(itemQuantity) << 9) | (addItemID & 0x01FF);
                     game->write<uint16_t>(GameOffsets::Inventory + (i * 2), newItemData);
-                    LOG("Cheats: added item %d to inventory", itemID);
+                    LOG("Cheats: added item %d to inventory", addItemID);
                     break;
                 }
+            }
+        }
+
+        // Add materia to inventory
+        static char debugAddMateria[5] = "";
+        ImGui::InputText("##debugAddMateria", debugAddMateria, 5);
+        ImGui::SameLine();
+        if (ImGui::Button("Add Materia"))
+        {
+            uint32_t addMateriaID = atoi(debugAddMateria);
+            for (int i = 0; i < 200; ++i)
+            {
+                uint32_t materiaData = game->read<uint32_t>(GameOffsets::MateriaInventory + (i * 4));
+                if (materiaData != UINT32_MAX)
+                {
+                    continue;
+                }
+
+                game->write<uint32_t>(GameOffsets::MateriaInventory + (i * 4), addMateriaID);
+                LOG("Cheats: added materia %d to inventory", addMateriaID);
+                break;
             }
         }
 

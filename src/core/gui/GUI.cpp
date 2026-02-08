@@ -27,6 +27,43 @@
 #pragma comment(lib, "legacy_stdio_definitions")
 #endif
 
+#ifdef _WIN32
+#define GLFW_EXPOSE_NATIVE_WIN32
+#include <GLFW/glfw3native.h>
+#include <commctrl.h>
+#pragma comment(lib, "comctl32.lib")
+
+// We use this to override resizing to allow vertical only.
+LRESULT CALLBACK WindowProc(HWND hwnd, UINT uMsg, WPARAM wParam, LPARAM lParam, UINT_PTR uIdSubclass, DWORD_PTR dwRefData) 
+{
+    switch (uMsg) 
+    {
+        case WM_GETMINMAXINFO: 
+        {
+            MINMAXINFO* mmi = (MINMAXINFO*)lParam;
+            long lockedOuterWidth = (long)dwRefData;
+            mmi->ptMinTrackSize.x = lockedOuterWidth;
+            mmi->ptMaxTrackSize.x = lockedOuterWidth;
+            return 0;
+        }
+
+        case WM_SETCURSOR: 
+        {
+            // If the mouse is over the left or right resize borders
+            WORD hitTest = LOWORD(lParam);
+            if (hitTest == HTLEFT || hitTest == HTRIGHT) 
+            {
+                // Set the cursor back to the standard arrow manually
+                SetCursor(LoadCursor(NULL, IDC_ARROW));
+                return TRUE;
+            }
+            break;
+        }
+    }
+    return DefSubclassProc(hwnd, uMsg, wParam, lParam);
+}
+#endif
+
 // Fonts we loaded from the resources folder
 std::unordered_map<std::string, ImFont*> fonts;
 
@@ -111,24 +148,41 @@ bool GUI::initialize(int width, int height, const char* windowTitle)
     //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
     //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
 
-    // Disable window resizing
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
-
     // Create window with graphics context
-    window = glfwCreateWindow(width, height, windowTitle, nullptr, nullptr);
+    windowWidth = width;
+    windowHeight = height;
+    window = glfwCreateWindow(windowWidth, windowHeight, windowTitle, nullptr, nullptr);
     if (window == nullptr)
     {
         return false;
     }
 
+#ifdef _WIN32
+    {
+        // Get the true window width then apply a subclass so we can lock horizontal resizing.
+        HWND hwnd = glfwGetWin32Window(window);
+        RECT rect;
+        GetWindowRect(hwnd, &rect);
+        SetWindowSubclass(hwnd, WindowProc, 1, rect.right - rect.left);
+    }
+#endif
+
     glfwSetWindowUserPointer(window, this);
 
+    // Resize window callback
+    auto resizeCallbackFunc = [](GLFWwindow* window, int width, int height)
+        {
+            static_cast<GUI*>(glfwGetWindowUserPointer(window))->onResizeCallback(window, width, height);
+        };
+    glfwSetFramebufferSizeCallback(window, resizeCallbackFunc);
+    
+    // Key down callback
     auto keyCallbackFunc = [](GLFWwindow* window, int key, int scancode, int action, int mods)
     {
         static_cast<GUI*>(glfwGetWindowUserPointer(window))->onKeyCallback(key, scancode, action, mods);
     };
-
     glfwSetKeyCallback(window, keyCallbackFunc);
+
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); // Enable vsync
 
@@ -249,6 +303,13 @@ void GUI::endFrame()
 bool GUI::wasWindowClosed()
 {
     return glfwWindowShouldClose(window);
+}
+
+void GUI::onResizeCallback(GLFWwindow* window, int width, int height)
+{
+    windowWidth = width;
+    windowHeight = height;
+    onResize.invoke(width, height);
 }
 
 void GUI::onKeyCallback(int key, int scancode, int action, int mods)
