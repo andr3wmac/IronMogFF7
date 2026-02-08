@@ -1,6 +1,7 @@
 #include "RandomizeEncounters.h"
 #include "core/game/GameData.h"
 #include "core/game/MemoryOffsets.h"
+#include "core/gui/GUI.h"
 #include "core/utilities/Logging.h"
 #include "core/utilities/Utilities.h"
 #include "rules/Restrictions.h"
@@ -67,8 +68,8 @@ bool RandomizeEncounters::onSettingsGUI()
 
     ImGui::Text("Max Level Difference");
     ImGui::SetItemTooltip("How much higher or lower the max level of the random\nformation can be from the original formation.");
-    ImGui::SameLine(180.0f);
-    ImGui::SetNextItemWidth(80.0f);
+    ImGui::SameLine(DPI(180.0f));
+    ImGui::SetNextItemWidth(DPI(80.0f));
     changed |= ImGui::InputInt("##maxLevelDifference", &maxLevelDifference);
 
     changed |= ImGui::Checkbox("Match Layouts", &matchLayouts);
@@ -78,7 +79,7 @@ bool RandomizeEncounters::onSettingsGUI()
     ImGui::SetItemTooltip("Multiplies each enemy's HP, MP, Strength, Magic, Evade,\nSpeed, Luck, Defense, and MDefense.\nMultiplier is randomly chosen for each stat for each enemy.");
     ImGui::SameLine();
 
-    ImGui::PushItemWidth(60);
+    ImGui::PushItemWidth(DPI(60.0f));
     changed |= ImGui::InputFloat("##encMinStatMultiplier", &minStatMultiplier, 0, 0, "%.2f");
     ImGui::SameLine();
     ImGui::Text("to");

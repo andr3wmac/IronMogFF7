@@ -2,6 +2,7 @@
 #include "core/audio/AudioManager.h"
 #include "core/game/GameData.h"
 #include "core/game/MemoryOffsets.h"
+#include "core/gui/GUI.h"
 #include "core/utilities/ConfigFile.h"
 #include "core/utilities/Logging.h"
 #include "core/utilities/Utilities.h"
@@ -63,8 +64,8 @@ bool RandomizeMusic::onSettingsGUI()
     constexpr float min = 0.0f;
     constexpr float max = 2.0f;
     ImGui::Text("Volume");
-    ImGui::SameLine(75.0f);
-    ImGui::SetNextItemWidth(250.0f);
+    ImGui::SameLine(DPI(75.0f));
+    ImGui::SetNextItemWidth(DPI(250.0f));
     changed |= ImGui::SliderScalar("##musicVolume", ImGuiDataType_Float, &currentVolume, &min, &max, "%.3lf");
 
     if (currentVolume != previousVolume)
@@ -74,7 +75,7 @@ bool RandomizeMusic::onSettingsGUI()
     }
 
     // Rescan
-    if (ImGui::Button("Rescan Music Folder", ImVec2(150, 0)))
+    if (ImGui::Button("Rescan Music Folder", ImVec2(DPI(150.0f), 0.0f)))
     {
         scanMusicFolder();
     }
@@ -85,7 +86,7 @@ bool RandomizeMusic::onSettingsGUI()
 
     // Reroll
     ImGui::BeginDisabled(game == nullptr);
-    if (ImGui::Button("Reroll Music", ImVec2(150, 0)))
+    if (ImGui::Button("Reroll Music", ImVec2(DPI(150.0f), 0.0f)))
     {
         randomizeMusic(previousMusicID);
     }

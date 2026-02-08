@@ -133,6 +133,8 @@ void setupStyle()
     colors[ImGuiCol_ModalWindowDimBg]       = ImVec4(0.80f, 0.80f, 0.80f, 0.35f);
 }
 
+float GUI::dpiScale = 1.0f;
+
 bool GUI::initialize(int width, int height, const char* windowTitle)
 {
     glfwSetErrorCallback(glfw_error_callback);
@@ -148,9 +150,12 @@ bool GUI::initialize(int width, int height, const char* windowTitle)
     //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
     //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
 
+    // Get DPI scaling, valid on GLFW 3.3+ only
+    dpiScale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor()); 
+
     // Create window with graphics context
-    windowWidth = width;
-    windowHeight = height;
+    windowWidth = DPI(width);
+    windowHeight = DPI(height);
     window = glfwCreateWindow(windowWidth, windowHeight, windowTitle, nullptr, nullptr);
     if (window == nullptr)
     {
@@ -219,6 +224,11 @@ bool GUI::initialize(int width, int height, const char* windowTitle)
 
     // Setup style
     setupStyle();
+
+    // Apply DPI scaling to style and fonts
+    ImGuiStyle& style = ImGui::GetStyle();
+    style.ScaleAllSizes(dpiScale);
+    style.FontScaleDpi = dpiScale;
 
     // Window icon
     {

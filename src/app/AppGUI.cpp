@@ -51,7 +51,7 @@ void App::draw()
 
 void App::drawSettingsPanel()
 {
-    GUI::drawImage(logo, logo.width / 2, logo.height / 2);
+    GUI::drawImage(logo, DPI(logo.width / 2), DPI(logo.height / 2));
 
     // We lock settings if we're both connected and in game.
     bool lockSettings = connectionState > ConnectionState::NotConnected && connectionState < ConnectionState::Error;
@@ -69,15 +69,15 @@ void App::drawSettingsPanel()
     }
 
     ImGui::Spacing();
-    ImGui::BeginChild("##ScrollBox", ImVec2(0, (float)(gui.windowHeight - 212)));
+    ImGui::BeginChild("##ScrollBox", ImVec2(0, (float)(gui.windowHeight - DPI(212))));
     ImGui::BeginDisabled(lockSettings);
     {
         ImGui::SeparatorText("Game");
         {
             // Game Version
             ImGui::Text("Version:");
-            ImGui::SameLine(70.0f);
-            ImGui::SetNextItemWidth(393.0f);
+            ImGui::SameLine(DPI(70.0f));
+            ImGui::SetNextItemWidth(DPI(393.0f));
             int versionIndex = (int)selectedGameVersion;
             if (ImGui::Combo("##VersionList", &versionIndex, gameVersions, IM_ARRAYSIZE(gameVersions)))
             {
@@ -86,8 +86,8 @@ void App::drawSettingsPanel()
 
             // Emulator Type
             ImGui::Text("Emulator:");
-            ImGui::SameLine(70.0f);
-            ImGui::SetNextItemWidth(393.0f);
+            ImGui::SameLine(DPI(70.0f));
+            ImGui::SetNextItemWidth(DPI(393.0f));
             int emulatorIndex = (int)selectedEmulatorType;
             if (ImGui::Combo("##EmulatorList", &emulatorIndex, emulators, IM_ARRAYSIZE(emulators)))
             {
@@ -114,7 +114,7 @@ void App::drawSettingsPanel()
 
         ImGui::SeparatorText("Settings");
         {
-            ImGui::SetNextItemWidth(410.0f);
+            ImGui::SetNextItemWidth(DPI(410.0f));
             if (ImGui::Combo("##SettingsList", &selectedSettingsIdx, availableSettings.data(), (int)availableSettings.size()))
             {
                 loadSettings("settings/" + availableSettings[selectedSettingsIdx] + ".cfg");
@@ -148,7 +148,7 @@ void App::drawSettingsPanel()
 
         ImGui::SeparatorText("Seed");
         {
-            ImGui::SetNextItemWidth(378.0f);
+            ImGui::SetNextItemWidth(DPI(378.0f));
             ImGui::InputText("##Seed", seedValue, 9);
             ImGui::SameLine();
             if (ImGui::Button("Regenerate"))
@@ -182,9 +182,9 @@ void App::drawSettingsPanel()
 
                     if (rule->settingsVisible)
                     {
-                        ImGui::Indent(25.0f);
+                        ImGui::Indent(DPI(25.0f));
                         changed |= rule->onSettingsGUI();
-                        ImGui::Unindent(25.0f);
+                        ImGui::Unindent(DPI(25.0f));
                     }
                 }
             }
@@ -224,9 +224,9 @@ void App::drawSettingsPanel()
 
                 if (extra->settingsVisible)
                 {
-                    ImGui::Indent(25.0f);
+                    ImGui::Indent(DPI(25.0f));
                     changed |= extra->onSettingsGUI();
-                    ImGui::Unindent(25.0f);
+                    ImGui::Unindent(DPI(25.0f));
                 }
             }
         }
@@ -246,11 +246,11 @@ void App::drawSettingsPanel()
 
 void App::drawTrackerPanel()
 {
-    GUI::drawImage(logo, logo.width / 2, logo.height / 2);
+    GUI::drawImage(logo, DPI(logo.width / 2), DPI(logo.height / 2));
     gui.pushFont("Reactor7");
 
     ImGui::Spacing();
-    ImGui::BeginChild("##ScrollBox", ImVec2(0, (float)(gui.windowHeight - 212)));
+    ImGui::BeginChild("##ScrollBox", ImVec2(0, (float)(gui.windowHeight - DPI(212))));
     {
         if (connectionState == ConnectionState::Connected)
         {
@@ -259,8 +259,8 @@ void App::drawTrackerPanel()
                 Permadeath* permadeathRule = (Permadeath*)game->getRule("Permadeath");
                 uint16_t phsVisMask = game->read<uint16_t>(GameOffsets::PHSVisibilityMask);
 
-                const int imgWidth = 46;
-                const int imgHeight = 53;
+                const int imgWidth = DPI(46);
+                const int imgHeight = DPI(53);
 
                 for (int i = 0; i < 9; ++i)
                 {
@@ -289,7 +289,7 @@ void App::drawTrackerPanel()
             ImGui::Spacing();
             ImGui::Spacing();
             ImGui::Spacing();
-            ImGui::Indent(10.0f);
+            ImGui::Indent(DPI(10.0f));
 
             // Seed
             std::string seedText = "Seed: " + std::string(seedValue);
@@ -317,7 +317,7 @@ void App::drawTrackerPanel()
             std::string summaryText = game->getSettingsSummary();
             ImGui::TextWrapped(summaryText.c_str());
 
-            ImGui::Unindent(10.0f);
+            ImGui::Unindent(DPI(10.0f));
         }
     }
     ImGui::EndChild();
@@ -334,20 +334,20 @@ void App::drawBottomPanel()
 
     if (connectionState == ConnectionState::NotConnected || connectionState == ConnectionState::Error)
     {
-        drawList->AddCircleFilled(ImVec2(p.x + 135, p.y + 10), 5.0f, dotRed);
+        drawList->AddCircleFilled(ImVec2(p.x + DPI(135.0f), p.y + DPI(10.0f)), DPI(5.0f), dotRed);
     }
     if (connectionState == ConnectionState::Connecting)
     {
-        drawList->AddCircleFilled(ImVec2(p.x + 135, p.y + 10), 5.0f, dotYellow);
+        drawList->AddCircleFilled(ImVec2(p.x + DPI(135.0f), p.y + DPI(10.0f)), DPI(5.0f), dotYellow);
     }
     if (connectionState == ConnectionState::Connected)
     {
-        drawList->AddCircleFilled(ImVec2(p.x + 135, p.y + 10), 5.0f, dotGreen);
+        drawList->AddCircleFilled(ImVec2(p.x + DPI(135.0f), p.y + DPI(10.0f)), DPI(5.0f), dotGreen);
     }
 
     if (connectionState == ConnectionState::NotConnected || connectionState == ConnectionState::Error)
     {
-        if (ImGui::Button("Connect", ImVec2(120, 0)))
+        if (ImGui::Button("Connect", ImVec2(DPI(120.0f), 0.0f)))
         {
             connect();
         }
@@ -355,7 +355,7 @@ void App::drawBottomPanel()
     else
     {
         ImGui::BeginDisabled(connectionState == ConnectionState::Connecting);
-        if (ImGui::Button("Disconnect", ImVec2(120, 0)))
+        if (ImGui::Button("Disconnect", ImVec2(DPI(120.0f), 0.0f)))
         {
             disconnect();
         }
@@ -363,16 +363,16 @@ void App::drawBottomPanel()
     }
 
     ImGui::SameLine();
-    ImGui::Indent(150.0f);
+    ImGui::Indent(DPI(150.0f));
     ImGui::Text(connectionStatus.c_str());
 
     ImGui::SameLine();
-    ImGui::Indent(210.0f);
+    ImGui::Indent(DPI(210.0f));
 
     if (currentPanel == Panels::Settings)
     {
         ImGui::BeginDisabled(connectionState != ConnectionState::Connected);
-        if (ImGui::Button("Tracker", ImVec2(120, 0)))
+        if (ImGui::Button("Tracker", ImVec2(DPI(120.0f), 0.0f)))
         {
             currentPanel = Panels::Tracker;
         }
@@ -380,13 +380,13 @@ void App::drawBottomPanel()
     }
     else if (currentPanel == Panels::Tracker)
     {
-        if (ImGui::Button("Settings", ImVec2(120, 0)))
+        if (ImGui::Button("Settings", ImVec2(DPI(120.0f), 0.0f)))
         {
             currentPanel = Panels::Settings;
         }
     }
 
-    ImGui::Unindent(150.0f);
+    ImGui::Unindent(DPI(150.0f));
 }
 
 void App::drawDebugPanel()

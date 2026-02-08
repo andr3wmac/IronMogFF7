@@ -1,6 +1,7 @@
 #include "RandomizeBosses.h"
 #include "core/game/GameData.h"
 #include "core/game/MemoryOffsets.h"
+#include "core/gui/GUI.h"
 #include "core/utilities/Logging.h"
 #include "core/utilities/Utilities.h"
 
@@ -44,7 +45,7 @@ bool RandomizeBosses::onSettingsGUI()
     ImGui::SetItemTooltip("Multiplies each boss' HP, MP, Strength, Magic, Evade,\nSpeed, Luck, Defense, and MDefense.\nMultiplier is randomly chosen for each stat for each boss.");
     ImGui::SameLine();
 
-    ImGui::PushItemWidth(60);
+    ImGui::PushItemWidth(DPI(60.0f));
     changed |= ImGui::InputFloat("##bossMinStatMultiplier", &minStatMultiplier, 0, 0, "%.2f");
     ImGui::SameLine();
     ImGui::Text("to");
@@ -56,7 +57,7 @@ bool RandomizeBosses::onSettingsGUI()
     {
         int* randomModeInt = (int*)(&randomMode);
 
-        ImGui::Indent(25.0f);
+        ImGui::Indent(DPI(25.0f));
         changed |= ImGui::RadioButton("Shuffle", randomModeInt, 0);
         ImGui::SetItemTooltip("Resistances and weaknesses are shuffled amongst bosses.");
         changed |= ImGui::RadioButton("Weighted Random", randomModeInt, 1);
@@ -64,12 +65,12 @@ bool RandomizeBosses::onSettingsGUI()
 
         if (randomMode == RandomMode::WeightedRandom)
         {
-            ImGui::Indent(25.0f);
+            ImGui::Indent(DPI(25.0f));
 
             ImGui::Text("Element Count");
             ImGui::SetItemTooltip("The number of elements that will be rolled using the odds set below.");
-            ImGui::SameLine(180.0f);
-            ImGui::SetNextItemWidth(200.0f);
+            ImGui::SameLine(DPI(180.0f));
+            ImGui::SetNextItemWidth(DPI(200.0f));
             changed |= ImGui::SliderInt("##elementCount", &elementCount, 0, 7);
 
             for (int i = 0; i < randomNames.size(); i++)
@@ -77,19 +78,19 @@ bool RandomizeBosses::onSettingsGUI()
                 ImGui::PushID(i); // Prevents ID conflicts
 
                 ImGui::Text(randomNames[i].c_str());
-                ImGui::SameLine(180.0f);
+                ImGui::SameLine(DPI(180.0f));
 
                 // Set a small width so it's not a giant text box
-                ImGui::SetNextItemWidth(35.0f);
+                ImGui::SetNextItemWidth(DPI(35.0f));
                 changed |= ImGui::InputInt("##val", &randomWeights[i], 0);
 
                 ImGui::PopID();
             }
 
-            ImGui::Unindent(25.0f);
+            ImGui::Unindent(DPI(25.0f));
         }
 
-        ImGui::Unindent(25.0f);
+        ImGui::Unindent(DPI(25.0f));
     }
 
     return changed;

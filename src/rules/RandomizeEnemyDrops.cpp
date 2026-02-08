@@ -1,6 +1,7 @@
 #include "RandomizeEnemyDrops.h"
 #include "core/game/GameData.h"
 #include "core/game/MemoryOffsets.h"
+#include "core/gui/GUI.h"
 #include "core/utilities/Logging.h"
 #include "core/utilities/Utilities.h"
 
@@ -24,7 +25,7 @@ bool RandomizeEnemyDrops::onSettingsGUI()
     ImGui::SetItemTooltip("Multiplies the gil dropped by each enemy.");
     ImGui::SameLine();
 
-    ImGui::PushItemWidth(60);
+    ImGui::PushItemWidth(DPI(60.0f));
     changed |= ImGui::InputFloat("##minGilMultiplier", &minGilMultiplier, 0, 0, "%.2f");
     ImGui::SameLine();
     ImGui::Text("to");
@@ -36,7 +37,7 @@ bool RandomizeEnemyDrops::onSettingsGUI()
     ImGui::SetItemTooltip("Multiplies the exp obtained from each enemy.");
     ImGui::SameLine();
 
-    ImGui::PushItemWidth(60);
+    ImGui::PushItemWidth(DPI(60.0f));
     changed |= ImGui::InputFloat("##minExpMultiplier", &minExpMultiplier, 0, 0, "%.2f");
     ImGui::SameLine();
     ImGui::Text("to");
