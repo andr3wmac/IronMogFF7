@@ -19,6 +19,9 @@ void RandomizeEncounters::setup()
     BIND_EVENT(game->onWorldMapEnter, RandomizeEncounters::onWorldMapEnter);
     BIND_EVENT(game->onBattleEnter, RandomizeEncounters::onBattleEnter);
 
+    // Debug Room fights
+    excludedFormations.insert({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 22, 23, 24, 25, 26, 952, 953, 954, 955, 957, 958, 959, 989, 990, 991, 996, 997, 998, 999 });
+
     // Chocobo fights
     excludedFormations.insert({ 56, 57, 60, 61, 78, 79, 80, 81, 98, 99, 104, 105, 152, 153, 156, 157, 162, 163, 166, 167, 202, 203, 206, 207, 214, 215, 218, 219 });
 

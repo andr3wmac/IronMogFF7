@@ -125,6 +125,7 @@ class Formation:
 
         # flags: 2 bytes at offset 0x10
         self.flags = struct.unpack_from("<H", battleSetupData, 0x10)[0]
+        self.layout = battleSetupData[0x12]
 
         formationEnemySize = 0x10
         self.enemyIDs = []

@@ -369,10 +369,6 @@ def outputBattles(gen, discPath, version):
         enemyLevels = ""
         enemies = scene.getEnemies(ff7.game.isJapanese(version))
         for enemy in enemies:
-            if len(enemy.name) >= 2 and ord(enemy.name[0]) == 0x00EA and ord(enemy.name[1]) == 0x00FA:
-                hasValidEnemies = False
-                break
-
             if (enemy.name != "" and enemy.level != 255):
                 enemyLevels += ", " + str(enemy.level)
                 hasValidEnemies = True
@@ -393,7 +389,7 @@ def outputBattles(gen, discPath, version):
             if not formation.canEscape():
                 noEscape = "true"
 
-            gen.write_line("addBattleFormation(" + str(i) + ", " + str(formationID) + ", " + noEscape + ", " + listToCPPArray(formation.enemyIDs) + ", " + listToCPPArray(formation.battleArenaCandidates) + ");", 4)
+            gen.write_line("addBattleFormation(" + str(i) + ", " + str(formationID) + ", " + noEscape + ", " + str(formation.layout) + ", " + listToCPPArray(formation.enemyIDs) + ", " + listToCPPArray(formation.battleArenaCandidates) + ");", 4)
             formationIndex += 1
 
     gen.write_line("")
