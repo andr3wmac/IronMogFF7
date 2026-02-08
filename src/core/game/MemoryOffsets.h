@@ -217,6 +217,7 @@ struct PlayerOffsets
 struct BattleOffsets
 {
     CONST_PTR FormationID = 0x707BC;
+    CONST_PTR DangerValue = 0x7173C;
 
     // Battle Character Data Length = 104 bytes
     CONST_PTR Allies[]  = { 0xF83E0, 0xF8448, 0xF84B0 };
