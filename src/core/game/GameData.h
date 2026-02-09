@@ -156,7 +156,7 @@ struct BattleFormation
 {
     uint16_t id = 0;
     bool noEscape = false;
-    uint8_t layout = 0;
+    uint8_t battleType = 0;
     std::array<uint16_t, 6> enemyIDs{};
 
     uint16_t nextFormation = 0xFFFF;

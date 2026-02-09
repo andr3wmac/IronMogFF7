@@ -66,14 +66,30 @@ bool RandomizeEncounters::onSettingsGUI()
     ImGui::SetItemTooltip("Randomize fights triggered from scripts excluding boss fights.");
     changed |= ImGui::Checkbox("World Map Encounters", &worldMapEncounters);
 
-    ImGui::Text("Max Level Difference");
-    ImGui::SetItemTooltip("How much higher or lower the max level of the random\nformation can be from the original formation.");
-    ImGui::SameLine(DPI(180.0f));
-    ImGui::SetNextItemWidth(DPI(80.0f));
-    changed |= ImGui::InputInt("##maxLevelDifference", &maxLevelDifference);
-
-    changed |= ImGui::Checkbox("Match Layouts", &matchLayouts);
+    changed |= ImGui::Checkbox("Match Battle Types", &matchBattleTypes);
     ImGui::SetItemTooltip("Will only randomize Back Attacks to other Back Attacks, etc");
+
+    ImGui::Text("Levels Below");
+    ImGui::SetItemTooltip("How many levels below the original encounter's maximum\nlevel the randomized encounter can be.");
+    ImGui::SameLine(DPI(125.0f));
+    ImGui::PushItemWidth(DPI(50.0f));
+    if (ImGui::InputInt("##encLevelsBelow", &levelsBelow, 0, 0))
+    {
+        levelsBelow = std::max(0, levelsBelow);
+        changed = true;
+    }
+    ImGui::PopItemWidth();
+
+    ImGui::Text("Levels Above");
+    ImGui::SetItemTooltip("How many levels above the original encounter's maximum\nlevel the randomized encounter can be.");
+    ImGui::SameLine(DPI(125.0f));
+    ImGui::PushItemWidth(DPI(50.0f));
+    if (ImGui::InputInt("##encLevelsAbove", &levelsAbove, 0, 0))
+    {
+        levelsAbove = std::max(0, levelsAbove);
+        changed = true;
+    }
+    ImGui::PopItemWidth();
 
     ImGui::Text("Stat Multiplier");
     ImGui::SetItemTooltip("Multiplies each enemy's HP, MP, Strength, Magic, Evade,\nSpeed, Luck, Defense, and MDefense.\nMultiplier is randomly chosen for each stat for each enemy.");
@@ -92,13 +108,14 @@ bool RandomizeEncounters::onSettingsGUI()
 
 void RandomizeEncounters::loadSettings(const ConfigFile& cfg)
 {
-    randomEncounters   = cfg.get<bool>("randomEncounters", true);
-    scriptedEncounters = cfg.get<bool>("scriptedEncounters", true);
-    worldMapEncounters = cfg.get<bool>("worldMapEncounters", true);
-    maxLevelDifference = cfg.get<int>("maxLevelDifference", 5);
-    matchLayouts       = cfg.get<bool>("matchLayouts", true);
-    minStatMultiplier  = cfg.get<float>("minStatMultiplier", 1.0f);
-    maxStatMultiplier  = cfg.get<float>("maxStatMultiplier", 1.0f);
+    randomEncounters   = cfg.get<bool>("randomEncounters", randomEncounters);
+    scriptedEncounters = cfg.get<bool>("scriptedEncounters", scriptedEncounters);
+    worldMapEncounters = cfg.get<bool>("worldMapEncounters", worldMapEncounters);
+    matchBattleTypes   = cfg.get<bool>("matchBattleTypes", matchBattleTypes);
+    levelsBelow        = cfg.get<int>("levelsBelow", levelsBelow);
+    levelsAbove        = cfg.get<int>("levelsAbove", levelsAbove);
+    minStatMultiplier  = cfg.get<float>("minStatMultiplier", minStatMultiplier);
+    maxStatMultiplier  = cfg.get<float>("maxStatMultiplier", maxStatMultiplier);
 }
 
 void RandomizeEncounters::saveSettings(ConfigFile& cfg)
@@ -106,8 +123,9 @@ void RandomizeEncounters::saveSettings(ConfigFile& cfg)
     cfg.set<bool>("randomEncounters",   randomEncounters);
     cfg.set<bool>("scriptedEncounters", scriptedEncounters);
     cfg.set<bool>("worldMapEncounters", worldMapEncounters);
-    cfg.set<int>("maxLevelDifference",  maxLevelDifference);
-    cfg.set<bool>("matchLayouts",       matchLayouts);
+    cfg.set<bool>("matchBattleTypes",   matchBattleTypes);
+    cfg.set<int>("levelsBelow",         levelsBelow);
+    cfg.set<int>("levelsAbove",         levelsAbove);
     cfg.set<float>("minStatMultiplier", minStatMultiplier);
     cfg.set<float>("maxStatMultiplier", maxStatMultiplier);
 }
@@ -358,7 +376,7 @@ uint8_t getMaxLevelInFormation(const BattleScene& scene, const BattleFormation& 
     return maxLevel;
 }
 
-std::vector<uint16_t> RandomizeEncounters::findCandidates(int maxLevel, int layout)
+std::vector<uint16_t> RandomizeEncounters::findCandidates(int maxLevel, int battleType)
 {
     std::vector<uint16_t> candidates;
 
@@ -381,15 +399,15 @@ std::vector<uint16_t> RandomizeEncounters::findCandidates(int maxLevel, int layo
                 continue;
             }
 
-            // Skip formation if it exceeds the max level difference
-            uint8_t candidateMaxLevel = getMaxLevelInFormation(candidateScene, candidateFormation);
-            if (std::abs(maxLevel - candidateMaxLevel) > maxLevelDifference)
+            // Skip formation if it exceeds the allowable range
+            int candidateMaxLevel = getMaxLevelInFormation(candidateScene, candidateFormation);
+            if (candidateMaxLevel < maxLevel - levelsBelow || candidateMaxLevel > (maxLevel + levelsAbove))
             {
                 continue;
             }
 
-            // Skip non-matching layouts if enabled
-            if (matchLayouts && candidateFormation.layout != layout)
+            // Skip non-matching battle types if enabled
+            if (matchBattleTypes && candidateFormation.battleType != battleType)
             {
                 continue;
             }
@@ -420,7 +438,7 @@ void RandomizeEncounters::generateRandomEncounterMap()
             }
 
             uint8_t maxLevel = getMaxLevelInFormation(scene, formation);
-            randomEncounterMap[formation.id] = findCandidates(maxLevel, formation.layout);
+            randomEncounterMap[formation.id] = findCandidates(maxLevel, formation.battleType);
         }
     }
 }
