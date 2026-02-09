@@ -13,6 +13,7 @@
 #define APP_VERSION_MINOR 7
 #define APP_VERSION_PATCH 3
 #define APP_VERSION_STRING "v0.7.3"
+#define APP_SETTINGS_FOLDER "settings"
 
 class App
 {
@@ -41,6 +42,7 @@ public:
 
     void run();
     void generateSeed();
+    void scanSettings(std::string settingsFolder, std::string loadIfAvailable = "Default");
     void loadSettings(const std::string& filePath);
     void saveSettings(const std::string& filePath, bool saveSeed = false);
 

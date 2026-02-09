@@ -49,36 +49,7 @@ void App::run()
     deadIcon.loadFromFile("resources/dead.png");
 
     // Load any settings files
-    {
-        const std::string settingsDir = "settings";
-
-        // Always first in the list so we can switch to it when settings are changed.
-        availableSettings.push_back("Custom");
-
-        // Special case for default settings file
-        if (fs::exists(settingsDir + "/Default.cfg"))
-        {
-            availableSettings.push_back("Default");
-            selectedSettingsIdx = 1;
-            loadSettings(settingsDir + "/Default.cfg");
-        }
-
-        if (fs::exists(settingsDir) && fs::is_directory(settingsDir))
-        {
-            for (const auto& entry : fs::directory_iterator(settingsDir))
-            {
-                if (entry.path().stem() == "Default")
-                {
-                    continue;
-                }
-
-                if (entry.is_regular_file() && entry.path().extension() == ".cfg")
-                {
-                    availableSettings.push_back(entry.path().stem().string());
-                }
-            }
-        }
-    }
+    scanSettings(APP_SETTINGS_FOLDER, "Default");
 
     while (true)
     {
@@ -205,6 +176,7 @@ void App::stopGameManager()
     managerThread->join();
     delete managerThread;
     managerThread = nullptr;
+    previousState = GameManager::GameState::BootScreen;
 }
 
 void App::generateSeed()
@@ -213,6 +185,35 @@ void App::generateSeed()
     uint32_t seed = (static_cast<uint32_t>(rd()) << 16) ^ rd();
     snprintf(seedValue, sizeof(seedValue), "%08X", seed);
     LOG("Seed generated: %s", seedValue);
+}
+
+void App::scanSettings(std::string settingsFolder, std::string loadIfAvailable)
+{
+    availableSettings.clear();
+    selectedSettingsIdx = 0;
+
+    // Always first in the list so we can switch to it when settings are changed.
+    availableSettings.push_back("Custom");
+
+    if (fs::exists(settingsFolder) && fs::is_directory(settingsFolder))
+    {
+        for (const auto& entry : fs::directory_iterator(settingsFolder))
+        {
+            if (entry.is_regular_file() && entry.path().extension() == ".cfg")
+            {
+                availableSettings.push_back(entry.path().stem().string());
+            }
+        }
+    }
+
+    for (int i = 0; i < availableSettings.size(); ++i)
+    {
+        if (availableSettings[i] == loadIfAvailable)
+        {
+            selectedSettingsIdx = i;
+            loadSettings(settingsFolder + "/" + availableSettings[i] + ".cfg");
+        }
+    }
 }
 
 void App::loadSettings(const std::string& filePath)

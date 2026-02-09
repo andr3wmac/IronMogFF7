@@ -63,7 +63,13 @@ void App::drawSettingsPanel()
         // Save the current configuration in case of a crash, etc
         if (previousState != GameManager::GameState::InGame && state == GameManager::GameState::InGame)
         {
-            saveSettings("settings/Last Settings.cfg", true);
+            // We do not overwrite Last Settings if we're currently on Default. It's too common to press
+            // Connect without thinking about it and then lose Last Settings in the process.
+            if (availableSettings[selectedSettingsIdx] != "Default")
+            {
+                saveSettings("settings/Last Settings.cfg", true);
+            }
+            
         }
         previousState = state;
     }
@@ -117,7 +123,7 @@ void App::drawSettingsPanel()
             ImGui::SetNextItemWidth(DPI(410.0f));
             if (ImGui::Combo("##SettingsList", &selectedSettingsIdx, availableSettings.data(), (int)availableSettings.size()))
             {
-                loadSettings("settings/" + availableSettings[selectedSettingsIdx] + ".cfg");
+                loadSettings(APP_SETTINGS_FOLDER"/" + availableSettings[selectedSettingsIdx] + ".cfg");
             }
 
             ImGui::SameLine();
@@ -128,6 +134,7 @@ void App::drawSettingsPanel()
                 if (openPath != "")
                 {
                     loadSettings(openPath);
+                    selectedSettingsIdx = 0;
                 }
             }
             ImGui::PopID();
@@ -140,6 +147,12 @@ void App::drawSettingsPanel()
                 if (savePath != "")
                 {
                     saveSettings(savePath);
+
+                    if (Utilities::isFileInFolder(APP_SETTINGS_FOLDER, savePath))
+                    {
+                        std::string saveFileName = fs::path(savePath).stem().string();
+                        scanSettings(APP_SETTINGS_FOLDER, saveFileName);
+                    }
                 }
             }
             ImGui::PopID();
