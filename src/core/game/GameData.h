@@ -158,11 +158,18 @@ struct BattleFormation
     bool noEscape = false;
     uint8_t layout = 0;
     std::array<uint16_t, 6> enemyIDs{};
+
+    uint16_t nextFormation = 0xFFFF;
     std::array<uint16_t, 4> arenaIDs{};
 
     inline bool isArenaBattle()
     {
         return arenaIDs[0] != 999 || arenaIDs[1] != 999 || arenaIDs[2] != 999 || arenaIDs[3] != 999;
+    }
+
+    inline bool hasNextFormation()
+    {
+        return nextFormation != 0xFFFF;
     }
 };
 
@@ -346,9 +353,9 @@ public:
         GameData::battleScenes[sceneID] = { sceneID, {id0, id1, id2}, {lvl0, lvl1, lvl2} };
     }
 
-    static void addBattleFormation(uint8_t sceneID, uint16_t formationID, bool noEscape, uint8_t layout, std::array<uint16_t, 6> enemyIDs, std::array<uint16_t, 4> arenaIDs) 
+    static void addBattleFormation(uint8_t sceneID, uint16_t formationID, bool noEscape, uint8_t layout, std::array<uint16_t, 6> enemyIDs, uint16_t nextFormation, std::array<uint16_t, 4> arenaIDs) 
     {
-        GameData::battleScenes[sceneID].formations.push_back({ formationID, noEscape, layout, enemyIDs, arenaIDs });
+        GameData::battleScenes[sceneID].formations.push_back({ formationID, noEscape, layout, enemyIDs, nextFormation, arenaIDs });
     }
 
     static void addBoss(uint16_t enemyID, const std::string& name, std::vector<int> sceneIDs, uint64_t elemTypes, uint64_t elemRates)

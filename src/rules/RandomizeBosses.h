@@ -29,6 +29,9 @@ private:
     void generateBossStatMultipliers();
     std::pair<uint64_t, uint64_t> getWeightedRandomElements(uint16_t bossID);
     void onBattleEnter();
+    void onBattleTransition(uint16_t newFormationID);
+
+    void applyBossRandomization();
 
     float minStatMultiplier = 1.0f;
     float maxStatMultiplier = 1.0f;

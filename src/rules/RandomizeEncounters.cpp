@@ -376,7 +376,7 @@ std::vector<uint16_t> RandomizeEncounters::findCandidates(int maxLevel, int layo
             }
 
             // We don't want a formation that triggers multiple fights sequentially
-            if (candidateFormation.isArenaBattle())
+            if (candidateFormation.hasNextFormation())
             {
                 continue;
             }

@@ -35,6 +35,7 @@ void RandomizeBosses::setup()
 {
     BIND_EVENT(game->onStart, RandomizeBosses::onStart);
     BIND_EVENT(game->onBattleEnter, RandomizeBosses::onBattleEnter);
+    BIND_EVENT_ONE_ARG(game->onBattleTransition, RandomizeBosses::onBattleTransition);
 }
 
 bool RandomizeBosses::onSettingsGUI()
@@ -284,12 +285,17 @@ std::pair<uint64_t, uint64_t> RandomizeBosses::getWeightedRandomElements(uint16_
 
 void RandomizeBosses::onBattleEnter()
 {
-    uint16_t fieldID = game->getFieldID();
-    uint16_t formationID = game->read<uint16_t>(BattleOffsets::FormationID);
+    applyBossRandomization();
+}
 
-    std::pair<BattleScene*, BattleFormation*> battleData = game->getBattleFormation();
-    BattleScene* scene = battleData.first;
-    BattleFormation* formation = battleData.second;
+void RandomizeBosses::onBattleTransition(uint16_t newFormationID)
+{
+    applyBossRandomization();
+}
+
+void RandomizeBosses::applyBossRandomization()
+{
+    const auto [scene, formation] = game->getBattleFormation();
 
     if (scene == nullptr || formation == nullptr)
     {
@@ -326,7 +332,7 @@ void RandomizeBosses::onBattleEnter()
                     std::string elementsStr = buildElementsString(randomizedElements.first, randomizedElements.second);
                     LOG("Randomized weakness and resistance on boss %s to: %s", boss->name.c_str(), elementsStr.c_str());
                 }
-    
+
                 inBossFight = true;
                 break;
             }

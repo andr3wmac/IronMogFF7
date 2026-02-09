@@ -446,7 +446,8 @@ void App::drawDebugPanel()
 
     // Formation
     uint16_t formationID = game->read<uint16_t>(BattleOffsets::FormationID);
-    std::string formationText = "Formation: " + std::to_string(formationID);
+    uint16_t activeFormationID = game->read<uint16_t>(BattleOffsets::ActiveFormationID);
+    std::string formationText = "Formation: " + std::to_string(formationID) + ", Active: " + std::to_string(activeFormationID);
     ImGui::Text(formationText.c_str());
 
     // Party Members
@@ -530,6 +531,10 @@ void App::drawDebugPanel()
                 std::string enemyText = "Enemy " + std::to_string(i);
                 ImGui::Text(enemyText.c_str());
                 ImGui::Indent(25.0f);
+
+                uint16_t id = game->read<uint16_t>(BattleOffsets::Enemies[i] + BattleOffsets::EnemyID);
+                std::string idText = "ID: " + std::to_string(id);
+                ImGui::Text(idText.c_str());
 
                 uint32_t curHP = game->read<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::CurrentHP);
                 uint32_t maxHP = game->read<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::MaxHP);

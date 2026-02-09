@@ -389,7 +389,7 @@ def outputBattles(gen, discPath, version):
             if not formation.canEscape():
                 noEscape = "true"
 
-            gen.write_line("addBattleFormation(" + str(i) + ", " + str(formationID) + ", " + noEscape + ", " + str(formation.layout) + ", " + listToCPPArray(formation.enemyIDs) + ", " + listToCPPArray(formation.battleArenaCandidates) + ");", 4)
+            gen.write_line("addBattleFormation(" + str(i) + ", " + str(formationID) + ", " + noEscape + ", " + str(formation.layout) + ", " + listToCPPArray(formation.enemyIDs) + ", " + str(formation.nextFormation) + ", " + listToCPPArray(formation.battleArenaCandidates) + ");", 4)
             formationIndex += 1
 
     gen.write_line("")

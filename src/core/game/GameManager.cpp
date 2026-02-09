@@ -408,10 +408,29 @@ bool GameManager::update()
 
     if (gameModule == GameModule::Battle)
     {
+        // Ensure the battle data is ready before triggering the event.
         if (waitingForBattleData && isBattleDataLoaded())
         {
             onBattleEnter.invoke();
             waitingForBattleData = false;
+            lastBattleFormation = read<uint16_t>(BattleOffsets::ActiveFormationID);
+            LOG("Entered battle formation %d", lastBattleFormation);
+        }
+
+        // Detect if the active formation changed due to a battle transition
+        uint16_t currentFormation = read<uint16_t>(BattleOffsets::ActiveFormationID);
+        if (!waitingForBattleData && currentFormation != lastBattleFormation)
+        {
+            waitingForFormation = true;
+            lastBattleFormation = currentFormation;
+        }
+
+        // Ensure the formation data is ready before triggering the event.
+        if (waitingForFormation && isFormationLoaded(currentFormation))
+        {
+            LOG("Battle transitioned to formation %d", lastBattleFormation, currentFormation);
+            onBattleTransition.invoke(currentFormation);
+            waitingForFormation = false;
         }
     }
 
@@ -623,6 +642,36 @@ bool GameManager::isBattleDataLoaded()
     }
 
     return false;
+}
+
+bool GameManager::isFormationLoaded(uint16_t formationID)
+{
+    if (gameModule != GameModule::Battle)
+    {
+        return false;
+    }
+
+    const auto [scene, formation] = getBattleFormation(formationID);
+    if (formation == nullptr)
+    {
+        return false;
+    }
+
+    for (int i = 0; i < 6; ++i)
+    {
+        if (formation->enemyIDs[i] == 0xFFFF)
+        {
+            continue;
+        }
+
+        uint16_t currentID = read<uint16_t>(BattleOffsets::Enemies[i] + BattleOffsets::EnemyID);
+        if (currentID != formation->enemyIDs[i])
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 // Detect if field data is fully loaded by verifying the set of information
@@ -903,16 +952,9 @@ std::string GameManager::getWindowText(uint8_t index)
     return readString(getWindowTextOffset(index), 256);
 }
 
-std::pair<BattleScene*, BattleFormation*> GameManager::getBattleFormation()
+std::pair<BattleScene*, BattleFormation*> GameManager::getBattleFormation(uint16_t formationID)
 {
-    if (getGameModule() != GameModule::Battle)
-    {
-        return { nullptr, nullptr };
-    }
-
-    uint16_t formationID = read<uint16_t>(BattleOffsets::FormationID);
-
-    for (auto& [id, scene] : GameData::battleScenes) 
+    for (auto& [id, scene] : GameData::battleScenes)
     {
         for (BattleFormation& formation : scene.formations)
         {
@@ -924,6 +966,17 @@ std::pair<BattleScene*, BattleFormation*> GameManager::getBattleFormation()
     }
 
     return { nullptr, nullptr };
+}
+
+std::pair<BattleScene*, BattleFormation*> GameManager::getBattleFormation()
+{
+    if (getGameModule() != GameModule::Battle)
+    {
+        return { nullptr, nullptr };
+    }
+
+    uint16_t formationID = read<uint16_t>(BattleOffsets::ActiveFormationID);
+    return getBattleFormation(formationID);
 }
 
 template <typename T>

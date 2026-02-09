@@ -216,8 +216,9 @@ struct PlayerOffsets
 
 struct BattleOffsets
 {
-    CONST_PTR FormationID = 0x707BC;
-    CONST_PTR DangerValue = 0x7173C;
+    CONST_PTR ActiveFormationID = 0x62F54;  // uint16_t this will change during a fight if we transition to another formation
+    CONST_PTR FormationID       = 0x707BC;  // uint16_t this will stay the same even after transition
+    CONST_PTR DangerValue       = 0x7173C;
 
     // Battle Character Data Length = 104 bytes
     CONST_PTR Allies[]  = { 0xF83E0, 0xF8448, 0xF84B0 };
@@ -232,6 +233,7 @@ struct BattleOffsets
     CONST_PTR Luck      = 0x15; // uint8_t
     CONST_PTR Defense   = 0x20; // uint16_t
     CONST_PTR MDefense  = 0x22; // uint16_t
+    CONST_PTR EnemyID   = 0x24; // uint16_t
     CONST_PTR CurrentMP = 0x28; // uint16_t
     CONST_PTR MaxMP     = 0x2A; // uint16_t
     CONST_PTR CurrentHP = 0x2C; // uint32_t

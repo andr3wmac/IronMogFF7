@@ -72,6 +72,9 @@ public:
     // Returns the last text displayed in a window
     std::string getWindowText(uint8_t index);
 
+    // Returns requested formation data and battle scene
+    std::pair<BattleScene*, BattleFormation*> getBattleFormation(uint16_t formationID);
+
     // Returns the current battle scene and formation.
     std::pair<BattleScene*, BattleFormation*> getBattleFormation();
 
@@ -93,6 +96,7 @@ public:
     Event<int> onFrame;
     Event<uint8_t> onModuleChanged;
     Event<> onBattleEnter;
+    Event<uint16_t> onBattleTransition;
     Event<> onBattleExit;
     Event<uint16_t> onFieldChanged;
     Event<> onShopOpened;
@@ -145,8 +149,11 @@ private:
     // A set of pointers to the last line of field script executed within each group. 
     uint16_t fieldScriptExecutionTable[64];
 
+    uint16_t lastBattleFormation = 0;
     bool waitingForBattleData = false;
     bool isBattleDataLoaded();
+    bool waitingForFormation = false;
+    bool isFormationLoaded(uint16_t formationID);
 
     bool waitingForFieldData = false;
     int lastFieldScreenFade = 0;
