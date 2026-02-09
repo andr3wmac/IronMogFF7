@@ -32,6 +32,9 @@ bool RandomizeShops::onSettingsGUI()
 
         changed |= ImGui::Checkbox("Exclude Rare Items", &excludeRareItems);
         ImGui::SetItemTooltip("Items and materia which are not intended to be bought and\nsold (1 gil price) will not be included in shop randomization.");
+
+        changed |= ImGui::Checkbox("Exclude Sources", &excludeSources);
+        ImGui::SetItemTooltip("Excludes power, guard, magic, mind, speed, and luck sources.");
     }
     ImGui::EndDisabled();
 
@@ -42,7 +45,8 @@ void RandomizeShops::loadSettings(const ConfigFile& cfg)
 {
     disableShops     = cfg.get<bool>("disableShops", false);
     keepPrices       = cfg.get<bool>("keepPrices", true);
-    excludeRareItems = cfg.get<bool>("excludeRareItems", false);
+    excludeRareItems = cfg.get<bool>("excludeRareItems", true);
+    excludeSources   = cfg.get<bool>("excludeSources", true);
 }
 
 void RandomizeShops::saveSettings(ConfigFile& cfg)
@@ -50,6 +54,7 @@ void RandomizeShops::saveSettings(ConfigFile& cfg)
     cfg.set<bool>("disableShops", disableShops);
     cfg.set<bool>("keepPrices", keepPrices);
     cfg.set<bool>("excludeRareItems", excludeRareItems);
+    cfg.set<bool>("excludeSources", excludeSources);
 }
 
 void RandomizeShops::onDebugGUI()
@@ -378,7 +383,18 @@ void RandomizeShops::onFrame(uint32_t frameNumber)
 
 uint16_t RandomizeShops::randomizeShopItem(uint16_t itemID, const std::set<uint16_t>& previouslyChosen)
 {
-    return GameData::getRandomItemSameType(itemID, rng, true, excludeRareItems, previouslyChosen);
+    std::set<uint16_t> excludeSet(previouslyChosen);
+    if (excludeSources)
+    {
+        excludeSet.insert(71); // Power Source
+        excludeSet.insert(72); // Guard Source
+        excludeSet.insert(73); // Magic Source
+        excludeSet.insert(74); // Mind Source
+        excludeSet.insert(75); // Speed Source
+        excludeSet.insert(76); // Luck Source
+    }
+
+    return GameData::getRandomItemSameType(itemID, rng, true, excludeRareItems, excludeSet);
 }
 
 uint16_t RandomizeShops::randomizeShopMateria(uint16_t materiaID, const std::set<uint16_t>& previouslyChosen)
