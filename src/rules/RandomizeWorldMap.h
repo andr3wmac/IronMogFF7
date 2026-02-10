@@ -19,8 +19,6 @@ private:
     uint16_t getRandomEntrance(uint16_t entranceIndex);
 
     int lastClosestIndex = -1;
-    uint16_t lastCmd0 = 0;
-    uint16_t lastCmd1 = 0;
     uint16_t lastGameMoment = 0;
     uint32_t lastLoggedSeed = 0;
 
