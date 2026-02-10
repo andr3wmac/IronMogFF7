@@ -368,6 +368,11 @@ uint8_t getMaxLevelInFormation(const BattleScene& scene, const BattleFormation& 
         {
             if (scene.enemyIDs[j] == formation.enemyIDs[i])
             {
+                if (scene.enemyLevels[j] == 0xFF)
+                {
+                    continue;
+                }
+
                 maxLevel = std::max(maxLevel, scene.enemyLevels[j]);
             }
         }

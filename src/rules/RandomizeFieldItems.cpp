@@ -319,6 +319,13 @@ void RandomizeFieldItems::overwriteMessage(const FieldData& fieldData, const Fie
 {
     // Overwrite the popup message
     int msgIndex = game->findPickUpMessage(oldName, oldItem.group, oldItem.script, oldItem.offset);
+
+    // Counter Attack is shortened to "Counter" in field pick up messages.
+    if (msgIndex == -1 && oldName == "Counter Attack")
+    {
+        msgIndex = game->findPickUpMessage("Counter", oldItem.group, oldItem.script, oldItem.offset);
+    }
+
     if (msgIndex >= 0)
     {
         const FieldScriptMessage& fieldMsg = fieldData.messages[msgIndex];

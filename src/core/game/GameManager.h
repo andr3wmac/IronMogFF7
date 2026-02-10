@@ -48,7 +48,7 @@ public:
     // Returns how long the last update() took in ms.
     double getLastUpdateDuration() { return lastUpdateDuration; }
 
-    // Returns a byte representing what module the game is. eg Field, Battle, World, etc
+    GameVersion getGameVersion() { return gameVersion; }
     uint8_t getGameModule() { return gameModule; }
     uint16_t getGameMoment();
     bool inBattle();

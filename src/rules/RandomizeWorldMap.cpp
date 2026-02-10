@@ -288,13 +288,26 @@ void RandomizeWorldMap::onFieldChanged(uint16_t fieldID)
         }
     }
 
+    // Weapons seller will teleport us back onto world map, we need to patch it.
+    if (fieldID == 79 && currentGameMoment < 566)
+    {
+        uint16_t exitIndex = getRandomEntrance(9);
+        WorldMapEntrance& randEntrance = GameData::worldMapEntrances[exitIndex];
+
+        // Overwrite the MAPJUMP command to jump to the field we want.
+        game->write<uint16_t>(FieldScriptOffsets::ScriptStart + 0x31E + 1, randEntrance.fieldID);
+        LOG("Changed weapon seller exit to: %d", randEntrance.fieldID);
+    }
+
     // When doing the Yuffie Wutai side quest it ends by teleporting us onto the world map
     // next to Wutai we need to correct that to the randomized location.
     if (fieldID == 581)
     {
         uint16_t exitIndex = getRandomEntrance(22);
         WorldMapEntrance& randEntrance = GameData::worldMapEntrances[exitIndex];
-        game->write<uint16_t>(FieldScriptOffsets::ScriptStart + 0xDFF, randEntrance.fieldID);
+
+        // Overwrite the MAPJUMP command to jump to the field we want.
+        game->write<uint16_t>(FieldScriptOffsets::ScriptStart + 0xDFE + 1, randEntrance.fieldID);
         LOG("Changed Wutai side quest ending cutscene exit to: %d", randEntrance.fieldID);
     }
 
