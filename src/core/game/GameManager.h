@@ -140,7 +140,7 @@ private:
     uint32_t seed = 0;
     uint8_t gameModule = 0;
     uint32_t frameNumber = 0;
-    double lastFrameUpdateTime = 0.0;
+    int updatesSinceFrame = 0;
     int framesSinceReload = 0;
     uint16_t fieldID = 0;
     int framesInField = 0;

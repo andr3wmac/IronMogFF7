@@ -5,6 +5,7 @@
 #include "core/utilities/MemoryMonitor.h"
 #include "core/utilities/MemorySearch.h"
 #include "core/utilities/ModelEditor.h"
+#include "core/utilities/Platform.h"
 #include "core/utilities/ScriptUtilities.h"
 #include "core/utilities/Utilities.h"
 #include "extras/Extra.h"
@@ -28,6 +29,8 @@ void App::run()
         LOG("Graphics failure: could not initialize GUI.");
         return;
     }
+
+    Platform::initialize();
 
     BIND_EVENT_TWO_ARG(gui.onKeyPress, App::onKeyPress);
     BIND_EVENT_TWO_ARG(gui.onResize, App::onResize);
@@ -66,9 +69,13 @@ void App::run()
             stopGameManager();
             AudioManager::pauseMusic();
         }
+
+        // Run the GUI at 60fps
+        Platform::sleep(16.67f);
     }
 
     gui.destroy();
+    Platform::shutdown();
 }
 
 void App::connect()
@@ -165,7 +172,7 @@ void App::runGameManager()
             connectionStatus = "Connection lost.";
             break;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        Platform::sleep(1);
     }
     managerRunning = false;
 }

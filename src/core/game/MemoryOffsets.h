@@ -42,6 +42,8 @@ struct GameModule
     CONST_U8 Battle         = 2;
     CONST_U8 World          = 3;
     CONST_U8 Menu           = 5;
+    CONST_U8 Motorbike      = 6;
+    CONST_U8 ChocoboRacing  = 7;
     CONST_U8 Snowboarding   = 8;
 };
 

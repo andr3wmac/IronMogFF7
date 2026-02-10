@@ -6,8 +6,20 @@
 #include <tlhelp32.h>
 #include <psapi.h>
 
+#pragma comment(lib, "Winmm.lib")
+#include <timeapi.h>
+
 #include <set>
 #include <thread>
+
+// NtReadVirtualMemory function signature
+typedef NTSTATUS(WINAPI* NtReadVirtualMemory_t)(
+    HANDLE ProcessHandle,
+    PVOID BaseAddress,
+    PVOID Buffer,
+    SIZE_T BufferSize,
+    PSIZE_T NumberOfBytesRead
+    );
 
 // NtWriteVirtualMemory function signature
 typedef NTSTATUS(WINAPI* NtWriteVirtualMemory_t)(
@@ -17,6 +29,17 @@ typedef NTSTATUS(WINAPI* NtWriteVirtualMemory_t)(
     SIZE_T BufferSize,
     PSIZE_T NumberOfBytesWritten
     );
+
+void Platform::initialize()
+{
+    // Increases the precision of timing events on Windows. This is used for sleep()
+    timeBeginPeriod(1);
+}
+
+void Platform::shutdown()
+{
+    timeEndPeriod(1);
+}
 
 void* Platform::openProcess(uint32_t pid)
 {
@@ -30,7 +53,45 @@ void Platform::closeProcess(void* processHandle)
 
 bool Platform::read(void* processHandle, uintptr_t address, void* memOut, size_t sizeInBytes)
 {
-    return ReadProcessMemory(processHandle, (LPCVOID)address, memOut, sizeInBytes, nullptr);
+    static NtReadVirtualMemory_t NtReadVirtualMemoryFn = nullptr;
+
+    // Load the function once
+    if (!NtReadVirtualMemoryFn)
+    {
+        HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+        if (ntdll == 0)
+        {
+            LOG("Platform::read failed to get ntdll.dll");
+            return false;
+        }
+
+        NtReadVirtualMemoryFn = (NtReadVirtualMemory_t)GetProcAddress(ntdll, "NtReadVirtualMemory");
+
+        if (!NtReadVirtualMemoryFn)
+        {
+            LOG("Platform::read failed to get NtReadVirtualMemory");
+            return false;
+        }
+    }
+
+    PVOID target = (PVOID)address;
+    SIZE_T bytesRead = 0;
+    NTSTATUS status = NtReadVirtualMemoryFn(processHandle, target, memOut, sizeInBytes, &bytesRead);
+
+    if (status < 0)
+    {
+        // In the event of a read failure we fall back to the slower less error prone approach.
+        status = ReadProcessMemory(processHandle, (LPCVOID)address, memOut, sizeInBytes, nullptr);
+    }
+
+    // NT_SUCCESS
+    if (status < 0)
+    {
+        LOG("Platform::read NtReadVirtualMemory failed: offset=%llu status=0x%08X", (unsigned long long)address, status);
+        return false;
+    }
+
+    return true;
 }
 
 // WriteProcessMemory results in calls to NtQueryVirtualMemory which can be expensive in some situations.
@@ -67,7 +128,7 @@ bool Platform::write(void* processHandle, uintptr_t address, void* memIn, size_t
     // STATUS_PARTIAL_COPY
     if (status == 0x8000000D)
     {
-        // In the event a partial copy we fall back to the slower less error prone approach.
+        // In the event of a partial copy we fall back to the slower less error prone approach.
         LOG("Platform::write NtWriteVirtualMemory returned partial copy, retrying..");
         status = WriteProcessMemory(processHandle, target, memIn, sizeInBytes, &bytesWritten);
     }
@@ -232,4 +293,24 @@ void Platform::debuggerLog(const std::string& message)
 {
     // Write to Visual Studio debug console
     OutputDebugStringA(message.c_str());
+}
+
+// Based on: https://blog.bearcats.nl/perfect-sleep-function/
+void Platform::sleep(double sleepTimeMS)
+{
+    auto t0 = std::chrono::steady_clock::now();
+    auto target = t0 + std::chrono::nanoseconds(int64_t(sleepTimeMS * 1e6));
+
+    // Sleep
+    int ticks = (int)(sleepTimeMS - 1.02);
+    if (ticks > 0)
+    {
+        std::this_thread::sleep_for(std::chrono::milliseconds(ticks));
+    }
+
+    // Spin
+    while (std::chrono::steady_clock::now() < target)
+    {
+        YieldProcessor();
+    }
 }

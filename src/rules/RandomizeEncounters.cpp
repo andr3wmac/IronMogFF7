@@ -21,16 +21,16 @@ void RandomizeEncounters::setup()
     BIND_EVENT(game->onBattleEnter, RandomizeEncounters::onBattleEnter);
 
     // Debug Room fights
-    excludedFormations.insert({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 22, 23, 24, 25, 26, 952, 953, 954, 955, 957, 958, 959, 989, 990, 991, 996, 997, 998, 999 });
+    addExclusions({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 22, 23, 24, 25, 26, 952, 953, 954, 955, 957, 958, 959, 989, 990, 991, 996, 997, 998, 999 });
 
     // Chocobo fights
-    excludedFormations.insert({ 56, 57, 60, 61, 78, 79, 80, 81, 98, 99, 104, 105, 152, 153, 156, 157, 162, 163, 166, 167, 202, 203, 206, 207, 214, 215, 218, 219 });
+    addExclusions({ 56, 57, 60, 61, 78, 79, 80, 81, 98, 99, 104, 105, 152, 153, 156, 157, 162, 163, 166, 167, 202, 203, 206, 207, 214, 215, 218, 219 });
 
     // Yuffie
-    excludedFormations.insert({ 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 296, 297, 298 });
+    addExclusions({ 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 296, 297, 298 });
 
     // Midgar Zolom
-    excludedFormations.insert({ 469, 470 });
+    addExclusions({ 469, 470 });
 
     // Add all boss formations to excluded formations
     {
@@ -48,7 +48,7 @@ void RandomizeEncounters::setup()
                 {
                     if (bossIDs.count(formation.enemyIDs[i]) > 0)
                     {
-                        excludedFormations.insert(formation.id);
+                        excludedFormations.set(formation.id);
                         break;
                     }
                 }
@@ -359,14 +359,15 @@ uint8_t getMaxLevelInFormation(const BattleScene& scene, const BattleFormation& 
 
     for (int i = 0; i < 6; ++i)
     {
-        if (formation.enemyIDs[i] == 0xFFFF)
+        uint16_t enemyID = formation.enemyIDs[i];
+        if (enemyID == 0xFFFF)
         {
             continue;
         }
 
         for (int j = 0; j < 3; ++j)
         {
-            if (scene.enemyIDs[j] == formation.enemyIDs[i])
+            if (scene.enemyIDs[j] == enemyID)
             {
                 if (scene.enemyLevels[j] == 0xFF)
                 {
@@ -381,6 +382,14 @@ uint8_t getMaxLevelInFormation(const BattleScene& scene, const BattleFormation& 
     return maxLevel;
 }
 
+void RandomizeEncounters::addExclusions(std::initializer_list<uint16_t> ids)
+{
+    for (uint16_t id : ids) 
+    {
+        excludedFormations.set(id);
+    }
+}
+
 std::vector<uint16_t> RandomizeEncounters::findCandidates(int maxLevel, int battleType)
 {
     std::vector<uint16_t> candidates;
@@ -393,7 +402,7 @@ std::vector<uint16_t> RandomizeEncounters::findCandidates(int maxLevel, int batt
             BattleFormation candidateFormation = candidateScene.formations[j];
 
             // Skip excluded formations
-            if (excludedFormations.count(candidateFormation.id) > 0)
+            if (excludedFormations.test(candidateFormation.id))
             {
                 continue;
             }
@@ -437,7 +446,7 @@ void RandomizeEncounters::generateRandomEncounterMap()
             BattleFormation formation = scene.formations[i];
 
             // Don't randomize excluded formations
-            if (excludedFormations.count(formation.id) > 0)
+            if (excludedFormations.test(formation.id))
             {
                 continue;
             }

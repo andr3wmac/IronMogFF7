@@ -293,7 +293,9 @@ GameManager::GameState GameManager::getState()
         return GameState::MainMenuCold;
     }
 
-    if (gameModule != 0 && screenState == 27)
+    // Mini games do not respect the screenState variable so they
+    // are excluded from this check.
+    if (gameModule > 0 && gameModule < 6 && screenState == 27)
     {
         // Main menu after a soft reset or game over.
         return GameState::MainMenuWarm;
@@ -325,7 +327,7 @@ bool GameManager::update()
         {
             loadSaveData();
             onStart.invoke();
-            lastFrameUpdateTime = Utilities::getTimeMS();
+            updatesSinceFrame = 0;
         }
 
         lastGameState = state;
@@ -337,13 +339,15 @@ bool GameManager::update()
         return true;
     }
 
-    // We assume if 200ms has passed without the frame number advancing that the emulator is paused
-    if (currentTime - lastFrameUpdateTime > 200 && !emulatorPaused)
+    // If over 30 updates have passed without frame number advancing it should be at least 300ms 
+    // passing without a frame update which is enough time to conclude the emulator was paused.
+    if (updatesSinceFrame > 30 && !emulatorPaused)
     {
         emulatorPaused = true;
         onEmulatorPaused.invoke();
         LOG("Emulator paused.");
     }
+    updatesSinceFrame++;
 
     // Update the field script execution table.
     read(FieldScriptOffsets::ExecutionTable, 128, (uint8_t*)(&fieldScriptExecutionTable[0]));
@@ -500,8 +504,7 @@ bool GameManager::update()
     int frameDifference = std::abs((int)newFrameNumber - (int)frameNumber);
     if (frameDifference > 30 && framesSinceReload > 30)
     {
-        double timeGap = currentTime - lastFrameUpdateTime;
-        LOG("Load detected, reloading rules %lf", timeGap);
+        LOG("Load detected, reloading rules %d - %d = %d", newFrameNumber, frameNumber, frameDifference);
         loadSaveData();
         onStart.invoke();
         framesSinceReload = 0;
@@ -511,7 +514,7 @@ bool GameManager::update()
     if (newFrameNumber != frameNumber)
     {
         frameNumber = newFrameNumber;
-        lastFrameUpdateTime = currentTime;
+        updatesSinceFrame = 0;
         framesInField++;
 
         if (emulatorPaused)

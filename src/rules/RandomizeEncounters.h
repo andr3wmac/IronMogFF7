@@ -2,7 +2,7 @@
 #include "Rule.h"
 #include "core/game/GameData.h"
 #include <cstdint>
-#include <set>
+#include <bitset>
 
 class RandomizeEncounters : public Rule
 {
@@ -21,6 +21,7 @@ private:
     void onWorldMapEnter();
     void onBattleEnter();
 
+    void addExclusions(std::initializer_list<uint16_t> ids);
     std::vector<uint16_t> findCandidates(int maxLevel, int battleType);
     void generateRandomEncounterMap();
     void generateEnemyStatMultipliers();
@@ -34,7 +35,7 @@ private:
     float minStatMultiplier = 1.0f;
     float maxStatMultiplier = 1.0f;
 
-    std::set<uint16_t> excludedFormations;
+    std::bitset<UINT16_MAX> excludedFormations;
     std::unordered_map<uint16_t, std::vector<uint16_t>> randomEncounterMap;
     std::unordered_map<uint16_t, StatMultiplierSet> enemyStatMultipliers;
     std::mt19937 rng;
