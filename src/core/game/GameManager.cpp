@@ -386,7 +386,9 @@ bool GameManager::update()
         if (gameModule != GameModule::World && newGameModule == GameModule::World)
         {
             waitingForWorldData = true;
+            waitingForWorldChange = false;
             lastWorldScreenFade = read<uint8_t>(GameOffsets::WorldScreenFade);
+            lastWorldMapID = read<uint32_t>(WorldOffsets::ScriptStart);
         }
 
         if (gameModule != GameModule::Menu && newGameModule == GameModule::Menu)
@@ -482,6 +484,20 @@ bool GameManager::update()
 
     if (gameModule == GameModule::World)
     {
+        uint32_t worldMapID = read<uint32_t>(WorldOffsets::ScriptStart);
+        if (worldMapID != lastWorldMapID)
+        {
+            waitingForWorldChange = true;
+            lastWorldMapID = worldMapID;
+        }
+
+        if (waitingForWorldChange && isWorldDataLoaded(justConnected, true))
+        {
+            LOG("Changed world maps.");
+            onWorldMapEnter.invoke();
+            waitingForWorldChange = false;
+        }
+
         if (waitingForWorldData && isWorldDataLoaded(justConnected))
         {
             // When exiting onto the world map field ID is updated to your exit location
@@ -871,33 +887,38 @@ bool GameManager::isShopDataLoaded()
     return true;
 }
 
-bool GameManager::isWorldDataLoaded(bool justConnected)
+bool GameManager::isWorldDataLoaded(bool justConnected, bool ignoreEncounterTable)
 {
     read(WorldOffsets::EncounterStart, 2048, (uint8_t*)worldMapEncounterTable);
 
-    for (int r = 0; r < 16; ++r)
+    // When changing world maps to underwater the encounter table remains unchanged,
+    // so this check becomes invalid.
+    if (!ignoreEncounterTable)
     {
-        WorldMapEncounters& origEncounters = GameData::worldMapEncounters[r];
-
-        for (int s = 0; s < 4; ++s)
+        for (int r = 0; r < 16; ++r)
         {
-            std::vector<Encounter>& origEncSet = origEncounters.sets[s];
-            if (origEncSet.size() == 0)
+            WorldMapEncounters& origEncounters = GameData::worldMapEncounters[r];
+
+            for (int s = 0; s < 4; ++s)
             {
-                continue;
-            }
-
-            // worldMapEncounterTable is uint16_t so these are two byte strides.
-            uintptr_t dataOffset = (r * 64) + (s * 16) + 1;
-
-            for (int i = 0; i < 14; ++i)
-            {
-                Encounter& origEnc = origEncSet[i];
-                Encounter& encData = worldMapEncounterTable[dataOffset + i];
-
-                if (origEnc.raw != encData.raw)
+                std::vector<Encounter>& origEncSet = origEncounters.sets[s];
+                if (origEncSet.size() == 0)
                 {
-                    return false;
+                    continue;
+                }
+
+                // worldMapEncounterTable is uint16_t so these are two byte strides.
+                uintptr_t dataOffset = (r * 64) + (s * 16) + 1;
+
+                for (int i = 0; i < 14; ++i)
+                {
+                    Encounter& origEnc = origEncSet[i];
+                    Encounter& encData = worldMapEncounterTable[dataOffset + i];
+
+                    if (origEnc.raw != encData.raw)
+                    {
+                        return false;
+                    }
                 }
             }
         }

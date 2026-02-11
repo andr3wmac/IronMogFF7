@@ -159,6 +159,8 @@ private:
     bool isShopDataLoaded();
 
     bool waitingForWorldData = false;
+    bool waitingForWorldChange = false;
     int lastWorldScreenFade = 0;
-    bool isWorldDataLoaded(bool justConnected = false);
+    uint32_t lastWorldMapID = 0;
+    bool isWorldDataLoaded(bool justConnected = false, bool ignoreEncounterTable = false);
 };
