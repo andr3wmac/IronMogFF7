@@ -69,7 +69,7 @@ protected:
     std::atomic<bool> managerRunning = false;
     GameManager::GameState previousState = GameManager::GameState::BootScreen;
 
-    GameManager::GameVersion selectedGameVersion = GameManager::GameVersion::PlayStationUS;
+    GameVersion selectedGameVersion = GameVersion::PlayStationUS;
     EmulatorType selectedEmulatorType = EmulatorType::DuckStation;
 
     StringList availableSettings;

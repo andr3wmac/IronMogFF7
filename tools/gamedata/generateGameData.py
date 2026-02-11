@@ -25,7 +25,7 @@ class GameDataGenerator:
         self.write_line("// Auto-generated game data file", 0)
         self.write_line("#include \"GameData.h\"", 0)
         self.write_line("", 0)
-        self.write_line("void GameData::" + self.functionName + "()", 0)
+        self.write_line("void GameData::" + self.functionName + "(GameVersion gameVersion, uint8_t gameDisc)", 0)
         self.write_line("{", 0)
 
     def write_footer(self):

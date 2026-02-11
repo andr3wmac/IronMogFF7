@@ -10,6 +10,12 @@
 #define SHOP_ITEM_MAX 10
 #define ESKILL_EMPTY 562949953421567
 
+enum class GameVersion : uint8_t
+{
+    PlayStationUS = 0,
+    PlayStationUS_CSR = 1
+};
+
 enum class ItemType : uint8_t
 {
     Normal    = 0,
@@ -257,8 +263,7 @@ public:
     static std::vector<BattleModel> battleModels;
 
     static void clearGameData();
-    static void loadGameData();
-    static void loadGameDataCSR();
+    static void loadGameData(GameVersion gameVersion, uint8_t gameDisc);
 
     static void addItem(uint16_t id, const std::string& name, uint32_t shopPrice) 
     { 
@@ -278,6 +283,11 @@ public:
     static void addField(uint16_t fieldID, const std::string& name) 
     {
         fieldData[fieldID] = { fieldID, name };
+    }
+
+    static void clearField(uint16_t fieldID)
+    {
+        fieldData.erase(fieldID);
     }
 
     static void addFieldScriptItem(uint16_t fieldID, uint8_t groupIdx, uint8_t scriptIdx, uint32_t offset, uint16_t itemID, uint8_t quantity) 

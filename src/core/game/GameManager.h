@@ -12,12 +12,6 @@ class Rule;
 class GameManager
 {
 public:
-    enum class GameVersion : uint8_t
-    {
-        PlayStationUS = 0,
-        PlayStationUS_CSR = 1
-    };
-
     enum class GameState : uint8_t
     {
         BootScreen   = 0,
@@ -133,6 +127,7 @@ public:
 private:
     Emulator* emulator;
     GameVersion gameVersion = GameVersion::PlayStationUS;
+    uint8_t gameDisc = 1;
 
     GameState lastGameState = GameState::BootScreen;
     bool emulatorPaused = false;

@@ -87,7 +87,7 @@ void App::drawSettingsPanel()
             int versionIndex = (int)selectedGameVersion;
             if (ImGui::Combo("##VersionList", &versionIndex, gameVersions, IM_ARRAYSIZE(gameVersions)))
             {
-                selectedGameVersion = (GameManager::GameVersion)versionIndex;
+                selectedGameVersion = (GameVersion)versionIndex;
             }
 
             // Emulator Type

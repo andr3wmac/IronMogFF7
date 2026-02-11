@@ -25,6 +25,7 @@ struct GameOffsets
     CONST_PTR InGameTime        = 0x9D264;  // uint32_t in seconds
     CONST_PTR GameMoment        = 0x9D288;  // uint16_t
     CONST_PTR MenuLockingMask   = 0x9D2A6;  // uint16_t bitmask of options disabled in the menu. 
+    CONST_PTR DiscNumber        = 0x9D588;  // uint8_t with disc number 1, 2, or 3.
     CONST_PTR PHSVisibilityMask = 0x9D78A;  // uint16_t bitmask of which characters are on PHS
     CONST_PTR WindowText        = 0xE4944;  // Array of window text entries, each window gets 256 characters, terminated by 0xFF.
     CONST_PTR WorldScreenFade   = 0x10B488; // uint8_t, 0 - 255 how much screen is faded for loading world map
@@ -45,6 +46,8 @@ struct GameModule
     CONST_U8 Motorbike      = 6;
     CONST_U8 ChocoboRacing  = 7;
     CONST_U8 Snowboarding   = 8;
+    CONST_U8 FortCondor     = 9;
+    CONST_U8 Submarine      = 10;
 };
 
 struct MenuType

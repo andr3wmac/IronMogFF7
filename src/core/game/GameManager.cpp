@@ -200,18 +200,16 @@ void GameManager::setup(GameVersion version, uint32_t inputSeed)
 {
     // Prepare game data based on version
     gameVersion = version;
-    if (gameVersion == GameManager::GameVersion::PlayStationUS)
+    if (gameVersion == GameVersion::PlayStationUS)
     {
         LOG("Loading game data for PlayStation US (Original)");
-        GameData::clearGameData();
-        GameData::loadGameData();
     }
-    if (gameVersion == GameManager::GameVersion::PlayStationUS_CSR)
+    if (gameVersion == GameVersion::PlayStationUS_CSR)
     {
         LOG("Loading game data for PlayStation US (CSR)");
-        GameData::clearGameData();
-        GameData::loadGameDataCSR();
     }
+    GameData::clearGameData();
+    GameData::loadGameData(gameVersion, gameDisc);
 
     // Note: seed may change after loading a save file, so its important to not utilize it in rule setup.
     seed = inputSeed;
@@ -337,6 +335,17 @@ bool GameManager::update()
     if (state != GameState::InGame)
     {
         return true;
+    }
+
+    // If the disc changes we need to reload the data since CSR has 
+    // different data for different discs.
+    uint8_t currentDisc = read<uint8_t>(GameOffsets::DiscNumber);
+    if (currentDisc != gameDisc)
+    {
+        GameData::clearGameData();
+        GameData::loadGameData(gameVersion, currentDisc);
+        LOG("Disc changed from %d to %d.", gameDisc, currentDisc);
+        gameDisc = currentDisc;
     }
 
     // If over 30 updates have passed without frame number advancing it should be at least 300ms 

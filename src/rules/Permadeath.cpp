@@ -191,7 +191,7 @@ void Permadeath::onFieldChanged(uint16_t fieldID)
             if (randomCharacter > -1)
             {
                 uintptr_t rufusHideScript = FieldScriptOffsets::ScriptStart + 0x952;
-                if (game->getGameVersion() == GameManager::GameVersion::PlayStationUS_CSR)
+                if (game->getGameVersion() == GameVersion::PlayStationUS_CSR)
                 {
                     rufusHideScript = FieldScriptOffsets::ScriptStart + 0x94D;
                 }
@@ -227,7 +227,7 @@ void Permadeath::onFieldChanged(uint16_t fieldID)
         // Overwrite the command that swaps party before the dyne 
         // fight to use a character other than Barret since hes dead.
         uintptr_t dynePartyCommand = FieldScriptOffsets::ScriptStart + 0x4FE;
-        if (game->getGameVersion() == GameManager::GameVersion::PlayStationUS_CSR)
+        if (game->getGameVersion() == GameVersion::PlayStationUS_CSR)
         {
             dynePartyCommand = FieldScriptOffsets::ScriptStart + 0x508;
         }
@@ -341,7 +341,7 @@ void Permadeath::updateOverrideFights()
         if (fieldTrigger == 256)
         {
             uintptr_t scriptAfterRufus = FieldScriptOffsets::ScriptStart + 0x45E;
-            if (game->getGameVersion() == GameManager::GameVersion::PlayStationUS_CSR)
+            if (game->getGameVersion() == GameVersion::PlayStationUS_CSR)
             {
                 scriptAfterRufus = FieldScriptOffsets::ScriptStart + 0x46A;
             }
