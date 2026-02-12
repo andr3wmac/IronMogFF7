@@ -3,7 +3,7 @@
 #define IMGUI_IMPLEMENTATION
 #include "misc/single_file/imgui_single_file.h"
 #include "imgui_impl_glfw.h"
-#include "imgui_impl_opengl3.h"
+#include "imgui_impl_opengl2.h"
 #include "IconsFontAwesome5.h"
 
 #include <stdio.h>
@@ -143,13 +143,6 @@ bool GUI::initialize(int width, int height, const char* windowTitle)
         return false;
     }
 
-    // GL 3.0 + GLSL 130
-    const char* glsl_version = "#version 130";
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-    //glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);  // 3.2+ only
-    //glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);            // 3.0+ only
-
     // Get DPI scaling, valid on GLFW 3.3+ only
     dpiScale = ImGui_ImplGlfw_GetContentScaleForMonitor(glfwGetPrimaryMonitor()); 
 
@@ -203,7 +196,7 @@ bool GUI::initialize(int width, int height, const char* windowTitle)
 
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init(glsl_version);
+    ImGui_ImplOpenGL2_Init();
 
     // Default font + icon font
     io.Fonts->AddFontDefault();
@@ -259,7 +252,7 @@ void GUI::destroy()
     NFD_Quit();
 
     // Cleanup
-    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplOpenGL2_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
 
@@ -282,7 +275,7 @@ bool GUI::beginFrame()
     }
 
     // Start the Dear ImGui frame
-    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplOpenGL2_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
 
@@ -305,7 +298,7 @@ void GUI::endFrame()
     glViewport(0, 0, display_w, display_h);
     glClearColor(clear_color.x * clear_color.w, clear_color.y * clear_color.w, clear_color.z * clear_color.w, clear_color.w);
     glClear(GL_COLOR_BUFFER_BIT);
-    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+    ImGui_ImplOpenGL2_RenderDrawData(ImGui::GetDrawData());
 
     glfwSwapBuffers(window);
 }
