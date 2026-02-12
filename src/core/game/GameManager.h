@@ -12,7 +12,7 @@ class Rule;
 class GameManager
 {
 public:
-    enum class GameState : int
+    enum class GameState : uint8_t
     {
         BootScreen   = 0,
         MainMenuCold = 1,
@@ -25,6 +25,7 @@ public:
     
     bool connectToEmulator(std::string processName);
     bool connectToEmulator(std::string processName, uintptr_t memoryAddress);
+    bool isPaused() { return emulatorPaused; }
 
     bool isRuleEnabled(std::string ruleName);
     Rule* getRule(std::string ruleName);
@@ -32,7 +33,7 @@ public:
     Extra* getExtra(std::string extraName);
     std::string getSettingsSummary();
 
-    void setup(uint32_t inputSeed);
+    void setup(GameVersion version, uint32_t inputSeed);
     void loadSaveData();
     void clearSaveData();
     inline uint32_t getSeed() { return seed; }
@@ -42,7 +43,7 @@ public:
     // Returns how long the last update() took in ms.
     double getLastUpdateDuration() { return lastUpdateDuration; }
 
-    // Returns a byte representing what module the game is. eg Field, Battle, World, etc
+    GameVersion getGameVersion() { return gameVersion; }
     uint8_t getGameModule() { return gameModule; }
     uint16_t getGameMoment();
     bool inBattle();
@@ -66,6 +67,9 @@ public:
     // Returns the last text displayed in a window
     std::string getWindowText(uint8_t index);
 
+    // Returns requested formation data and battle scene
+    std::pair<BattleScene*, BattleFormation*> getBattleFormation(uint16_t formationID);
+
     // Returns the current battle scene and formation.
     std::pair<BattleScene*, BattleFormation*> getBattleFormation();
 
@@ -87,6 +91,7 @@ public:
     Event<int> onFrame;
     Event<uint8_t> onModuleChanged;
     Event<> onBattleEnter;
+    Event<uint16_t> onBattleTransition;
     Event<> onBattleExit;
     Event<uint16_t> onFieldChanged;
     Event<> onShopOpened;
@@ -122,6 +127,8 @@ public:
 
 private:
     Emulator* emulator;
+    GameVersion gameVersion = GameVersion::PlayStationUS;
+    uint8_t gameDisc = 1;
 
     GameState lastGameState = GameState::BootScreen;
     bool emulatorPaused = false;
@@ -129,7 +136,7 @@ private:
     uint32_t seed = 0;
     uint8_t gameModule = 0;
     uint32_t frameNumber = 0;
-    double lastFrameUpdateTime = 0.0;
+    int updatesSinceFrame = 0;
     int framesSinceReload = 0;
     uint16_t fieldID = 0;
     int framesInField = 0;
@@ -138,8 +145,11 @@ private:
     // A set of pointers to the last line of field script executed within each group. 
     uint16_t fieldScriptExecutionTable[64];
 
+    uint16_t lastBattleFormation = 0;
     bool waitingForBattleData = false;
     bool isBattleDataLoaded();
+    bool waitingForFormation = false;
+    bool isFormationLoaded(uint16_t formationID);
 
     bool waitingForFieldData = false;
     int lastFieldScreenFade = 0;
@@ -150,6 +160,8 @@ private:
     bool isShopDataLoaded();
 
     bool waitingForWorldData = false;
+    bool waitingForWorldChange = false;
     int lastWorldScreenFade = 0;
-    bool isWorldDataLoaded(bool justConnected = false);
+    uint32_t lastWorldMapID = 0;
+    bool isWorldDataLoaded(bool justConnected = false, bool ignoreEncounterTable = false);
 };

@@ -9,7 +9,10 @@ struct GUIImage;
 class GUI
 {
 public:
+    int windowWidth = 0;
+    int windowHeight = 0;
     Event<int, int> onKeyPress;
+    Event<int, int> onResize;
 
     bool initialize(int width, int height, const char* windowTitle);
     void destroy();
@@ -28,9 +31,12 @@ public:
 private:
     GLFWwindow* window;
 
+    void onResizeCallback(GLFWwindow* window, int width, int height);
     void onKeyCallback(int key, int scancode, int action, int mods);
 
 public:
+    static float dpiScale;
+
     static void drawImage(GUIImage& image, int width, int height, float alpha = 1.0f);
     static void drawColorGrid(const std::string& name, std::vector<Utilities::Color>& colors, std::function<void(int, Utilities::Color)> onClickCallback = {}, float boxSize = 16.0f, float spacing = 2.0f, int colorsPerRow = 24);
     static void wrappedTooltip(const std::string& text, float maxWidth = 400.0f);
@@ -45,3 +51,10 @@ struct GUIImage
     bool loadFromMemory(const void* data, size_t data_size);
     bool loadFromFile(const char* file_name);
 };
+
+// Helper function that scales a value by DPI scale for displays using scaling
+template <typename T>
+inline T DPI(T value)
+{
+    return static_cast<T>(value * GUI::dpiScale);
+}

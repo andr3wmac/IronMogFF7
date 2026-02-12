@@ -32,6 +32,7 @@ private:
 
     void setESkillBattleMenu(TrackedPlayer& player, int eSkillIndex, bool enabled);
 
+    int debugForceBattle = -1;
     bool battleEntered = false;
     std::vector<int> eSkillMapping;
     std::vector<TrackedPlayer> trackedPlayers;

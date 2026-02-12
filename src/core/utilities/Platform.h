@@ -29,6 +29,9 @@ public:
         bool isGuarded;
     };
 
+    static void initialize();
+    static void shutdown();
+
     static void* openProcess(uint32_t pid);
     static void closeProcess(void* processHandle);
     static bool read(void* processHandle, uintptr_t address, void* memOut, size_t sizeInBytes);
@@ -43,4 +46,6 @@ public:
     static std::vector<std::string> getRunningProcesses();
 
     static void debuggerLog(const std::string& message);
+
+    static void sleep(double sleepTimeMS);
 };

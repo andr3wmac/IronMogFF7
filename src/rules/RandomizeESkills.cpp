@@ -30,9 +30,49 @@ void RandomizeESkills::setup()
 
 void RandomizeESkills::onDebugGUI()
 {
+    if (debugForceBattle >= 0)
+    {
+        game->write<uint16_t>(BattleOffsets::FormationID, debugForceBattle);
+        game->write<uint16_t>(BattleOffsets::DangerValue, 0xFF00);
+    }
+
     if (game->getGameModule() != GameModule::Battle)
     {
-        ImGui::Text("Not currently in battle.");
+        std::unordered_map<std::string, uint16_t> eSkillFormations;
+
+        eSkillFormations["Frog Song"]       = 635;
+        eSkillFormations["L4 Suicide"]      = 195;
+        eSkillFormations["Magic Hammer"]    = 161;
+        eSkillFormations["White Wind"]      = 66;
+        eSkillFormations["Big Guard"]       = 92;
+        eSkillFormations["Angel Whisper"]   = 876;
+        eSkillFormations["Dragon Force"]    = 870;
+        eSkillFormations["Death Force"]     = 179;
+        eSkillFormations["Flame Thrower"]   = 295;
+        eSkillFormations["Laser"]           = 521;
+        eSkillFormations["Matra Magic"]     = 33;
+        eSkillFormations["Bad Breath"]      = 701;
+        eSkillFormations["Beta"]            = 469;
+        eSkillFormations["Aqualung"]        = 102;
+        eSkillFormations["Trine"]           = 628;
+        eSkillFormations["Magic Breath"]    = 873;
+        eSkillFormations["????"]            = 562;
+        eSkillFormations["Goblin Punch"]    = 234;
+        eSkillFormations["Chocobuckle"]     = 56;
+        eSkillFormations["L5 Death"]        = 33;
+        eSkillFormations["Death Sentence"]  = 658;
+        eSkillFormations["Roulette"]        = 877;
+        eSkillFormations["Shadow Flare"]    = 881;
+        eSkillFormations["Pandora's Box"]   = 881;
+
+        for (const auto& [enemyName, formationID] : eSkillFormations)
+        {
+            if (ImGui::Button(enemyName.c_str()))
+            {
+                debugForceBattle = formationID;
+            }
+        }
+
         return;
     }
 
@@ -75,6 +115,7 @@ void RandomizeESkills::onStart()
 
 void RandomizeESkills::onBattleEnter()
 {
+    debugForceBattle = -1;
     trackedPlayers.clear();
 
     std::array<uint8_t, 3> partyIDs = game->getPartyIDs();
@@ -125,7 +166,7 @@ void RandomizeESkills::onBattleEnter()
             player.previousESkills = 0;
             for (int i = 0; i < player.trackedMateria.size(); ++i)
             {
-                player.previousESkills = player.previousESkills.value() & (player.trackedMateria[i].materiaID >> 8);
+                player.previousESkills = player.previousESkills.value() | (player.trackedMateria[i].materiaID >> 8);
             }
 
             trackedPlayers.push_back(player);
@@ -173,9 +214,9 @@ void RandomizeESkills::onBattleExit()
                     int randomizedESkill = eSkillMapping[learnedESkills[i]];
                     int bitPosition = randomizedESkill + 8;
 
-                    newMateriaID ^= (1u << bitPosition);
+                    newMateriaID |= (1u << bitPosition);
 
-                    LOG("Randomized Enemy Skill from %d to %d", learnedESkills[i], randomizedESkill);
+                    LOG("Randomized Enemy Skill in inventory from %d to %d", learnedESkills[i], randomizedESkill);
                 }
 
                 game->write<uint32_t>(mat.offset, newMateriaID);
@@ -215,7 +256,7 @@ void RandomizeESkills::onFrame(uint32_t frameNumber)
                 int randomizedESkill = eSkillMapping[i];
                 setESkillBattleMenu(player, randomizedESkill, true);
 
-                LOG("Randomized Enemy Skill from %d to %d", i, randomizedESkill);
+                LOG("Randomized Enemy Skill in battle from %d to %d", i, randomizedESkill);
             }
         }
     }

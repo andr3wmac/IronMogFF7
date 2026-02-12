@@ -233,13 +233,13 @@ void RandomizeFieldItems::apply()
         {
             // Pick random one based on key.
             std::mt19937_64 rng64(Utilities::makeSeed64(game->getSeed(), fieldData.id, i));
-            newItem.id = GameData::getRandomItemFromID(newItem.id, rng64);
+            newItem.id = GameData::getRandomItemSameType(newItem.id, rng64);
         }
         
-        if (Restrictions::isFieldItemBanned(newItem.id))
+        if (Restrictions::isItemBanned(newItem.id))
         {
             std::mt19937_64 rng64(Utilities::makeSeed64(game->getSeed(), fieldData.id, i));
-            newItem.id = GameData::getRandomItemFromID(newItem.id, rng64);
+            newItem.id = GameData::getRandomItemSameType(newItem.id, rng64);
         }
 
         game->write<uint16_t>(itemIDOffset, newItem.id);
@@ -319,6 +319,13 @@ void RandomizeFieldItems::overwriteMessage(const FieldData& fieldData, const Fie
 {
     // Overwrite the popup message
     int msgIndex = game->findPickUpMessage(oldName, oldItem.group, oldItem.script, oldItem.offset);
+
+    // Counter Attack is shortened to "Counter" in field pick up messages.
+    if (msgIndex == -1 && oldName == "Counter Attack")
+    {
+        msgIndex = game->findPickUpMessage("Counter", oldItem.group, oldItem.script, oldItem.offset);
+    }
+
     if (msgIndex >= 0)
     {
         const FieldScriptMessage& fieldMsg = fieldData.messages[msgIndex];

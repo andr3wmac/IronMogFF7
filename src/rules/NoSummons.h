@@ -8,6 +8,7 @@ public:
     void setup() override;
 
 private:
+    void onStart();
     void onFieldChanged(uint16_t fieldID);
     void onShopOpened();
 
@@ -15,4 +16,5 @@ private:
 
     bool needsFieldChecks = false;
     bool needsShopChecks = false;
+    std::mt19937_64 rng;
 };

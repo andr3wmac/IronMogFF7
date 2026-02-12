@@ -10,6 +10,20 @@
 #define SHOP_ITEM_MAX 10
 #define ESKILL_EMPTY 562949953421567
 
+enum class GameVersion : uint8_t
+{
+    PlayStationUS = 0,
+    PlayStationUS_CSR = 1
+};
+
+enum class ItemType : uint8_t
+{
+    Normal    = 0,
+    Weapon    = 1,
+    Armor     = 2,
+    Accessory = 3
+};
+
 struct Item
 {
     std::string name = "";
@@ -148,12 +162,20 @@ struct BattleFormation
 {
     uint16_t id = 0;
     bool noEscape = false;
+    uint8_t battleType = 0;
     std::array<uint16_t, 6> enemyIDs{};
+
+    uint16_t nextFormation = 0xFFFF;
     std::array<uint16_t, 4> arenaIDs{};
 
     inline bool isArenaBattle()
     {
         return arenaIDs[0] != 999 || arenaIDs[1] != 999 || arenaIDs[2] != 999 || arenaIDs[3] != 999;
+    }
+
+    inline bool hasNextFormation()
+    {
+        return nextFormation != 0xFFFF;
     }
 };
 
@@ -228,12 +250,8 @@ struct StatMultiplierSet
 class GameData
 {
 public:
-    static std::unordered_map<uint8_t, Item> accessories;
-    static std::unordered_map<uint8_t, Item> armors;
-    static std::unordered_map<uint8_t, Item> items;
-    static std::unordered_map<uint8_t, Item> weapons;
-    static std::unordered_map<uint8_t, Item> materia;
-
+    static std::unordered_map<uint16_t, Item> items;
+    static std::unordered_map<uint16_t, Item> materia;
     static std::vector<ESkill> eSkills;
     static std::unordered_map<uint16_t, FieldData> fieldData;
     static std::vector<WorldMapEntrance> worldMapEntrances;
@@ -244,13 +262,18 @@ public:
     static std::vector<Model> models;
     static std::vector<BattleModel> battleModels;
 
-    static void loadGameData();
+    static void clearGameData();
+    static void loadGameData(GameVersion gameVersion, uint8_t gameDisc);
 
-    static void addAccessory(uint8_t id, std::string name, uint32_t shopPrice)      { accessories[id] = { name, shopPrice }; }
-    static void addArmor(uint8_t id, const std::string& name, uint32_t shopPrice)   { armors[id] = { name, shopPrice }; }
-    static void addItem(uint8_t id, const std::string& name, uint32_t shopPrice)    { items[id] = { name, shopPrice }; }
-    static void addWeapon(uint8_t id, const std::string& name, uint32_t shopPrice)  { weapons[id] = { name, shopPrice }; }
-    static void addMateria(uint8_t id, const std::string& name, uint32_t shopPrice) { materia[id] = { name, shopPrice }; }
+    static void addItem(uint16_t id, const std::string& name, uint32_t shopPrice) 
+    { 
+        items[id] = { name, shopPrice }; 
+    }
+
+    static void addMateria(uint16_t id, const std::string& name, uint32_t shopPrice) 
+    { 
+        materia[id] = { name, shopPrice };
+    }
 
     static void addESkill(const std::string& name, uint8_t targetFlags, uint32_t mpCost, uint8_t idx) 
     {
@@ -260,6 +283,11 @@ public:
     static void addField(uint16_t fieldID, const std::string& name) 
     {
         fieldData[fieldID] = { fieldID, name };
+    }
+
+    static void clearField(uint16_t fieldID)
+    {
+        fieldData.erase(fieldID);
     }
 
     static void addFieldScriptItem(uint16_t fieldID, uint8_t groupIdx, uint8_t scriptIdx, uint32_t offset, uint16_t itemID, uint8_t quantity) 
@@ -335,9 +363,9 @@ public:
         GameData::battleScenes[sceneID] = { sceneID, {id0, id1, id2}, {lvl0, lvl1, lvl2} };
     }
 
-    static void addBattleFormation(uint8_t sceneID, uint16_t formationID, bool noEscape, std::array<uint16_t, 6> enemyIDs, std::array<uint16_t, 4> arenaIDs) 
+    static void addBattleFormation(uint8_t sceneID, uint16_t formationID, bool noEscape, uint8_t layout, std::array<uint16_t, 6> enemyIDs, uint16_t nextFormation, std::array<uint16_t, 4> arenaIDs) 
     {
-        GameData::battleScenes[sceneID].formations.push_back({ formationID, noEscape, enemyIDs, arenaIDs });
+        GameData::battleScenes[sceneID].formations.push_back({ formationID, noEscape, layout, enemyIDs, nextFormation, arenaIDs });
     }
 
     static void addBoss(uint16_t enemyID, const std::string& name, std::vector<int> sceneIDs, uint64_t elemTypes, uint64_t elemRates)
@@ -355,24 +383,16 @@ public:
         GameData::battleModels.push_back({ modelName, headerSizes, parts });
     }
 
-    static Item* getAccessory(uint8_t id);
-    static Item* getArmor(uint8_t id);
-    static Item* getItem(uint8_t id);
-    static Item* getWeapon(uint8_t id);
-    static Item* getMateria(uint8_t id);
+    static Item* getItem(uint16_t id);
+    static Item* getMateria(uint16_t id);
 
-    static uint16_t getRandomAccessory(std::mt19937_64& rng, bool excludeBanned = true, bool excludeRare = false, const std::set<uint16_t>& excludeSet = {});
-    static uint16_t getRandomArmor(std::mt19937_64& rng, bool excludeBanned = true, bool excludeRare = false, const std::set<uint16_t>& excludeSet = {});
-    static uint16_t getRandomItem(std::mt19937_64& rng, bool excludeBanned = true, bool excludeRare = false, const std::set<uint16_t>& excludeSet = {});
-    static uint16_t getRandomWeapon(std::mt19937_64& rng, bool excludeBanned = true, bool excludeRare = false, const std::set<uint16_t>& excludeSet = {});
+    static uint16_t getRandomItemOfType(std::mt19937_64& rng, ItemType type, bool excludeBanned = true, bool excludeRare = false, const std::set<uint16_t>& excludeSet = {});
+    static uint16_t getRandomItemSameType(uint16_t origItemID, std::mt19937_64& rng, bool excludeBanned = true, bool excludeRare = false, const std::set<uint16_t>& excludeSet = {});
     static uint16_t getRandomMateria(std::mt19937_64& rng, bool excludeBanned = true, bool excludeRare = false, const std::set<uint16_t>& excludeSet = {});
 
-    // Returns a random item ID thats the same type as origItemID
-    static uint16_t getRandomItemFromID(uint16_t origItemID, std::mt19937_64& rng, bool excludeBanned = true, bool excludeRare = false, const std::set<uint16_t>& excludeSet = {});
-
     static FieldData getField(uint16_t id);
-    static std::string getItemName(uint16_t fieldScriptID);
-    static uint32_t getItemPrice(uint16_t fieldScriptID);
+    static std::string getItemName(uint16_t itemID);
+    static uint32_t getItemPrice(uint16_t itemID);
     static std::string getMateriaName(uint8_t id);
     static uint32_t getMateriaPrice(uint8_t id);
 

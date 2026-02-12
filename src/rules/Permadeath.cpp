@@ -190,12 +190,17 @@ void Permadeath::onFieldChanged(uint16_t fieldID)
             int randomCharacter = selectRandomLivingCharacter(fieldID, CLOUD_ID);
             if (randomCharacter > -1)
             {
+                uintptr_t rufusHideScript = FieldScriptOffsets::ScriptStart + 0x952;
+                if (game->getGameVersion() == GameVersion::PlayStationUS_CSR)
+                {
+                    rufusHideScript = FieldScriptOffsets::ScriptStart + 0x94D;
+                }
+
                 // Overwrite two commands related to hiding Rufus. This seems to be harmless.
-                constexpr uintptr_t RufusHideScript = FieldScriptOffsets::ScriptStart + 0x952;
-                game->write<uint8_t>(RufusHideScript + 0, 0xCA);
-                game->write<uint8_t>(RufusHideScript + 1, (uint8_t)randomCharacter);
-                game->write<uint8_t>(RufusHideScript + 2, 0xFE);
-                game->write<uint8_t>(RufusHideScript + 3, 0xFE);
+                game->write<uint8_t>(rufusHideScript + 0, 0xCA);
+                game->write<uint8_t>(rufusHideScript + 1, (uint8_t)randomCharacter);
+                game->write<uint8_t>(rufusHideScript + 2, 0xFE);
+                game->write<uint8_t>(rufusHideScript + 3, 0xFE);
 
                 appliedRufusRandom = true;
                 LOG("Replaced Cloud with %s in Rufus fight due to Cloud being dead.", getCharacterName(randomCharacter).c_str());
@@ -221,8 +226,12 @@ void Permadeath::onFieldChanged(uint16_t fieldID)
 
         // Overwrite the command that swaps party before the dyne 
         // fight to use a character other than Barret since hes dead.
-        constexpr uintptr_t DynePartyCommand = FieldScriptOffsets::ScriptStart + 0x4FE;
-        game->write<uint8_t>(DynePartyCommand + 1, (uint8_t)randomCharacter);
+        uintptr_t dynePartyCommand = FieldScriptOffsets::ScriptStart + 0x4FE;
+        if (game->getGameVersion() == GameVersion::PlayStationUS_CSR)
+        {
+            dynePartyCommand = FieldScriptOffsets::ScriptStart + 0x508;
+        }
+        game->write<uint8_t>(dynePartyCommand + 1, (uint8_t)randomCharacter);
 
         LOG("Replaced Barret with %s in Dyne fight due to Barret being dead.", getCharacterName(randomCharacter).c_str());
     }
@@ -331,22 +340,26 @@ void Permadeath::updateOverrideFights()
         uint16_t fieldTrigger = game->read<uint16_t>(GameOffsets::FieldScreenFade);
         if (fieldTrigger == 256)
         {
-            constexpr uintptr_t ScriptAfterRufus = FieldScriptOffsets::ScriptStart + 0x45E;
+            uintptr_t scriptAfterRufus = FieldScriptOffsets::ScriptStart + 0x45E;
+            if (game->getGameVersion() == GameVersion::PlayStationUS_CSR)
+            {
+                scriptAfterRufus = FieldScriptOffsets::ScriptStart + 0x46A;
+            }
 
             // Overwrite the command that comes after the Rufus fight trigger with this 
             // command to switch to party back to Cloud.
-            game->write<uint8_t>(ScriptAfterRufus + 0, 0xCA);
-            game->write<uint8_t>(ScriptAfterRufus + 1, CLOUD_ID);
-            game->write<uint8_t>(ScriptAfterRufus + 2, 0xFE);
-            game->write<uint8_t>(ScriptAfterRufus + 3, 0xFE);
+            game->write<uint8_t>(scriptAfterRufus + 0, 0xCA);
+            game->write<uint8_t>(scriptAfterRufus + 1, CLOUD_ID);
+            game->write<uint8_t>(scriptAfterRufus + 2, 0xFE);
+            game->write<uint8_t>(scriptAfterRufus + 3, 0xFE);
 
             // MAPJUMP to the same map in the same place. This makes the game reload cloud properly.
-            game->write<uint8_t>(ScriptAfterRufus + 4, 0x60);
-            game->write<uint16_t>(ScriptAfterRufus + 5, 268);
-            game->write<uint16_t>(ScriptAfterRufus + 7, 134);
-            game->write<uint16_t>(ScriptAfterRufus + 9, 1617);
-            game->write<uint16_t>(ScriptAfterRufus + 11, 16);
-            game->write<uint8_t>(ScriptAfterRufus + 14, 0);
+            game->write<uint8_t>(scriptAfterRufus + 4, 0x60);
+            game->write<uint16_t>(scriptAfterRufus + 5, 268);
+            game->write<uint16_t>(scriptAfterRufus + 7, 134);
+            game->write<uint16_t>(scriptAfterRufus + 9, 1617);
+            game->write<uint16_t>(scriptAfterRufus + 11, 16);
+            game->write<uint8_t>(scriptAfterRufus + 14, 0);
 
             // Overwrite the game moment to where it should be after the Rufus fight.
             game->write<uint16_t>(GameOffsets::GameMoment, 320);

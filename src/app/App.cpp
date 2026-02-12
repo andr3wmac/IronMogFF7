@@ -5,6 +5,7 @@
 #include "core/utilities/MemoryMonitor.h"
 #include "core/utilities/MemorySearch.h"
 #include "core/utilities/ModelEditor.h"
+#include "core/utilities/Platform.h"
 #include "core/utilities/ScriptUtilities.h"
 #include "core/utilities/Utilities.h"
 #include "extras/Extra.h"
@@ -29,7 +30,10 @@ void App::run()
         return;
     }
 
+    Platform::initialize();
+
     BIND_EVENT_TWO_ARG(gui.onKeyPress, App::onKeyPress);
+    BIND_EVENT_TWO_ARG(gui.onResize, App::onResize);
     generateSeed();
 
     // Load images
@@ -48,36 +52,7 @@ void App::run()
     deadIcon.loadFromFile("resources/dead.png");
 
     // Load any settings files
-    {
-        const std::string settingsDir = "settings";
-
-        // Always first in the list so we can switch to it when settings are changed.
-        availableSettings.push_back("Custom");
-
-        // Special case for default settings file
-        if (fs::exists(settingsDir + "/Default.cfg"))
-        {
-            availableSettings.push_back("Default");
-            selectedSettingsIdx = 1;
-            loadSettings(settingsDir + "/Default.cfg");
-        }
-
-        if (fs::exists(settingsDir) && fs::is_directory(settingsDir))
-        {
-            for (const auto& entry : fs::directory_iterator(settingsDir))
-            {
-                if (entry.path().stem() == "Default")
-                {
-                    continue;
-                }
-
-                if (entry.is_regular_file() && entry.path().extension() == ".cfg")
-                {
-                    availableSettings.push_back(entry.path().stem().string());
-                }
-            }
-        }
-    }
+    scanSettings(APP_SETTINGS_FOLDER, "Default");
 
     while (true)
     {
@@ -86,45 +61,21 @@ void App::run()
             break;
         }
 
-        if (!gui.beginFrame())
-        {
-            continue;
-        }
-
-        ImGui::Begin("IronMogFF7", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize);
-        {
-            switch (currentPanel)
-            {
-                case Panels::Settings:
-                    drawSettingsPanel();
-                    break;
-
-                case Panels::Tracker:
-                    drawTrackerPanel();
-                    break;
-
-                case Panels::Debug:
-                    drawDebugPanel();
-                    break;
-            }
-        }
-        ImGui::End();
-
-        gui.endFrame();
+        draw();
 
         // Check to see if the game manager thread exited from an error and clean up.
         if (connectionState == ConnectionState::Error && !managerRunning && managerThread != nullptr)
         {
-            managerRunning = false;
-            managerThread->join();
-            delete managerThread;
-            managerThread = nullptr;
-
+            stopGameManager();
             AudioManager::pauseMusic();
         }
+
+        // Run the GUI at 60fps
+        Platform::sleep(16.67);
     }
 
     gui.destroy();
+    Platform::shutdown();
 }
 
 void App::connect()
@@ -133,10 +84,7 @@ void App::connect()
     {
         if (connectionState == ConnectionState::Error)
         {
-            managerRunning = false;
-            managerThread->join();
-            delete managerThread;
-            managerThread = nullptr;
+            stopGameManager();
         }
         else 
         {
@@ -157,16 +105,13 @@ void App::disconnect()
         return;
     }
 
-    managerRunning = false;
-    managerThread->join();
-    delete managerThread;
-    managerThread = nullptr;
-
+    stopGameManager();
     AudioManager::pauseMusic();
 }
 
 void App::runGameManager()
 {
+    // Prepare game manager
     if (game != nullptr)
     {
         delete game;
@@ -176,6 +121,7 @@ void App::runGameManager()
     game = new GameManager();
     BIND_EVENT(game->onStart, App::onStart);
 
+    // Connect
     connectionState = ConnectionState::Connecting;
     connectionStatus = "Connecting to Emulator..";
 
@@ -214,7 +160,7 @@ void App::runGameManager()
     // Reset any global restrictions as we might be using a different set of rules on this run.
     Restrictions::reset();
 
-    game->setup(Utilities::hexStringToSeed(seedValue));
+    game->setup(selectedGameVersion, Utilities::hexStringToSeed(seedValue));
 
     managerRunning = true;
     while (managerRunning.load())
@@ -226,9 +172,28 @@ void App::runGameManager()
             connectionStatus = "Connection lost.";
             break;
         }
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+
+        // Sleep longer if the emulator is paused so we lower our CPU usage.
+        if (game->isPaused())
+        {
+            Platform::sleep(16.67);
+        }
+        else 
+        {
+            Platform::sleep(1.0);
+        }
+        
     }
     managerRunning = false;
+}
+
+void App::stopGameManager()
+{
+    managerRunning = false;
+    managerThread->join();
+    delete managerThread;
+    managerThread = nullptr;
+    previousState = GameManager::GameState::BootScreen;
 }
 
 void App::generateSeed()
@@ -237,6 +202,35 @@ void App::generateSeed()
     uint32_t seed = (static_cast<uint32_t>(rd()) << 16) ^ rd();
     snprintf(seedValue, sizeof(seedValue), "%08X", seed);
     LOG("Seed generated: %s", seedValue);
+}
+
+void App::scanSettings(std::string settingsFolder, std::string loadIfAvailable)
+{
+    availableSettings.clear();
+    selectedSettingsIdx = 0;
+
+    // Always first in the list so we can switch to it when settings are changed.
+    availableSettings.push_back("Custom");
+
+    if (fs::exists(settingsFolder) && fs::is_directory(settingsFolder))
+    {
+        for (const auto& entry : fs::directory_iterator(settingsFolder))
+        {
+            if (entry.is_regular_file() && entry.path().extension() == ".cfg")
+            {
+                availableSettings.push_back(entry.path().stem().string());
+            }
+        }
+    }
+
+    for (int i = 0; i < availableSettings.size(); ++i)
+    {
+        if (availableSettings[i] == loadIfAvailable)
+        {
+            selectedSettingsIdx = i;
+            loadSettings(settingsFolder + "/" + availableSettings[i] + ".cfg");
+        }
+    }
 }
 
 void App::loadSettings(const std::string& filePath)
@@ -304,7 +298,7 @@ void App::onKeyPress(int key, int mods)
     // Ctrl + D
     if (key == 68 && (mods & 2))
     {
-        if (currentPanel == Panels::Settings)
+        if (currentPanel == Panels::Settings || currentPanel == Panels::Tracker)
         {
             currentPanel = Panels::Debug;
         }
@@ -313,6 +307,12 @@ void App::onKeyPress(int key, int mods)
             currentPanel = Panels::Settings;
         }
     }
+}
+
+void App::onResize(int width, int height)
+{
+    // This makes the UI redraw as we're resizing so it looks nice and smooth.
+    draw();
 }
 
 void App::onStart()

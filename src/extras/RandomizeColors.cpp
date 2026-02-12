@@ -155,7 +155,7 @@ Utilities::Color getRandomColor(std::mt19937& rng)
 bool RandomizeColors::onSettingsGUI()
 {
     ImGui::BeginDisabled(game == nullptr);
-    if (ImGui::Button("Reroll Colors", ImVec2(120, 0)))
+    if (ImGui::Button("Reroll Colors", ImVec2(DPI(120.0f), 0.0f)))
     {
         rerollOffset++;
         std::mt19937 rng(game->getSeed() + rerollOffset);

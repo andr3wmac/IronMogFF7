@@ -42,7 +42,8 @@ private:
 
     bool disableShops = false;
     bool keepPrices = true;
-    bool excludeRareItems = false;
+    bool excludeRareItems = true;
+    bool excludeSources = true;
 
     std::mt19937_64 rng;
     std::unordered_map<uint8_t, RandomizedShop> randomizedShops;

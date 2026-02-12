@@ -8,6 +8,7 @@ REGISTER_RULE(NoSummons, "No Summons", "Summon materia cannot be found or purcha
 
 void NoSummons::setup()
 {
+    BIND_EVENT(game->onStart, NoSummons::onStart);
     BIND_EVENT_ONE_ARG(game->onFieldChanged, NoSummons::onFieldChanged);
     BIND_EVENT(game->onShopOpened, NoSummons::onShopOpened);
 
@@ -40,6 +41,11 @@ void NoSummons::setup()
     {
         needsShopChecks = true;
     }
+}
+
+void NoSummons::onStart()
+{
+    rng.seed(game->getSeed());
 }
 
 void NoSummons::onFieldChanged(uint16_t fieldID)
@@ -141,5 +147,5 @@ void NoSummons::onShopOpened()
 
 uint16_t NoSummons::replaceSummonMateria(uint16_t materiaID)
 {
-    return materiaID;
+    return GameData::getRandomMateria(rng);
 }

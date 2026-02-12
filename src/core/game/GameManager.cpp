@@ -196,8 +196,21 @@ std::string GameManager::getSettingsSummary()
     return ss.str();
 }
 
-void GameManager::setup(uint32_t inputSeed)
+void GameManager::setup(GameVersion version, uint32_t inputSeed)
 {
+    // Prepare game data based on version
+    gameVersion = version;
+    if (gameVersion == GameVersion::PlayStationUS)
+    {
+        LOG("Loading game data for PlayStation US (Original)");
+    }
+    if (gameVersion == GameVersion::PlayStationUS_CSR)
+    {
+        LOG("Loading game data for PlayStation US (CSR)");
+    }
+    GameData::clearGameData();
+    GameData::loadGameData(gameVersion, gameDisc);
+
     // Note: seed may change after loading a save file, so its important to not utilize it in rule setup.
     seed = inputSeed;
 
@@ -278,7 +291,9 @@ GameManager::GameState GameManager::getState()
         return GameState::MainMenuCold;
     }
 
-    if (gameModule != 0 && screenState == 27)
+    // Mini games do not respect the screenState variable so they
+    // are excluded from this check.
+    if (gameModule > 0 && gameModule < 6 && screenState == 27)
     {
         // Main menu after a soft reset or game over.
         return GameState::MainMenuWarm;
@@ -310,7 +325,7 @@ bool GameManager::update()
         {
             loadSaveData();
             onStart.invoke();
-            lastFrameUpdateTime = Utilities::getTimeMS();
+            updatesSinceFrame = 0;
         }
 
         lastGameState = state;
@@ -322,13 +337,26 @@ bool GameManager::update()
         return true;
     }
 
-    // We assume if 200ms has passed without the frame number advancing that the emulator is paused
-    if (currentTime - lastFrameUpdateTime > 200 && !emulatorPaused)
+    // If the disc changes we need to reload the data since CSR has 
+    // different data for different discs.
+    uint8_t currentDisc = read<uint8_t>(GameOffsets::DiscNumber);
+    if (currentDisc != gameDisc)
+    {
+        GameData::clearGameData();
+        GameData::loadGameData(gameVersion, currentDisc);
+        LOG("Disc changed from %d to %d.", gameDisc, currentDisc);
+        gameDisc = currentDisc;
+    }
+
+    // If over 30 updates have passed without frame number advancing it should be at least 300ms 
+    // passing without a frame update which is enough time to conclude the emulator was paused.
+    if (updatesSinceFrame > 30 && !emulatorPaused)
     {
         emulatorPaused = true;
         onEmulatorPaused.invoke();
         LOG("Emulator paused.");
     }
+    updatesSinceFrame++;
 
     // Update the field script execution table.
     read(FieldScriptOffsets::ExecutionTable, 128, (uint8_t*)(&fieldScriptExecutionTable[0]));
@@ -358,7 +386,9 @@ bool GameManager::update()
         if (gameModule != GameModule::World && newGameModule == GameModule::World)
         {
             waitingForWorldData = true;
+            waitingForWorldChange = false;
             lastWorldScreenFade = read<uint8_t>(GameOffsets::WorldScreenFade);
+            lastWorldMapID = read<uint32_t>(WorldOffsets::ScriptStart);
         }
 
         if (gameModule != GameModule::Menu && newGameModule == GameModule::Menu)
@@ -393,10 +423,29 @@ bool GameManager::update()
 
     if (gameModule == GameModule::Battle)
     {
+        // Ensure the battle data is ready before triggering the event.
         if (waitingForBattleData && isBattleDataLoaded())
         {
             onBattleEnter.invoke();
             waitingForBattleData = false;
+            lastBattleFormation = read<uint16_t>(BattleOffsets::ActiveFormationID);
+            LOG("Entered battle formation %d", lastBattleFormation);
+        }
+
+        // Detect if the active formation changed due to a battle transition
+        uint16_t currentFormation = read<uint16_t>(BattleOffsets::ActiveFormationID);
+        if (!waitingForBattleData && currentFormation != lastBattleFormation)
+        {
+            waitingForFormation = true;
+            lastBattleFormation = currentFormation;
+        }
+
+        // Ensure the formation data is ready before triggering the event.
+        if (waitingForFormation && isFormationLoaded(currentFormation))
+        {
+            LOG("Battle transitioned to formation %d", lastBattleFormation, currentFormation);
+            onBattleTransition.invoke(currentFormation);
+            waitingForFormation = false;
         }
     }
 
@@ -435,6 +484,20 @@ bool GameManager::update()
 
     if (gameModule == GameModule::World)
     {
+        uint32_t worldMapID = read<uint32_t>(WorldOffsets::ScriptStart);
+        if (worldMapID != lastWorldMapID)
+        {
+            waitingForWorldChange = true;
+            lastWorldMapID = worldMapID;
+        }
+
+        if (waitingForWorldChange && isWorldDataLoaded(justConnected, true))
+        {
+            LOG("Changed world maps.");
+            onWorldMapEnter.invoke();
+            waitingForWorldChange = false;
+        }
+
         if (waitingForWorldData && isWorldDataLoaded(justConnected))
         {
             // When exiting onto the world map field ID is updated to your exit location
@@ -466,8 +529,7 @@ bool GameManager::update()
     int frameDifference = std::abs((int)newFrameNumber - (int)frameNumber);
     if (frameDifference > 30 && framesSinceReload > 30)
     {
-        double timeGap = currentTime - lastFrameUpdateTime;
-        LOG("Load detected, reloading rules %lf", timeGap);
+        LOG("Load detected, reloading rules %d - %d = %d", newFrameNumber, frameNumber, frameDifference);
         loadSaveData();
         onStart.invoke();
         framesSinceReload = 0;
@@ -477,7 +539,7 @@ bool GameManager::update()
     if (newFrameNumber != frameNumber)
     {
         frameNumber = newFrameNumber;
-        lastFrameUpdateTime = currentTime;
+        updatesSinceFrame = 0;
         framesInField++;
 
         if (emulatorPaused)
@@ -608,6 +670,36 @@ bool GameManager::isBattleDataLoaded()
     }
 
     return false;
+}
+
+bool GameManager::isFormationLoaded(uint16_t formationID)
+{
+    if (gameModule != GameModule::Battle)
+    {
+        return false;
+    }
+
+    const auto [scene, formation] = getBattleFormation(formationID);
+    if (formation == nullptr)
+    {
+        return false;
+    }
+
+    for (int i = 0; i < 6; ++i)
+    {
+        if (formation->enemyIDs[i] == 0xFFFF)
+        {
+            continue;
+        }
+
+        uint16_t currentID = read<uint16_t>(BattleOffsets::Enemies[i] + BattleOffsets::EnemyID);
+        if (currentID != formation->enemyIDs[i])
+        {
+            return false;
+        }
+    }
+
+    return true;
 }
 
 // Detect if field data is fully loaded by verifying the set of information
@@ -795,33 +887,38 @@ bool GameManager::isShopDataLoaded()
     return true;
 }
 
-bool GameManager::isWorldDataLoaded(bool justConnected)
+bool GameManager::isWorldDataLoaded(bool justConnected, bool ignoreEncounterTable)
 {
     read(WorldOffsets::EncounterStart, 2048, (uint8_t*)worldMapEncounterTable);
 
-    for (int r = 0; r < 16; ++r)
+    // When changing world maps to underwater the encounter table remains unchanged,
+    // so this check becomes invalid.
+    if (!ignoreEncounterTable)
     {
-        WorldMapEncounters& origEncounters = GameData::worldMapEncounters[r];
-
-        for (int s = 0; s < 4; ++s)
+        for (int r = 0; r < 16; ++r)
         {
-            std::vector<Encounter>& origEncSet = origEncounters.sets[s];
-            if (origEncSet.size() == 0)
+            WorldMapEncounters& origEncounters = GameData::worldMapEncounters[r];
+
+            for (int s = 0; s < 4; ++s)
             {
-                continue;
-            }
-
-            // worldMapEncounterTable is uint16_t so these are two byte strides.
-            uintptr_t dataOffset = (r * 64) + (s * 16) + 1;
-
-            for (int i = 0; i < 14; ++i)
-            {
-                Encounter& origEnc = origEncSet[i];
-                Encounter& encData = worldMapEncounterTable[dataOffset + i];
-
-                if (origEnc.raw != encData.raw)
+                std::vector<Encounter>& origEncSet = origEncounters.sets[s];
+                if (origEncSet.size() == 0)
                 {
-                    return false;
+                    continue;
+                }
+
+                // worldMapEncounterTable is uint16_t so these are two byte strides.
+                uintptr_t dataOffset = (r * 64) + (s * 16) + 1;
+
+                for (int i = 0; i < 14; ++i)
+                {
+                    Encounter& origEnc = origEncSet[i];
+                    Encounter& encData = worldMapEncounterTable[dataOffset + i];
+
+                    if (origEnc.raw != encData.raw)
+                    {
+                        return false;
+                    }
                 }
             }
         }
@@ -888,16 +985,9 @@ std::string GameManager::getWindowText(uint8_t index)
     return readString(getWindowTextOffset(index), 256);
 }
 
-std::pair<BattleScene*, BattleFormation*> GameManager::getBattleFormation()
+std::pair<BattleScene*, BattleFormation*> GameManager::getBattleFormation(uint16_t formationID)
 {
-    if (getGameModule() != GameModule::Battle)
-    {
-        return { nullptr, nullptr };
-    }
-
-    uint16_t formationID = read<uint16_t>(BattleOffsets::FormationID);
-
-    for (auto& [id, scene] : GameData::battleScenes) 
+    for (auto& [id, scene] : GameData::battleScenes)
     {
         for (BattleFormation& formation : scene.formations)
         {
@@ -909,6 +999,17 @@ std::pair<BattleScene*, BattleFormation*> GameManager::getBattleFormation()
     }
 
     return { nullptr, nullptr };
+}
+
+std::pair<BattleScene*, BattleFormation*> GameManager::getBattleFormation()
+{
+    if (getGameModule() != GameModule::Battle)
+    {
+        return { nullptr, nullptr };
+    }
+
+    uint16_t formationID = read<uint16_t>(BattleOffsets::ActiveFormationID);
+    return getBattleFormation(formationID);
 }
 
 template <typename T>

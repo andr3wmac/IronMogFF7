@@ -80,11 +80,35 @@ void RandomizeWorldMap::onStart()
 {
     // Clear state
     lastClosestIndex = -1;
-    lastCmd0 = 0;
-    lastCmd1 = 0;
     lastGameMoment = game->getGameMoment();
     entranceGroups.clear();
     randomizedEntrances.clear();
+
+    // Clear any existing entrance randomization that may be stale.
+    uint8_t gameModule = game->read<uint8_t>(GameOffsets::CurrentModule);
+    if (gameModule == GameModule::World)
+    {
+        for (int i = 0; i < GameData::worldMapEntrances.size(); ++i)
+        {
+            WorldMapEntrance& entrance = GameData::worldMapEntrances[i];
+            uintptr_t entScriptStart = WorldOffsets::ScriptStart + entrance.offset;
+
+            game->write<uint16_t>(entScriptStart, 0x0100);
+
+            if (lastClosestIndex == 29)
+            {
+                game->write<uint16_t>(entScriptStart + 2, 0x0114);
+            }
+            else if (lastClosestIndex == 30)
+            {
+                game->write<uint16_t>(entScriptStart + 2, 0x011c);
+            }
+            else
+            {
+                game->write<uint16_t>(entScriptStart + 2, 0x011b);
+            }
+        }
+    }
 
     // We break entrances up into groups and randomize among them
     // to prevent randomizing to places you can't get to.
@@ -211,8 +235,21 @@ void RandomizeWorldMap::onFrame(uint32_t frameNumber)
             {
                 WorldMapEntrance& oldEntrance = GameData::worldMapEntrances[lastClosestIndex];
                 uintptr_t oldEntScriptStart = WorldOffsets::ScriptStart + oldEntrance.offset;
-                game->write<uint16_t>(oldEntScriptStart, lastCmd0);
-                game->write<uint16_t>(oldEntScriptStart + 2, lastCmd1);
+                game->write<uint16_t>(oldEntScriptStart, 0x0100);
+                
+                // 29 and 30 are the only entrance scripts with different first two commands.
+                if (lastClosestIndex == 29)
+                {
+                    game->write<uint16_t>(oldEntScriptStart + 2, 0x0114);
+                }
+                else if (lastClosestIndex == 30)
+                {
+                    game->write<uint16_t>(oldEntScriptStart + 2, 0x011c);
+                }
+                else
+                {
+                    game->write<uint16_t>(oldEntScriptStart + 2, 0x011b);
+                }
             }
 
             // Only overwrite the script if we actually got a random index, otherwise it'll spinlock.
@@ -227,8 +264,6 @@ void RandomizeWorldMap::onFrame(uint32_t frameNumber)
             }
 
             lastClosestIndex = closestIndex;
-            lastCmd0 = cmd0;
-            lastCmd1 = cmd1;
 
             WorldMapEntrance& origEntrance = GameData::worldMapEntrances[closestIndex];
             LOG("Randomized world map entrance %d to %d", origEntrance.fieldID, randEntrance.fieldID);
@@ -248,7 +283,7 @@ void RandomizeWorldMap::onWorldMapEnter()
     game->write(0xD50D8, (uint8_t*)highwindFix, 4);
 }
 
-uint16_t findWorldEntranceIndex(uint16_t fieldID)
+int findWorldEntranceIndex(uint16_t fieldID)
 {
     for (int i = 0; i < GameData::worldMapEntrances.size(); ++i)
     {
@@ -259,7 +294,7 @@ uint16_t findWorldEntranceIndex(uint16_t fieldID)
         }
     }
 
-    return 0;
+    return -1;
 }
 
 void RandomizeWorldMap::onFieldChanged(uint16_t fieldID)
@@ -288,21 +323,38 @@ void RandomizeWorldMap::onFieldChanged(uint16_t fieldID)
         }
     }
 
+    // Weapons seller will teleport us back onto world map, we need to patch it.
+    if (fieldID == 79 && currentGameMoment < 566)
+    {
+        uint16_t exitIndex = getRandomEntrance(9);
+        WorldMapEntrance& randEntrance = GameData::worldMapEntrances[exitIndex];
+
+        // Overwrite the MAPJUMP command to jump to the field we want.
+        game->write<uint16_t>(FieldScriptOffsets::ScriptStart + 0x31E + 1, randEntrance.fieldID);
+        LOG("Changed weapon seller exit to: %d", randEntrance.fieldID);
+    }
+
     // When doing the Yuffie Wutai side quest it ends by teleporting us onto the world map
     // next to Wutai we need to correct that to the randomized location.
     if (fieldID == 581)
     {
         uint16_t exitIndex = getRandomEntrance(22);
         WorldMapEntrance& randEntrance = GameData::worldMapEntrances[exitIndex];
-        game->write<uint16_t>(FieldScriptOffsets::ScriptStart + 0xDFF, randEntrance.fieldID);
+
+        // Overwrite the MAPJUMP command to jump to the field we want.
+        game->write<uint16_t>(FieldScriptOffsets::ScriptStart + 0xDFE + 1, randEntrance.fieldID);
         LOG("Changed Wutai side quest ending cutscene exit to: %d", randEntrance.fieldID);
     }
 
     for (int i = 0; i < fieldData.worldExits.size(); ++i)
     {
         FieldWorldExit& exit = fieldData.worldExits[i];
-        uint16_t exitIndex = findWorldEntranceIndex(exit.fieldID);
-        
+        int exitIndex = findWorldEntranceIndex(exit.fieldID);
+        if (exitIndex == -1)
+        {
+            continue;
+        }
+
         int randIndex = exitIndex;
         for (auto entry : randomizedEntrances)
         {

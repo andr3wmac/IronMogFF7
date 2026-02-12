@@ -116,6 +116,7 @@ class Formation:
     def __init__(self, battleSetupData, formationData):
         # location: 2 bytes at offset 0
         self.location = struct.unpack_from("<H", battleSetupData, 0)[0]
+        self.nextFormation = struct.unpack_from("<H", battleSetupData, 2)[0]
 
         self.battleArenaCandidates = []
         self.battleArenaCandidates.append(struct.unpack_from("<H", battleSetupData, 0x08)[0])
@@ -125,6 +126,7 @@ class Formation:
 
         # flags: 2 bytes at offset 0x10
         self.flags = struct.unpack_from("<H", battleSetupData, 0x10)[0]
+        self.layout = battleSetupData[0x12]
 
         formationEnemySize = 0x10
         self.enemyIDs = []

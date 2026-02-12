@@ -4,8 +4,9 @@ import ff7
 from ff7.field import opcodes, specialOpcodes, Op, fieldIDTable
 
 class GameDataGenerator:
-    def __init__(self, filepath="GameDataGenerated.cpp"):
+    def __init__(self, filepath="GameDataGenerated.cpp", functionName="loadGameData"):
         self.filepath = filepath
+        self.functionName = functionName
         self.file = None
         self.item_names = []
 
@@ -24,7 +25,7 @@ class GameDataGenerator:
         self.write_line("// Auto-generated game data file", 0)
         self.write_line("#include \"GameData.h\"", 0)
         self.write_line("", 0)
-        self.write_line("void GameData::loadGameData()", 0)
+        self.write_line("void GameData::" + self.functionName + "(GameVersion gameVersion, uint8_t gameDisc)", 0)
         self.write_line("{", 0)
 
     def write_footer(self):
@@ -58,7 +59,7 @@ def outputInventory(gen, discPath, version):
                 item_id = idx
                 item_price = shopData.item_prices[item_id]
 
-                gen.write_line("addItem(" + str(idx) + ", \"" + item_name + "\", " + str(item_price) + ");", 4)  
+                gen.write_line("addItem(" + str(item_id) + ", \"" + item_name + "\", " + str(item_price) + ");", 4)  
                 gen.item_names.append(item_name)
             gen.write_line("")
 
@@ -73,7 +74,7 @@ def outputInventory(gen, discPath, version):
                 item_id = idx + 128
                 item_price = shopData.item_prices[item_id]
 
-                gen.write_line("addWeapon(" + str(idx) + ", \"" + item_name + "\", " + str(item_price) + ");", 4)  
+                gen.write_line("addItem(" + str(item_id) + ", \"" + item_name + "\", " + str(item_price) + ");", 4)  
                 gen.item_names.append(item_name)
             gen.write_line("")
 
@@ -88,7 +89,7 @@ def outputInventory(gen, discPath, version):
                 item_id = idx + 256
                 item_price = shopData.item_prices[item_id]
 
-                gen.write_line("addArmor(" + str(idx) + ", \"" + item_name + "\", " + str(item_price) + ");", 4)  
+                gen.write_line("addItem(" + str(item_id) + ", \"" + item_name + "\", " + str(item_price) + ");", 4)  
                 gen.item_names.append(item_name)
             gen.write_line("")
 
@@ -103,7 +104,7 @@ def outputInventory(gen, discPath, version):
                 item_id = idx + 288
                 item_price = shopData.item_prices[item_id]
 
-                gen.write_line("addAccessory(" + str(idx) + ", \"" + item_name + "\", " + str(item_price) + ");", 4)   
+                gen.write_line("addItem(" + str(item_id) + ", \"" + item_name + "\", " + str(item_price) + ");", 4)   
                 gen.item_names.append(item_name)
             gen.write_line("")
 
@@ -368,10 +369,6 @@ def outputBattles(gen, discPath, version):
         enemyLevels = ""
         enemies = scene.getEnemies(ff7.game.isJapanese(version))
         for enemy in enemies:
-            if len(enemy.name) >= 2 and ord(enemy.name[0]) == 0x00EA and ord(enemy.name[1]) == 0x00FA:
-                hasValidEnemies = False
-                break
-
             if (enemy.name != "" and enemy.level != 255):
                 enemyLevels += ", " + str(enemy.level)
                 hasValidEnemies = True
@@ -392,7 +389,7 @@ def outputBattles(gen, discPath, version):
             if not formation.canEscape():
                 noEscape = "true"
 
-            gen.write_line("addBattleFormation(" + str(i) + ", " + str(formationID) + ", " + noEscape + ", " + listToCPPArray(formation.enemyIDs) + ", " + listToCPPArray(formation.battleArenaCandidates) + ");", 4)
+            gen.write_line("addBattleFormation(" + str(i) + ", " + str(formationID) + ", " + noEscape + ", " + str(formation.layout) + ", " + listToCPPArray(formation.enemyIDs) + ", " + str(formation.nextFormation) + ", " + listToCPPArray(formation.battleArenaCandidates) + ");", 4)
             formationIndex += 1
 
     gen.write_line("")
@@ -628,7 +625,15 @@ if not os.path.isdir(discPath):
 # Check that this is a FF7 disc
 version, discNumber, execFileName = ff7.game.checkDisc(discPath)
 
-gen = GameDataGenerator()
+outputFileName = "GameDataGenerated.cpp"
+outputFunction = "loadGameData"
+
+if len(sys.argv) > 2:
+    outputFileName = sys.argv[2]
+if len(sys.argv) > 3:
+    outputFunction = sys.argv[3]
+
+gen = GameDataGenerator(outputFileName, outputFunction)
 gen.open_file()
 gen.write_header()
 

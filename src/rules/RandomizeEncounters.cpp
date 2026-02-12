@@ -1,6 +1,7 @@
 #include "RandomizeEncounters.h"
 #include "core/game/GameData.h"
 #include "core/game/MemoryOffsets.h"
+#include "core/gui/GUI.h"
 #include "core/utilities/Logging.h"
 #include "core/utilities/Utilities.h"
 #include "rules/Restrictions.h"
@@ -19,14 +20,17 @@ void RandomizeEncounters::setup()
     BIND_EVENT(game->onWorldMapEnter, RandomizeEncounters::onWorldMapEnter);
     BIND_EVENT(game->onBattleEnter, RandomizeEncounters::onBattleEnter);
 
+    // Debug Room fights
+    addExclusions({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 22, 23, 24, 25, 26, 952, 953, 954, 955, 957, 958, 959, 989, 990, 991, 996, 997, 998, 999 });
+
     // Chocobo fights
-    excludedFormations.insert({ 56, 57, 60, 61, 78, 79, 80, 81, 98, 99, 104, 105, 152, 153, 156, 157, 162, 163, 166, 167, 202, 203, 206, 207, 214, 215, 218, 219 });
+    addExclusions({ 56, 57, 60, 61, 78, 79, 80, 81, 98, 99, 104, 105, 152, 153, 156, 157, 162, 163, 166, 167, 202, 203, 206, 207, 214, 215, 218, 219 });
 
     // Yuffie
-    excludedFormations.insert({ 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 296, 297, 298 });
+    addExclusions({ 268, 269, 270, 271, 272, 273, 274, 275, 276, 277, 278, 279, 296, 297, 298 });
 
     // Midgar Zolom
-    excludedFormations.insert({ 469, 470 });
+    addExclusions({ 469, 470 });
 
     // Add all boss formations to excluded formations
     {
@@ -44,7 +48,7 @@ void RandomizeEncounters::setup()
                 {
                     if (bossIDs.count(formation.enemyIDs[i]) > 0)
                     {
-                        excludedFormations.insert(formation.id);
+                        excludedFormations.set(formation.id);
                         break;
                     }
                 }
@@ -62,17 +66,36 @@ bool RandomizeEncounters::onSettingsGUI()
     ImGui::SetItemTooltip("Randomize fights triggered from scripts excluding boss fights.");
     changed |= ImGui::Checkbox("World Map Encounters", &worldMapEncounters);
 
-    ImGui::Text("Max Level Difference");
-    ImGui::SetItemTooltip("How much higher or lower the max level of the random\nformation can be from the original formation.");
-    ImGui::SameLine(180.0f);
-    ImGui::SetNextItemWidth(80.0f);
-    changed |= ImGui::InputInt("##maxLevelDifference", &maxLevelDifference);
+    changed |= ImGui::Checkbox("Match Battle Types", &matchBattleTypes);
+    ImGui::SetItemTooltip("Will only randomize Back Attacks to other Back Attacks, etc");
+
+    ImGui::Text("Levels Below");
+    ImGui::SetItemTooltip("How many levels below the original encounter's maximum\nlevel the randomized encounter can be.");
+    ImGui::SameLine(DPI(125.0f));
+    ImGui::PushItemWidth(DPI(50.0f));
+    if (ImGui::InputInt("##encLevelsBelow", &levelsBelow, 0, 0))
+    {
+        levelsBelow = std::max(0, levelsBelow);
+        changed = true;
+    }
+    ImGui::PopItemWidth();
+
+    ImGui::Text("Levels Above");
+    ImGui::SetItemTooltip("How many levels above the original encounter's maximum\nlevel the randomized encounter can be.");
+    ImGui::SameLine(DPI(125.0f));
+    ImGui::PushItemWidth(DPI(50.0f));
+    if (ImGui::InputInt("##encLevelsAbove", &levelsAbove, 0, 0))
+    {
+        levelsAbove = std::max(0, levelsAbove);
+        changed = true;
+    }
+    ImGui::PopItemWidth();
 
     ImGui::Text("Stat Multiplier");
     ImGui::SetItemTooltip("Multiplies each enemy's HP, MP, Strength, Magic, Evade,\nSpeed, Luck, Defense, and MDefense.\nMultiplier is randomly chosen for each stat for each enemy.");
     ImGui::SameLine();
 
-    ImGui::PushItemWidth(60);
+    ImGui::PushItemWidth(DPI(60.0f));
     changed |= ImGui::InputFloat("##encMinStatMultiplier", &minStatMultiplier, 0, 0, "%.2f");
     ImGui::SameLine();
     ImGui::Text("to");
@@ -85,12 +108,14 @@ bool RandomizeEncounters::onSettingsGUI()
 
 void RandomizeEncounters::loadSettings(const ConfigFile& cfg)
 {
-    randomEncounters   = cfg.get<bool>("randomEncounters", true);
-    scriptedEncounters = cfg.get<bool>("scriptedEncounters", true);
-    worldMapEncounters = cfg.get<bool>("worldMapEncounters", true);
-    maxLevelDifference = cfg.get<int>("maxLevelDifference", 5);
-    minStatMultiplier  = cfg.get<float>("minStatMultiplier", 1.0f);
-    maxStatMultiplier  = cfg.get<float>("maxStatMultiplier", 1.0f);
+    randomEncounters   = cfg.get<bool>("randomEncounters", randomEncounters);
+    scriptedEncounters = cfg.get<bool>("scriptedEncounters", scriptedEncounters);
+    worldMapEncounters = cfg.get<bool>("worldMapEncounters", worldMapEncounters);
+    matchBattleTypes   = cfg.get<bool>("matchBattleTypes", matchBattleTypes);
+    levelsBelow        = cfg.get<int>("levelsBelow", levelsBelow);
+    levelsAbove        = cfg.get<int>("levelsAbove", levelsAbove);
+    minStatMultiplier  = cfg.get<float>("minStatMultiplier", minStatMultiplier);
+    maxStatMultiplier  = cfg.get<float>("maxStatMultiplier", maxStatMultiplier);
 }
 
 void RandomizeEncounters::saveSettings(ConfigFile& cfg)
@@ -98,7 +123,9 @@ void RandomizeEncounters::saveSettings(ConfigFile& cfg)
     cfg.set<bool>("randomEncounters",   randomEncounters);
     cfg.set<bool>("scriptedEncounters", scriptedEncounters);
     cfg.set<bool>("worldMapEncounters", worldMapEncounters);
-    cfg.set<int>("maxLevelDifference",  maxLevelDifference);
+    cfg.set<bool>("matchBattleTypes",   matchBattleTypes);
+    cfg.set<int>("levelsBelow",         levelsBelow);
+    cfg.set<int>("levelsAbove",         levelsAbove);
     cfg.set<float>("minStatMultiplier", minStatMultiplier);
     cfg.set<float>("maxStatMultiplier", maxStatMultiplier);
 }
@@ -326,6 +353,86 @@ void RandomizeEncounters::onBattleEnter()
     }
 }
 
+uint8_t getMaxLevelInFormation(const BattleScene& scene, const BattleFormation& formation)
+{
+    uint8_t maxLevel = 0;
+
+    for (int i = 0; i < 6; ++i)
+    {
+        uint16_t enemyID = formation.enemyIDs[i];
+        if (enemyID == 0xFFFF)
+        {
+            continue;
+        }
+
+        for (int j = 0; j < 3; ++j)
+        {
+            if (scene.enemyIDs[j] == enemyID)
+            {
+                if (scene.enemyLevels[j] == 0xFF)
+                {
+                    continue;
+                }
+
+                maxLevel = std::max(maxLevel, scene.enemyLevels[j]);
+            }
+        }
+    }
+
+    return maxLevel;
+}
+
+void RandomizeEncounters::addExclusions(std::initializer_list<uint16_t> ids)
+{
+    for (uint16_t id : ids) 
+    {
+        excludedFormations.set(id);
+    }
+}
+
+std::vector<uint16_t> RandomizeEncounters::findCandidates(int maxLevel, int battleType)
+{
+    std::vector<uint16_t> candidates;
+
+    for (const auto& [candidateSceneID, candidateScene] : GameData::battleScenes)
+    {
+        // Check each formation in this scene.
+        for (int j = 0; j < 4; ++j)
+        {
+            BattleFormation candidateFormation = candidateScene.formations[j];
+
+            // Skip excluded formations
+            if (excludedFormations.test(candidateFormation.id))
+            {
+                continue;
+            }
+
+            // We don't want a formation that triggers multiple fights sequentially
+            if (candidateFormation.hasNextFormation())
+            {
+                continue;
+            }
+
+            // Skip formation if it exceeds the allowable range
+            int candidateMaxLevel = getMaxLevelInFormation(candidateScene, candidateFormation);
+            if (candidateMaxLevel < maxLevel - levelsBelow || candidateMaxLevel > (maxLevel + levelsAbove))
+            {
+                continue;
+            }
+
+            // Skip non-matching battle types if enabled
+            if (matchBattleTypes && candidateFormation.battleType != battleType)
+            {
+                continue;
+            }
+
+            candidates.push_back(candidateFormation.id);
+        }
+    }
+
+    return candidates;
+}
+
 void RandomizeEncounters::generateRandomEncounterMap()
 {
     randomEncounterMap.clear();
@@ -334,70 +441,18 @@ void RandomizeEncounters::generateRandomEncounterMap()
     {
         BattleScene scene = kv.second;
 
-        // Determine max enemy level in the scene
-        uint8_t maxLevel = 0;
-        for (int i = 0; i < 3; ++i)
-        {
-            if (scene.enemyLevels[i] == 255)
-            {
-                continue;
-            }
-            maxLevel = std::max(maxLevel, scene.enemyLevels[i]);
-        }
-
         for (int i = 0; i < 4; ++i)
         {
             BattleFormation formation = scene.formations[i];
 
             // Don't randomize excluded formations
-            if (excludedFormations.count(formation.id) > 0)
+            if (excludedFormations.test(formation.id))
             {
                 continue;
             }
 
-            std::vector<uint16_t> candidateFormationIDs;
-            for (const auto& candidateKv : GameData::battleScenes)
-            {
-                BattleScene candidateScene = candidateKv.second;
-
-                // Determine max enemy level in the candidate scene
-                uint8_t candidateMaxLevel = 0;
-                for (int j = 0; j < 3; ++j)
-                {
-                    if (candidateScene.enemyLevels[j] == 255)
-                    {
-                        continue;
-                    }
-                    candidateMaxLevel = std::max(candidateMaxLevel, candidateScene.enemyLevels[j]);
-                }
-
-                // Skip the entire scene if max level exceeds max difference
-                if (std::abs(maxLevel - candidateMaxLevel) > maxLevelDifference)
-                {
-                    continue;
-                }
-
-                // Check each formation in this scene, avoiding no escapes.
-                for (int j = 0; j < 4; ++j)
-                {
-                    BattleFormation candidateFormation = candidateScene.formations[j];
-
-                    if (candidateFormation.isArenaBattle())
-                    {
-                        continue;
-                    }
-
-                    // Skip excluded formations
-                    if (excludedFormations.count(candidateFormation.id) > 0)
-                    {
-                        continue;
-                    }
-
-                    candidateFormationIDs.push_back(candidateFormation.id);
-                }
-            }
-
-            randomEncounterMap[formation.id] = candidateFormationIDs;
+            uint8_t maxLevel = getMaxLevelInFormation(scene, formation);
+            randomEncounterMap[formation.id] = findCandidates(maxLevel, formation.battleType);
         }
     }
 }

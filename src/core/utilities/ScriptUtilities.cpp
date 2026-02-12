@@ -54,7 +54,7 @@ void ScriptUtilities::decompileWorldScript(GameManager* game, uintptr_t startAdd
             opText = "RUN FUNCTION " + std::to_string(funcID);
         }
 
-        uint16_t jumpAddress = ((startAddress + opCodeOffset) - WorldOffsets::JumpStart) / 2;
+        uintptr_t jumpAddress = ((startAddress + opCodeOffset) - WorldOffsets::JumpStart) / 2;
 
         if (opText == "")
         {

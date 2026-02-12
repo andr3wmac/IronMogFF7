@@ -10,28 +10,29 @@
 #define APP_WINDOW_WIDTH 497
 #define APP_WINDOW_HEIGHT 665
 #define APP_VERSION_MAJOR 0
-#define APP_VERSION_MINOR 7
-#define APP_VERSION_PATCH 2
-#define APP_VERSION_STRING "v0.7.2"
+#define APP_VERSION_MINOR 8
+#define APP_VERSION_PATCH 0
+#define APP_VERSION_STRING "v0.8.0"
+#define APP_SETTINGS_FOLDER "settings"
 
 class App
 {
 public:
-    enum Panels : uint8_t
+    enum class Panels : uint8_t
     {
         Settings    = 0,
         Tracker     = 1,
         Debug       = 2
     };
 
-    enum EmulatorType : uint8_t
+    enum class EmulatorType : uint8_t
     {
         DuckStation = 0,
         BizHawk     = 1,
         Custom      = 2
     };
 
-    enum ConnectionState : uint8_t
+    enum class ConnectionState : uint8_t
     {
         NotConnected = 0,
         Connecting   = 1,
@@ -41,9 +42,11 @@ public:
 
     void run();
     void generateSeed();
+    void scanSettings(std::string settingsFolder, std::string loadIfAvailable = "Default");
     void loadSettings(const std::string& filePath);
     void saveSettings(const std::string& filePath, bool saveSeed = false);
 
+    void draw();
     void drawSettingsPanel();
     void drawTrackerPanel();
     void drawBottomPanel();
@@ -52,6 +55,7 @@ public:
     void connect();
     void disconnect();
     void runGameManager();
+    void stopGameManager();
 
 protected:
     GUI gui;
@@ -65,6 +69,7 @@ protected:
     std::atomic<bool> managerRunning = false;
     GameManager::GameState previousState = GameManager::GameState::BootScreen;
 
+    GameVersion selectedGameVersion = GameVersion::PlayStationUS;
     EmulatorType selectedEmulatorType = EmulatorType::DuckStation;
 
     StringList availableSettings;
@@ -79,5 +84,6 @@ protected:
     std::string connectionStatus = "Not Connected";
 
     void onKeyPress(int key, int mods);
+    void onResize(int width, int height);
     void onStart();
 };

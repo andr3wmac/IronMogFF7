@@ -9,6 +9,9 @@
 #include <unordered_map>
 #include <vector>
 
+#include <filesystem>
+namespace fs = std::filesystem;
+
 class Utilities
 {
 public:
@@ -255,5 +258,20 @@ public:
         double maxB = static_cast<double>(std::numeric_limits<Target>::max());
 
         return static_cast<Target>(std::clamp(dValue, minB, maxB));
+    }
+
+    static bool isFileInFolder(const fs::path& folderPath, const fs::path& targetPath) 
+    {
+        // Resolve both to absolute, simplified paths
+        fs::path canonicalFolder = fs::weakly_canonical(folderPath);
+        fs::path canonicalTarget = fs::weakly_canonical(targetPath);
+
+        // Compare the path components
+        auto [folderEnd, targetEnd] = std::mismatch(
+            canonicalFolder.begin(), canonicalFolder.end(),
+            canonicalTarget.begin(), canonicalTarget.end()
+        );
+
+        return folderEnd == canonicalFolder.end();
     }
 };
