@@ -29,9 +29,9 @@ private:
     bool randomEncounters = true;
     bool scriptedEncounters = true;
     bool worldMapEncounters = true;
+    bool matchBattleTypes = true;
     int levelsBelow = 0;
     int levelsAbove = 5;
-    bool matchBattleTypes = true;
     float minStatMultiplier = 1.0f;
     float maxStatMultiplier = 1.0f;
 
