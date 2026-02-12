@@ -175,7 +175,7 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
         return;
     }
 
-    // Fix for midgar raid skip music
+    // Fix for Midgar raid skip music
     if (game->getFieldID() == 741)
     {
         if (game->read<uint8_t>(GameOffsets::MusicLock) == 1)
