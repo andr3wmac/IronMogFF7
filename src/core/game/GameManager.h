@@ -25,6 +25,7 @@ public:
     
     bool connectToEmulator(std::string processName);
     bool connectToEmulator(std::string processName, uintptr_t memoryAddress);
+    bool isPaused() { return emulatorPaused; }
 
     bool isRuleEnabled(std::string ruleName);
     Rule* getRule(std::string ruleName);

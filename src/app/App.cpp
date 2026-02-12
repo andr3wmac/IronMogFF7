@@ -71,7 +71,7 @@ void App::run()
         }
 
         // Run the GUI at 60fps
-        Platform::sleep(16.67f);
+        Platform::sleep(16.67);
     }
 
     gui.destroy();
@@ -172,7 +172,17 @@ void App::runGameManager()
             connectionStatus = "Connection lost.";
             break;
         }
-        Platform::sleep(1);
+
+        // Sleep longer if the emulator is paused so we lower our CPU usage.
+        if (game->isPaused())
+        {
+            Platform::sleep(16.67);
+        }
+        else 
+        {
+            Platform::sleep(1.0);
+        }
+        
     }
     managerRunning = false;
 }
