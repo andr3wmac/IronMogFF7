@@ -45,9 +45,10 @@ struct GameModule
     CONST_U8 Menu           = 5;
     CONST_U8 Motorbike      = 6;
     CONST_U8 ChocoboRacing  = 7;
-    CONST_U8 Snowboarding   = 8;
+    CONST_U8 Snowboarding1  = 8;
     CONST_U8 FortCondor     = 9;
     CONST_U8 Submarine      = 10;
+    CONST_U8 Snowboarding2  = 14;
 };
 
 struct MenuType

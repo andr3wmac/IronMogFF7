@@ -595,6 +595,8 @@ def main(*argv):
         data = [ff7.models.loadModelFromBCX(ff7.game.retrieveFile(discPath, "FIELD", fileName))]
     elif fileExt == ".bsx":
         data = ff7.models.loadModelsFromBSX(ff7.game.retrieveFile(discPath, "FIELD", fileName), discPath)
+    elif fileName == "MINI/TMD.LZS" or fileName == "MINI/TMD2.LZS":
+        data = [ff7.models.loadModelFromTMD(ff7.game.retrieveFile(discPath, "", fileName))]
     elif fileExt == ".lzs":
         data = [ff7.models.loadModelFromLZS(ff7.game.retrieveFile(discPath, "", fileName))]
     else:

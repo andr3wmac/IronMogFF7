@@ -460,6 +460,7 @@ bool ModelEditor::openBattleModel(int bufferIdx, const BattleModel& model)
             poly.bufferAddressB = poly.bufferAddressA;
             poly.textured = true;
             poly.vertexStride = 4;
+            poly.vertexCount = 3;
 
             for (int j = 0; j < 3; ++j)
             {
@@ -469,7 +470,7 @@ bool ModelEditor::openBattleModel(int bufferIdx, const BattleModel& model)
                 color.r = data & 0xFF;
                 color.g = (data >> 8) & 0xFF;
                 color.b = (data >> 16) & 0xFF;
-                poly.vertexColors.push_back(color);
+                poly.vertexColors[j] = color;
             }
 
             editorPart.polys.push_back(poly);
@@ -490,6 +491,7 @@ bool ModelEditor::openBattleModel(int bufferIdx, const BattleModel& model)
             poly.bufferAddressB = poly.bufferAddressA;
             poly.textured = true;
             poly.vertexStride = 4;
+            poly.vertexCount = 4;
 
             for (int j = 0; j < 4; ++j)
             {
@@ -499,7 +501,7 @@ bool ModelEditor::openBattleModel(int bufferIdx, const BattleModel& model)
                 color.r = data & 0xFF;
                 color.g = (data >> 8) & 0xFF;
                 color.b = (data >> 16) & 0xFF;
-                poly.vertexColors.push_back(color);
+                poly.vertexColors[j] = color;
             }
 
             editorPart.polys.push_back(poly);
@@ -540,17 +542,10 @@ void ModelEditor::setPartColor(int modelIndex, int partIndex, Utilities::Color c
 
         ModelEditorPoly& poly = part.polys[i];
        
-        for (int v = 0; v < poly.vertexColors.size(); ++v)
+        for (int v = 0; v < poly.vertexCount; ++v)
         {
-            uintptr_t colorAddrA = poly.bufferAddressA + (v * poly.vertexStride);
-            uintptr_t colorAddrB = poly.bufferAddressB + (v * poly.vertexStride);
-
-            game->write<uint8_t>(colorAddrA + 0, color.r);
-            game->write<uint8_t>(colorAddrB + 0, color.r);
-            game->write<uint8_t>(colorAddrA + 1, color.g);
-            game->write<uint8_t>(colorAddrB + 1, color.g);
-            game->write<uint8_t>(colorAddrA + 2, color.b);
-            game->write<uint8_t>(colorAddrB + 2, color.b);
+            game->write<Utilities::Color>(poly.bufferAddressA + (v * poly.vertexStride), color);
+            game->write<Utilities::Color>(poly.bufferAddressB + (v * poly.vertexStride), color);
         }
     }
 }
@@ -580,19 +575,11 @@ void ModelEditor::tintPart(int modelIndex, int partIndex, Utilities::Color color
 
         ModelEditorPoly& poly = part.polys[i];
 
-        for (int v = 0; v < poly.vertexColors.size(); ++v)
+        for (int v = 0; v < poly.vertexCount; ++v)
         {
-            uintptr_t colorAddrA = poly.bufferAddressA + (v * poly.vertexStride);
-            uintptr_t colorAddrB = poly.bufferAddressB + (v * poly.vertexStride);
-
             Utilities::Color tinted = tintVertexColor(poly.vertexColors[v], { color.r, color.g, color.b });
-
-            game->write<uint8_t>(colorAddrA + 0, tinted.r);
-            game->write<uint8_t>(colorAddrB + 0, tinted.r);
-            game->write<uint8_t>(colorAddrA + 1, tinted.g);
-            game->write<uint8_t>(colorAddrB + 1, tinted.g);
-            game->write<uint8_t>(colorAddrA + 2, tinted.b);
-            game->write<uint8_t>(colorAddrB + 2, tinted.b);
+            game->write<Utilities::Color>(poly.bufferAddressA + (v * poly.vertexStride), tinted);
+            game->write<Utilities::Color>(poly.bufferAddressB + (v * poly.vertexStride), tinted);
         }
     }
 }
@@ -622,19 +609,11 @@ void ModelEditor::tintPolys(int modelIndex, int partIndex, Utilities::Color colo
 
         ModelEditorPoly& poly = part.polys[i];
 
-        for (int v = 0; v < poly.vertexColors.size(); ++v)
+        for (int v = 0; v < poly.vertexCount; ++v)
         {
-            uintptr_t colorAddrA = poly.bufferAddressA + (v * poly.vertexStride);
-            uintptr_t colorAddrB = poly.bufferAddressB + (v * poly.vertexStride);
-
             Utilities::Color tinted = tintVertexColor(poly.vertexColors[v], { color.r, color.g, color.b });
-
-            game->write<uint8_t>(colorAddrA + 0, tinted.r);
-            game->write<uint8_t>(colorAddrB + 0, tinted.r);
-            game->write<uint8_t>(colorAddrA + 1, tinted.g);
-            game->write<uint8_t>(colorAddrB + 1, tinted.g);
-            game->write<uint8_t>(colorAddrA + 2, tinted.b);
-            game->write<uint8_t>(colorAddrB + 2, tinted.b);
+            game->write<Utilities::Color>(poly.bufferAddressA + (v * poly.vertexStride), tinted);
+            game->write<Utilities::Color>(poly.bufferAddressB + (v * poly.vertexStride), tinted);
         }
     }
 }
@@ -664,19 +643,11 @@ void ModelEditor::tintPolyRange(int modelIndex, int partIndex, Utilities::Color 
 
         ModelEditorPoly& poly = part.polys[i];
 
-        for (int v = 0; v < poly.vertexColors.size(); ++v)
+        for (int v = 0; v < poly.vertexCount; ++v)
         {
-            uintptr_t colorAddrA = poly.bufferAddressA + (v * poly.vertexStride);
-            uintptr_t colorAddrB = poly.bufferAddressB + (v * poly.vertexStride);
-
             Utilities::Color tinted = tintVertexColor(poly.vertexColors[v], { color.r, color.g, color.b });
-
-            game->write<uint8_t>(colorAddrA + 0, tinted.r);
-            game->write<uint8_t>(colorAddrB + 0, tinted.r);
-            game->write<uint8_t>(colorAddrA + 1, tinted.g);
-            game->write<uint8_t>(colorAddrB + 1, tinted.g);
-            game->write<uint8_t>(colorAddrA + 2, tinted.b);
-            game->write<uint8_t>(colorAddrB + 2, tinted.b);
+            game->write<Utilities::Color>(poly.bufferAddressA + (v * poly.vertexStride), tinted);
+            game->write<Utilities::Color>(poly.bufferAddressB + (v * poly.vertexStride), tinted);
         }
     }
 }
@@ -743,7 +714,8 @@ int ModelEditor::readPoly(int bufferIdx, ModelEditorPoly& polyOut)
         // Vert0 UV
         curIdx++;
     }
-    polyOut.vertexColors.push_back(vert0);
+    polyOut.vertexColors[0] = vert0;
+    polyOut.vertexCount++;
 
     // Vert1 RRGGBB00, XXXXYYYY
     uint32_t word1 = buffer[curIdx];
@@ -757,7 +729,8 @@ int ModelEditor::readPoly(int bufferIdx, ModelEditorPoly& polyOut)
         // Vert0 ClutVVUU
         curIdx++;
     }
-    polyOut.vertexColors.push_back(vert1);
+    polyOut.vertexColors[1] = vert1;
+    polyOut.vertexCount++;
 
     // Vert2 RRGGBB00, XXXXYYYY
     uint32_t word2 = buffer[curIdx];
@@ -771,7 +744,8 @@ int ModelEditor::readPoly(int bufferIdx, ModelEditorPoly& polyOut)
         // Vert2 ClutVVUU
         curIdx++;
     }
-    polyOut.vertexColors.push_back(vert2);
+    polyOut.vertexColors[2] = vert2;
+    polyOut.vertexCount++;
 
     if (quad_flag == 1)
     {
@@ -787,11 +761,107 @@ int ModelEditor::readPoly(int bufferIdx, ModelEditorPoly& polyOut)
             // Vert3 ClutVVUU
             curIdx++;
         }
-        polyOut.vertexColors.push_back(vert3);
+        polyOut.vertexColors[3] = vert3;
+        polyOut.vertexCount++;
     }
 
     // Not sure what the extra 4 bytes is on the end of every command buffer entry
     curIdx++;
 
     return curIdx - bufferIdx;
+}
+
+bool ModelEditor::isTMDLoaded(uintptr_t address)
+{
+    uint32_t tmdVersion = game->read<uint32_t>(address);
+    if (tmdVersion != 0x41)
+    {
+        return false;
+    }
+
+    uintptr_t offset = 8;
+    uint32_t objectCount = game->read<uint32_t>(address + offset);
+    if (objectCount > 300)
+    {
+        // We haven't seen a TMD yet with over 300 parts.
+        return false;
+    }
+    offset += 4;
+
+    int validModeChecks = 0;
+
+    for (int i = 0; i < objectCount; ++i)
+    {
+        uintptr_t objAddr = offset + (i * 28);
+        uint32_t pPrims = game->read<uint32_t>(address + objAddr + 16);
+        uint32_t nPrims = game->read<uint32_t>(address + objAddr + 20);
+        uint32_t polyAddr = pPrims & 0x00FFFFFF;
+
+        // All polys we know of should be in this mode.
+        uint32_t polyMode = game->read<uint32_t>(polyAddr);
+        if (polyMode == 0x31010506)
+        {
+            validModeChecks++;
+        }
+    }
+
+    return (validModeChecks > 250);
+}
+
+bool ModelEditor::openTMD(uintptr_t address, std::string name)
+{
+    openModels.clear();
+
+    uint32_t tmdVersion = game->read<uint32_t>(address);
+    if (tmdVersion != 0x41)
+    {
+        LOG("Unknown TMD version: %d", tmdVersion);
+        return false;
+    }
+
+    uint8_t* tmdData = new uint8_t[512000];
+    game->read(address, 512000, tmdData);
+
+    uint32_t* tmdUInts = (uint32_t*)tmdData;
+    uint32_t objectCount = tmdUInts[2];
+
+    // Sanity check.
+    if (objectCount > 300)
+    {
+        LOG("TMD object count exceeds 300.");
+        return false;
+    }
+
+    ModelEditorModel& editorModel = openModels.emplace_back();
+    editorModel.modelName = name;
+    editorModel.parts.reserve(objectCount);
+
+    for (int i = 0; i < objectCount; ++i)
+    {
+        ModelEditorPart& editorPart = editorModel.parts.emplace_back();
+
+        uint32_t pPrims = tmdUInts[3 + (i * 7) + 4];
+        uint32_t nPrims = tmdUInts[3 + (i * 7) + 5];
+        uint32_t polyAddr = (pPrims & 0x00FFFFFF) - address;
+        editorPart.polys.reserve(nPrims);
+
+        for (uint32_t j = 0; j < nPrims; ++j)
+        {
+            ModelEditorPoly& poly = editorPart.polys.emplace_back();
+            poly.textured = false;
+            poly.bufferAddressA = address + polyAddr + (j * 24) + 4;
+            poly.bufferAddressB = address + polyAddr + (j * 24) + 4;
+            poly.vertexStride = 4;
+            poly.vertexCount = 3;
+
+            memcpy(&poly.vertexColors[0].r, &tmdData[polyAddr + (j * 24) + 4], sizeof(Utilities::Color));
+            memcpy(&poly.vertexColors[1].r, &tmdData[polyAddr + (j * 24) + 8], sizeof(Utilities::Color));
+            memcpy(&poly.vertexColors[2].r, &tmdData[polyAddr + (j * 24) + 12], sizeof(Utilities::Color));
+        }
+    }
+
+    DEBUG_LOG("Opened TMD model: %s %d %d", name.c_str(), address, objectCount);
+
+    delete[] tmdData;
+    return true;
 }

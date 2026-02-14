@@ -167,7 +167,7 @@ void App::runGameManager()
     {
         if (!game->update())
         {
-            // If update returns false then a fatal error occured.
+            // If update returns false then a fatal error occurred.
             connectionState = ConnectionState::Error;
             connectionStatus = "Connection lost.";
             break;

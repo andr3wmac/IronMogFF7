@@ -19,6 +19,7 @@ private:
     void onFieldChanged(uint16_t fieldID);
     void onBattleEnter();
     void onWorldMapEnter();
+    void onModuleChanged(uint8_t gameModule);
     void onFrame(uint32_t frameNumber);
     void applyColors();
 
@@ -28,6 +29,9 @@ private:
 
     bool waitingForBattle = false;
     bool appliedHackFix = false;
+
+    uint16_t lastSnowboardLoadValue = 0;
+    bool waitingForSnowboarding = false;
 
     // Debug variables
     char debugStartNum[20];
