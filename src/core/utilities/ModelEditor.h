@@ -36,14 +36,16 @@ public:
 
     void setup(GameManager* gameManager);
     void clear();
+    std::vector<ModelEditor::ModelEditorModel>& getOpenModels();
     
-    void findFieldModels();
-    void openBattleModels();
-    bool openTMD(uintptr_t address, std::string name);
+    void openFieldModels();
+    bool openFieldModel(uintptr_t address, std::string name);
 
     bool areBattleModelsLoaded();
+    void openBattleModels();
+   
     bool isTMDLoaded(uintptr_t address);
-    std::vector<ModelEditor::ModelEditorModel>& getOpenModels();
+    bool openTMD(uintptr_t address, std::string name);
 
     // Overwrites a parts color entirely without any regard for its original color.
     void setPartColor(int modelIndex, int partIndex, Utilities::Color color, const std::set<int>& excludedPolys = std::set<int>());

@@ -562,6 +562,7 @@ def outputModels(gen, discPath, version):
     outputModelFromField(discPath, "MRKT2.BSX", 3, "AERITH_DRESS")
     outputModelFromField(discPath, "COLNE_4.BSX", 5, "TIFA_DRESS")
     outputModelFromField(discPath, "MD0.BSX", 4, "CLOUD_SWORD")
+    outputModelFromField(discPath, "BLACKBGB.BSX", 2, "CLOUD_BIKE")
     outputModelFromField(discPath, "MTCRL_3.BSX", 3, "BARRET_COREL")
     outputModelFromField(discPath, "ITHOS.BSX", 9, "CLOUD_WHEELCHAIR")
     outputModelFromField(discPath, "MD8_5.BSX", 1, "CLOUD_PARACHUTE")
@@ -573,6 +574,10 @@ def outputModels(gen, discPath, version):
 
     # Clouds model is slightly different on the world map for some reason, this was extracted from memory.
     gen.write_line("addModel(\"CLOUD_WORLD\", 378, {{0, 0, 0, 0, 0, 0, 12, 6}, {0, 0, 0, 0, 0, 0, 6, 27}, {2, 4 + 2, 0, 0, 0, 0, 148 + 2, 12 + 1}, {0, 0, 0, 0, 0, 0, 10, 9}, {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 0, 0, 0, 0, 0, 6}, {0, 0, 0, 0, 0, 0, 10, 9}, {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 0, 0, 0, 0, 0, 6}, {0, 0, 0, 0, 0, 0, 8, 4}, {0, 0, 0, 0, 0, 0, 4, 14}, {0, 0, 0, 0, 0, 0, 2, 7}, {0, 0, 0, 0, 0, 0, 8, 4}, {0, 0, 0, 0, 0, 0, 4, 14}, {0, 0, 0, 0, 0, 0, 2, 7}});", 4)
+    
+    # The Cloud model used in the bike game is apparently in H_KAWAI.BIN but I've yet to be able to decode it from there. This was extracted from memory.
+    gen.write_line("addModel(\"CLOUD_BIKE_GAME\", 208, {{0, 0, 0, 0, 0, 0, 10, 0}, {0, 0, 0, 0, 0, 0, 18, 0}, {0, 0, 2, 0, 0, 0, 46, 2}, {0, 0, 0, 0, 0, 0, 4, 0}, {0, 0, 0, 0, 0, 0, 6, 0}, {0, 0, 0, 0, 0, 0, 8, 0}, {0, 0, 0, 0, 0, 0, 8, 0}, {0, 0, 0, 0, 0, 0, 6, 0}, {0, 0, 0, 0, 0, 0, 6, 0}, {0, 0, 0, 0, 0, 0, 6, 0}, {0, 0, 0, 0, 0, 0, 26, 0}, {0, 0, 0, 0, 0, 0, 6, 0}, {0, 0, 0, 0, 0, 0, 6, 0}, {0, 0, 0, 0, 0, 0, 12, 0}, {0, 0, 0, 0, 0, 0, 8, 0}, {0, 0, 0, 0, 0, 0, 4, 0}, {0, 0, 0, 0, 0, 0, 12, 0}, {0, 0, 0, 0, 0, 0, 8, 0}, {0, 0, 0, 0, 0, 0, 4, 0}});", 4)
+    
     gen.write_line("")
 
     # Battle Models

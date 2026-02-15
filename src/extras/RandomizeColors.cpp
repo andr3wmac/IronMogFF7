@@ -15,6 +15,9 @@ REGISTER_EXTRA(RandomizeColors, "Randomize Colors", "Playable characters’ clothi
 // Give each model 16 colors each to future proof against later changes
 #define COLORS_PER_MODEL 16
 
+#define MOTORBIKE_LOAD 0xB4218
+#define SNOWBOARD_LOAD 0x62F44
+
 void RandomizeColors::setup()
 {
     BIND_EVENT(game->onStart, RandomizeColors::onStart);
@@ -48,7 +51,7 @@ void RandomizeColors::onDebugGUI()
         }
         else 
         {
-            modelEditor.findFieldModels();
+            modelEditor.openFieldModels();
             applyColors();
         }
     }
@@ -199,7 +202,7 @@ void RandomizeColors::onStart()
 
 void RandomizeColors::onFieldChanged(uint16_t fieldID)
 {
-    modelEditor.findFieldModels();
+    modelEditor.openFieldModels();
     applyColors();
     appliedHackFix = false;
 }
@@ -211,15 +214,23 @@ void RandomizeColors::onBattleEnter()
 
 void RandomizeColors::onWorldMapEnter()
 {
-    modelEditor.findFieldModels();
+    modelEditor.openFieldModels();
     applyColors();
 }
 
 void RandomizeColors::onModuleChanged(uint8_t newModule)
 {
+    if (newModule == GameModule::Motorbike)
+    {
+        LOG("Entered motorbike mini-game.");
+        lastMotorbikeLoadValue = game->read<uint16_t>(MOTORBIKE_LOAD);
+        waitingForMotorbike = true;
+    }
+
     if (newModule == GameModule::Snowboarding1 || newModule == GameModule::Snowboarding2)
     {
-        LOG("Entered snowboarding..");
+        LOG("Entered snowboarding mini-game.");
+        lastSnowboardLoadValue = game->read<uint16_t>(SNOWBOARD_LOAD);
         waitingForSnowboarding = true;
     }
 }
@@ -235,7 +246,7 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
         // Hack fix for Tifa and Cloud scene before northern crater
         if (game->getFieldID() == 771 && game->getGameMoment() == 1612 && screenFade > 1 && screenFade < 120)
         {
-            modelEditor.findFieldModels();
+            modelEditor.openFieldModels();
             applyColors();
             appliedHackFix = true;
         }
@@ -266,11 +277,24 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
         }
     }
 
+    if (gameModule == GameModule::Motorbike && waitingForMotorbike)
+    {
+        uint16_t loadValue = game->read<uint16_t>(MOTORBIKE_LOAD);
+        bool isScreenReady = (lastMotorbikeLoadValue == 0 && loadValue > 0);
+        lastMotorbikeLoadValue = loadValue;
+
+        if (isScreenReady && modelEditor.openFieldModel(0x1C03C4, "CLOUD_BIKE_GAME"))
+        {
+            applyColors();
+            waitingForMotorbike = false;
+        }
+    }
+
     if ((gameModule == GameModule::Snowboarding1 || gameModule == GameModule::Snowboarding2) && waitingForSnowboarding)
     {
         // This value jumps to > 256 and then steadily decreases during the intro to snowboarding. 
         // We use this as a trigger to know when its safe to start checking the models.
-        uint16_t loadValue = game->read<uint16_t>(0x62F44);
+        uint16_t loadValue = game->read<uint16_t>(SNOWBOARD_LOAD);
         bool isScreenReady = (lastSnowboardLoadValue > 0 && loadValue < lastSnowboardLoadValue);
         lastSnowboardLoadValue = loadValue;
 
@@ -291,6 +315,7 @@ void RandomizeColors::applyColors()
 
     uint8_t gameModule = game->getGameModule();
 
+    // Field/World
     if (gameModule == GameModule::Field || gameModule == GameModule::World)
     {
         std::vector<ModelEditor::ModelEditorModel> openModels = modelEditor.getOpenModels();
@@ -611,6 +636,19 @@ void RandomizeColors::applyColors()
                 modelEditor.tintPolyRange(i, 15, dressColor, 5, 22);
             }
 
+            if (modelName == "CLOUD_BIKE")
+            {
+                const std::vector<Utilities::Color>& randomColors = randomModelColors["CLOUD"];
+                const Utilities::Color& outfitColor = randomColors[0];
+
+                modelEditor.tintPart(i, 0, outfitColor);
+                modelEditor.tintPart(i, 1, outfitColor);
+                modelEditor.tintPart(i, 13, outfitColor);
+                modelEditor.tintPart(i, 14, outfitColor);
+                modelEditor.tintPart(i, 16, outfitColor);
+                modelEditor.tintPart(i, 17, outfitColor);
+            }
+
             if (modelName == "CLOUD_SWORD")
             {
                 const std::vector<Utilities::Color>& randomColors = randomModelColors["CLOUD"];
@@ -640,6 +678,7 @@ void RandomizeColors::applyColors()
         }
     }
 
+    // Battle
     if (gameModule == GameModule::Battle)
     {
         std::vector<ModelEditor::ModelEditorModel> openModels = modelEditor.getOpenModels();
@@ -873,6 +912,30 @@ void RandomizeColors::applyColors()
         }
     }
 
+    // Motorbike Game
+    if (gameModule == GameModule::Motorbike)
+    {
+        std::vector<ModelEditor::ModelEditorModel> openModels = modelEditor.getOpenModels();
+        for (int i = 0; i < openModels.size(); ++i)
+        {
+            const std::string& modelName = openModels[i].modelName;
+
+            if (modelName == "CLOUD_BIKE_GAME")
+            {
+                const std::vector<Utilities::Color>& randomColors = randomModelColors["CLOUD"];
+                const Utilities::Color& outfitColor = randomColors[0];
+
+                modelEditor.tintPart(i, 0, outfitColor);
+                modelEditor.tintPart(i, 1, outfitColor);
+                modelEditor.tintPart(i, 13, outfitColor);
+                modelEditor.tintPart(i, 14, outfitColor);
+                modelEditor.tintPart(i, 16, outfitColor);
+                modelEditor.tintPart(i, 17, outfitColor);
+            }
+        }
+    }
+
+    // Snowboarding
     if (gameModule == GameModule::Snowboarding1 || gameModule == GameModule::Snowboarding2)
     {
         std::vector<ModelEditor::ModelEditorModel> openModels = modelEditor.getOpenModels();

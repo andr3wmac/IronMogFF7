@@ -32,7 +32,12 @@ void ModelEditor::clear()
     openModels.clear();
 }
 
-void ModelEditor::findFieldModels()
+std::vector<ModelEditor::ModelEditorModel>& ModelEditor::getOpenModels()
+{
+    return openModels;
+}
+
+void ModelEditor::openFieldModels()
 {
     openModels.clear();
 
@@ -52,6 +57,15 @@ void ModelEditor::findFieldModels()
     {
         uint32_t data0 = buffer[i];
         uint8_t cmd0 = (data0 >> 24) & 0xFF;
+
+        // polygon, mono, quad, textured
+        if (cmd0 == 0x2C)
+        {
+            if (polygonCount == 0) startPolyIndex = i;
+            i += 10;
+            polygonCount++;
+            continue;
+        }
 
         // polygon, gouraud, quad, textured
         if (cmd0 == 0x3C)
@@ -147,12 +161,11 @@ void ModelEditor::findFieldModels()
     }
 }
 
-void ModelEditor::openBattleModels()
+bool ModelEditor::openFieldModel(uintptr_t address, std::string name)
 {
     openModels.clear();
 
-    bufferAddress = BattleOffsets::AllyModels[0];
-    //bufferSize = 184320; // Each ally model gets 61440 bytes
+    bufferAddress = address;
     size_t uintCount = bufferSize / 4;
     if (buffer == nullptr)
     {
@@ -160,61 +173,26 @@ void ModelEditor::openBattleModels()
     }
 
     game->read(bufferAddress, bufferSize, (uint8_t*)buffer);
-    int bufferIdx = 0;
 
-    // Special handling of HICLOUD in the final fight
-    uint16_t fieldID = game->getFieldID();
-    if (fieldID == 763)
+    for (Model& model : GameData::models)
     {
-        BattleModel* model = GameData::getBattleModel("HICLOUD");
-        if (model != nullptr)
+        if (model.name == name)
         {
-            if (openBattleModel(model->headerSizes[0] / 4, *model))
+            if (openFieldModel(0, model))
             {
-                DEBUG_LOG("Opened battle model: %s %d", model->name.c_str(), bufferAddress + (bufferIdx * 4));
+                DEBUG_LOG("Opened model: %s %d %d", model.name.c_str(), bufferAddress, model.polyCount);
+                return true;
             }
             else
             {
-                DEBUG_LOG("Failed to open battle model: %s", model->name.c_str());
+                DEBUG_LOG("Failed to open model: %s %d %d", model.name.c_str(), bufferAddress, model.polyCount);
             }
+
+            break;
         }
     }
 
-    std::array<uint8_t, 3> partyIDs = game->getPartyIDs();
-    for (int i = 0; i < partyIDs.size(); ++i)
-    {
-        uint8_t& id = partyIDs[i];
-        if (id == 0xFF)
-        {
-            continue;
-        }
-
-        BattleModel* model = GameData::getBattleModel(getCharacterName(id));
-        if (model == nullptr)
-        {
-            continue;
-        }
-
-        bool openedModel = false;
-        bufferIdx = (int)(BattleOffsets::AllyModels[i] - BattleOffsets::AllyModels[0]) / 4;
-
-        for (int headerSize : model->headerSizes)
-        {
-            int tmpBufferIdx = bufferIdx + (headerSize / 4);
-            if (openBattleModel(tmpBufferIdx, *model))
-            {
-                bufferIdx = tmpBufferIdx;
-                DEBUG_LOG("Opened battle model: %s %d", model->name.c_str(), bufferAddress + (bufferIdx * 4));
-                openedModel = true;
-                break;
-            }
-        }
-
-        if (!openedModel)
-        {
-            DEBUG_LOG("Failed to open battle model: %s", model->name.c_str());
-        }
-    }
+    return false;
 }
 
 bool ModelEditor::areBattleModelsLoaded()
@@ -302,9 +280,74 @@ bool ModelEditor::areBattleModelsLoaded()
     return true;
 }
 
-std::vector<ModelEditor::ModelEditorModel>& ModelEditor::getOpenModels()
+void ModelEditor::openBattleModels()
 {
-    return openModels;
+    openModels.clear();
+
+    bufferAddress = BattleOffsets::AllyModels[0];
+    //bufferSize = 184320; // Each ally model gets 61440 bytes
+    size_t uintCount = bufferSize / 4;
+    if (buffer == nullptr)
+    {
+        buffer = new uint32_t[uintCount];
+    }
+
+    game->read(bufferAddress, bufferSize, (uint8_t*)buffer);
+    int bufferIdx = 0;
+
+    // Special handling of HICLOUD in the final fight
+    uint16_t fieldID = game->getFieldID();
+    if (fieldID == 763)
+    {
+        BattleModel* model = GameData::getBattleModel("HICLOUD");
+        if (model != nullptr)
+        {
+            if (openBattleModel(model->headerSizes[0] / 4, *model))
+            {
+                DEBUG_LOG("Opened battle model: %s %d", model->name.c_str(), bufferAddress + (bufferIdx * 4));
+            }
+            else
+            {
+                DEBUG_LOG("Failed to open battle model: %s", model->name.c_str());
+            }
+        }
+    }
+
+    std::array<uint8_t, 3> partyIDs = game->getPartyIDs();
+    for (int i = 0; i < partyIDs.size(); ++i)
+    {
+        uint8_t& id = partyIDs[i];
+        if (id == 0xFF)
+        {
+            continue;
+        }
+
+        BattleModel* model = GameData::getBattleModel(getCharacterName(id));
+        if (model == nullptr)
+        {
+            continue;
+        }
+
+        bool openedModel = false;
+        bufferIdx = (int)(BattleOffsets::AllyModels[i] - BattleOffsets::AllyModels[0]) / 4;
+
+        for (int headerSize : model->headerSizes)
+        {
+            int tmpBufferIdx = bufferIdx + (headerSize / 4);
+            if (openBattleModel(tmpBufferIdx, *model))
+            {
+                bufferIdx = tmpBufferIdx;
+                DEBUG_LOG("Opened battle model: %s %d", model->name.c_str(), bufferAddress + (bufferIdx * 4));
+                openedModel = true;
+                break;
+            }
+        }
+
+        if (!openedModel)
+        {
+            DEBUG_LOG("Failed to open battle model: %s", model->name.c_str());
+        }
+    }
 }
 
 bool ModelEditor::openFieldModel(int bufferIdx, const Model& model)
@@ -345,6 +388,13 @@ bool ModelEditor::openFieldModel(int bufferIdx, const Model& model)
 
                 readPolys.push_back(poly);
                 curIdx += readSize;
+            }
+
+            for (int i = 0; i < part.quadMonoTex; ++i)
+            {
+                // TODO: for now theres no quad mono tex that we want to color
+                // but some day there might be one.
+                curIdx += 10;
             }
 
             for (int i = 0; i < part.triColor; ++i)
