@@ -30,7 +30,7 @@ private:
     bool waitingForBattle = false;
     bool appliedHackFix = false;
 
-    uint16_t lastMotorbikeLoadValue = 0;
+    uint8_t lastMotorbikeLoadValue = 0;
     bool waitingForMotorbike = false;
 
     uint8_t lastChocoboRacingValue = 0;

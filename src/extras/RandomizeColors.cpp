@@ -16,7 +16,7 @@ REGISTER_EXTRA(RandomizeColors, "Randomize Colors", "Playable characters’ clothi
 #define COLORS_PER_MODEL 16
 
 #define MOTORBIKE_LOAD 0xB4218
-#define CHOCOBO_LOAD 0x698E8
+#define CHOCOBO_LOAD 0x19A02C
 #define SNOWBOARD_LOAD 0x62F44
 
 void RandomizeColors::setup()
@@ -224,7 +224,7 @@ void RandomizeColors::onModuleChanged(uint8_t newModule)
     if (newModule == GameModule::Motorbike)
     {
         LOG("Entered motorbike mini-game.");
-        lastMotorbikeLoadValue = game->read<uint16_t>(MOTORBIKE_LOAD);
+        lastMotorbikeLoadValue = game->read<uint8_t>(MOTORBIKE_LOAD);
         waitingForMotorbike = true;
     }
 
@@ -287,7 +287,9 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
 
     if (gameModule == GameModule::Motorbike && waitingForMotorbike)
     {
-        uint16_t loadValue = game->read<uint16_t>(MOTORBIKE_LOAD);
+        // When the module first loads this value is zero, then it jumps to
+        // C8 once the screen gets revealed.
+        uint16_t loadValue = game->read<uint8_t>(MOTORBIKE_LOAD);
         bool isScreenReady = (lastMotorbikeLoadValue == 0 && loadValue > 0);
         lastMotorbikeLoadValue = loadValue;
 
@@ -300,8 +302,11 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
 
     if (gameModule == GameModule::ChocoboRacing && waitingForChocoboRace)
     {
+        // This value is set to zero when the module first loads, then seemingly
+        // once everything is loaded it flips to one. Very convenient for our use
+        // case but no idea what the value actually is.
         uint16_t loadValue = game->read<uint8_t>(CHOCOBO_LOAD);
-        bool isScreenReady = loadValue == 197;
+        bool isScreenReady = lastChocoboRacingValue == 0 && loadValue == 1;
         lastChocoboRacingValue = loadValue;
 
         if (isScreenReady && modelEditor.openFieldModel(0x1C5134, "CLOUD_CHOCOBO"))
