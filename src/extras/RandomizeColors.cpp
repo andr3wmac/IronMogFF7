@@ -16,6 +16,7 @@ REGISTER_EXTRA(RandomizeColors, "Randomize Colors", "Playable characters’ clothi
 #define COLORS_PER_MODEL 16
 
 #define MOTORBIKE_LOAD 0xB4218
+#define CHOCOBO_LOAD 0x698E8
 #define SNOWBOARD_LOAD 0x62F44
 
 void RandomizeColors::setup()
@@ -227,6 +228,13 @@ void RandomizeColors::onModuleChanged(uint8_t newModule)
         waitingForMotorbike = true;
     }
 
+    if (newModule == GameModule::ChocoboRacing)
+    {
+        LOG("Entered chocobo racing mini-game.");
+        lastChocoboRacingValue = game->read<uint8_t>(CHOCOBO_LOAD);
+        waitingForChocoboRace = true;
+    }
+
     if (newModule == GameModule::Snowboarding1 || newModule == GameModule::Snowboarding2)
     {
         LOG("Entered snowboarding mini-game.");
@@ -287,6 +295,19 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
         {
             applyColors();
             waitingForMotorbike = false;
+        }
+    }
+
+    if (gameModule == GameModule::ChocoboRacing && waitingForChocoboRace)
+    {
+        uint16_t loadValue = game->read<uint8_t>(CHOCOBO_LOAD);
+        bool isScreenReady = loadValue == 197;
+        lastChocoboRacingValue = loadValue;
+
+        if (isScreenReady && modelEditor.openFieldModel(0x1C5134, "CLOUD_CHOCOBO"))
+        {
+            applyColors();
+            waitingForChocoboRace = false;
         }
     }
 
@@ -931,6 +952,29 @@ void RandomizeColors::applyColors()
                 modelEditor.tintPart(i, 14, outfitColor);
                 modelEditor.tintPart(i, 16, outfitColor);
                 modelEditor.tintPart(i, 17, outfitColor);
+            }
+        }
+    }
+
+    // Chocobo Racing
+    if (gameModule == GameModule::ChocoboRacing)
+    {
+        std::vector<ModelEditor::ModelEditorModel> openModels = modelEditor.getOpenModels();
+        for (int i = 0; i < openModels.size(); ++i)
+        {
+            const std::string& modelName = openModels[i].modelName;
+
+            if (modelName == "CLOUD_CHOCOBO")
+            {
+                const std::vector<Utilities::Color>& randomColors = randomModelColors["CLOUD"];
+                const Utilities::Color& outfitColor = randomColors[0];
+
+                modelEditor.tintPart(i, 0, outfitColor);
+                modelEditor.tintPart(i, 1, outfitColor);
+                modelEditor.tintPart(i, 7, outfitColor);
+                modelEditor.tintPart(i, 8, outfitColor);
+                modelEditor.tintPart(i, 10, outfitColor);
+                modelEditor.tintPart(i, 11, outfitColor);
             }
         }
     }

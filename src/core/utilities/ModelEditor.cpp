@@ -840,7 +840,7 @@ bool ModelEditor::isTMDLoaded(uintptr_t address)
 
     int validModeChecks = 0;
 
-    for (int i = 0; i < objectCount; ++i)
+    for (uint32_t i = 0; i < objectCount; ++i)
     {
         uintptr_t objAddr = offset + (i * 28);
         uint32_t pPrims = game->read<uint32_t>(address + objAddr + 16);
@@ -886,13 +886,13 @@ bool ModelEditor::openTMD(uintptr_t address, std::string name)
     editorModel.modelName = name;
     editorModel.parts.reserve(objectCount);
 
-    for (int i = 0; i < objectCount; ++i)
+    for (uint32_t i = 0; i < objectCount; ++i)
     {
         ModelEditorPart& editorPart = editorModel.parts.emplace_back();
 
         uint32_t pPrims = tmdUInts[3 + (i * 7) + 4];
         uint32_t nPrims = tmdUInts[3 + (i * 7) + 5];
-        uint32_t polyAddr = (pPrims & 0x00FFFFFF) - address;
+        uintptr_t polyAddr = (pPrims & 0x00FFFFFF) - address;
         editorPart.polys.reserve(nPrims);
 
         for (uint32_t j = 0; j < nPrims; ++j)

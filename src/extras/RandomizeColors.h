@@ -33,6 +33,9 @@ private:
     uint16_t lastMotorbikeLoadValue = 0;
     bool waitingForMotorbike = false;
 
+    uint8_t lastChocoboRacingValue = 0;
+    bool waitingForChocoboRace = false;
+
     uint16_t lastSnowboardLoadValue = 0;
     bool waitingForSnowboarding = false;
 
