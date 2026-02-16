@@ -78,6 +78,9 @@ struct FieldScriptOffsets
     CONST_PTR TriggersStart = 0x114FF6;
     CONST_PTR ScriptStart   = 0x115000;
 
+    CONST_PTR ModelCount    = 0x138250; // uint8_t number of field models
+    CONST_PTR ModelPointers = 0x13827C; // 36 byte stride, contains PS1 formatted pointers to each of the models draw buffers.
+
     CONST_PTR EncounterStart       = 0x114FE4;
     CONST_PTR EncounterTableStride = 24;
 

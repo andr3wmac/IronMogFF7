@@ -18,13 +18,6 @@
 class App
 {
 public:
-    enum class Panels : uint8_t
-    {
-        Settings    = 0,
-        Tracker     = 1,
-        Debug       = 2
-    };
-
     enum class EmulatorType : uint8_t
     {
         DuckStation = 0,
@@ -47,9 +40,8 @@ public:
     void saveSettings(const std::string& filePath, bool saveSeed = false);
 
     void draw();
-    void drawSettingsPanel();
+    void drawSetupPanel();
     void drawTrackerPanel();
-    void drawBottomPanel();
     void drawDebugPanel();
 
     void connect();
@@ -62,7 +54,7 @@ protected:
     GUIImage logo;
     std::vector<GUIImage> characterPortraits;
     GUIImage deadIcon;
-    Panels currentPanel = Panels::Settings;
+    bool showDebugTab = false;
 
     GameManager* game = nullptr;
     std::thread* managerThread = nullptr;

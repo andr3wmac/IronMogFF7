@@ -353,16 +353,18 @@ void ModelEditor::openBattleModels()
 bool ModelEditor::openFieldModel(int bufferIdx, const Model& model)
 {
     std::vector<ModelEditorPart> pendingParts;
+    pendingParts.reserve(model.parts.size());
 
     int curIdx = bufferIdx;
     for (const ModelPart& part : model.parts)
     {
-        ModelEditorPart editorPart;
+        ModelEditorPart& editorPart = pendingParts.emplace_back();
 
         // Model parts are double buffered
         for (int bufferCopy = 0; bufferCopy < 2; ++bufferCopy)
         {
             std::vector<ModelEditorPoly> readPolys;
+            readPolys.reserve(32);
 
             for (int i = 0; i < part.quadColorTex; ++i)
             {
@@ -436,8 +438,6 @@ bool ModelEditor::openFieldModel(int bufferIdx, const Model& model)
                 }
             }
         }
-
-        pendingParts.push_back(editorPart);
     }
 
     ModelEditorModel& editorModel = openModels.emplace_back();
@@ -752,6 +752,7 @@ int ModelEditor::readPoly(int bufferIdx, ModelEditorPoly& polyOut)
 
     polyOut.textured = textured_flag == 1;
     polyOut.vertexStride = 8 + (textured_flag * 4);
+    polyOut.vertexCount = 0;
 
     // Vert0 XXXXYYYY
     Utilities::Color vert0;

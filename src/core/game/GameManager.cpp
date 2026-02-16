@@ -5,6 +5,7 @@
 #include "core/utilities/Logging.h"
 #include "core/utilities/Utilities.h"
 #include "extras/Extra.h"
+#include "rules/RandomizeShops.h"
 #include "rules/Rule.h"
 
 #include <thread>
@@ -141,6 +142,17 @@ std::string GameManager::getSettingsSummary()
         {
             groups[ruleName] = {};
             continue;
+        }
+
+        // Special case: disabling shops
+        if (ruleName == "Randomize Shops")
+        {
+            RandomizeShops* randoShops = (RandomizeShops*)rule;
+            if (randoShops->areShopsDisabled())
+            {
+                groups["No"].push_back("shops");
+                continue;
+            }
         }
 
         std::string prefix = ruleName.substr(0, spacePos);

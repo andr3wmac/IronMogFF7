@@ -182,7 +182,6 @@ void App::runGameManager()
         {
             Platform::sleep(1.0);
         }
-        
     }
     managerRunning = false;
 }
@@ -298,14 +297,7 @@ void App::onKeyPress(int key, int mods)
     // Ctrl + D
     if (key == 68 && (mods & 2))
     {
-        if (currentPanel == Panels::Settings || currentPanel == Panels::Tracker)
-        {
-            currentPanel = Panels::Debug;
-        }
-        else if (currentPanel == Panels::Debug)
-        {
-            currentPanel = Panels::Settings;
-        }
+        showDebugTab = true;
     }
 }
 

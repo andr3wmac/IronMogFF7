@@ -27,21 +27,33 @@ void App::draw()
         return;
     }
 
+#if _DEBUG
+    showDebugTab = true;
+#endif
+
     ImGui::Begin("IronMogFF7", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize);
     {
-        switch (currentPanel)
+        if (ImGui::BeginTabBar("##tabBar"))
         {
-            case Panels::Settings:
-                drawSettingsPanel();
-                break;
-
-            case Panels::Tracker:
+            if (ImGui::BeginTabItem("Setup"))
+            {
+                drawSetupPanel();
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Tracker"))
+            {
                 drawTrackerPanel();
-                break;
-
-            case Panels::Debug:
-                drawDebugPanel();
-                break;
+                ImGui::EndTabItem();
+            }
+            if (showDebugTab)
+            {
+                if (ImGui::BeginTabItem("Debug"))
+                {
+                    drawDebugPanel();
+                    ImGui::EndTabItem();
+                }
+            }
+            ImGui::EndTabBar();
         }
     }
     ImGui::End();
@@ -49,7 +61,7 @@ void App::draw()
     gui.endFrame();
 }
 
-void App::drawSettingsPanel()
+void App::drawSetupPanel()
 {
     GUI::drawImage(logo, DPI(logo.width / 2), DPI(logo.height / 2));
 
@@ -75,7 +87,7 @@ void App::drawSettingsPanel()
     }
 
     ImGui::Spacing();
-    ImGui::BeginChild("##ScrollBox", ImVec2(0, (float)(gui.windowHeight - DPI(212))));
+    ImGui::BeginChild("##ScrollBox", ImVec2(0, (float)(gui.windowHeight - DPI(235))));
     ImGui::BeginDisabled(lockSettings);
     {
         ImGui::SeparatorText("Game");
@@ -254,7 +266,46 @@ void App::drawSettingsPanel()
     ImGui::EndChild();
     ImGui::Spacing();
 
-    drawBottomPanel();
+    // Draw bottom panel
+    {
+        const ImVec2 p = ImGui::GetCursorScreenPos();
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+        if (connectionState == ConnectionState::NotConnected || connectionState == ConnectionState::Error)
+        {
+            drawList->AddCircleFilled(ImVec2(p.x + DPI(135.0f), p.y + DPI(10.0f)), DPI(5.0f), dotRed);
+        }
+        if (connectionState == ConnectionState::Connecting)
+        {
+            drawList->AddCircleFilled(ImVec2(p.x + DPI(135.0f), p.y + DPI(10.0f)), DPI(5.0f), dotYellow);
+        }
+        if (connectionState == ConnectionState::Connected)
+        {
+            drawList->AddCircleFilled(ImVec2(p.x + DPI(135.0f), p.y + DPI(10.0f)), DPI(5.0f), dotGreen);
+        }
+
+        if (connectionState == ConnectionState::NotConnected || connectionState == ConnectionState::Error)
+        {
+            if (ImGui::Button("Connect", ImVec2(DPI(120.0f), 0.0f)))
+            {
+                connect();
+            }
+        }
+        else
+        {
+            ImGui::BeginDisabled(connectionState == ConnectionState::Connecting);
+            if (ImGui::Button("Disconnect", ImVec2(DPI(120.0f), 0.0f)))
+            {
+                disconnect();
+            }
+            ImGui::EndDisabled();
+        }
+
+        ImGui::SameLine();
+        ImGui::Indent(DPI(150.0f));
+        ImGui::Text(connectionStatus.c_str());
+        ImGui::Unindent(DPI(150.0f));
+    }
 }
 
 void App::drawTrackerPanel()
@@ -332,74 +383,15 @@ void App::drawTrackerPanel()
 
             ImGui::Unindent(DPI(10.0f));
         }
+        else 
+        {
+            GUI::textCentered("No connection.", gui.windowWidth);
+        }
     }
     ImGui::EndChild();
     ImGui::Spacing();
 
     gui.popFont();
-    drawBottomPanel();
-}
-
-void App::drawBottomPanel()
-{
-    const ImVec2 p = ImGui::GetCursorScreenPos();
-    ImDrawList* drawList = ImGui::GetWindowDrawList();
-
-    if (connectionState == ConnectionState::NotConnected || connectionState == ConnectionState::Error)
-    {
-        drawList->AddCircleFilled(ImVec2(p.x + DPI(135.0f), p.y + DPI(10.0f)), DPI(5.0f), dotRed);
-    }
-    if (connectionState == ConnectionState::Connecting)
-    {
-        drawList->AddCircleFilled(ImVec2(p.x + DPI(135.0f), p.y + DPI(10.0f)), DPI(5.0f), dotYellow);
-    }
-    if (connectionState == ConnectionState::Connected)
-    {
-        drawList->AddCircleFilled(ImVec2(p.x + DPI(135.0f), p.y + DPI(10.0f)), DPI(5.0f), dotGreen);
-    }
-
-    if (connectionState == ConnectionState::NotConnected || connectionState == ConnectionState::Error)
-    {
-        if (ImGui::Button("Connect", ImVec2(DPI(120.0f), 0.0f)))
-        {
-            connect();
-        }
-    }
-    else
-    {
-        ImGui::BeginDisabled(connectionState == ConnectionState::Connecting);
-        if (ImGui::Button("Disconnect", ImVec2(DPI(120.0f), 0.0f)))
-        {
-            disconnect();
-        }
-        ImGui::EndDisabled();
-    }
-
-    ImGui::SameLine();
-    ImGui::Indent(DPI(150.0f));
-    ImGui::Text(connectionStatus.c_str());
-
-    ImGui::SameLine();
-    ImGui::Indent(DPI(210.0f));
-
-    if (currentPanel == Panels::Settings)
-    {
-        ImGui::BeginDisabled(connectionState != ConnectionState::Connected);
-        if (ImGui::Button("Tracker", ImVec2(DPI(120.0f), 0.0f)))
-        {
-            currentPanel = Panels::Tracker;
-        }
-        ImGui::EndDisabled();
-    }
-    else if (currentPanel == Panels::Tracker)
-    {
-        if (ImGui::Button("Settings", ImVec2(DPI(120.0f), 0.0f)))
-        {
-            currentPanel = Panels::Settings;
-        }
-    }
-
-    ImGui::Unindent(DPI(150.0f));
 }
 
 void App::drawDebugPanel()
@@ -696,6 +688,26 @@ void App::drawDebugPanel()
                 LOG("Cheats: added materia %d to inventory", addMateriaID);
                 break;
             }
+        }
+
+        ImGui::Unindent(25.0f);
+    }
+
+    if (ImGui::CollapsingHeader("Field Models"))
+    {
+        ImGui::Indent(25.0f);
+
+        uint8_t fieldModelCount = game->read<uint8_t>(0x138250);
+        for (int i = 0; i < fieldModelCount; ++i)
+        {
+            uint8_t checkVal = game->read<uint8_t>(0x13825C);
+            uintptr_t ps1PointerA = game->read<uint32_t>(0x13825C + (i * 36) + 28);
+            uintptr_t ps1PointerB = game->read<uint32_t>(0x13825C + (i * 36) + 32);
+            uintptr_t offsetA = ps1PointerA & 0x00FFFFFF;
+            uintptr_t offsetB = ps1PointerB & 0x00FFFFFF;
+            
+            std::string offsetText = std::to_string(i) + ": " + std::to_string(checkVal) + " - " + std::to_string(offsetA) + " " + std::to_string(offsetB);
+            ImGui::Text(offsetText.c_str());
         }
 
         ImGui::Unindent(25.0f);

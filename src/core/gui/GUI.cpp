@@ -504,3 +504,18 @@ void GUI::wrappedTooltip(const std::string& text, float maxWidth)
         ImGui::EndTooltip();
     }
 }
+
+void GUI::textCentered(const std::string& text, int width)
+{
+    auto windowWidth = width;
+    auto textWidth = ImGui::CalcTextSize(text.c_str()).x;
+
+    // Calculate the starting X position
+    float cursorX = (windowWidth - textWidth) * 0.5f;
+    if (cursorX > 0) 
+    {
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + cursorX);
+    }
+
+    ImGui::Text(text.c_str());
+}

@@ -30,6 +30,8 @@ public:
     bool hasDebugGUI() override { return true; }
     void onDebugGUI() override;
 
+    bool areShopsDisabled() { return disableShops; }
+
 private:
     void onStart();
     void generateRandomizedShops();
