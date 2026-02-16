@@ -289,7 +289,7 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
     {
         // When the module first loads this value is zero, then it jumps to
         // C8 once the screen gets revealed.
-        uint16_t loadValue = game->read<uint8_t>(MOTORBIKE_LOAD);
+        uint8_t loadValue = game->read<uint8_t>(MOTORBIKE_LOAD);
         bool isScreenReady = (lastMotorbikeLoadValue == 0 && loadValue > 0);
         lastMotorbikeLoadValue = loadValue;
 
@@ -305,7 +305,7 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
         // This value is set to zero when the module first loads, then seemingly
         // once everything is loaded it flips to one. Very convenient for our use
         // case but no idea what the value actually is.
-        uint16_t loadValue = game->read<uint8_t>(CHOCOBO_LOAD);
+        uint8_t loadValue = game->read<uint8_t>(CHOCOBO_LOAD);
         bool isScreenReady = lastChocoboRacingValue == 0 && loadValue == 1;
         lastChocoboRacingValue = loadValue;
 

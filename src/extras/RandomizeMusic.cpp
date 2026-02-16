@@ -356,6 +356,7 @@ Track RandomizeMusic::loadTrack(std::string path)
     track.loopStart = cfg.get<uint64_t>("LoopStart", 0);
     track.loopEnd   = cfg.get<uint64_t>("LoopEnd", UINT64_MAX);
     track.playOnce  = cfg.get<bool>("PlayOnce", false);
+    track.noFade    = cfg.get<bool>("NoFade", false);
 
     return track;
 }
@@ -376,7 +377,8 @@ void RandomizeMusic::addUniqueTrack(const Track& newTrack)
             track.start == newTrack.start &&
             track.loopStart == newTrack.loopStart &&
             track.loopEnd == newTrack.loopEnd &&
-            track.playOnce == newTrack.playOnce)
+            track.playOnce == newTrack.playOnce &&
+            track.noFade == newTrack.noFade)
         {
             isDuplicate = true;
             break;
@@ -437,6 +439,6 @@ void RandomizeMusic::play(const Track& track)
     currentSong = p.stem().string();
 
     overrideMusic = true;
-    AudioManager::playMusic(track.path, track.start, track.loopStart, track.loopEnd, track.playOnce);
+    AudioManager::playMusic(track.path, track.start, track.loopStart, track.loopEnd, track.playOnce, track.noFade);
     LOG("Playing: %s", track.path.c_str());
 }

@@ -1,3 +1,4 @@
 ffmpeg-normalize
 mutagen
 requests
+pymusiclooper

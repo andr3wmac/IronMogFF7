@@ -9,12 +9,13 @@ from mutagen.easyid3 import EasyID3
 from pathlib import Path
 from urllib.parse import unquote
 
-download_music   = True
+download_music   = False
 create_folders   = True
-unzip_sources    = True
-delete_unwanted  = True
-rename_files     = True
-normalize_volume = True
+unzip_sources    = False
+delete_unwanted  = False
+rename_files     = False
+normalize_volume = False
+find_loops       = False
 populate_music   = True
 
 def deleteFile(path):
@@ -166,7 +167,6 @@ if rename_files:
     renameToTitles("workspace/FF9/", "FF9")
 
 def batch_normalize_folder(input_dir, output_dir, target_lufs=-14):
-    # Get all mp3 files
     files = glob.glob(f"{input_dir}/*.mp3")
     
     command = [
@@ -188,6 +188,49 @@ if normalize_volume:
     batch_normalize_folder("workspace/FF7/", "workspace/FF7_Normalized/")
     batch_normalize_folder("workspace/FF8/", "workspace/FF8_Normalized/")
     batch_normalize_folder("workspace/FF9/", "workspace/FF9_Normalized/")
+
+def get_loop_points(file_path):
+    cmd = ["pymusiclooper", "export-points", "--path", file_path]
+    
+    try:
+        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
+        output = result.stdout
+        
+        loop_start = None
+        loop_end = None
+        
+        for line in output.splitlines():
+            if "LOOP_START:" in line:
+                loop_start = int(line.split(":")[1].strip())
+            elif "LOOP_END:" in line:
+                loop_end = int(line.split(":")[1].strip())
+        
+        return loop_start, loop_end
+
+    except subprocess.CalledProcessError as e:
+        print(f"Error processing {file_path}: {e}")
+        return None, None
+    
+def batch_loop_folder(input_dir):
+    files = glob.glob(f"{input_dir}/*.mp3")
+
+    for file in files:
+        loop_start, loop_end = get_loop_points(file)
+
+        if loop_start and loop_end:
+            print(str(file) + ": " + str(loop_start) + " - " + str(loop_end))
+            cfg_path = file.replace(".mp3", ".cfg")
+
+            with open(cfg_path, "w") as f:
+                f.write("LoopStart=" + str(loop_start) + "\n")
+                f.write("LoopEnd=" + str(loop_end) + "\n")
+
+if find_loops:
+    print("Finding loops..")
+    batch_loop_folder("workspace/FF6_Normalized/")
+    batch_loop_folder("workspace/FF7_Normalized/")
+    batch_loop_folder("workspace/FF8_Normalized/")
+    batch_loop_folder("workspace/FF9_Normalized/")
 
 if populate_music:
     print("Populating music folder..")
@@ -304,6 +347,8 @@ if populate_music:
             cfg_path = "configs/" + folder + "/" + cfg_file
             if not os.path.exists(cfg_path):
                 cfg_path = "configs/" + cfg_file
+            if not os.path.exists(cfg_path):
+                cfg_path = src.replace(".mp3", ".cfg")
 
             if os.path.exists(cfg_path):
                 cfg_dst = target_path + cfg_file

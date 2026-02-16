@@ -14,6 +14,7 @@ struct Track
     uint64_t loopEnd = UINT64_MAX;
 
     bool playOnce = false;
+    bool noFade = false;
 };
 
 class RandomizeMusic : public Extra
