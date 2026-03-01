@@ -293,8 +293,16 @@ void RandomizeMusic::scanMusicFolder()
         return;
     }
 
-    for (const std::string& name : MusicList)
+    for (const auto& musicEntry : fs::directory_iterator(basePath)) 
     {
+        if (!musicEntry.is_directory())
+        {
+            continue;
+        }
+
+        const std::string& name = musicEntry.path().filename().string();
+
+        // This is to prevent someone from overriding silence.
         if (name == "none" || name == "nothing")
         {
             continue;
@@ -393,7 +401,7 @@ void RandomizeMusic::addUniqueTrack(const Track& newTrack)
 
 bool RandomizeMusic::randomizeMusic(uint16_t musicID)
 {
-    if (musicID >= MusicList.size() || musicMap.count(MusicList[musicID]) == 0)
+    if (musicID >= MusicList.size())
     {
         return false;
     }
@@ -402,8 +410,20 @@ bool RandomizeMusic::randomizeMusic(uint16_t musicID)
 
     if (useCuratedMusic)
     {
-        // Get available tracks for this music ID
-        std::vector<Track> tracks = musicMap[MusicList[musicID]];
+        std::vector<Track> tracks;
+        uint8_t gameModule = game->getGameModule();
+
+        // Special cases
+        if (musicMap.count("snowboarding") > 0 && (gameModule == GameModule::Snowboarding1 || gameModule == GameModule::Snowboarding2))
+        {
+            tracks = musicMap["snowboarding"];
+        }
+        else if (musicMap.count(MusicList[musicID]) > 0)
+        {
+            tracks = musicMap[MusicList[musicID]];
+        }
+
+        // Exit if we haven't found any candidates to play.
         if (tracks.size() == 0)
         {
             return false;
