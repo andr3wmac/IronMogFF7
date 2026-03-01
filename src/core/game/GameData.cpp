@@ -130,8 +130,8 @@ uint16_t GameData::getRandomItemOfType(std::mt19937_64& rng, ItemType type, bool
 
     if (candidates.empty())
     {
-        LOG("No item selected from getRandomItem.");
-        return 0;
+        DEBUG_LOG("No item selected from getRandomItem for type: %d", (uint8_t)type);
+        return UINT16_MAX;
     }
 
     std::uniform_int_distribution<size_t> dist(0, candidates.size() - 1);
@@ -148,21 +148,28 @@ uint16_t GameData::getRandomItemSameType(uint16_t origItemID, std::mt19937_64& r
         288 + X = Accessories
     */
 
+    uint16_t randomItemID = UINT16_MAX;
+
     if (origItemID < 128)
     {
-        return getRandomItemOfType(rng, ItemType::Normal, excludeBanned, excludeRare, excludeSet);
+        randomItemID = getRandomItemOfType(rng, ItemType::Normal, excludeBanned, excludeRare, excludeSet);
     }
     else if (origItemID < 256)
     {
-        return getRandomItemOfType(rng, ItemType::Weapon, excludeBanned, excludeRare, excludeSet);
+        randomItemID = getRandomItemOfType(rng, ItemType::Weapon, excludeBanned, excludeRare, excludeSet);
     }
     else if (origItemID < 288)
     {
-        return getRandomItemOfType(rng, ItemType::Armor, excludeBanned, excludeRare, excludeSet);
+        randomItemID = getRandomItemOfType(rng, ItemType::Armor, excludeBanned, excludeRare, excludeSet);
     }
     else
     {
-        return getRandomItemOfType(rng, ItemType::Accessory, excludeBanned, excludeRare, excludeSet);
+        randomItemID = getRandomItemOfType(rng, ItemType::Accessory, excludeBanned, excludeRare, excludeSet);
+    }
+
+    if (randomItemID != UINT16_MAX)
+    {
+        return randomItemID;
     }
 
     return origItemID;
@@ -188,7 +195,7 @@ uint16_t GameData::getRandomMateria(std::mt19937_64& rng, bool excludeBanned, bo
     if (candidates.empty())
     {
         LOG("No materia selected from getRandomMateria.");
-        return 0;
+        return UINT16_MAX;
     }
 
     std::uniform_int_distribution<size_t> dist(0, candidates.size() - 1);

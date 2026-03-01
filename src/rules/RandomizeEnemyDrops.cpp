@@ -66,9 +66,7 @@ void RandomizeEnemyDrops::saveSettings(ConfigFile& cfg)
 
 void RandomizeEnemyDrops::onDebugGUI()
 {
-    std::pair<BattleScene*, BattleFormation*> battleData = game->getBattleFormation();
-    BattleScene* scene = battleData.first;
-    BattleFormation* formation = battleData.second;
+    const auto& [scene, formation] = game->getBattleFormation();
 
     if (scene == nullptr || formation == nullptr)
     {
@@ -112,9 +110,7 @@ void RandomizeEnemyDrops::onBattleEnter()
     uint16_t fieldID = game->getFieldID();
     uint16_t formationID = game->read<uint16_t>(BattleOffsets::FormationID);
 
-    std::pair<BattleScene*, BattleFormation*> battleData = game->getBattleFormation();
-    BattleScene* scene = battleData.first;
-    BattleFormation* formation = battleData.second;
+    const auto& [scene, formation] = game->getBattleFormation();
 
     std::set<int> activeEnemyIDs;
     for (int i = 0; i < 6; ++i)

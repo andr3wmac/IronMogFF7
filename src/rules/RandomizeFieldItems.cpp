@@ -239,7 +239,15 @@ void RandomizeFieldItems::apply()
         if (Restrictions::isItemBanned(newItem.id))
         {
             std::mt19937_64 rng64(Utilities::makeSeed64(game->getSeed(), fieldData.id, i));
-            newItem.id = GameData::getRandomItemSameType(newItem.id, rng64);
+            uint16_t randItemID = GameData::getRandomItemSameType(newItem.id, rng64);
+            
+            // If this item is banned and we rolled the same one we skip changing this item.
+            if (randItemID == newItem.id)
+            {
+                continue;
+            }
+
+            newItem.id = randItemID;
         }
 
         game->write<uint16_t>(itemIDOffset, newItem.id);
@@ -295,7 +303,15 @@ void RandomizeFieldItems::apply()
         if (Restrictions::isMateriaBanned((uint8_t)newMateria.id))
         {
             std::mt19937_64 rng64(Utilities::makeSeed64(game->getSeed(), fieldData.id, (uint8_t)newMateria.id));
-            newMateria.id = GameData::getRandomMateria(rng64);
+            uint16_t randMateriaID = GameData::getRandomMateria(rng64);
+
+            // This will only happen if all materia are banned.
+            if (randMateriaID == UINT16_MAX)
+            {
+                continue;
+            }
+
+            newMateria.id = randMateriaID;
         }
 
         game->write<uint8_t>(idOffset, (uint8_t)newMateria.id);
@@ -319,12 +335,6 @@ void RandomizeFieldItems::overwriteMessage(const FieldData& fieldData, const Fie
 {
     // Overwrite the popup message
     int msgIndex = game->findPickUpMessage(oldName, oldItem.group, oldItem.script, oldItem.offset);
-
-    // Counter Attack is shortened to "Counter" in field pick up messages.
-    if (msgIndex == -1 && oldName == "Counter Attack")
-    {
-        msgIndex = game->findPickUpMessage("Counter", oldItem.group, oldItem.script, oldItem.offset);
-    }
 
     if (msgIndex >= 0)
     {

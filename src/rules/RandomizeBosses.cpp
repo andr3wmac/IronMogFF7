@@ -149,9 +149,7 @@ std::string buildElementsString(uint64_t elementTypes, uint64_t elementRates, st
 
 void RandomizeBosses::onDebugGUI()
 {
-    std::pair<BattleScene*, BattleFormation*> battleData = game->getBattleFormation();
-    BattleScene* scene = battleData.first;
-    BattleFormation* formation = battleData.second;
+    const auto& [scene, formation] = game->getBattleFormation();
 
     if (scene == nullptr || formation == nullptr)
     {

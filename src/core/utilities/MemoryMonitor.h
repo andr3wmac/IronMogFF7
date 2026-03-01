@@ -22,7 +22,7 @@ public:
         monitorFunc   = newMonitorFunc;
 
         firstUpdate = true;
-        BIND_EVENT(gameManager->onUpdate, MemoryMonitor::onUpdate);
+        BIND_EVENT_ONE_ARG(gameManager->onUpdate, MemoryMonitor::onUpdate);
     }
 
     ~MemoryMonitor()
@@ -36,7 +36,7 @@ public:
         ignoreAddresses.insert(addresses.begin(), addresses.end());
     }
 
-    void onUpdate()
+    void onUpdate(bool justConnected)
     {
         if (firstUpdate)
         {

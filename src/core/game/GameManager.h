@@ -2,6 +2,10 @@
 
 #include "core/emulators/Emulator.h"
 #include "core/game/GameData.h"
+#include "core/game/modules/BattleModule.h"
+#include "core/game/modules/FieldModule.h"
+#include "core/game/modules/MenuModule.h"
+#include "core/game/modules/WorldModule.h"
 #include "core/utilities/Event.h"
 #include <string>
 #include <array>
@@ -46,10 +50,9 @@ public:
     GameVersion getGameVersion() { return gameVersion; }
     uint8_t getGameModule() { return gameModule; }
     uint16_t getGameMoment();
-    bool inBattle();
+    bool inBattle() { return battle.inBattle(); }
     bool inMenu();
-    uint16_t getFieldID() { return fieldID; }
-    int getFramesInField() { return framesInField; }
+    uint16_t getFieldID() { return field.getFieldID(); }
 
     // Returns a list of the character IDs that are currently in the party. 0xFF is the slot is empty.
     std::array<uint8_t, 3> getPartyIDs();
@@ -80,12 +83,15 @@ public:
     // Returns the pointer to the line of field script last executed for a given group index.
     uint16_t getScriptExecutionPointer(uint8_t groupIndex) { return fieldScriptExecutionTable[groupIndex]; }
 
-    // Returns pointer to the captured state of the world map encounter table after entering world map
-    Encounter* getWorldMapEncounterTable() { return worldMapEncounterTable; }
+    // Modules
+    BattleModule battle;
+    FieldModule field;
+    MenuModule menu;
+    WorldModule world;
 
     // Events
     Event<> onStart;
-    Event<> onUpdate;
+    Event<bool> onUpdate;
     Event<> onEmulatorPaused;
     Event<> onEmulatorResumed;
     Event<int> onFrame;
@@ -138,30 +144,7 @@ private:
     uint32_t frameNumber = 0;
     int updatesSinceFrame = 0;
     int framesSinceReload = 0;
-    uint16_t fieldID = 0;
-    int framesInField = 0;
-    Encounter worldMapEncounterTable[1024];
 
     // A set of pointers to the last line of field script executed within each group. 
     uint16_t fieldScriptExecutionTable[64];
-
-    uint16_t lastBattleFormation = 0;
-    bool waitingForBattleData = false;
-    bool isBattleDataLoaded();
-    bool waitingForFormation = false;
-    bool isFormationLoaded(uint16_t formationID);
-
-    bool waitingForFieldData = false;
-    int lastFieldScreenFade = 0;
-    bool isFieldDataLoaded(bool justConnected = false);
-
-    bool waitingForShopData = false;
-    bool wasInShopMenu = false;
-    bool isShopDataLoaded();
-
-    bool waitingForWorldData = false;
-    bool waitingForWorldChange = false;
-    int lastWorldScreenFade = 0;
-    uint32_t lastWorldMapID = 0;
-    bool isWorldDataLoaded(bool justConnected = false, bool ignoreEncounterTable = false);
 };

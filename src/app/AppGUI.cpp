@@ -521,8 +521,7 @@ void App::drawDebugPanel()
     {
         ImGui::Indent(25.0f);
 
-        std::pair<BattleScene*, BattleFormation*> battleData = game->getBattleFormation();
-        BattleFormation* formation = battleData.second;
+        const auto& [scene, formation] = game->getBattleFormation();
 
         if (formation != nullptr)
         {
