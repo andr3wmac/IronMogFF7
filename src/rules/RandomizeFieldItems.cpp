@@ -258,7 +258,7 @@ void RandomizeFieldItems::apply()
         LOG("Randomized item on field %d: %s (%d) changed to: %s (%d)", fieldData.id, oldItemName.c_str(), oldItem.quantity, newItemName.c_str(), newItem.quantity);
 
         // Overwrite the popup message
-        overwriteMessage(fieldData, oldItem, newItem, oldItemName, newItemName);
+        overwriteMessage(fieldData, oldItem, newItem, oldItemName, newItemName, false);
     }
 
     // Randomize materia
@@ -321,7 +321,7 @@ void RandomizeFieldItems::apply()
         LOG("Randomized materia on field %d: %s changed to: %s", fieldData.id, oldMateriaName.c_str(), newMateriaName.c_str());
 
         // Overwrite the popup message
-        overwriteMessage(fieldData, oldMateria, newMateria, oldMateriaName, newMateriaName);
+        overwriteMessage(fieldData, oldMateria, newMateria, oldMateriaName, newMateriaName, true);
     }
 
     // Clear original messages that will be overwritten in real time
@@ -331,7 +331,7 @@ void RandomizeFieldItems::apply()
     }
 }
 
-void RandomizeFieldItems::overwriteMessage(const FieldData& fieldData, const FieldScriptItem& oldItem, const FieldScriptItem& newItem, const std::string& oldName, const std::string& newName)
+void RandomizeFieldItems::overwriteMessage(const FieldData& fieldData, const FieldScriptItem& oldItem, const FieldScriptItem& newItem, const std::string& oldName, const std::string& newName, bool isMateria)
 {
     // Overwrite the popup message
     int msgIndex = game->findPickUpMessage(oldName, oldItem.group, oldItem.script, oldItem.offset);
@@ -341,17 +341,38 @@ void RandomizeFieldItems::overwriteMessage(const FieldData& fieldData, const Fie
         const FieldScriptMessage& fieldMsg = fieldData.messages[msgIndex];
 
         int strMsgCount = 0;
-        for (const FieldScriptItem& compareItem : fieldData.items)
-        {
-            std::string compareItemName = GameData::getItemName(compareItem.id);
-            int compareMsgIndex = game->findPickUpMessage(compareItemName, compareItem.group, compareItem.script, compareItem.offset);
-            if (compareMsgIndex >= 0)
-            {
-                const FieldScriptMessage& compareFieldMsg = fieldData.messages[compareMsgIndex];
 
-                if (fieldMsg.strOffset == compareFieldMsg.strOffset)
+        if (!isMateria)
+        {
+            for (const FieldScriptItem& compareItem : fieldData.items)
+            {
+                std::string compareItemName = GameData::getItemName(compareItem.id);
+                int compareMsgIndex = game->findPickUpMessage(compareItemName, compareItem.group, compareItem.script, compareItem.offset);
+                if (compareMsgIndex >= 0)
                 {
-                    strMsgCount++;
+                    const FieldScriptMessage& compareFieldMsg = fieldData.messages[compareMsgIndex];
+
+                    if (fieldMsg.strOffset == compareFieldMsg.strOffset)
+                    {
+                        strMsgCount++;
+                    }
+                }
+            }
+        }
+        else
+        {
+            for (const FieldScriptItem& compareItem : fieldData.materia)
+            {
+                std::string compareMateriaName = GameData::getMateriaName(compareItem.id);
+                int compareMsgIndex = game->findPickUpMessage(compareMateriaName, compareItem.group, compareItem.script, compareItem.offset);
+                if (compareMsgIndex >= 0)
+                {
+                    const FieldScriptMessage& compareFieldMsg = fieldData.messages[compareMsgIndex];
+
+                    if (fieldMsg.strOffset == compareFieldMsg.strOffset)
+                    {
+                        strMsgCount++;
+                    }
                 }
             }
         }
