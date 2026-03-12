@@ -7,8 +7,6 @@
 #include "core/utilities/Platform.h"
 #include "core/utilities/Utilities.h"
 #include "extras/Extra.h"
-#include "extras/RandomizeMusic.h"
-#include "rules/Permadeath.h"
 #include "rules/Rule.h"
 
 #include <imgui.h>
@@ -43,6 +41,11 @@ void App::draw()
             if (ImGui::BeginTabItem("Tracker"))
             {
                 drawTrackerPanel();
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem(ICON_FA_COG))
+            {
+                drawAppSettingsPanel();
                 ImGui::EndTabItem();
             }
             if (showDebugTab)
@@ -310,88 +313,85 @@ void App::drawSetupPanel()
 
 void App::drawTrackerPanel()
 {
-    GUI::drawImage(logo, DPI(logo.width / 2), DPI(logo.height / 2));
+    tracker.update();
+
+    // TODO: handle the 212 DPI below for when logos hidden
+    if (tracker.showLogo)
+    {
+        GUI::drawImage(logo, DPI(logo.width / 2), DPI(logo.height / 2));
+    }
+
     gui.pushFont("Reactor7");
 
     ImGui::Spacing();
     ImGui::BeginChild("##ScrollBox", ImVec2(0, (float)(gui.windowHeight - DPI(212))));
     {
-        if (connectionState == ConnectionState::Connected)
+        // Permadeath Character Portraits
         {
-            // Permadeath Character Portraits
+            const int imgWidth = DPI(46);
+            const int imgHeight = DPI(53);
+
+            for (int i = 0; i < 9; ++i)
             {
-                Permadeath* permadeathRule = (Permadeath*)game->getRule("Permadeath");
-                uint16_t phsVisMask = game->read<uint16_t>(GameOffsets::PHSVisibilityMask);
+                uint8_t characterID = CharacterDataOffsets::CharacterIDs[i];
 
-                const int imgWidth = DPI(46);
-                const int imgHeight = DPI(53);
-
-                for (int i = 0; i < 9; ++i)
+                float iconAlpha = 0.25f;
+                if (tracker.characters[i].isActive)
                 {
-                    uint8_t characterID = CharacterDataOffsets::CharacterIDs[i];
+                    iconAlpha = 1.0f;
+                }
 
-                    float iconAlpha = 0.25f;
-                    if (Utilities::isBitSet(phsVisMask, i))
-                    {
-                        iconAlpha = 1.0f;
-                    }
+                ImVec2 p = ImGui::GetCursorScreenPos();
+                GUI::drawImage(characterPortraits[i], imgWidth, imgHeight, iconAlpha);
+                ImGui::SameLine();
 
-                    ImVec2 p = ImGui::GetCursorScreenPos();
-                    GUI::drawImage(characterPortraits[i], imgWidth, imgHeight, iconAlpha);
-                    ImGui::SameLine();
-
-                    if (permadeathRule != nullptr)
-                    {
-                        if (permadeathRule->isCharacterDead(characterID))
-                        {
-                            ImGui::GetWindowDrawList()->AddImage((ImTextureID)deadIcon.textureID, p, ImVec2(p.x + imgWidth, p.y + imgHeight), ImVec2(0, 0), ImVec2(1, 1));
-                        }
-                    }
+                // Draw red X over the portrait if the character is permadead.
+                if (tracker.characters[i].isPermadead)
+                {
+                    ImGui::GetWindowDrawList()->AddImage((ImTextureID)deadIcon.textureID, p, ImVec2(p.x + imgWidth, p.y + imgHeight), ImVec2(0, 0), ImVec2(1, 1));
                 }
             }
+        }
 
-            ImGui::Spacing();
-            ImGui::Spacing();
-            ImGui::Spacing();
-            ImGui::Indent(DPI(10.0f));
+        ImGui::Spacing();
+        ImGui::Spacing();
+        ImGui::Spacing();
+        ImGui::Indent(DPI(10.0f));
 
-            // Seed
-            std::string seedText = "Seed: " + std::string(seedValue);
-            ImGui::Text(seedText.c_str());
+        // Seed
+        std::string seedText = "Seed: " + std::string(seedValue);
+        ImGui::Text(seedText.c_str());
 
-            // In Game Time
-            uint32_t igt = game->read<uint32_t>(GameOffsets::InGameTime);
-            std::string igtText = "Time: " + Utilities::formatTime(igt);
-            ImGui::Text(igtText.c_str());
+        // In Game Time
+        std::string igtText = "Time: " + tracker.inGameTime;
+        ImGui::Text(igtText.c_str());
 
-            // Current Song
-            if (game->isExtraEnabled("Randomize Music"))
-            {
-                RandomizeMusic* musicRando = (RandomizeMusic*)game->getExtra("Randomize Music");
-                if (musicRando->isPlaying())
-                {
-                    std::string currentSong = musicRando->getCurrentlyPlaying();
-                    std::string currentSongText = "Song: " + currentSong;
-                    ImGui::Text(currentSongText.c_str());
-                }
-            }
+        // Current Song
+        std::string songText = "Song: " + tracker.currentSong;
+        ImGui::Text(songText.c_str());
             
-            // Rule summary
-            ImGui::Spacing();
-            std::string summaryText = game->getSettingsSummary();
-            ImGui::TextWrapped(summaryText.c_str());
+        // Rule summary
+        ImGui::Spacing();
+        ImGui::TextWrapped(tracker.rulesSummary.c_str());
 
-            ImGui::Unindent(DPI(10.0f));
-        }
-        else 
-        {
-            GUI::textCentered("No connection.", gui.windowWidth);
-        }
+        ImGui::Unindent(DPI(10.0f));
     }
     ImGui::EndChild();
     ImGui::Spacing();
 
     gui.popFont();
+}
+
+void App::drawAppSettingsPanel()
+{
+    ImGui::SeparatorText("Tracker");
+    {
+        ImGui::Text("Attempts:");
+        ImGui::SameLine();
+        ImGui::InputInt("##AppSettings_Attempts", &tracker.attemptCounter, 0, 0);
+
+        ImGui::Checkbox("Show Logo", &tracker.showLogo);
+    }
 }
 
 void App::drawDebugPanel()

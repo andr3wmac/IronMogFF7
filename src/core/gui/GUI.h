@@ -5,6 +5,17 @@
 
 struct GLFWwindow;
 struct GUIImage;
+struct ImGuiContext;
+struct ImGuiSettingsHandler;
+struct ImGuiTextBuffer;
+
+struct SettingsHandler
+{
+    std::string typeName;
+    std::function<void(const char* section, const char* line)> readLineFn;
+    std::function<void(ImGuiTextBuffer* buf)> writeAllFn;
+    std::string lastSectionName = "";
+};
 
 class GUI
 {
@@ -14,6 +25,8 @@ public:
     Event<int, int> onKeyPress;
     Event<int, int> onResize;
 
+    GUI();
+    void registerSettingsHandler(const char* name, std::function<void(const char*, const char*)> onReadLine, std::function<void(ImGuiTextBuffer*)> onWrite);
     bool initialize(int width, int height, const char* windowTitle);
     void destroy();
 
@@ -29,6 +42,7 @@ public:
     std::string saveFileDialog();
 
 private:
+    std::vector<std::unique_ptr<SettingsHandler>> settingsHandlers;
     GLFWwindow* window;
 
     void onResizeCallback(GLFWwindow* window, int width, int height);
@@ -41,6 +55,10 @@ public:
     static void drawColorGrid(const std::string& name, std::vector<Utilities::Color>& colors, std::function<void(int, Utilities::Color)> onClickCallback = {}, float boxSize = 16.0f, float spacing = 2.0f, int colorsPerRow = 24);
     static void wrappedTooltip(const std::string& text, float maxWidth = 400.0f);
     static void textCentered(const std::string& text, int width);
+    
+    static void* imGuiSettingsReadOpen(ImGuiContext*, ImGuiSettingsHandler* handler, const char* name);
+    static void imGuiSettingsReadLine(ImGuiContext*, ImGuiSettingsHandler* handler, void* entry, const char* line);
+    static void imGuiSettingsWriteAll(ImGuiContext*, ImGuiSettingsHandler* handler, ImGuiTextBuffer* buf);
 };
 
 struct GUIImage

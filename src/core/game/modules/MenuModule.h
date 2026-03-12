@@ -10,6 +10,7 @@ public:
     void setup(GameManager* game);
     void onModuleChanged(uint8_t newGameModule);
     void onUpdate(bool justConnected);
+    void onFrame(int frameNumber);
 
 private:
     bool isShopDataLoaded();
@@ -17,6 +18,7 @@ private:
     GameManager* game = nullptr;
     uint8_t gameModule = 0;
 
+    int shopMenuIndex = -1;
     bool waitingForShopData = false;
-    bool wasInShopMenu = false;
+    bool inShopMenu = false;
 };

@@ -11,6 +11,7 @@ void MenuModule::setup(GameManager* game)
 
     BIND_EVENT_ONE_ARG(game->onModuleChanged, MenuModule::onModuleChanged);
     BIND_EVENT_ONE_ARG(game->onUpdate, MenuModule::onUpdate);
+    BIND_EVENT_ONE_ARG(game->onFrame, MenuModule::onFrame);
 }
 
 void MenuModule::onModuleChanged(uint8_t newGameModule)
@@ -21,11 +22,11 @@ void MenuModule::onModuleChanged(uint8_t newGameModule)
         if (menuType == MenuType::Shop)
         {
             waitingForShopData = true;
-            wasInShopMenu = true;
+            inShopMenu = true;
         }
     }
 
-    if (newGameModule != GameModule::Menu && wasInShopMenu)
+    if (newGameModule != GameModule::Menu && inShopMenu)
     {
         // HACK: when we exit a shop sometimes the field doesn't overwrite the shop data
         // so it stays stale in memory, then the next time we open the shop isShopDataLoaded()
@@ -35,7 +36,9 @@ void MenuModule::onModuleChanged(uint8_t newGameModule)
         {
             game->write<uint32_t>(ShopOffsets::MateriaPricesStart + (68 * 4), 0);
         }
-        wasInShopMenu = false;
+
+        inShopMenu = false;
+        shopMenuIndex = -1;
     }
 
     gameModule = newGameModule;
@@ -49,6 +52,25 @@ void MenuModule::onUpdate(bool justConnected)
         {
             game->onShopOpened.invoke();
             waitingForShopData = false;
+        }
+    }
+}
+
+void MenuModule::onFrame(int frameNumber)
+{
+    if (game->getGameModule() != GameModule::Menu)
+    {
+        shopMenuIndex = -1;
+        return;
+    }
+
+    if (inShopMenu)
+    {
+        uint8_t menuIdx = game->read<uint8_t>(ShopOffsets::MenuIndex);
+        if (shopMenuIndex != menuIdx)
+        {
+            game->onShopMenuChanged.invoke(menuIdx);
+            shopMenuIndex = menuIdx;
         }
     }
 }

@@ -15,7 +15,7 @@ void RandomizeShops::setup()
     BIND_EVENT(game->onStart, RandomizeShops::onStart);
     BIND_EVENT_ONE_ARG(game->onFieldChanged, RandomizeShops::onFieldChanged);
     BIND_EVENT(game->onShopOpened, RandomizeShops::onShopOpened);
-    BIND_EVENT_ONE_ARG(game->onFrame, RandomizeShops::onFrame);
+    BIND_EVENT_ONE_ARG(game->onShopMenuChanged, RandomizeShops::onShopMenuChanged);
 }
 
 bool RandomizeShops::onSettingsGUI()
@@ -261,8 +261,6 @@ void RandomizeShops::onFieldChanged(uint16_t fieldID)
     }
 
     lastFieldID = fieldID;
-    shopOpen = false;
-    shopMenuIndex = -1;
 
     // Disable shops
     if (disableShops)
@@ -301,83 +299,63 @@ void RandomizeShops::onShopOpened()
 
         fieldShopIDs.insert(shopID);
     }
-
-    shopOpen = true;
 }
 
-void RandomizeShops::onFrame(uint32_t frameNumber)
+void RandomizeShops::onShopMenuChanged(uint8_t menuIdx)
 {
-    if (game->getGameModule() != GameModule::Menu)
+    // Buy Menu
+    if (menuIdx == 0)
     {
-        shopMenuIndex = -1;
-        shopOpen = false;
-        return;
-    }
-
-    if (!shopOpen)
-    {
-        return;
-    }
-
-    uint8_t menuIdx = game->read<uint8_t>(ShopOffsets::MenuIndex);
-    if (shopMenuIndex != menuIdx)
-    {
-        // Buy Menu
-        if (menuIdx == 0)
+        // Apply randomization
+        for (uint8_t shopID : fieldShopIDs)
         {
-            // Apply randomization
-            for (uint8_t shopID : fieldShopIDs)
+            const RandomizedShop& shop = randomizedShops[shopID];
+
+            // We match up the old items to the new ones, both lists have been sorted by price
+            // so this gives us a reasonable match up between values.
+            for (int j = 0; j < shop.items.size(); ++j)
             {
-                const RandomizedShop& shop = randomizedShops[shopID];
+                const RandomizedShopItem& origItem = shop.items[j];
+                const RandomizedShopItem& newItem = shop.newItems[j];
 
-                // We match up the old items to the new ones, both lists have been sorted by price
-                // so this gives us a reasonable match up between values.
-                for (int j = 0; j < shop.items.size(); ++j)
+                game->write<uint16_t>(origItem.offset + 4, newItem.id);
+                if (keepPrices)
                 {
-                    const RandomizedShopItem& origItem = shop.items[j];
-                    const RandomizedShopItem& newItem = shop.newItems[j];
-
-                    game->write<uint16_t>(origItem.offset + 4, newItem.id);
-                    if (keepPrices)
-                    {
-                        // We reuse the existing price for the randomized item by overwriting the value with the original.
-                        game->write<uint32_t>(ShopOffsets::PricesStart + (newItem.id * 4), origItem.price);
-                    }
-
-                    std::string oldItemName = GameData::getItemName(origItem.id);
-                    std::string newItemName = GameData::getItemName(newItem.id);
-                    LOG("Randomized item in shop %d: %s changed to: %s", shopID, oldItemName.c_str(), newItemName.c_str());
+                    // We reuse the existing price for the randomized item by overwriting the value with the original.
+                    game->write<uint32_t>(ShopOffsets::PricesStart + (newItem.id * 4), origItem.price);
                 }
-                for (int j = 0; j < shop.materia.size(); ++j)
+
+                std::string oldItemName = GameData::getItemName(origItem.id);
+                std::string newItemName = GameData::getItemName(newItem.id);
+                LOG("Randomized item in shop %d: %s changed to: %s", shopID, oldItemName.c_str(), newItemName.c_str());
+            }
+            for (int j = 0; j < shop.materia.size(); ++j)
+            {
+                const RandomizedShopItem& origMat = shop.materia[j];
+                const RandomizedShopItem& newMat = shop.newMateria[j];
+
+                game->write<uint16_t>(origMat.offset + 4, newMat.id);
+                if (keepPrices)
                 {
-                    const RandomizedShopItem& origMat = shop.materia[j];
-                    const RandomizedShopItem& newMat = shop.newMateria[j];
-
-                    game->write<uint16_t>(origMat.offset + 4, newMat.id);
-                    if (keepPrices)
-                    {
-                        // We reuse the existing price for the randomized materia by overwriting the value with the original.
-                        game->write<uint32_t>(ShopOffsets::MateriaPricesStart + (newMat.id * 4), origMat.price);
-                    }
-
-                    std::string oldMateriaName = GameData::getMateriaName((uint8_t)origMat.id);
-                    std::string newMateriaName = GameData::getMateriaName((uint8_t)newMat.id);
-                    LOG("Randomized materia in shop %d: %s changed to: %s", shopID, oldMateriaName.c_str(), newMateriaName.c_str());
+                    // We reuse the existing price for the randomized materia by overwriting the value with the original.
+                    game->write<uint32_t>(ShopOffsets::MateriaPricesStart + (newMat.id * 4), origMat.price);
                 }
+
+                std::string oldMateriaName = GameData::getMateriaName((uint8_t)origMat.id);
+                std::string newMateriaName = GameData::getMateriaName((uint8_t)newMat.id);
+                LOG("Randomized materia in shop %d: %s changed to: %s", shopID, oldMateriaName.c_str(), newMateriaName.c_str());
             }
         }
-        // Sell Menu
-        else if (menuIdx == 1)
+    }
+    // Sell Menu
+    else if (menuIdx == 1)
+    {
+        if (keepPrices)
         {
-            if (keepPrices)
-            {
-                LOG("Applied global sell prices.");
-                game->write(ShopOffsets::PricesStart, (uint8_t*)itemSellPrices.data(), sizeof(itemSellPrices));
-                game->write(ShopOffsets::MateriaPricesStart, (uint8_t*)materiaSellPrices.data(), sizeof(materiaSellPrices));
-            }
+            LOG("Applied global sell prices.");
+            game->write(ShopOffsets::PricesStart, (uint8_t*)itemSellPrices.data(), sizeof(itemSellPrices));
+            game->write(ShopOffsets::MateriaPricesStart, (uint8_t*)materiaSellPrices.data(), sizeof(materiaSellPrices));
         }
-
-        shopMenuIndex = menuIdx;
     }
 }
 

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "app/Tracker.h"
 #include "core/game/GameManager.h"
 #include "core/gui/GUI.h"
 #include "core/utilities/StringList.h"
@@ -42,6 +43,7 @@ public:
     void draw();
     void drawSetupPanel();
     void drawTrackerPanel();
+    void drawAppSettingsPanel();
     void drawDebugPanel();
 
     void connect();
@@ -52,10 +54,12 @@ public:
 protected:
     GUI gui;
     GUIImage logo;
+    Tracker tracker;
     std::vector<GUIImage> characterPortraits;
     GUIImage deadIcon;
     bool showDebugTab = false;
 
+    // Setup
     GameManager* game = nullptr;
     std::thread* managerThread = nullptr;
     std::atomic<bool> managerRunning = false;
@@ -78,4 +82,7 @@ protected:
     void onKeyPress(int key, int mods);
     void onResize(int width, int height);
     void onStart();
+
+    void guiSettingsRead(const char* section, const char* line);
+    void guiSettingsWrite(ImGuiTextBuffer* buf);
 };

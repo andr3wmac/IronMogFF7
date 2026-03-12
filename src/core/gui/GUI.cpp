@@ -7,6 +7,7 @@
 #include "IconsFontAwesome5.h"
 
 #include <stdio.h>
+#include <iostream>
 
 #define GL_SILENCE_DEPRECATION
 #if defined(IMGUI_IMPL_OPENGL_ES2)
@@ -135,6 +136,31 @@ void setupStyle()
 
 float GUI::dpiScale = 1.0f;
 
+GUI::GUI()
+{
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+}
+
+void GUI::registerSettingsHandler(const char* name, std::function<void(const char*, const char*)> onReadLine, std::function<void(ImGuiTextBuffer*)> onWrite)
+{
+    auto entry = std::make_unique<SettingsHandler>();
+    entry->typeName = name;
+    entry->readLineFn = onReadLine;
+    entry->writeAllFn = onWrite;
+
+    ImGuiSettingsHandler imgui_handler;
+    imgui_handler.TypeName = entry->typeName.c_str();
+    imgui_handler.TypeHash = ImHashStr(imgui_handler.TypeName);
+    imgui_handler.UserData = entry.get();
+    imgui_handler.ReadOpenFn = GUI::imGuiSettingsReadOpen;
+    imgui_handler.ReadLineFn = GUI::imGuiSettingsReadLine;
+    imgui_handler.WriteAllFn = GUI::imGuiSettingsWriteAll;
+
+    ImGui::GetCurrentContext()->SettingsHandlers.push_back(imgui_handler);
+    settingsHandlers.push_back(std::move(entry));
+}
+
 bool GUI::initialize(int width, int height, const char* windowTitle)
 {
     glfwSetErrorCallback(glfw_error_callback);
@@ -184,12 +210,9 @@ bool GUI::initialize(int width, int height, const char* windowTitle)
     glfwMakeContextCurrent(window);
     glfwSwapInterval(1); // Enable vsync
 
-    // Setup Dear ImGui context
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO(); (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    io.IniFilename = "settings/imgui.ini";
+    io.IniFilename = "settings/app.ini";
 
     // Setup Dear ImGui style
     ImGui::StyleColorsDark();
@@ -518,4 +541,23 @@ void GUI::textCentered(const std::string& text, int width)
     }
 
     ImGui::Text(text.c_str());
+}
+
+void* GUI::imGuiSettingsReadOpen(ImGuiContext*, ImGuiSettingsHandler* handler, const char* name)
+{
+    auto* cfg = static_cast<SettingsHandler*>(handler->UserData);
+    cfg->lastSectionName = name;
+    return (void*)(cfg->lastSectionName.c_str());
+}
+
+void GUI::imGuiSettingsReadLine(ImGuiContext*, ImGuiSettingsHandler* handler, void* entry, const char* line)
+{
+    auto* cfg = static_cast<SettingsHandler*>(handler->UserData);
+    if (cfg->readLineFn) cfg->readLineFn(cfg->lastSectionName.c_str(), line);
+}
+
+void GUI::imGuiSettingsWriteAll(ImGuiContext*, ImGuiSettingsHandler* handler, ImGuiTextBuffer* buf)
+{
+    auto* cfg = static_cast<SettingsHandler*>(handler->UserData);
+    if (cfg->writeAllFn) cfg->writeAllFn(buf);
 }

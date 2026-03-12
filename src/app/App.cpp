@@ -1,5 +1,6 @@
 #include "App.h"
 #include "core/audio/AudioManager.h"
+#include "core/game/MemoryOffsets.h"
 #include "core/utilities/Logging.h"
 #include "core/utilities/ConfigFile.h"
 #include "core/utilities/MemoryMonitor.h"
@@ -23,6 +24,12 @@ void App::run()
     LOG("IronMog FF7 %s", APP_VERSION_STRING);
 
     processMemoryOffset[0] = '\0';
+
+    // We embed the app settings in the same app.ini that ImGui uses.
+    gui.registerSettingsHandler("IronMogFF7",
+        [this](const char* section, const char* line) { this->guiSettingsRead(section, line); },
+        [this](ImGuiTextBuffer* buf) { this->guiSettingsWrite(buf); }
+    );
 
     if (!gui.initialize(APP_WINDOW_WIDTH, APP_WINDOW_HEIGHT, "IronMog FF7 " APP_VERSION_STRING))
     {
@@ -160,6 +167,7 @@ void App::runGameManager()
     // Reset any global restrictions as we might be using a different set of rules on this run.
     Restrictions::reset();
 
+    tracker.setup(game);
     game->setup(selectedGameVersion, Utilities::hexStringToSeed(seedValue));
 
     managerRunning = true;
@@ -188,6 +196,7 @@ void App::runGameManager()
 
 void App::stopGameManager()
 {
+    tracker.reset();
     managerRunning = false;
     managerThread->join();
     delete managerThread;
@@ -311,4 +320,35 @@ void App::onStart()
 {
     uint32_t chosenSeed = game->getSeed();
     snprintf(seedValue, 9, "%08X", chosenSeed);
+}
+
+void App::guiSettingsRead(const char* section, const char* line)
+{
+    auto readInt = [&](const char* key, int* out) -> bool 
+    {
+        char fmt[64];
+        snprintf(fmt, sizeof(fmt), "%s=%%d", key);
+        return sscanf(line, fmt, out) == 1;
+    };
+
+    auto readBool = [&](const char* key, bool* out) -> bool 
+    {
+        int val;
+        if (readInt(key, &val)) { *out = (val != 0); return true; }
+        return false;
+    };
+
+    if (strcmp(section, "Tracker") == 0)
+    {
+        if (readInt("Attempts", &tracker.attemptCounter)) return;
+        if (readBool("ShowLogo", &tracker.showLogo)) return;
+    }
+}
+
+void App::guiSettingsWrite(ImGuiTextBuffer* buf)
+{
+    buf->appendf("[%s][%s]\n", "IronMogFF7", "Tracker");
+    buf->appendf("Attempts=%d\n", tracker.attemptCounter);
+    buf->appendf("ShowLogo=%d\n", tracker.showLogo ? 1 : 0);
+    buf->append("\n");
 }

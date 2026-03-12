@@ -91,16 +91,17 @@ public:
 
     // Events
     Event<> onStart;
-    Event<bool> onUpdate;
+    Event<bool> onUpdate;                   // Triggers when IronMog updates which is more frequent than the game framerate. 
     Event<> onEmulatorPaused;
     Event<> onEmulatorResumed;
-    Event<int> onFrame;
+    Event<int> onFrame;                     // Triggers when the game's frame number advances.
     Event<uint8_t> onModuleChanged;
-    Event<> onBattleEnter;
-    Event<uint16_t> onBattleTransition;
+    Event<> onBattleEnter; 
+    Event<uint16_t> onBattleTransition;     // Triggers when a battle transitions from one formation to another. Like a multi-phase boss.
     Event<> onBattleExit;
     Event<uint16_t> onFieldChanged;
     Event<> onShopOpened;
+    Event<uint8_t> onShopMenuChanged;       // Triggers when player moves the cursor between Buy and Sell in shop menu.
     Event<> onWorldMapEnter;
 
     // Read/Write RAM Functions
