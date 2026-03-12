@@ -21,6 +21,8 @@ bool RandomizeEnemyDrops::onSettingsGUI()
 {
     bool changed = false;
 
+    changed |= ImGui::Checkbox("Randomize Morphs", &randomizeMorphs);
+
     ImGui::Text("Gil Multiplier");
     ImGui::SetItemTooltip("Multiplies the gil dropped by each enemy.");
     ImGui::SameLine();
@@ -50,6 +52,7 @@ bool RandomizeEnemyDrops::onSettingsGUI()
 
 void RandomizeEnemyDrops::loadSettings(const ConfigFile& cfg)
 {
+    randomizeMorphs  = cfg.get<bool>("randomizeMorphs", randomizeMorphs);
     minGilMultiplier = cfg.get<float>("minGilMultiplier", 1.0f);
     maxGilMultiplier = cfg.get<float>("maxGilMultiplier", 1.0f);
     minExpMultiplier = cfg.get<float>("minExpMultiplier", 1.0f);
@@ -58,6 +61,7 @@ void RandomizeEnemyDrops::loadSettings(const ConfigFile& cfg)
 
 void RandomizeEnemyDrops::saveSettings(ConfigFile& cfg)
 {
+    cfg.set<bool>("randomizeMorphs", randomizeMorphs);
     cfg.set<float>("minGilMultiplier", minGilMultiplier);
     cfg.set<float>("maxGilMultiplier", maxGilMultiplier);
     cfg.set<float>("minExpMultiplier", minExpMultiplier);
@@ -96,6 +100,19 @@ void RandomizeEnemyDrops::onDebugGUI()
 
             std::string dropText = "  Drop " + std::to_string(j) + ": " + GameData::getItemName(dropID) + "(" + std::to_string(dropID) + ")";
             ImGui::Text(dropText.c_str());
+        }
+
+        uint16_t morphID = game->read<uint16_t>(BattleSceneOffsets::Enemies[i] + BattleSceneOffsets::MorphItemID);
+        if (morphID != 0xFFFF)
+        {
+            std::string itemName = GameData::getItemName(morphID);
+            std::string morphText = "  Morph: " + std::to_string(morphID) + " " + itemName;
+            ImGui::Text(morphText.c_str());
+        }
+        else 
+        {
+            std::string morphText = "  Morph: None";
+            ImGui::Text(morphText.c_str());
         }
     }
 }
@@ -160,6 +177,18 @@ void RandomizeEnemyDrops::onBattleEnter()
             std::string oldItemName = GameData::getItemName(dropID);
             std::string newItemName = GameData::getItemName(newDropID);
             LOG("Randomized enemy drop in formation %d: %s changed to %s", formationID, oldItemName.c_str(), newItemName.c_str());
+        }
+
+        if (randomizeMorphs)
+        {
+            uint16_t morphID = game->read<uint16_t>(BattleSceneOffsets::Enemies[id] + BattleSceneOffsets::MorphItemID);
+            if (morphID != 0xFFFF)
+            {
+                uint16_t newMorphID = GameData::getRandomItemSameType(morphID, rng, true);
+                std::string oldItemName = GameData::getItemName(morphID);
+                std::string newItemName = GameData::getItemName(newMorphID);
+                LOG("Randomized enemy morph in formation %d: %s changed to %s", formationID, oldItemName.c_str(), newItemName.c_str());
+            }
         }
     }
 }

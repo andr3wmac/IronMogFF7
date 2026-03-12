@@ -296,6 +296,8 @@ struct BattleSceneOffsets
     // Drop/Steals
     CONST_PTR DropRates[] = { 0x88, 0x89, 0x8A, 0x8B };
     CONST_PTR DropIDs[]   = { 0x8C, 0x8E, 0x90, 0x92 };
+
+    CONST_PTR MorphItemID = 0xA0; // uint16_t item the enemy can be morphed into. 0xFFFF if none.
 };
 
 struct DropType
