@@ -483,9 +483,9 @@ void RandomizeEncounters::generateEnemyStatMultipliers()
         StatMultiplierSet enemySet;
 
         enemySet.currentHP  = dist(rng);
-        enemySet.maxHP      = dist(rng);
+        enemySet.maxHP      = enemySet.currentHP;
         enemySet.currentMP  = dist(rng);
-        enemySet.maxMP      = dist(rng);
+        enemySet.maxMP      = enemySet.currentMP;
         enemySet.strength   = dist(rng);
         enemySet.magic      = dist(rng);
         enemySet.evade      = dist(rng);
