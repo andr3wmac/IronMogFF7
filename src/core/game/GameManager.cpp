@@ -344,6 +344,7 @@ bool GameManager::update()
             loadSaveData();
             onStart.invoke();
             updatesSinceFrame = 0;
+            justEnteredGame = true;
         }
 
         lastGameState = state;
@@ -383,9 +384,53 @@ bool GameManager::update()
     uint8_t newGameModule = read<uint8_t>(GameOffsets::CurrentModule);
     if (newGameModule != gameModule)
     {
+        if (gameModule == GameModule::Battle && newGameModule == GameModule::Field)
+        {
+            // Check if we're playing game over music
+            uint16_t musicID = read<uint16_t>(GameOffsets::MusicID);
+            if (musicID == 59)
+            {
+                waitingForGameOver = true;
+            }
+        }
+
         // Game module changed.
         gameModule = newGameModule;
         onModuleChanged.invoke(gameModule);
+    }
+
+    if (justEnteredGame)
+    {
+        uint32_t igt = read<uint32_t>(GameOffsets::InGameTime);
+        if (igt > 2)
+        {
+            uint16_t fieldID = read<uint16_t>(GameOffsets::FieldID);
+            if (fieldID == 116)
+            {
+                LOG("New game started.");
+                onNewGame.invoke();
+            }
+            justEnteredGame = false;
+        }
+    }
+
+    // Check if we are on game over screen
+    if (waitingForGameOver)
+    {
+        uint8_t screenState = read<uint8_t>(0xEFBB1);
+        uint16_t musicID = read<uint16_t>(GameOffsets::MusicID);
+
+        // Screen state of 26 confirms we actually went to the game over screen.
+        if (screenState == 26 && musicID == 59)
+        {
+            LOG("Game over.");
+            onGameOver.invoke();
+            waitingForGameOver = false;
+        }
+        else if (musicID != 59)
+        {
+            waitingForGameOver = false;
+        }
     }
     
     // Broadcast update event for anything that needs it

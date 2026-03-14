@@ -340,7 +340,14 @@ void App::guiSettingsRead(const char* section, const char* line)
 
     if (strcmp(section, "Tracker") == 0)
     {
+        int attemptsDisplayMode = 0;
+        if (readInt("AttemptsDisplayMode", &attemptsDisplayMode))
+        {
+            tracker.attemptsDisplayMode = (AttemptsDisplayMode)attemptsDisplayMode;
+            return;
+        }
         if (readInt("Attempts", &tracker.attemptCounter)) return;
+        if (readInt("GameOvers", &tracker.gameOverCounter)) return;
         if (readBool("ShowLogo", &tracker.showLogo)) return;
     }
 }
@@ -348,7 +355,9 @@ void App::guiSettingsRead(const char* section, const char* line)
 void App::guiSettingsWrite(ImGuiTextBuffer* buf)
 {
     buf->appendf("[%s][%s]\n", "IronMogFF7", "Tracker");
+    buf->appendf("AttemptsDisplayMode=%d\n", (int)tracker.attemptsDisplayMode);
     buf->appendf("Attempts=%d\n", tracker.attemptCounter);
+    buf->appendf("GameOvers=%d\n", tracker.gameOverCounter);
     buf->appendf("ShowLogo=%d\n", tracker.showLogo ? 1 : 0);
     buf->append("\n");
 }

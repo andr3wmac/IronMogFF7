@@ -13,6 +13,9 @@ void Tracker::setup(GameManager* game)
 { 
     reset();
     this->game = game;
+    
+    BIND_EVENT(game->onNewGame, Tracker::onNewGame);
+    BIND_EVENT(game->onGameOver, Tracker::onGameOver);
 }
 
 void Tracker::reset()
@@ -71,7 +74,7 @@ void Tracker::update()
         {
             currentSong = musicRando->getCurrentlyPlaying();
         }
-        else 
+        else
         {
             currentSong = "";
         }
@@ -79,4 +82,54 @@ void Tracker::update()
 
     // Rules summary
     rulesSummary = game->getSettingsSummary();
+}
+
+bool Tracker::showAttempts()
+{
+    if (attemptsDisplayMode == AttemptsDisplayMode::Automatic)
+    {
+        if (game == nullptr)
+        {
+            return true;
+        }
+
+        // If No Saving is on then we show attempts.
+        return game->isRuleEnabled("No Saving");
+    }
+    else if (attemptsDisplayMode == AttemptsDisplayMode::Attempts)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+bool Tracker::showGameOvers()
+{
+    if (attemptsDisplayMode == AttemptsDisplayMode::Automatic)
+    {
+        if (game == nullptr)
+        {
+            return false;
+        }
+
+        // If No Saving is on then we show attempts.
+        return !game->isRuleEnabled("No Saving");
+    }
+    else if (attemptsDisplayMode == AttemptsDisplayMode::GameOvers)
+    {
+        return true;
+    }
+
+    return false;
+}
+
+void Tracker::onNewGame()
+{
+    attemptCounter++;
+}
+
+void Tracker::onGameOver()
+{
+    gameOverCounter++;
 }

@@ -6,6 +6,14 @@ struct TrackedCharacter
     bool isPermadead = false;
 };
 
+enum class AttemptsDisplayMode : uint8_t
+{
+    Automatic = 0,
+    Attempts  = 1,
+    GameOvers = 2,
+    Disabled  = 3
+};
+
 class Tracker
 {
 public:
@@ -14,9 +22,14 @@ public:
     void reset();
     void update();
 
+    bool showAttempts();
+    bool showGameOvers();
+
     // Settings
-    int attemptCounter = 0;
+    AttemptsDisplayMode attemptsDisplayMode = AttemptsDisplayMode::Automatic;
     bool showLogo = true;
+    int attemptCounter = 0;
+    int gameOverCounter = 0;
 
     // Display elements
     TrackedCharacter characters[9];
@@ -25,5 +38,8 @@ public:
     std::string rulesSummary = "";
 
 private:
+    void onNewGame();
+    void onGameOver();
+
     GameManager* game = nullptr;
 };

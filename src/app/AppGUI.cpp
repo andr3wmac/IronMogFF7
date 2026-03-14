@@ -13,6 +13,7 @@
 
 static const char* gameVersions[]{ "PlayStation | US (Original)", "PlayStation | US (CSR v0.13.0)"};
 static const char* emulators[]{ "DuckStation", "BizHawk", "Custom" };
+static const char* attemptCounterModes[]{ "Automatic", "Attempts", "Game Overs", "Disabled"};
 
 static ImColor dotRed(1.0f, 0.0f, 0.0f, 1.0f);
 static ImColor dotYellow(1.0f, 1.0f, 0.0f, 1.0f);
@@ -315,16 +316,17 @@ void App::drawTrackerPanel()
 {
     tracker.update();
 
-    // TODO: handle the 212 DPI below for when logos hidden
+    int logoHeight = 0;
     if (tracker.showLogo)
     {
         GUI::drawImage(logo, DPI(logo.width / 2), DPI(logo.height / 2));
+        logoHeight = 212;
     }
 
     gui.pushFont("Reactor7");
 
     ImGui::Spacing();
-    ImGui::BeginChild("##ScrollBox", ImVec2(0, (float)(gui.windowHeight - DPI(212))));
+    ImGui::BeginChild("##ScrollBox", ImVec2(0, (float)(gui.windowHeight - DPI(logoHeight))));
     {
         // Permadeath Character Portraits
         {
@@ -370,6 +372,18 @@ void App::drawTrackerPanel()
         std::string songText = "Song: " + tracker.currentSong;
         ImGui::Text(songText.c_str());
             
+        // Attempts/Game Overs
+        if (tracker.showAttempts())
+        {
+            std::string attemptsText = "Attempt #" + std::to_string(tracker.attemptCounter);
+            ImGui::Text(attemptsText.c_str());
+        }
+        if (tracker.showGameOvers())
+        {
+            std::string gameOversText = "Game Overs: " + std::to_string(tracker.gameOverCounter);
+            ImGui::Text(gameOversText.c_str());
+        }
+        
         // Rule summary
         ImGui::Spacing();
         ImGui::TextWrapped(tracker.rulesSummary.c_str());
@@ -386,11 +400,28 @@ void App::drawAppSettingsPanel()
 {
     ImGui::SeparatorText("Tracker");
     {
-        ImGui::Text("Attempts:");
-        ImGui::SameLine();
-        ImGui::InputInt("##AppSettings_Attempts", &tracker.attemptCounter, 0, 0);
-
         ImGui::Checkbox("Show Logo", &tracker.showLogo);
+
+        ImGui::Text("Attempt Counter Mode:");
+        ImGui::SameLine(DPI(160.0f));
+        ImGui::SetNextItemWidth(DPI(200.0f));
+        int attemptCounterIndex = (int)tracker.attemptsDisplayMode;
+        if (ImGui::Combo("##AppSettings_AttemptCounterMove", &attemptCounterIndex, attemptCounterModes, IM_ARRAYSIZE(attemptCounterModes)))
+        {
+            tracker.attemptsDisplayMode = (AttemptsDisplayMode)attemptCounterIndex;
+        }
+
+        ImGui::BeginDisabled(tracker.attemptsDisplayMode == AttemptsDisplayMode::Disabled);
+        {
+            ImGui::Text("Attempts:");
+            ImGui::SameLine();
+            ImGui::InputInt("##AppSettings_Attempts", &tracker.attemptCounter, 0, 0);
+
+            ImGui::Text("Game Overs:");
+            ImGui::SameLine();
+            ImGui::InputInt("##AppSettings_GameOvers", &tracker.gameOverCounter, 0, 0);
+        }
+        ImGui::EndDisabled();
     }
 }
 

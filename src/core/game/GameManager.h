@@ -91,6 +91,8 @@ public:
 
     // Events
     Event<> onStart;
+    Event<> onNewGame;
+    Event<> onGameOver;
     Event<bool> onUpdate;                   // Triggers when IronMog updates which is more frequent than the game framerate. 
     Event<> onEmulatorPaused;
     Event<> onEmulatorResumed;
@@ -145,6 +147,8 @@ private:
     uint32_t frameNumber = 0;
     int updatesSinceFrame = 0;
     int framesSinceReload = 0;
+    bool justEnteredGame = false;
+    bool waitingForGameOver = false;
 
     // A set of pointers to the last line of field script executed within each group. 
     uint16_t fieldScriptExecutionTable[64];
