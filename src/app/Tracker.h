@@ -26,15 +26,20 @@ public:
     bool showGameOvers();
 
     // Settings
-    AttemptsDisplayMode attemptsDisplayMode = AttemptsDisplayMode::Automatic;
     bool showLogo = true;
-    int attemptCounter = 0;
-    int gameOverCounter = 0;
+    bool showCharacters = true;
+    bool showSeed = true;
+    bool showTime = true;
+    bool showSong = true;
+    bool showRuleSummary = true;
+    AttemptsDisplayMode attemptsDisplayMode = AttemptsDisplayMode::Automatic;
 
     // Display elements
     TrackedCharacter characters[9];
     std::string inGameTime = "";
     std::string currentSong = "";
+    int attemptCounter = 0;
+    int gameOverCounter = 0;
     std::string rulesSummary = "";
 
 private:

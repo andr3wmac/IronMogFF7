@@ -10,6 +10,16 @@ void NoSaving::setup()
     BIND_EVENT_ONE_ARG(game->onFrame, NoSaving::onFrame);
 }
 
+std::vector<std::string> NoSaving::describe(RuleDescripionType descType)
+{
+    if (descType == RuleDescripionType::Negation)
+    {
+        return { "Saving" };
+    }
+
+    return {};
+}
+
 void NoSaving::onFrame(uint32_t frameNumber)
 {
     if (game->getGameModule() != GameModule::Menu && game->getGameModule() != GameModule::World)

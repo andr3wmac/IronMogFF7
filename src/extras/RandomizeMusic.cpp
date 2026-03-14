@@ -123,6 +123,16 @@ void RandomizeMusic::onDebugGUI()
     ImGui::Text(validStackStr.c_str());
 }
 
+std::vector<std::string> RandomizeMusic::describe(ExtraDescripionType descType)
+{
+    if (descType == ExtraDescripionType::Randomized)
+    {
+        return { "Music" };
+    }
+
+    return {};
+}
+
 bool RandomizeMusic::isPlaying()
 {
     if (disabled)

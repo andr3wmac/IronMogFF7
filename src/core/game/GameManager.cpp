@@ -129,6 +129,11 @@ std::string GameManager::getSettingsSummary()
 {
     std::map<std::string, std::vector<std::string>> groups;
 
+    groups["No"] = {};
+    groups["Randomized"] = {};
+    groups["Multipliers"] = {};
+    groups["Unique"] = {};
+
     for (Rule* rule : Rule::getList())
     {
         if (!rule->enabled)
@@ -136,29 +141,17 @@ std::string GameManager::getSettingsSummary()
             continue;
         }
 
-        std::string ruleName = rule->name;
-        size_t spacePos = ruleName.find(' ');
-        if (spacePos == std::string::npos) 
-        {
-            groups[ruleName] = {};
-            continue;
-        }
+        std::vector<std::string> negations = rule->describe(RuleDescripionType::Negation);
+        groups["No"].insert(groups["No"].end(), negations.begin(), negations.end());
 
-        // Special case: disabling shops
-        if (ruleName == "Randomize Shops")
-        {
-            RandomizeShops* randoShops = (RandomizeShops*)rule;
-            if (randoShops->areShopsDisabled())
-            {
-                groups["No"].push_back("shops");
-                continue;
-            }
-        }
+        std::vector<std::string> randomized = rule->describe(RuleDescripionType::Randomized);
+        groups["Randomized"].insert(groups["Randomized"].end(), randomized.begin(), randomized.end());
 
-        std::string prefix = ruleName.substr(0, spacePos);
-        std::string subject = ruleName.substr(spacePos + 1);
-        std::transform(subject.begin(), subject.end(), subject.begin(), [](unsigned char c) { return std::tolower(c); });
-        groups[prefix].push_back(subject);
+        std::vector<std::string> multipliers = rule->describe(RuleDescripionType::Multiplier);
+        groups["Multipliers"].insert(groups["Multipliers"].end(), multipliers.begin(), multipliers.end());
+
+        std::vector<std::string> uniques = rule->describe(RuleDescripionType::Unique);
+        groups["Unique"].insert(groups["Unique"].end(), uniques.begin(), uniques.end());
     }
 
     for (Extra* extra : Extra::getList())
@@ -168,41 +161,63 @@ std::string GameManager::getSettingsSummary()
             continue;
         }
 
-        std::string extraName = extra->name;
-        size_t spacePos = extraName.find(' ');
-        if (spacePos == std::string::npos)
-        {
-            groups[extraName] = {};
-            continue;
-        }
-
-        std::string prefix = extraName.substr(0, spacePos);
-        std::string subject = extraName.substr(spacePos + 1);
-        std::transform(subject.begin(), subject.end(), subject.begin(), [](unsigned char c) { return std::tolower(c); });
-        groups[prefix].push_back(subject);
+        std::vector<std::string> randomized = extra->describe(ExtraDescripionType::Randomized);
+        groups["Randomized"].insert(groups["Randomized"].end(), randomized.begin(), randomized.end());
     }
 
     std::stringstream ss;
-    for (auto& [prefix, subjects] : groups) 
-    {
+    if (groups["No"].size() > 0)
+    { 
+        auto& subjects = groups["No"];
         std::sort(subjects.begin(), subjects.end());
 
-        ss << "- " << prefix;
-        if (subjects.size() > 0)
+        ss << "- No ";
+        for (size_t i = 0; i < subjects.size(); ++i)
         {
-            std::string connector = " and ";
-            if (prefix == "No")
-            {
-                connector = " or ";
-            }
-
-            ss << " ";
-            for (size_t i = 0; i < subjects.size(); ++i)
-            {
-                ss << subjects[i] << (i == subjects.size() - 1 ? "" : (i == subjects.size() - 2 ? connector : ", "));
-            }
+            std::string subject = subjects[i];
+            std::transform(subject.begin(), subject.end(), subject.begin(), [](unsigned char c) { return std::tolower(c); });
+            ss << subject << (i == subjects.size() - 1 ? "" : (i == subjects.size() - 2 ? " or " : ", "));
         }
         ss << ".\n";
+    }
+
+    if (groups["Randomized"].size() > 0)
+    {
+        auto& subjects = groups["Randomized"];
+        std::sort(subjects.begin(), subjects.end());
+
+        ss << "- Randomized ";
+        for (size_t i = 0; i < subjects.size(); ++i)
+        {
+            std::string subject = subjects[i];
+            std::transform(subject.begin(), subject.end(), subject.begin(), [](unsigned char c) { return std::tolower(c); });
+            ss << subject << (i == subjects.size() - 1 ? "" : (i == subjects.size() - 2 ? " and " : ", "));
+        }
+        ss << ".\n";
+    }
+
+    if (groups["Multipliers"].size() > 0)
+    {
+        auto& subjects = groups["Multipliers"];
+
+        ss << "- ";
+        for (size_t i = 0; i < subjects.size(); ++i)
+        {
+            std::string subject = subjects[i];
+            std::transform(subject.begin(), subject.end(), subject.begin(), [](unsigned char c) { return std::tolower(c); });
+            ss << subject << (i == subjects.size() - 1 ? "" : (i == subjects.size() - 2 ? " and " : ", "));
+        }
+        ss << ".\n";
+    }
+
+    if (groups["Unique"].size() > 0)
+    {
+        auto& subjects = groups["Unique"];
+
+        for (size_t i = 0; i < subjects.size(); ++i)
+        {
+            ss << "- " << subjects[i] << ".\n";
+        }
     }
 
     return ss.str();

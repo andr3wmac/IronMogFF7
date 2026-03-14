@@ -155,3 +155,20 @@ void BanMateria::saveSettings(ConfigFile& cfg)
     cfg.set<bool>("noIndependent", noIndependent);
     cfg.set<bool>("noESkill", noESkill);
 }
+
+std::vector<std::string> BanMateria::describe(RuleDescripionType descType)
+{
+    if (descType == RuleDescripionType::Negation)
+    {
+        std::vector<std::string> results;
+        if (noSummons) results.push_back("Summons");
+        if (noMagic) results.push_back("Magic");
+        if (noCommand) results.push_back("Command");
+        if (noSupport) results.push_back("Support");
+        if (noIndependent) results.push_back("Independent");
+        if (noESkill) results.push_back("E. Skill");
+        return results;
+    }
+
+    return {};
+}

@@ -14,6 +14,7 @@ public:
     void saveSettings(ConfigFile& cfg) override;
     bool hasDebugGUI() override { return true; }
     void onDebugGUI() override;
+    std::vector<std::string> describe(RuleDescripionType descType) override;
 
 private:
     void onStart();

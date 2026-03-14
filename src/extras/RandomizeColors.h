@@ -13,6 +13,7 @@ public:
     void onDebugGUI() override;
     bool hasSettings() override { return true; }
     bool onSettingsGUI() override;
+    std::vector<std::string> describe(ExtraDescripionType descType) override;
 
 private:
     void onStart();

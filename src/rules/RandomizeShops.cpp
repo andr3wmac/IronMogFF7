@@ -115,6 +115,26 @@ void RandomizeShops::onDebugGUI()
     }
 }
 
+std::vector<std::string> RandomizeShops::describe(RuleDescripionType descType)
+{
+    if (disableShops)
+    {
+        if (descType == RuleDescripionType::Negation)
+        {
+            return { "Shops" };
+        }
+    }
+    else 
+    {
+        if (descType == RuleDescripionType::Randomized)
+        {
+            return { "Shops" };
+        }
+    }
+
+    return {};
+}
+
 void RandomizeShops::onStart()
 {
     generateRandomizedShops();

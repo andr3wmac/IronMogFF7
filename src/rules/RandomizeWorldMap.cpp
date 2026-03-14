@@ -76,6 +76,16 @@ void RandomizeWorldMap::onDebugGUI()
     }
 }
 
+std::vector<std::string> RandomizeWorldMap::describe(RuleDescripionType descType)
+{
+    if (descType == RuleDescripionType::Randomized)
+    {
+        return { "World Map" };
+    }
+
+    return {};
+}
+
 void RandomizeWorldMap::onStart()
 {
     // Clear state

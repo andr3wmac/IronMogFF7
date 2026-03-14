@@ -129,6 +129,16 @@ void RandomizeColors::onDebugGUI()
     }
 }
 
+std::vector<std::string> RandomizeColors::describe(ExtraDescripionType descType)
+{
+    if (descType == ExtraDescripionType::Randomized)
+    {
+        return { "Colors" };
+    }
+
+    return {};
+}
+
 Utilities::Color getRandomColor(std::mt19937& rng)
 {
     /*

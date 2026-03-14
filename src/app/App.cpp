@@ -340,6 +340,13 @@ void App::guiSettingsRead(const char* section, const char* line)
 
     if (strcmp(section, "Tracker") == 0)
     {
+        if (readBool("ShowLogo", &tracker.showLogo)) return;
+        if (readBool("ShowCharacters", &tracker.showCharacters)) return;
+        if (readBool("ShowSeed", &tracker.showSeed)) return;
+        if (readBool("ShowTime", &tracker.showTime)) return;
+        if (readBool("ShowSong", &tracker.showSong)) return;
+        if (readBool("ShowRuleSummary", &tracker.showRuleSummary)) return;
+
         int attemptsDisplayMode = 0;
         if (readInt("AttemptsDisplayMode", &attemptsDisplayMode))
         {
@@ -348,16 +355,20 @@ void App::guiSettingsRead(const char* section, const char* line)
         }
         if (readInt("Attempts", &tracker.attemptCounter)) return;
         if (readInt("GameOvers", &tracker.gameOverCounter)) return;
-        if (readBool("ShowLogo", &tracker.showLogo)) return;
     }
 }
 
 void App::guiSettingsWrite(ImGuiTextBuffer* buf)
 {
     buf->appendf("[%s][%s]\n", "IronMogFF7", "Tracker");
+    buf->appendf("ShowLogo=%d\n", tracker.showLogo ? 1 : 0);
+    buf->appendf("ShowCharacters=%d\n", tracker.showCharacters ? 1 : 0);
+    buf->appendf("ShowSeed=%d\n", tracker.showSeed ? 1 : 0);
+    buf->appendf("ShowTime=%d\n", tracker.showTime ? 1 : 0);
+    buf->appendf("ShowSong=%d\n", tracker.showSong ? 1 : 0);
+    buf->appendf("ShowRuleSummary=%d\n", tracker.showRuleSummary ? 1 : 0);
     buf->appendf("AttemptsDisplayMode=%d\n", (int)tracker.attemptsDisplayMode);
     buf->appendf("Attempts=%d\n", tracker.attemptCounter);
     buf->appendf("GameOvers=%d\n", tracker.gameOverCounter);
-    buf->appendf("ShowLogo=%d\n", tracker.showLogo ? 1 : 0);
     buf->append("\n");
 }

@@ -10,6 +10,7 @@ public:
     bool onSettingsGUI() override;
     void loadSettings(const ConfigFile& cfg) override;
     void saveSettings(ConfigFile& cfg) override;
+    std::vector<std::string> describe(RuleDescripionType descType) override;
 
 private:
     bool noSummons = true;

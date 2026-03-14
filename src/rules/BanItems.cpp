@@ -351,3 +351,18 @@ void BanItems::saveSettings(ConfigFile& cfg)
     cfg.set<bool>("noArmor", noArmor);
     cfg.set<bool>("noAccessories", noAccessories);
 }
+
+std::vector<std::string> BanItems::describe(RuleDescripionType descType)
+{
+    if (descType == RuleDescripionType::Negation)
+    {
+        std::vector<std::string> results;
+        if (noConsumables) results.push_back("Consumables");
+        if (noWeapons) results.push_back("Weapons");
+        if (noArmor) results.push_back("Armor");
+        if (noAccessories) results.push_back("Accessories");
+        return results;
+    }
+
+    return {};
+}

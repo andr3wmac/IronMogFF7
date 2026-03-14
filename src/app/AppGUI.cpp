@@ -316,19 +316,20 @@ void App::drawTrackerPanel()
 {
     tracker.update();
 
-    int logoHeight = 0;
+    int headerHeight = 53;
     if (tracker.showLogo)
     {
         GUI::drawImage(logo, DPI(logo.width / 2), DPI(logo.height / 2));
-        logoHeight = 212;
+        headerHeight = 212;
     }
 
     gui.pushFont("Reactor7");
 
     ImGui::Spacing();
-    ImGui::BeginChild("##ScrollBox", ImVec2(0, (float)(gui.windowHeight - DPI(logoHeight))));
+    ImGui::BeginChild("##ScrollBox", ImVec2(0, (float)(gui.windowHeight - DPI(headerHeight))));
     {
         // Permadeath Character Portraits
+        if (tracker.showCharacters)
         {
             const int imgWidth = DPI(46);
             const int imgHeight = DPI(53);
@@ -361,16 +362,25 @@ void App::drawTrackerPanel()
         ImGui::Indent(DPI(10.0f));
 
         // Seed
-        std::string seedText = "Seed: " + std::string(seedValue);
-        ImGui::Text(seedText.c_str());
+        if (tracker.showSeed)
+        {
+            std::string seedText = "Seed: " + std::string(seedValue);
+            ImGui::Text(seedText.c_str());
+        }
 
         // In Game Time
-        std::string igtText = "Time: " + tracker.inGameTime;
-        ImGui::Text(igtText.c_str());
+        if (tracker.showTime)
+        {
+            std::string igtText = "Time: " + tracker.inGameTime;
+            ImGui::Text(igtText.c_str());
+        }
 
         // Current Song
-        std::string songText = "Song: " + tracker.currentSong;
-        ImGui::Text(songText.c_str());
+        if (tracker.showSong)
+        {
+            std::string songText = "Song: " + tracker.currentSong;
+            ImGui::Text(songText.c_str());
+        }
             
         // Attempts/Game Overs
         if (tracker.showAttempts())
@@ -385,8 +395,11 @@ void App::drawTrackerPanel()
         }
         
         // Rule summary
-        ImGui::Spacing();
-        ImGui::TextWrapped(tracker.rulesSummary.c_str());
+        if (tracker.showRuleSummary)
+        {
+            ImGui::Spacing();
+            ImGui::TextWrapped(tracker.rulesSummary.c_str());
+        }
 
         ImGui::Unindent(DPI(10.0f));
     }
@@ -401,7 +414,13 @@ void App::drawAppSettingsPanel()
     ImGui::SeparatorText("Tracker");
     {
         ImGui::Checkbox("Show Logo", &tracker.showLogo);
+        ImGui::Checkbox("Show Characters", &tracker.showCharacters);
+        ImGui::Checkbox("Show Seed", &tracker.showSeed);
+        ImGui::Checkbox("Show Time", &tracker.showTime);
+        ImGui::Checkbox("Show Song", &tracker.showSong);
+        ImGui::Checkbox("Show Rule Summary", &tracker.showRuleSummary);
 
+        ImGui::Spacing();
         ImGui::Text("Attempt Counter Mode:");
         ImGui::SameLine(DPI(160.0f));
         ImGui::SetNextItemWidth(DPI(200.0f));
@@ -414,11 +433,11 @@ void App::drawAppSettingsPanel()
         ImGui::BeginDisabled(tracker.attemptsDisplayMode == AttemptsDisplayMode::Disabled);
         {
             ImGui::Text("Attempts:");
-            ImGui::SameLine();
+            ImGui::SameLine(DPI(160.0f));
             ImGui::InputInt("##AppSettings_Attempts", &tracker.attemptCounter, 0, 0);
 
             ImGui::Text("Game Overs:");
-            ImGui::SameLine();
+            ImGui::SameLine(DPI(160.0f));
             ImGui::InputInt("##AppSettings_GameOvers", &tracker.gameOverCounter, 0, 0);
         }
         ImGui::EndDisabled();

@@ -17,6 +17,7 @@ public:
     void setup() override;
     bool hasDebugGUI() override { return true; }
     void onDebugGUI() override;
+    std::vector<std::string> describe(RuleDescripionType descType) override;
 
     bool isCharacterDead(uint8_t characterID)
     {

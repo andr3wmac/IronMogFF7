@@ -12,6 +12,16 @@ void NoEscapes::setup()
     Restrictions::banMateria(59);   // Exit
 }
 
+std::vector<std::string> NoEscapes::describe(RuleDescripionType descType)
+{
+    if (descType == RuleDescripionType::Negation)
+    {
+        return { "Escapes" };
+    }
+
+    return {};
+}
+
 void NoEscapes::onBattleEnter()
 {
     // TODO: this is apparently "not runnable due to pincer" there is probably a more proper

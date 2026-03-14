@@ -85,6 +85,16 @@ void RandomizeFieldItems::onDebugGUI()
     }
 }
 
+std::vector<std::string> RandomizeFieldItems::describe(RuleDescripionType descType)
+{
+    if (descType == RuleDescripionType::Randomized)
+    {
+        return { "Field Items" };
+    }
+
+    return {};
+}
+
 void RandomizeFieldItems::onStart()
 {
     generateRandomizedItems();

@@ -201,6 +201,24 @@ void RandomizeEncounters::onDebugGUI()
     }
 }
 
+std::vector<std::string> RandomizeEncounters::describe(RuleDescripionType descType)
+{
+    if (descType == RuleDescripionType::Randomized)
+    {
+        return { "Encounters" };
+    }
+
+    if (descType == RuleDescripionType::Multiplier)
+    {
+        if (minStatMultiplier != 1.0f || maxStatMultiplier != 1.0f)
+        {
+            return { Utilities::formatFloat(minStatMultiplier) + "-" + Utilities::formatFloat(maxStatMultiplier) + "x Enemy Stats" };
+        }
+    }
+
+    return {};
+}
+
 void RandomizeEncounters::onStart()
 {
     rng.seed(game->getSeed());

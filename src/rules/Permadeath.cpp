@@ -97,6 +97,16 @@ void Permadeath::onDebugGUI()
     }
 }
 
+std::vector<std::string> Permadeath::describe(RuleDescripionType descType)
+{
+    if (descType == RuleDescripionType::Unique)
+    {
+        return { "Permadeath" };
+    }
+
+    return {};
+}
+
 void Permadeath::onStart()
 {
     deadCharacters = game->read<uint16_t>(SavemapOffsets::IronMogPermadeath);

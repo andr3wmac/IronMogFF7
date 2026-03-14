@@ -185,6 +185,24 @@ void RandomizeBosses::onDebugGUI()
     }
 }
 
+std::vector<std::string> RandomizeBosses::describe(RuleDescripionType descType)
+{
+    if (descType == RuleDescripionType::Randomized)
+    {
+        return { "Boss Weaknesses" };
+    }
+
+    if (descType == RuleDescripionType::Multiplier)
+    {
+        if (minStatMultiplier != 1.0f || maxStatMultiplier != 1.0f)
+        {
+            return { Utilities::formatFloat(minStatMultiplier) + "-" + Utilities::formatFloat(maxStatMultiplier) + "x Boss Stats" };
+        }
+    }
+
+    return {};
+}
+
 void RandomizeBosses::onStart()
 {
     rng.seed(game->getSeed());

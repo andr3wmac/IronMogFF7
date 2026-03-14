@@ -29,6 +29,7 @@ public:
     void saveSettings(ConfigFile& cfg) override;
     bool hasDebugGUI() override { return true; }
     void onDebugGUI() override;
+    std::vector<std::string> describe(ExtraDescripionType descType) override;
 
     bool isPlaying();
     std::string getCurrentlyPlaying();

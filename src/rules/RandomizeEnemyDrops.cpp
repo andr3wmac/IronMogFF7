@@ -117,6 +117,32 @@ void RandomizeEnemyDrops::onDebugGUI()
     }
 }
 
+std::vector<std::string> RandomizeEnemyDrops::describe(RuleDescripionType descType)
+{
+    if (descType == RuleDescripionType::Randomized)
+    {
+        return { "Enemy Drops" };
+    }
+
+    if (descType == RuleDescripionType::Multiplier)
+    {
+        std::vector<std::string> results;
+
+        if (minGilMultiplier != 1.0f || maxGilMultiplier != 1.0f)
+        {
+            results.push_back(Utilities::formatFloat(minGilMultiplier) + "-" + Utilities::formatFloat(maxGilMultiplier) + "x Gil");
+        }
+        if (minExpMultiplier != 1.0f || maxExpMultiplier != 1.0f)
+        {
+            results.push_back(Utilities::formatFloat(minExpMultiplier) + "-" + Utilities::formatFloat(maxExpMultiplier) + "x Exp");
+        }
+
+        return results;
+    }
+
+    return {};
+}
+
 void RandomizeEnemyDrops::onStart()
 {
     rng.seed(game->getSeed());
