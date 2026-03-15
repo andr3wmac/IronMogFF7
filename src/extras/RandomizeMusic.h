@@ -56,6 +56,7 @@ private:
     uint16_t previousMusicID = 0;
     uint8_t previousGameModule = 0;
     uint16_t previousValidStack[2] = { 0, 0 };
+    uint8_t previousBattlePaused = 0;
     
     std::unordered_map<uint16_t, uint16_t> previousTrackSelection;
     std::unordered_map<std::string, std::vector<Track>> musicMap;

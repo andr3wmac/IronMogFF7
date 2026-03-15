@@ -45,6 +45,7 @@ void RandomizeMusic::setup()
     BIND_EVENT_ONE_ARG(game->onFrame, RandomizeMusic::onFrame);
 
     previousMusicID = UnsetMusicID;
+    previousBattlePaused = 0;
 }
 
 bool RandomizeMusic::onSettingsGUI()
@@ -97,8 +98,9 @@ bool RandomizeMusic::onSettingsGUI()
 
 void RandomizeMusic::loadSettings(const ConfigFile& cfg)
 {
-    useCuratedMusic = cfg.get<bool>("useCuratedMusic", true);
-    currentVolume = cfg.get<float>("volume", 5);
+    useCuratedMusic = cfg.get<bool>("useCuratedMusic", useCuratedMusic);
+    currentVolume = cfg.get<float>("volume", currentVolume);
+    AudioManager::setMusicVolume(currentVolume);
 }
 
 void RandomizeMusic::saveSettings(ConfigFile& cfg)
@@ -194,6 +196,26 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
             {
                 game->write<uint8_t>(GameOffsets::MusicLock, 0);
             }
+        }
+    }
+
+    // Handle pausing in battles
+    if (game->inBattle())
+    {
+        uint8_t battlePaused = game->read<uint8_t>(0x9A118);
+        if (battlePaused != previousBattlePaused)
+        {
+            if (battlePaused == 0xFF)
+            {
+                LOG("Battle paused.");
+                AudioManager::pauseMusic();
+            }
+            else
+            {
+                LOG("Battle resumed.");
+                AudioManager::resumeMusic();
+            }
+            previousBattlePaused = battlePaused;
         }
     }
 
