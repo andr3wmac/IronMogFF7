@@ -20,6 +20,7 @@ private:
     void onBattleEnter();
 
     std::mt19937_64 rng;
+    bool randomizeEveryFight = false;
     bool randomizeMorphs = true;
     float minGilMultiplier = 1.0f;
     float maxGilMultiplier = 1.0f;

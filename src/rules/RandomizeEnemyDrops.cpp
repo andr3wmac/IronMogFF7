@@ -21,6 +21,8 @@ bool RandomizeEnemyDrops::onSettingsGUI()
 {
     bool changed = false;
 
+    changed |= ImGui::Checkbox("Randomize Every Fight", &randomizeEveryFight);
+    ImGui::SetItemTooltip("Whether drops should be randomized every fight\nor randomized once for each enemy.");
     changed |= ImGui::Checkbox("Randomize Morphs", &randomizeMorphs);
 
     ImGui::Text("Gil Multiplier");
@@ -52,15 +54,17 @@ bool RandomizeEnemyDrops::onSettingsGUI()
 
 void RandomizeEnemyDrops::loadSettings(const ConfigFile& cfg)
 {
-    randomizeMorphs  = cfg.get<bool>("randomizeMorphs", randomizeMorphs);
-    minGilMultiplier = cfg.get<float>("minGilMultiplier", 1.0f);
-    maxGilMultiplier = cfg.get<float>("maxGilMultiplier", 1.0f);
-    minExpMultiplier = cfg.get<float>("minExpMultiplier", 1.0f);
-    maxExpMultiplier = cfg.get<float>("maxExpMultiplier", 1.0f);
+    randomizeEveryFight = cfg.get<bool>("randomizeEveryFight", randomizeEveryFight);
+    randomizeMorphs     = cfg.get<bool>("randomizeMorphs", randomizeMorphs);
+    minGilMultiplier    = cfg.get<float>("minGilMultiplier", minGilMultiplier);
+    maxGilMultiplier    = cfg.get<float>("maxGilMultiplier", maxGilMultiplier);
+    minExpMultiplier    = cfg.get<float>("minExpMultiplier", minExpMultiplier);
+    maxExpMultiplier    = cfg.get<float>("maxExpMultiplier", maxExpMultiplier);
 }
 
 void RandomizeEnemyDrops::saveSettings(ConfigFile& cfg)
 {
+    cfg.set<bool>("randomizeEveryFight", randomizeEveryFight);
     cfg.set<bool>("randomizeMorphs", randomizeMorphs);
     cfg.set<float>("minGilMultiplier", minGilMultiplier);
     cfg.set<float>("maxGilMultiplier", maxGilMultiplier);
@@ -155,7 +159,7 @@ void RandomizeEnemyDrops::onBattleEnter()
 
     const auto& [scene, formation] = game->getBattleFormation();
 
-    std::set<int> activeEnemyIDs;
+    std::set<int> activeEnemyIndexes;
     for (int i = 0; i < 6; ++i)
     {
         if (formation->enemyIDs[i] == UINT16_MAX)
@@ -167,7 +171,7 @@ void RandomizeEnemyDrops::onBattleEnter()
         {
             if (formation->enemyIDs[i] == scene->enemyIDs[j])
             {
-                activeEnemyIDs.insert(j);
+                activeEnemyIndexes.insert(j);
             }
         }
 
@@ -186,19 +190,28 @@ void RandomizeEnemyDrops::onBattleEnter()
         game->write<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::Exp, newExp);
     }
 
-    for (int id : activeEnemyIDs)
+    for (int idx : activeEnemyIndexes)
     {
+        if (!randomizeEveryFight)
+        {
+            // IF randomize every fight is disabled then we seed the RNG with the
+            // enemy ID so the same game seed + enemy ID will produce the same drop
+            // and morph randomization.
+            uint16_t enemyID = scene->enemyIDs[idx];
+            rng.seed(Utilities::makeSeed64(game->getSeed(), enemyID));
+        }
+
         // Maximum of 4 item slots per enemy
         for (int i = 0; i < 4; ++i)
         {
-            uint16_t dropID = game->read<uint16_t>(BattleSceneOffsets::Enemies[id] + BattleSceneOffsets::DropIDs[i]);
+            uint16_t dropID = game->read<uint16_t>(BattleSceneOffsets::Enemies[idx] + BattleSceneOffsets::DropIDs[i]);
             if (dropID == UINT16_MAX)
             {
                 continue;
             }
 
             uint16_t newDropID = GameData::getRandomItemSameType(dropID, rng, true);
-            game->write<uint16_t>(BattleSceneOffsets::Enemies[id] + BattleSceneOffsets::DropIDs[i], newDropID);
+            game->write<uint16_t>(BattleSceneOffsets::Enemies[idx] + BattleSceneOffsets::DropIDs[i], newDropID);
 
             std::string oldItemName = GameData::getItemName(dropID);
             std::string newItemName = GameData::getItemName(newDropID);
@@ -207,7 +220,7 @@ void RandomizeEnemyDrops::onBattleEnter()
 
         if (randomizeMorphs)
         {
-            uint16_t morphID = game->read<uint16_t>(BattleSceneOffsets::Enemies[id] + BattleSceneOffsets::MorphItemID);
+            uint16_t morphID = game->read<uint16_t>(BattleSceneOffsets::Enemies[idx] + BattleSceneOffsets::MorphItemID);
             if (morphID != 0xFFFF)
             {
                 uint16_t newMorphID = GameData::getRandomItemSameType(morphID, rng, true);
