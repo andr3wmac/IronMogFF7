@@ -237,7 +237,8 @@ def outputFields(gen, discPath, version):
                     gen.write_line("addFieldScriptMessage(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " + str(windowIndex) + ", " + f"0x{addr:X}" + ", " + f"0x{stroffset:X}" + ", " + str(strlen) + ");", 4)
 
                 # Ensures the string contains an item/materia/etc name wrapped in quotes
-                match = next((word for word in gen.item_names if f'"{word}"' in string), None)
+                # Note: we only enforce quotes on the beginning of the name because theres spots where they put the puncuation inside the quotes. Example: Received "Turbo Ether!"
+                match = next((word for word in gen.item_names if f'"{word}' in string), None)
                 if match:
                     stroffset, strlen = fieldOffsets[values[3]]
                     gen.write_line("addFieldScriptMessage(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " + str(windowIndex) + ", " +  f"0x{addr:X}" + ", " + f"0x{stroffset:X}" + ", " + str(strlen) + ");", 4)

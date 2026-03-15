@@ -2741,6 +2741,7 @@ void GameData::loadGameData(GameVersion gameVersion, uint8_t gameDisc)
     addField(0x0117, "nivgate");
     addFieldModels(0x0117, {1,4,3,5,7,8,9,6,0,0,0,1,0,0});
     addField(0x0111, "nivinn_1");
+    addFieldScriptMessage(0x0111, 20, 1, 1, 0xDA2, 0x19F6, 23);
     addFieldScriptItem(0x0111, 20, 1, 0xDA5, 76, 1);
     addFieldModels(0x0111, {1,1,4,2,3,5,7,8,9,6,0,0,0,0});
     addField(0x0112, "nivinn_2");
@@ -2769,6 +2770,7 @@ void GameData::loadGameData(GameVersion gameVersion, uint8_t gameDisc)
     addField(0x0128, "nivl_e3");
     addFieldModels(0x0128, {1});
     addField(0x011E, "niv_ti1");
+    addFieldScriptMessage(0x011E, 17, 1, 1, 0x83D, 0xA20, 23);
     addFieldScriptItem(0x011E, 17, 1, 0x840, 4, 1);
     addFieldModels(0x011E, {1,1,4,2,3,5,7,8,9,6,0,0});
     addField(0x011F, "niv_ti2");
@@ -2776,6 +2778,7 @@ void GameData::loadGameData(GameVersion gameVersion, uint8_t gameDisc)
     addFieldScriptMessage(0x011F, 17, 1, 0, 0xA6B, 0x1A87, 28);
     addFieldScriptMessage(0x011F, 17, 1, 0, 0xC14, 0x2356, 23);
     addFieldScriptItem(0x011F, 17, 1, 0xC1B, 89, 1);
+    addFieldScriptMessage(0x011F, 21, 1, 1, 0x1050, 0x26C1, 25);
     addFieldScriptItem(0x011F, 21, 1, 0x1053, 153, 1);
     addFieldModels(0x011F, {1,1,4,2,3,5,7,8,9,6,0});
     addField(0x0120, "niv_ti3");
@@ -2840,6 +2843,7 @@ void GameData::loadGameData(GameVersion gameVersion, uint8_t gameDisc)
     addField(0x010F, "nvmin1_1");
     addFieldModels(0x010F, {1,1,4,2,3,5,7,8,9,6,0,0,0});
     addField(0x0110, "nvmin1_2");
+    addFieldScriptMessage(0x0110, 6, 1, 1, 0x368, 0x4BE, 23);
     addFieldScriptItem(0x0110, 6, 1, 0x36B, 76, 1);
     addFieldModels(0x0110, {1,1,4,6,0,0});
     addField(0x0142, "nvmkin1");
@@ -3066,6 +3070,7 @@ void GameData::loadGameData(GameVersion gameVersion, uint8_t gameDisc)
     addFieldScriptBattle(0x01AB, 8, 1, 0x653, 769);
     addFieldScriptMessage(0x01AB, 9, 1, 0, 0x6FF, 0x2476, 21);
     addFieldScriptItem(0x01AB, 9, 1, 0x706, 211, 1);
+    addFieldScriptMessage(0x01AB, 10, 1, 0, 0x794, 0x24A8, 38);
     addFieldModels(0x01AB, {1,0,0,0,0,0,0});
     addField(0x01A6, "semkin_8");
     addFieldModels(0x01A6, {1,0});
@@ -3465,6 +3470,7 @@ void GameData::loadGameData(GameVersion gameVersion, uint8_t gameDisc)
     addField(0x0050, "zz3");
     addFieldScriptShop(0x0050, 4, 1, 0x607, 53);
     addFieldScriptShop(0x0050, 4, 1, 0x737, 53);
+    addFieldScriptMessage(0x0050, 4, 1, 1, 0x821, 0x1326, 207);
     addFieldScriptMateria(0x0050, 8, 1, 0xB91, 44);
     addFieldScriptMessage(0x0050, 8, 1, 0, 0xBB1, 0x1CA2, 31);
     addFieldWorldExit(0x0050, 0x510C, 0, 0x1C);
