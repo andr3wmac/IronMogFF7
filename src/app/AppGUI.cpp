@@ -2,6 +2,7 @@
 #include "core/game/GameData.h"
 #include "core/game/MemoryOffsets.h"
 #include "core/gui/IconsFontAwesome5.h"
+#include "core/utilities/Flags.h"
 #include "core/utilities/Logging.h"
 #include "core/utilities/MemorySearch.h"
 #include "core/utilities/Platform.h"
@@ -571,6 +572,56 @@ void App::drawDebugPanel()
     {
         ImGui::Indent(25.0f);
 
+        for (int i = 0; i < 3; ++i)
+        {
+            uintptr_t playerOffset = PlayerOffsets::Players[i];
+
+            std::string enemyText = "Player " + std::to_string(i);
+            ImGui::Text(enemyText.c_str());
+            ImGui::Indent(25.0f);
+
+            for (int j = 0; j < 3; ++j)
+            {
+                uintptr_t limitActionOffset = playerOffset + PlayerOffsets::LimitAction;
+                uintptr_t limitOffset = playerOffset + PlayerOffsets::LimitData + (j * 28);
+
+                uint16_t attackAttribute = game->read<uint16_t>(limitOffset + 0x0B);
+                uint8_t attackID = game->read<uint8_t>(limitOffset + 0x0D);
+
+                if (attackID == 255)
+                {
+                    continue;
+                }
+
+                for (LimitBreak& limit : GameData::limitBreaks)
+                {
+                    if (limit.attackData.idNumber == attackID)
+                    {
+                        std::string attackAttributeText = limit.name + " ID: " + std::to_string(attackID) + " Attack Attr : " + std::to_string(attackAttribute);
+                        ImGui::Text(attackAttributeText.c_str());
+                    }
+                }
+            }
+
+            ImGui::PushID(enemyText.c_str());
+            if (ImGui::Button("Print Limit Data"))
+            {
+                for (int j = 0; j < 3; ++j)
+                {
+                    uintptr_t limitActionOffset = playerOffset + PlayerOffsets::LimitAction;
+                    uintptr_t limitOffset = playerOffset + PlayerOffsets::LimitData + (j * 28);
+
+                    uint32_t limitData[7];
+                    game->read(limitOffset, 28, (uint8_t*)(&limitData[0]));
+
+                    LOG("Limit %d: { %luU, %luU, %luU, %luU, %luU, %luU, %luU }", j, limitData[0], limitData[1], limitData[2], limitData[3], limitData[4], limitData[5], limitData[6]);
+                }
+            }
+            ImGui::PopID();
+
+            ImGui::Unindent(25.0f);
+        }
+
         const auto& [scene, formation] = game->getBattleFormation();
 
         if (formation != nullptr)
@@ -627,6 +678,58 @@ void App::drawDebugPanel()
                 uint16_t mDef = game->read<uint16_t>(BattleOffsets::Enemies[i] + BattleOffsets::MDefense);
                 std::string mDefText = "Magic Defense: " + std::to_string(mDef);
                 ImGui::Text(mDefText.c_str());
+
+                ImGui::Unindent(25.0f);
+            }
+        }
+
+        ImGui::Unindent(25.0f);
+    }
+
+    if (ImGui::CollapsingHeader("Characters"))
+    {
+        ImGui::Indent(25.0f);
+
+        for (int i = 0; i < 9; ++i)
+        {
+            std::string characterName = getCharacterName(i);
+            if (ImGui::CollapsingHeader(characterName.c_str()))
+            {
+                ImGui::Indent(25.0f);
+
+                uintptr_t offset = getCharacterDataOffset(i);
+                uint8_t level = game->read<uint8_t>(offset + CharacterDataOffsets::Level);
+                std::string levelText = "Level: " + std::to_string(level);
+                ImGui::Text(levelText.c_str());
+
+                Flags<uint16_t> limitBreakFlags = game->read<uint16_t>(offset + CharacterDataOffsets::LearnedLimits);
+
+                std::string limit11Text = "Limit Lv. 1-1: " + std::to_string(limitBreakFlags.isBitSet(0));
+                ImGui::Text(limit11Text.c_str());
+
+                std::string limit12Text = "Limit Lv. 1-2: " + std::to_string(limitBreakFlags.isBitSet(1));
+                ImGui::Text(limit12Text.c_str());
+
+                std::string limit21Text = "Limit Lv. 2-1: " + std::to_string(limitBreakFlags.isBitSet(3));
+                ImGui::Text(limit21Text.c_str());
+
+                std::string limit22Text = "Limit Lv. 2-2: " + std::to_string(limitBreakFlags.isBitSet(4));
+                ImGui::Text(limit22Text.c_str());
+
+                std::string limit31Text = "Limit Lv. 3-1: " + std::to_string(limitBreakFlags.isBitSet(6));
+                ImGui::Text(limit31Text.c_str());
+
+                std::string limit32Text = "Limit Lv. 3-2: " + std::to_string(limitBreakFlags.isBitSet(7));
+                ImGui::Text(limit32Text.c_str());
+
+                std::string limit41Text = "Limit Lv. 4-1: " + std::to_string(limitBreakFlags.isBitSet(9));
+                ImGui::Text(limit41Text.c_str());
+
+                if (ImGui::Button("Test Omni"))
+                {
+                    limitBreakFlags.setBit(9);
+                    game->write<uint16_t>(offset + CharacterDataOffsets::LearnedLimits, limitBreakFlags.value());
+                }
 
                 ImGui::Unindent(25.0f);
             }

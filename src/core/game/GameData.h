@@ -30,6 +30,33 @@ struct Item
     uint32_t price = 0;
 };
 
+#pragma pack(push, 1)
+struct AttackData
+{
+    uint32_t unknown0;
+    uint8_t castingCost;
+    uint32_t unknown1;
+    uint8_t unknown2;
+    uint8_t attackType;
+    uint16_t attackAttribute;
+    uint8_t idNumber;
+    uint8_t restoreApply;
+    uint8_t strength;
+    uint8_t restoreType;
+    uint16_t unknown3;
+    uint8_t timesAttacking;
+    uint32_t statuses;
+    uint16_t element;
+    uint16_t unknown4;
+};
+#pragma pack(pop)
+
+struct LimitBreak
+{
+    std::string name = "";
+    AttackData attackData;
+};
+
 struct ESkill
 {
     std::string name = "";
@@ -252,6 +279,7 @@ class GameData
 public:
     static std::unordered_map<uint16_t, Item> items;
     static std::unordered_map<uint16_t, Item> materia;
+    static std::vector<LimitBreak> limitBreaks;
     static std::vector<ESkill> eSkills;
     static std::unordered_map<uint16_t, FieldData> fieldData;
     static std::vector<WorldMapEntrance> worldMapEntrances;
@@ -273,6 +301,11 @@ public:
     static void addMateria(uint16_t id, const std::string& name, uint32_t shopPrice) 
     { 
         materia[id] = { name, shopPrice };
+    }
+
+    static void addLimitBreak(const std::string& name, AttackData limitBreak)
+    {
+        GameData::limitBreaks.push_back({ name, limitBreak });
     }
 
     static void addESkill(const std::string& name, uint8_t targetFlags, uint32_t mpCost, uint8_t idx) 

@@ -147,6 +147,7 @@ struct CharacterDataOffsets
     CONST_PTR CurrentLimitLevel = 0x0E;
     CONST_PTR CurrentLimitBar   = 0x0F;
     CONST_PTR Name              = 0x10;
+    CONST_PTR LearnedLimits     = 0x22; // uint16_t bit mask
     CONST_PTR CurrentHP         = 0x2C;
     CONST_PTR MaxHP             = 0x38;
 
@@ -217,6 +218,9 @@ struct PlayerOffsets
     CONST_PTR MaxHP         = 0x12;
     CONST_PTR CurrentMP     = 0x14;
     CONST_PTR MaxMP         = 0x16;
+
+    CONST_PTR LimitAction = 0xAC;
+    CONST_PTR LimitData   = 0xB4; // Three entries, 28 bytes each. Attack Data format.
 
     CONST_PTR LimitBreakDisplay = 0x1B;     // uint8_t
     CONST_PTR EnemySkillMenu    = 0x348;    // List of 24 8-byte entries.

@@ -7,6 +7,7 @@ static FieldData gInvalidField = { 0, "" };
 
 std::unordered_map<uint16_t, Item> GameData::items;
 std::unordered_map<uint16_t, Item> GameData::materia;
+std::vector<LimitBreak> GameData::limitBreaks;
 std::vector<ESkill> GameData::eSkills;
 std::unordered_map<uint16_t, FieldData> GameData::fieldData;
 std::vector<WorldMapEntrance> GameData::worldMapEntrances;
