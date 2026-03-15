@@ -44,16 +44,20 @@ private:
     uint16_t randomizeShopMateria(uint16_t materiaID, const std::set<uint16_t>& previouslyChosen);
 
     bool disableShops = false;
-    bool keepPrices = true;
+    bool keepShopPrices = true;
     bool excludeRareItems = true;
     bool excludeSources = true;
+
+    float minPriceMultiplier = 1.0f;
+    float maxPriceMultiplier = 1.0f;
 
     std::mt19937_64 rng;
     std::unordered_map<uint8_t, RandomizedShop> randomizedShops;
     uint16_t lastFieldID = 0;
     std::set<uint8_t> fieldShopIDs;
 
-    // Used exclusively for overwriting sell prices, decoupled from buy prices.
+    std::array<uint32_t, 320> itemBuyPrices;
     std::array<uint32_t, 320> itemSellPrices;
+    std::array<uint32_t, 91> materiaBuyPrices;
     std::array<uint32_t, 91> materiaSellPrices;
 };
