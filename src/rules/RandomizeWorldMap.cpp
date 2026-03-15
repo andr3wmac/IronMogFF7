@@ -128,7 +128,7 @@ void RandomizeWorldMap::onStart()
     entranceGroups.push_back({ 0x01, 0x02, 0x03, 0x04 });   // Midgar, Kalm, Chocobo Ranch, Mithril Mine
     entranceGroups.push_back({ 0x05, 0x06, 0x07 });         // Mithril Mine, Fort Condor, 0x39
     entranceGroups.push_back({ 0x0D, 0x0E });               // Costa Del Sol, Mount Corel
-    entranceGroups.push_back({ 0x0A, 0x0F, 0x11, 0x12 });   // Weapon Seller, North Corel, Gongaga, Cosmo Canyon
+    entranceGroups.push_back({ 0x0A, 0x11, 0x12 });         // Weapon Seller, Gongaga, Cosmo Canyon
     entranceGroups.push_back({ 0x14, 0x2E });               // Rocket Town, Mount Nibel
     entranceGroups.push_back({ 0x08, 0x17, 0x19 });         // Temple of Ancients, Wutai, Bone Village
     entranceGroups.push_back({ 0x0B, 0x1C });               // Mideel, Mystery House
