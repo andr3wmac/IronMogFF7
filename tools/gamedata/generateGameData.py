@@ -1,6 +1,8 @@
 import os
 import sys
 import ff7
+import struct
+import zlib
 from ff7.field import opcodes, specialOpcodes, Op, fieldIDTable
 
 class GameDataGenerator:
@@ -124,6 +126,33 @@ def outputInventory(gen, discPath, version):
             gen.write_line("")
 
 def outputOther(gen, discPath, version):
+    kernelDataFile = ff7.game.retrieveFile(discPath, "INIT", "KERNEL.BIN")
+    kernelBin = ff7.kernel.Archive(kernelDataFile)
+
+    limitNames = []
+    for index, numStrings, compressed, transDir, transFileName in ff7.data.kernelStringData:
+        if not index == 9:
+            continue
+
+        stringData = kernelBin.getFile(9, index).getData()
+        with open("stringTable.bin", "wb") as f:
+            f.write(stringData)
+
+        stringList = ff7.kernel.StringList(stringData, numStrings, ff7.game.isJapanese(version))
+        lines = stringList.getStrings()
+
+        # Limit names
+        for idx in range(128, 199):
+            limitNames.append(lines[idx][10:])
+
+    # Limit Breaks
+    limitData = ff7.menu.LimitMenuData(ff7.game.retrieveFile(discPath, "MENU", "LIMTMENU.MNU"))
+    limitIndex = 0
+    for attack in limitData.attacks:
+        gen.write_line("addLimitBreak(\"" + limitNames[limitIndex] + "\", " + listToCPPArray(list(attack.values())) + ");", 4)
+        limitIndex += 1
+    gen.write_line("")
+
     # Enemy Skills
     # TODO: we can pull this data from kernel, instead its hardcoded from inspection with Scarlet.
     # Format: Name, Target Flags, MP Cost, Index.
@@ -253,6 +282,9 @@ def outputFields(gen, discPath, version):
                     gen.write_line("addFieldScriptBattle(" + fieldID + ", "+ str(groupIndex) + ", " + str(scriptIndex) + ", " + f"0x{addr:X}" + ", " + str(encounterID) + ");", 4)
                 else:
                     print("Field script battle uses memory fetch: " + str(values))
+
+            #if map.lower() == "canon_2":
+            #    print("Group Index: " + str(groupIndex) + " " + str(scriptIndex) + " " + f"0x{addr:X}" + " OPCODE: " + str(mnemonic) + " " + str(values))
 
             offset += size
 
@@ -486,6 +518,11 @@ def outputBosses(gen, discPath, version):
             enemyIDsByName[name].append(id)
             enemyScenesByID[id].append(i)
 
+    #for enemyName in enemyIDsByName:
+    #    enemyID = enemyIDsByName[enemyName]
+    #    sceneID = enemyScenesByID[enemyID[0]]
+    #    print(enemyName + " Scene: " + str(sceneID))
+
     for bossName in bosses:
         if not bossName in enemyIDsByName:
             print("Error! Boss not found: " + bossName)
@@ -641,14 +678,14 @@ gen = GameDataGenerator(outputFileName, outputFunction)
 gen.open_file()
 gen.write_header()
 
-outputInventory(gen, discPath, version)
+#outputInventory(gen, discPath, version)
 outputOther(gen, discPath, version)
-outputFields(gen, discPath, version)
-outputWorldMap(gen, discPath, version)
-outputShops(gen, discPath, version)
-outputBattles(gen, discPath, version)
-outputBosses(gen, discPath, version)
-outputModels(gen, discPath, version)
+#outputFields(gen, discPath, version)
+#outputWorldMap(gen, discPath, version)
+#outputShops(gen, discPath, version)
+#outputBattles(gen, discPath, version)
+#outputBosses(gen, discPath, version)
+#outputModels(gen, discPath, version)
 
 gen.write_footer()
 gen.close_file()

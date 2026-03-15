@@ -125,11 +125,17 @@ class StringList:
         for i in range(numStrings):
             offsets.append(struct.unpack_from("<H", data, i*2)[0])
 
+        index = 0
+
         # Extract the strings
         for offset in offsets:
             rawString, endOfString = self._extract(data, offset, len(data))
             assert endOfString
-            self.stringList.append(ff7text.decodeKernel(rawString, japanese))
+            decodedStr = ff7text.decodeKernel(rawString, japanese)
+            self.stringList.append(decodedStr)
+            print(str(index) + ") " + str(offset) + ": " + str(decodedStr))
+
+            index += 1
 
     # Extract a single string from the raw data. Returns a tuple consisting
     # of the extracted string and a flag which indicates that the end of the
@@ -291,3 +297,37 @@ class StringList:
             offsetData.extend(struct.pack("<H", offset + numStrings*2))
 
         return offsetData + data
+
+class AttackList:
+    def __init__(self, data = None, numAttacks = 0, japanese = False):
+        # 28 bytes per record as established
+        fmt = "< 4x B 5x B H B B B B 2x B I H 2x"
+        record_size = struct.calcsize(fmt)
+        
+        # Simple bounds check
+        if len(data) < (record_size * numAttacks):
+            raise ValueError(f"Buffer too small. Expected {record_size * numAttacks} bytes.")
+        
+        self.attacks = []
+        
+        for i in range(numAttacks):
+            # Calculate the start and end indices for the current record
+            start = i * record_size
+            end = start + record_size
+            
+            # Slice and unpack
+            record_bytes = data[start:end]
+            unpacked = struct.unpack(fmt, record_bytes)
+            
+            self.attacks.append({
+                "casting_cost":     unpacked[0],
+                "attack_type":      unpacked[1],
+                "attack_attribute": unpacked[2],
+                "id_number":        unpacked[3],
+                "restore_apply":    unpacked[4],
+                "strength":         unpacked[5],
+                "restore_type":     unpacked[6],
+                "times_attacking":  unpacked[7],
+                "statuses":         unpacked[8],
+                "element":          unpacked[9],
+            })
