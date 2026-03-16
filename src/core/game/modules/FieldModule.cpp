@@ -88,6 +88,12 @@ void FieldModule::onFieldChanged(uint16_t fieldID)
         uintptr_t itemIDOffset = FieldScriptOffsets::ScriptStart + item.offset + FieldScriptOffsets::ItemID;
         uint16_t itemID = game->read<uint16_t>(itemIDOffset);
 
+        // Do not delete Battery in Wall Market.
+        if (fieldData.id == 196 && itemID == 85)
+        {
+            continue;
+        }
+
         if (Restrictions::isItemBanned(itemID))
         {
             // Delete item.

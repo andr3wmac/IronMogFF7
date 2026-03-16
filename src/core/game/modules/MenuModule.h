@@ -14,6 +14,7 @@ public:
 
 private:
     bool isShopDataLoaded();
+    void onShopMenuChanged(uint8_t menuIndex);
 
     GameManager* game = nullptr;
     uint8_t gameModule = 0;

@@ -40,6 +40,7 @@ private:
     void overwriteMessage(const FieldData& fieldData, const FieldScriptItem& oldItem, const FieldScriptItem& newItem, const std::string& oldName, const std::string& newName, bool isMateria);
 
     RandomMode randomMode;
+    bool keepItemType = true;
 
     // Generated randomization mapping
     std::unordered_map<uint32_t, FieldScriptItem> randomizedItems;

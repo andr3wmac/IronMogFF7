@@ -83,7 +83,7 @@ void BattleModule::deleteBannedDrops()
 {
     const auto& [scene, formation] = game->getBattleFormation();
 
-    std::set<int> activeEnemyIDs;
+    std::set<int> activeEnemyIndexes;
     for (int i = 0; i < 6; ++i)
     {
         if (formation->enemyIDs[i] == UINT16_MAX)
@@ -95,17 +95,17 @@ void BattleModule::deleteBannedDrops()
         {
             if (formation->enemyIDs[i] == scene->enemyIDs[j])
             {
-                activeEnemyIDs.insert(j);
+                activeEnemyIndexes.insert(j);
             }
         }
     }
 
-    for (int id : activeEnemyIDs)
+    for (int idx : activeEnemyIndexes)
     {
         // Maximum of 4 item slots per enemy
         for (int i = 0; i < 4; ++i)
         {
-            uint16_t dropID = game->read<uint16_t>(BattleSceneOffsets::Enemies[id] + BattleSceneOffsets::DropIDs[i]);
+            uint16_t dropID = game->read<uint16_t>(BattleSceneOffsets::Enemies[idx] + BattleSceneOffsets::DropIDs[i]);
             if (dropID == UINT16_MAX)
             {
                 continue;
@@ -113,7 +113,18 @@ void BattleModule::deleteBannedDrops()
 
             if (Restrictions::isItemBanned(dropID))
             {
+                game->write<uint16_t>(BattleSceneOffsets::Enemies[idx] + BattleSceneOffsets::DropIDs[i], UINT16_MAX);
                 LOG("Deleted banned item from enemy drops: %d", dropID);
+            }
+        }
+
+        uint16_t morphID = game->read<uint16_t>(BattleSceneOffsets::Enemies[idx] + BattleSceneOffsets::MorphItemID);
+        if (morphID != UINT16_MAX)
+        {
+            if (Restrictions::isItemBanned(morphID))
+            {
+                game->write<uint16_t>(BattleSceneOffsets::Enemies[idx] + BattleSceneOffsets::MorphItemID, UINT16_MAX);
+                LOG("Deleted banned item from enemy morph: %d", morphID);
             }
         }
     }

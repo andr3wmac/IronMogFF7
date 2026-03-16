@@ -93,6 +93,13 @@ bool RandomizeMusic::onSettingsGUI()
     }
     ImGui::EndDisabled();
 
+    if (game != nullptr)
+    {
+        uint16_t musicID = game->read<uint16_t>(GameOffsets::MusicID);
+        std::string currentSongText = "Game Music: " + MusicList[musicID] + " (" + std::to_string(musicID) + ")";
+        ImGui::Text(currentSongText.c_str());
+    }
+
     return changed;
 }
 

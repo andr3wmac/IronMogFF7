@@ -369,7 +369,9 @@ void RandomizeBosses::applyBossRandomization()
                 continue;
             }
 
-            game->applyBattleStatMultiplier(BattleOffsets::Enemies[i], bossStatMultipliers[formation->enemyIDs[i]]);
+            StatMultiplierSet& multiplierSet = bossStatMultipliers[formation->enemyIDs[i]];
+            game->applyBattleStatMultiplier(BattleOffsets::Enemies[i], multiplierSet);
+            LOG("Applied boss stat multipliers to %d: %s", formation->enemyIDs[i], multiplierSet.toString().c_str());
         }
     }
 }

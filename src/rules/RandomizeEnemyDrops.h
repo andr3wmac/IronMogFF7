@@ -22,6 +22,7 @@ private:
     std::mt19937_64 rng;
     bool randomizeEveryFight = false;
     bool randomizeMorphs = true;
+    bool keepItemType = true;
     float minGilMultiplier = 1.0f;
     float maxGilMultiplier = 1.0f;
     float minExpMultiplier = 1.0f;

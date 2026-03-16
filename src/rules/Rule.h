@@ -35,7 +35,7 @@ public:
     }
 
 protected:
-    GameManager* game;
+    GameManager* game = nullptr;
 
 public:
     static std::vector<Rule*>& getList()

@@ -366,7 +366,9 @@ void RandomizeEncounters::onBattleEnter()
             continue;
         }
 
-        game->applyBattleStatMultiplier(BattleOffsets::Enemies[i], enemyStatMultipliers[formation->enemyIDs[i]]);
+        StatMultiplierSet& multiplierSet = enemyStatMultipliers[formation->enemyIDs[i]];
+        game->applyBattleStatMultiplier(BattleOffsets::Enemies[i], multiplierSet);
+        LOG("Applied enemy stat multipliers to %d: %s", formation->enemyIDs[i], multiplierSet.toString().c_str());
     }
 }
 

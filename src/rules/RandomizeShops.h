@@ -45,6 +45,7 @@ private:
 
     bool disableShops = false;
     bool keepShopPrices = true;
+    bool keepItemType = true;
     bool excludeRareItems = true;
     bool excludeSources = true;
 

@@ -28,17 +28,28 @@ bool RandomizeFieldItems::onSettingsGUI()
     changed |= ImGui::RadioButton("Random", randomModeInt, 1);
     ImGui::SetItemTooltip("Items are replaced with a random selection.");
 
+    ImGui::BeginDisabled(randomMode != RandomMode::Random);
+    {
+        ImGui::PushID("RandomizeFieldItems.keepItemType");
+        changed |= ImGui::Checkbox("Keep Item Type", &keepItemType);
+        ImGui::PopID();
+        ImGui::SetItemTooltip("Randomizes weapons with other weapons, armor with other armor, etc");
+    }
+    ImGui::EndDisabled();
+
     return changed;
 }
 
 void RandomizeFieldItems::loadSettings(const ConfigFile& cfg)
 {
-    randomMode = (RandomMode)cfg.get<int>("randomMode", 0);
+    randomMode = (RandomMode)cfg.get<int>("randomMode", (int)randomMode);
+    keepItemType = cfg.get<bool>("keepItemType", keepItemType);
 }
 
 void RandomizeFieldItems::saveSettings(ConfigFile& cfg)
 {
     cfg.set<int>("randomMode", (int)randomMode);
+    cfg.set<bool> ("keepItemType", keepItemType);
 }
 
 void RandomizeFieldItems::onDebugGUI()
@@ -233,6 +244,7 @@ void RandomizeFieldItems::apply()
         }
 
         FieldScriptItem newItem = oldItem;
+        std::string oldItemName = GameData::getItemName(oldItem.id);
 
         if (randomMode == RandomMode::Shuffle)
         {
@@ -243,17 +255,24 @@ void RandomizeFieldItems::apply()
         {
             // Pick random one based on key.
             std::mt19937_64 rng64(Utilities::makeSeed64(game->getSeed(), fieldData.id, i));
-            newItem.id = GameData::getRandomItemSameType(newItem.id, rng64);
+            newItem.id = GameData::getRandomItem(newItem.id, rng64, keepItemType);
+
+            if (newItem.id == newItem.id)
+            {
+                LOG("Did not roll new item on field %d: %s (%d)", fieldData.id, oldItemName.c_str(), oldItem.quantity);
+                continue;
+            }
         }
         
         if (Restrictions::isItemBanned(newItem.id))
         {
             std::mt19937_64 rng64(Utilities::makeSeed64(game->getSeed(), fieldData.id, i));
-            uint16_t randItemID = GameData::getRandomItemSameType(newItem.id, rng64);
+            uint16_t randItemID = GameData::getRandomItem(newItem.id, rng64, keepItemType);
             
             // If this item is banned and we rolled the same one we skip changing this item.
             if (randItemID == newItem.id)
             {
+                LOG("Did not roll unbanned item on field %d: %s (%d)", fieldData.id, oldItemName.c_str(), oldItem.quantity);
                 continue;
             }
 
@@ -263,7 +282,6 @@ void RandomizeFieldItems::apply()
         game->write<uint16_t>(itemIDOffset, newItem.id);
         game->write<uint8_t>(itemQuantityOffset, newItem.quantity);
 
-        std::string oldItemName = GameData::getItemName(oldItem.id);
         std::string newItemName = GameData::getItemName(newItem.id);
         LOG("Randomized item on field %d: %s (%d) changed to: %s (%d)", fieldData.id, oldItemName.c_str(), oldItem.quantity, newItemName.c_str(), newItem.quantity);
 
@@ -373,7 +391,7 @@ void RandomizeFieldItems::overwriteMessage(const FieldData& fieldData, const Fie
         {
             for (const FieldScriptItem& compareItem : fieldData.materia)
             {
-                std::string compareMateriaName = GameData::getMateriaName(compareItem.id);
+                std::string compareMateriaName = GameData::getMateriaName((uint8_t)compareItem.id);
                 int compareMsgIndex = game->findPickUpMessage(compareMateriaName, compareItem.group, compareItem.script, compareItem.offset);
                 if (compareMsgIndex >= 0)
                 {

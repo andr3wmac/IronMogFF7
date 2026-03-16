@@ -30,6 +30,11 @@ bool RandomizeShops::onSettingsGUI()
         changed |= ImGui::Checkbox("Keep Shop Prices", &keepShopPrices);
         ImGui::SetItemTooltip("Keep prices the same as the original shop.");
 
+        ImGui::PushID("RandomizeShops.keepItemType");
+        changed |= ImGui::Checkbox("Keep Item Type", &keepItemType);
+        ImGui::PopID();
+        ImGui::SetItemTooltip("Randomizes weapons with other weapons, armor with other armor, etc");
+
         changed |= ImGui::Checkbox("Exclude Rare Items", &excludeRareItems);
         ImGui::SetItemTooltip("Items and materia which are not intended to be bought and\nsold (1 gil price) will not be included in shop randomization.");
 
@@ -55,16 +60,18 @@ bool RandomizeShops::onSettingsGUI()
 
 void RandomizeShops::loadSettings(const ConfigFile& cfg)
 {
-    disableShops     = cfg.get<bool>("disableShops", false);
-    keepShopPrices   = cfg.get<bool>("keepShopPrices", true);
-    excludeRareItems = cfg.get<bool>("excludeRareItems", true);
-    excludeSources   = cfg.get<bool>("excludeSources", true);
+    disableShops     = cfg.get<bool>("disableShops", disableShops);
+    keepShopPrices   = cfg.get<bool>("keepShopPrices", keepShopPrices);
+    keepItemType     = cfg.get<bool>("keepItemType", keepItemType);
+    excludeRareItems = cfg.get<bool>("excludeRareItems", excludeRareItems);
+    excludeSources   = cfg.get<bool>("excludeSources", excludeSources);
 }
 
 void RandomizeShops::saveSettings(ConfigFile& cfg)
 {
     cfg.set<bool>("disableShops", disableShops);
     cfg.set<bool>("keepShopPrices", keepShopPrices);
+    cfg.set<bool>("keepItemType", keepItemType);
     cfg.set<bool>("excludeRareItems", excludeRareItems);
     cfg.set<bool>("excludeSources", excludeSources);
 }
@@ -103,8 +110,17 @@ void RandomizeShops::onDebugGUI()
             uint32_t itemType = game->read<uint32_t>(itemOffset + 0);
             uint16_t itemID = game->read<uint16_t>(itemOffset + 4);
 
+            // Item
+            if (itemType == 0)
+            {
+                uint32_t price = game->read<uint32_t>(ShopOffsets::PricesStart + (itemID * 4));
+                std::string itemName = GameData::getItemName(itemID);
+
+                std::string debugText = "Item: " + itemName + " (" + std::to_string(price) + ")";
+                ImGui::Text(debugText.c_str());
+            }
             // Materia
-            if (itemType == 1)
+            else if (itemType == 1)
             {
                 uint32_t price = game->read<uint32_t>(ShopOffsets::MateriaPricesStart + (itemID * 4));
                 std::string materiaName = GameData::getMateriaName((uint8_t)itemID);
@@ -112,13 +128,10 @@ void RandomizeShops::onDebugGUI()
                 std::string debugText = "Materia: " + materiaName + " (" + std::to_string(price) + ")";
                 ImGui::Text(debugText.c_str());
             }
-            // Item
-            else
+            // Deleted
+            else if (itemType == 2)
             {
-                uint32_t price = game->read<uint32_t>(ShopOffsets::PricesStart + (itemID * 4));
-                std::string itemName = GameData::getItemName(itemID);
-
-                std::string debugText = "Materia: " + itemName + " (" + std::to_string(price) + ")";
+                std::string debugText = "Deleted: " + std::to_string(itemID);
                 ImGui::Text(debugText.c_str());
             }
         }
@@ -428,7 +441,7 @@ uint16_t RandomizeShops::randomizeShopItem(uint16_t itemID, const std::set<uint1
         excludeSet.insert(76); // Luck Source
     }
 
-    return GameData::getRandomItemSameType(itemID, rng, true, excludeRareItems, excludeSet);
+    return GameData::getRandomItem(itemID, rng, keepItemType, true, excludeRareItems, excludeSet);
 }
 
 uint16_t RandomizeShops::randomizeShopMateria(uint16_t materiaID, const std::set<uint16_t>& previouslyChosen)

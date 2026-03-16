@@ -245,6 +245,8 @@ struct StatMultiplierSet
     float luck      = 1.0f;
     float defense   = 1.0f;
     float mDefense  = 1.0f;
+
+    std::string toString();
 };
 
 class GameData
@@ -387,7 +389,7 @@ public:
     static Item* getMateria(uint16_t id);
 
     static uint16_t getRandomItemOfType(std::mt19937_64& rng, ItemType type, bool excludeBanned = true, bool excludeRare = false, const std::set<uint16_t>& excludeSet = {});
-    static uint16_t getRandomItemSameType(uint16_t origItemID, std::mt19937_64& rng, bool excludeBanned = true, bool excludeRare = false, const std::set<uint16_t>& excludeSet = {});
+    static uint16_t getRandomItem(uint16_t origItemID, std::mt19937_64& rng, bool keepType, bool excludeBanned = true, bool excludeRare = false, const std::set<uint16_t>& excludeSet = {});
     static uint16_t getRandomMateria(std::mt19937_64& rng, bool excludeBanned = true, bool excludeRare = false, const std::set<uint16_t>& excludeSet = {});
 
     static FieldData getField(uint16_t id);

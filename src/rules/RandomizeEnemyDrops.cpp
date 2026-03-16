@@ -23,7 +23,14 @@ bool RandomizeEnemyDrops::onSettingsGUI()
 
     changed |= ImGui::Checkbox("Randomize Every Fight", &randomizeEveryFight);
     ImGui::SetItemTooltip("Whether drops should be randomized every fight\nor randomized once for each enemy.");
+
     changed |= ImGui::Checkbox("Randomize Morphs", &randomizeMorphs);
+
+    ImGui::PushID("RandomizeEnemyDrops.keepItemType");
+    changed |= ImGui::Checkbox("Keep Item Type", &keepItemType);
+    ImGui::PopID();
+
+    ImGui::SetItemTooltip("Randomizes weapons with other weapons, armor with other armor, etc");
 
     ImGui::Text("Gil Multiplier");
     ImGui::SetItemTooltip("Multiplies the gil dropped by each enemy.");
@@ -56,6 +63,7 @@ void RandomizeEnemyDrops::loadSettings(const ConfigFile& cfg)
 {
     randomizeEveryFight = cfg.get<bool>("randomizeEveryFight", randomizeEveryFight);
     randomizeMorphs     = cfg.get<bool>("randomizeMorphs", randomizeMorphs);
+    keepItemType       = cfg.get<bool>("keepSameTypes", keepItemType);
     minGilMultiplier    = cfg.get<float>("minGilMultiplier", minGilMultiplier);
     maxGilMultiplier    = cfg.get<float>("maxGilMultiplier", maxGilMultiplier);
     minExpMultiplier    = cfg.get<float>("minExpMultiplier", minExpMultiplier);
@@ -66,6 +74,7 @@ void RandomizeEnemyDrops::saveSettings(ConfigFile& cfg)
 {
     cfg.set<bool>("randomizeEveryFight", randomizeEveryFight);
     cfg.set<bool>("randomizeMorphs", randomizeMorphs);
+    cfg.set<bool>("keepSameTypes", keepItemType);
     cfg.set<float>("minGilMultiplier", minGilMultiplier);
     cfg.set<float>("maxGilMultiplier", maxGilMultiplier);
     cfg.set<float>("minExpMultiplier", minExpMultiplier);
@@ -210,12 +219,20 @@ void RandomizeEnemyDrops::onBattleEnter()
                 continue;
             }
 
-            uint16_t newDropID = GameData::getRandomItemSameType(dropID, rng, true);
-            game->write<uint16_t>(BattleSceneOffsets::Enemies[idx] + BattleSceneOffsets::DropIDs[i], newDropID);
-
             std::string oldItemName = GameData::getItemName(dropID);
-            std::string newItemName = GameData::getItemName(newDropID);
-            LOG("Randomized enemy drop in formation %d: %s changed to %s", formationID, oldItemName.c_str(), newItemName.c_str());
+
+            uint16_t newDropID = GameData::getRandomItem(dropID, rng, keepItemType);
+            if (newDropID != dropID)
+            {
+                game->write<uint16_t>(BattleSceneOffsets::Enemies[idx] + BattleSceneOffsets::DropIDs[i], newDropID);
+
+                std::string newItemName = GameData::getItemName(newDropID);
+                LOG("Randomized enemy drop in formation %d: %s changed to %s", formationID, oldItemName.c_str(), newItemName.c_str());
+            }
+            else 
+            {
+                LOG("Did not roll new enemy drop in formation %d: %s", formationID, oldItemName.c_str());
+            }
         }
 
         if (randomizeMorphs)
@@ -223,10 +240,20 @@ void RandomizeEnemyDrops::onBattleEnter()
             uint16_t morphID = game->read<uint16_t>(BattleSceneOffsets::Enemies[idx] + BattleSceneOffsets::MorphItemID);
             if (morphID != 0xFFFF)
             {
-                uint16_t newMorphID = GameData::getRandomItemSameType(morphID, rng, true);
                 std::string oldItemName = GameData::getItemName(morphID);
-                std::string newItemName = GameData::getItemName(newMorphID);
-                LOG("Randomized enemy morph in formation %d: %s changed to %s", formationID, oldItemName.c_str(), newItemName.c_str());
+
+                uint16_t newMorphID = GameData::getRandomItem(morphID, rng, keepItemType);
+                if (newMorphID != morphID)
+                {
+                    game->write<uint16_t>(BattleSceneOffsets::Enemies[idx] + BattleSceneOffsets::MorphItemID, newMorphID);
+
+                    std::string newItemName = GameData::getItemName(newMorphID);
+                    LOG("Randomized enemy morph in formation %d: %s changed to %s", formationID, oldItemName.c_str(), newItemName.c_str());
+                }
+                else 
+                {
+                    LOG("Did not roll new item for morph in formation %d: %s", formationID, oldItemName.c_str());
+                }
             }
         }
     }
