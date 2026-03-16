@@ -109,10 +109,10 @@ uint32_t GameData::getMateriaPrice(uint8_t id)
     return materia->price;
 }
 
-uint16_t GameData::getRandomItemOfType(std::mt19937_64& rng, ItemType type, bool excludeBanned, bool excludeRare, const std::set<uint16_t>& excludeSet)
+std::vector<uint16_t> getItemsOfType(ItemType type, bool excludeBanned, bool excludeRare, const std::set<uint16_t>& excludeSet)
 {
-    std::vector<uint16_t> candidates;
-    candidates.reserve(GameData::items.size());
+    std::vector<uint16_t> items;
+    items.reserve(GameData::items.size());
 
     for (const auto& [id, data] : GameData::items)
     {
@@ -140,20 +140,16 @@ uint16_t GameData::getRandomItemOfType(std::mt19937_64& rng, ItemType type, bool
             continue;
         }
 
-        candidates.push_back(id);
+        items.push_back(id);
     }
 
-    if (candidates.empty())
-    {
-        return UINT16_MAX;
-    }
-
-    std::uniform_int_distribution<size_t> dist(0, candidates.size() - 1);
-    return candidates[dist(rng)];
+    return items;
 }
 
 uint16_t GameData::getRandomItem(uint16_t origItemID, std::mt19937_64& rng, bool keepType, bool excludeBanned, bool excludeRare, const std::set<uint16_t>& excludeSet)
 {
+    std::vector<uint16_t> candidates;
+
     if (keepType)
     {
         /*
@@ -164,60 +160,42 @@ uint16_t GameData::getRandomItem(uint16_t origItemID, std::mt19937_64& rng, bool
             288 + X = Accessories
         */
 
-        uint16_t randomItemID = UINT16_MAX;
-
         if (origItemID < 128)
         {
-            randomItemID = getRandomItemOfType(rng, ItemType::Normal, excludeBanned, excludeRare, excludeSet);
+            candidates = getItemsOfType(ItemType::Normal, excludeBanned, excludeRare, excludeSet);
         }
         else if (origItemID < 256)
         {
-            randomItemID = getRandomItemOfType(rng, ItemType::Weapon, excludeBanned, excludeRare, excludeSet);
+            candidates = getItemsOfType(ItemType::Weapon, excludeBanned, excludeRare, excludeSet);
         }
         else if (origItemID < 288)
         {
-            randomItemID = getRandomItemOfType(rng, ItemType::Armor, excludeBanned, excludeRare, excludeSet);
+            candidates = getItemsOfType(ItemType::Armor, excludeBanned, excludeRare, excludeSet);
         }
         else
         {
-            randomItemID = getRandomItemOfType(rng, ItemType::Accessory, excludeBanned, excludeRare, excludeSet);
+            candidates = getItemsOfType(ItemType::Accessory, excludeBanned, excludeRare, excludeSet);
         }
-
-        if (randomItemID != UINT16_MAX)
-        {
-            return randomItemID;
-        }
-
-        return origItemID;
     }
     else 
     {
-        // Collect one random item from every possible category
-        std::vector<uint16_t> candidates;
-
+        // Collect items from all the categories
         ItemType types[] = { ItemType::Normal, ItemType::Weapon, ItemType::Armor, ItemType::Accessory };
-
         for (ItemType type : types)
         {
-            uint16_t result = getRandomItemOfType(rng, type, excludeBanned, excludeRare, excludeSet);
-
-            // Only add to the pool if the type actually returned a valid item
-            if (result != UINT16_MAX)
-            {
-                candidates.push_back(result);
-            }
+            std::vector<uint16_t> result = getItemsOfType(type, excludeBanned, excludeRare, excludeSet);
+            candidates.insert(candidates.end(), result.begin(), result.end());
         }
-
-        // If no categories returned a valid item, return the original
-        if (candidates.empty())
-        {
-            return origItemID;
-        }
-
-        // Randomly select one item from our valid candidates
-        std::uniform_int_distribution<size_t> dist(0, candidates.size() - 1);
-        return candidates[dist(rng)];
     }
+
+    // If there are no candidate items then return the original
+    if (candidates.empty())
+    {
+        return origItemID;
+    }
+
+    std::uniform_int_distribution<size_t> dist(0, candidates.size() - 1);
+    return candidates[dist(rng)];
 }
 
 uint16_t GameData::getRandomMateria(std::mt19937_64& rng, bool excludeBanned, bool excludeRare, const std::set<uint16_t>& excludeSet)
