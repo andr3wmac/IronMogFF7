@@ -109,7 +109,7 @@ uint32_t GameData::getMateriaPrice(uint8_t id)
     return materia->price;
 }
 
-std::vector<uint16_t> getItemsOfType(ItemType type, bool excludeBanned, bool excludeRare, const std::set<uint16_t>& excludeSet)
+std::vector<uint16_t> GameData::getItemsOfType(ItemType type, bool excludeBanned, bool excludeRare, const std::set<uint16_t>& excludeSet)
 {
     std::vector<uint16_t> items;
     items.reserve(GameData::items.size());
