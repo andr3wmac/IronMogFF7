@@ -22,12 +22,6 @@ private:
         Random = 1
     };
 
-    struct MessageOverwrite
-    {
-        FieldScriptMessage fieldMsg;
-        std::string text;
-    };
-
     void onStart();
     void onFrame(uint32_t frameNumber);
     void onFieldChanged(uint16_t fieldID);
@@ -37,7 +31,6 @@ private:
 
     // Applies randomization to current field.
     void apply();
-    void overwriteMessage(const FieldData& fieldData, const FieldScriptItem& oldItem, const FieldScriptItem& newItem, const std::string& oldName, const std::string& newName, bool isMateria);
 
     RandomMode randomMode;
     bool keepItemType = true;
@@ -45,9 +38,4 @@ private:
     // Generated randomization mapping
     std::unordered_map<uint32_t, FieldScriptItem> randomizedItems;
     std::unordered_map<uint32_t, FieldScriptItem> randomizedMateria;
-
-    // List of messages that should be overwritten in real time rather than on field change.
-    // This is for items that share the same message in memory and thus would conflict.
-    std::vector<MessageOverwrite> overwriteMessages;
-    std::vector<FieldScriptMessage> messagesToClear;
 };

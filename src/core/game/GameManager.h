@@ -64,9 +64,6 @@ public:
     // Returns a list of materia IDs currently in the party's possession.
     std::array<uint32_t, 200> getPartyMateria();
 
-    // Finds the nearest message that contains the item name
-    int findPickUpMessage(std::string itemName, uint8_t group, uint8_t script, uint32_t offset);
-
     // Returns the last text displayed in a window
     std::string getWindowText(uint8_t index);
 

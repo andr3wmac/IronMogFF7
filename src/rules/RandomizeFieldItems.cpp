@@ -118,17 +118,7 @@ uint32_t makeKey(uint16_t fieldID, uint8_t index)
 
 void RandomizeFieldItems::onFrame(uint32_t frameNumber)
 {
-    for (int i = 0; i < overwriteMessages.size(); ++i)
-    {
-        const MessageOverwrite& overwriteMsg = overwriteMessages[i];
-        
-        // Check if the current dialog is overwrite message
-        uint16_t fieldScriptPtr = game->getScriptExecutionPointer(overwriteMsg.fieldMsg.group);
-        if (fieldScriptPtr == overwriteMsg.fieldMsg.offset)
-        {
-            game->writeString(getWindowTextOffset(overwriteMsg.fieldMsg.window), overwriteMsg.fieldMsg.strLength, overwriteMsg.text);
-        }
-    }
+
 }
 
 void RandomizeFieldItems::onFieldChanged(uint16_t fieldID)
@@ -212,9 +202,6 @@ void RandomizeFieldItems::apply()
         return;
     }
 
-    overwriteMessages.clear();
-    messagesToClear.clear();
-
     // Randomize items
     for (int i = 0; i < fieldData.items.size(); ++i)
     {
@@ -286,7 +273,11 @@ void RandomizeFieldItems::apply()
         LOG("Randomized item on field %d: %s (%d) changed to: %s (%d)", fieldData.id, oldItemName.c_str(), oldItem.quantity, newItemName.c_str(), newItem.quantity);
 
         // Overwrite the popup message
-        overwriteMessage(fieldData, oldItem, newItem, oldItemName, newItemName, false);
+        int msgIndex = game->field.findPickUpMessage(oldItemName, oldItem.group, oldItem.script, oldItem.offset);
+        if (msgIndex >= 0)
+        {
+            game->field.overwriteMessage(msgIndex, newItemName);
+        }
     }
 
     // Randomize materia
@@ -349,77 +340,10 @@ void RandomizeFieldItems::apply()
         LOG("Randomized materia on field %d: %s changed to: %s", fieldData.id, oldMateriaName.c_str(), newMateriaName.c_str());
 
         // Overwrite the popup message
-        overwriteMessage(fieldData, oldMateria, newMateria, oldMateriaName, newMateriaName, true);
-    }
-
-    // Clear original messages that will be overwritten in real time
-    for (FieldScriptMessage& fieldMsg : messagesToClear)
-    {
-        game->writeString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength, "");
-    }
-}
-
-void RandomizeFieldItems::overwriteMessage(const FieldData& fieldData, const FieldScriptItem& oldItem, const FieldScriptItem& newItem, const std::string& oldName, const std::string& newName, bool isMateria)
-{
-    // Overwrite the popup message
-    int msgIndex = game->findPickUpMessage(oldName, oldItem.group, oldItem.script, oldItem.offset);
-
-    if (msgIndex >= 0)
-    {
-        const FieldScriptMessage& fieldMsg = fieldData.messages[msgIndex];
-
-        int strMsgCount = 0;
-
-        if (!isMateria)
+        int msgIndex = game->field.findPickUpMessage(oldMateriaName, oldMateria.group, oldMateria.script, oldMateria.offset);
+        if (msgIndex >= 0)
         {
-            for (const FieldScriptItem& compareItem : fieldData.items)
-            {
-                std::string compareItemName = GameData::getItemName(compareItem.id);
-                int compareMsgIndex = game->findPickUpMessage(compareItemName, compareItem.group, compareItem.script, compareItem.offset);
-                if (compareMsgIndex >= 0)
-                {
-                    const FieldScriptMessage& compareFieldMsg = fieldData.messages[compareMsgIndex];
-
-                    if (fieldMsg.strOffset == compareFieldMsg.strOffset)
-                    {
-                        strMsgCount++;
-                    }
-                }
-            }
+            game->field.overwriteMessage(msgIndex, newMateriaName);
         }
-        else
-        {
-            for (const FieldScriptItem& compareItem : fieldData.materia)
-            {
-                std::string compareMateriaName = GameData::getMateriaName((uint8_t)compareItem.id);
-                int compareMsgIndex = game->findPickUpMessage(compareMateriaName, compareItem.group, compareItem.script, compareItem.offset);
-                if (compareMsgIndex >= 0)
-                {
-                    const FieldScriptMessage& compareFieldMsg = fieldData.messages[compareMsgIndex];
-
-                    if (fieldMsg.strOffset == compareFieldMsg.strOffset)
-                    {
-                        strMsgCount++;
-                    }
-                }
-            }
-        }
-
-        // If the string has more than one message tied to it then we need to overwrite it
-        // in real time rather than just on field change. This is a consequence of randomizing
-        // every item separately and the fact the game reuses the same string for duplicates.
-        if (strMsgCount > 1)
-        {
-            overwriteMessages.push_back({ fieldMsg, newName });
-            messagesToClear.push_back(fieldMsg);
-        }
-        else
-        {
-            game->writeString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength, newName);
-        }
-    }
-    else 
-    {
-        LOG("Error: Unable to find message that contains: %s", oldName.c_str());
     }
 }

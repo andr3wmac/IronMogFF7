@@ -531,50 +531,6 @@ bool GameManager::inMenu()
     return gameModule == GameModule::Menu;
 }
 
-// The goal here is to find the message thats closest in memory (offset) that also contains
-// the name of the item. The message is usually: Received "{itemName}"!
-int GameManager::findPickUpMessage(std::string itemName, uint8_t group, uint8_t script, uint32_t offset)
-{
-    FieldData fieldData = GameData::getField(field.getFieldID());
-    if (!fieldData.isValid())
-    {
-        return -1;
-    }
-
-    int bestIndex = -1;
-    uint32_t bestDistance = UINT32_MAX;
-
-    for (int i = 0; i < fieldData.messages.size(); ++i)
-    {
-        FieldScriptMessage& fieldMsg = fieldData.messages[i];
-
-        // The message is always in the same group+script as the pick up.
-        if (fieldMsg.group != group || fieldMsg.script != script)
-        {
-            continue;
-        }
-
-        std::string msg = readString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength);
-        if (msg.find(itemName) != std::string::npos)
-        {
-            uint32_t distance = std::abs((int32_t)(fieldMsg.offset - offset));
-            if (distance < bestDistance)
-            {
-                bestDistance = distance;
-                bestIndex = i;
-            }
-        }
-    }
-
-    // Counter Attack is shortened to "Counter" in field pick up messages.
-    if (bestIndex == -1 && itemName == "Counter Attack")
-    {
-        return findPickUpMessage("Counter", group, script, offset);
-    }
-
-    return bestIndex;
-}
-
 std::string GameManager::getWindowText(uint8_t index)
 {
     if (getGameModule() != GameModule::Field)

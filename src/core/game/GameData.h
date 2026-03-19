@@ -65,6 +65,7 @@ struct FieldScriptItem
     uint32_t offset = 0;
     uint16_t id = 0;
     uint8_t quantity = 0;
+    bool isMateria = false;
 };
 
 struct FieldScriptMessage
@@ -294,12 +295,12 @@ public:
 
     static void addFieldScriptItem(uint16_t fieldID, uint8_t groupIdx, uint8_t scriptIdx, uint32_t offset, uint16_t itemID, uint8_t quantity) 
     {
-        GameData::fieldData[fieldID].items.push_back({ groupIdx, scriptIdx, offset, itemID, quantity });
+        GameData::fieldData[fieldID].items.push_back({ groupIdx, scriptIdx, offset, itemID, quantity, false });
     }
 
     static void addFieldScriptMateria(uint16_t fieldID, uint8_t groupIdx, uint8_t scriptIdx, uint32_t offset, uint16_t matID) 
     {
-        GameData::fieldData[fieldID].materia.push_back({ groupIdx, scriptIdx, offset, matID, 1 });
+        GameData::fieldData[fieldID].materia.push_back({ groupIdx, scriptIdx, offset, matID, 1, true });
     }
 
     static void addFieldScriptMessage(uint16_t fieldID, uint8_t groupIdx, uint8_t scriptIdx, uint8_t windowIdx, uint32_t offset, uint32_t strOffset, uint32_t strLen) 

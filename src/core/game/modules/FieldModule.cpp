@@ -12,6 +12,7 @@ void FieldModule::setup(GameManager* game)
 
     BIND_EVENT_ONE_ARG(game->onModuleChanged, FieldModule::onModuleChanged);
     BIND_EVENT_ONE_ARG(game->onUpdate, FieldModule::onUpdate);
+    BIND_EVENT_ONE_ARG(game->onFrame, FieldModule::onFrame);
     BIND_EVENT(game->onWorldMapEnter, FieldModule::onWorldMapEnter);
 }
 
@@ -59,6 +60,22 @@ void FieldModule::onUpdate(bool justConnected)
     }
 }
 
+void FieldModule::onFrame(uint32_t frameNumber)
+{
+    // Apply any messages that need to be overwritten
+    for (int i = 0; i < overwriteMessages.size(); ++i)
+    {
+        const MessageOverwrite& overwriteMsg = overwriteMessages[i];
+        
+        // Check if the current dialog is overwrite message
+        uint16_t fieldScriptPtr = game->getScriptExecutionPointer(overwriteMsg.fieldMsg.group);
+        if (fieldScriptPtr == overwriteMsg.fieldMsg.offset)
+        {
+            game->writeString(getWindowTextOffset(overwriteMsg.fieldMsg.window), overwriteMsg.fieldMsg.strLength, overwriteMsg.text);
+        }
+    }
+}
+
 void FieldModule::onWorldMapEnter()
 {
     // When exiting onto the world map field ID is updated to your exit location
@@ -70,6 +87,9 @@ void FieldModule::onWorldMapEnter()
 
 void FieldModule::onFieldChanged(uint16_t fieldID)
 {
+    overwriteMessages.clear();
+    messagesToClear.clear();
+
     // First trigger anything else that might modify field items/materia.
     game->onFieldChanged.invoke(fieldID);
 
@@ -102,16 +122,12 @@ void FieldModule::onFieldChanged(uint16_t fieldID)
                 game->write<uint8_t>(FieldScriptOffsets::ScriptStart + item.offset + b, 0x5F);
             }
 
-            // Delete the popup message
+            // Replace the popup message with "Nothing"
             std::string itemName = GameData::getItemName(itemID);
-            int msgIndex = game->findPickUpMessage(itemName, item.group, item.script, item.offset);
+            int msgIndex = findPickUpMessage(itemName, item.group, item.script, item.offset);
             if (msgIndex >= 0)
             {
-                const FieldScriptMessage& fieldMsg = fieldData.messages[msgIndex];
-                for (int b = 0; b < 3; ++b)
-                {
-                    game->write<uint8_t>(FieldScriptOffsets::ScriptStart + fieldMsg.offset + b, 0x5F);
-                }
+                overwriteMessage(msgIndex, "Nothing");
             }
 
             LOG("Deleted banned item: %s %d", itemName.c_str(), itemID);
@@ -132,20 +148,22 @@ void FieldModule::onFieldChanged(uint16_t fieldID)
                 game->write<uint8_t>(FieldScriptOffsets::ScriptStart + materia.offset + b, 0x5F);
             }
 
-            // Delete the popup message
+            // Replace the popup message with "Nothing"
             std::string materiaName = GameData::getItemName(materiaID);
-            int msgIndex = game->findPickUpMessage(materiaName, materia.group, materia.script, materia.offset);
+            int msgIndex = findPickUpMessage(materiaName, materia.group, materia.script, materia.offset);
             if (msgIndex >= 0)
             {
-                const FieldScriptMessage& fieldMsg = fieldData.messages[msgIndex];
-                for (int b = 0; b < 3; ++b)
-                {
-                    game->write<uint8_t>(FieldScriptOffsets::ScriptStart + fieldMsg.offset + b, 0x5F);
-                }
+                overwriteMessage(msgIndex, "Nothing");
             }
 
             LOG("Deleted banned materia: %d", materiaID);
         }
+    }
+
+    // Clear original messages that will be overwritten in real time
+    for (FieldScriptMessage& fieldMsg : messagesToClear)
+    {
+        game->writeString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength, "");
     }
 }
 
@@ -276,4 +294,106 @@ bool FieldModule::isFieldDataLoaded(bool justConnected)
     }
 
     return isScreenReady;
+}
+
+// The goal here is to find the message thats closest in memory (offset) that also contains
+// the name of the item. The message is usually: Received "{itemName}"!
+int FieldModule::findPickUpMessage(std::string itemName, uint8_t group, uint8_t script, uint32_t offset)
+{
+    FieldData fieldData = GameData::getField(getFieldID());
+    if (!fieldData.isValid())
+    {
+        return -1;
+    }
+
+    int bestIndex = -1;
+    uint32_t bestDistance = UINT32_MAX;
+
+    for (int i = 0; i < fieldData.messages.size(); ++i)
+    {
+        FieldScriptMessage& fieldMsg = fieldData.messages[i];
+
+        // The message is always in the same group+script as the pick up.
+        if (fieldMsg.group != group || fieldMsg.script != script)
+        {
+            continue;
+        }
+
+        std::string msg = game->readString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength);
+        if (msg.find(itemName) != std::string::npos)
+        {
+            uint32_t distance = std::abs((int32_t)(fieldMsg.offset - offset));
+            if (distance < bestDistance)
+            {
+                bestDistance = distance;
+                bestIndex = i;
+            }
+        }
+    }
+
+    // HACK: "Counter Attack" is sometimes shortened to "Counter" in field pick up messages.
+    if (bestIndex == -1 && itemName == "Counter Attack")
+    {
+        return findPickUpMessage("Counter", group, script, offset);
+    }
+
+    return bestIndex;
+}
+
+void FieldModule::overwriteMessage(int msgIndex, const std::string& newText)
+{
+    FieldData fieldData = GameData::getField(fieldID);
+    if (msgIndex < 0 || !fieldData.isValid())
+    {
+        return;
+    }
+
+    const FieldScriptMessage& fieldMsg = fieldData.messages[msgIndex];
+
+    // We need to determine how many message boxes are pointing to the same string to determine if
+    // we need to do a special override for it or not.
+    int strMsgCount = 0;
+
+    for (const FieldScriptItem& compareItem : fieldData.items)
+    {
+        std::string compareItemName = GameData::getItemName(compareItem.id);
+        int compareMsgIndex = findPickUpMessage(compareItemName, compareItem.group, compareItem.script, compareItem.offset);
+        if (compareMsgIndex >= 0)
+        {
+            const FieldScriptMessage& compareFieldMsg = fieldData.messages[compareMsgIndex];
+
+            if (fieldMsg.strOffset == compareFieldMsg.strOffset)
+            {
+                strMsgCount++;
+            }
+        }
+    }
+
+    for (const FieldScriptItem& compareItem : fieldData.materia)
+    {
+        std::string compareMateriaName = GameData::getMateriaName((uint8_t)compareItem.id);
+        int compareMsgIndex = findPickUpMessage(compareMateriaName, compareItem.group, compareItem.script, compareItem.offset);
+        if (compareMsgIndex >= 0)
+        {
+            const FieldScriptMessage& compareFieldMsg = fieldData.messages[compareMsgIndex];
+
+            if (fieldMsg.strOffset == compareFieldMsg.strOffset)
+            {
+                strMsgCount++;
+            }
+        }
+    }
+
+    // If the string has more than one message tied to it then we need to overwrite it
+    // in real time rather than just on field change. This is a consequence of randomizing
+    // every item separately and the fact the game reuses the same string for duplicates.
+    if (strMsgCount > 1)
+    {
+        overwriteMessages.push_back({ fieldMsg, newText });
+        messagesToClear.push_back(fieldMsg);
+    }
+    else
+    {
+        game->writeString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength, newText);
+    }
 }
