@@ -22,7 +22,6 @@ void MenuModule::onModuleChanged(uint8_t newGameModule)
         if (menuType == MenuType::Shop)
         {
             waitingForShopData = true;
-            inShopMenu = true;
         }
     }
 
@@ -52,6 +51,7 @@ void MenuModule::onUpdate(bool justConnected)
         {
             game->onShopOpened.invoke();
             waitingForShopData = false;
+            inShopMenu = true;
         }
     }
 }
