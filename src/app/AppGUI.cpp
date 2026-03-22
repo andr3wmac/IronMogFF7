@@ -628,6 +628,14 @@ void App::drawDebugPanel()
                 std::string mDefText = "Magic Defense: " + std::to_string(mDef);
                 ImGui::Text(mDefText.c_str());
 
+                std::string btnID = "Set1HPEnemy" + std::to_string(i);
+                ImGui::PushID(btnID.c_str());
+                if (ImGui::Button("Set 1 HP"))
+                {
+                    game->write<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::CurrentHP, 1);
+                }
+                ImGui::PopID();
+
                 ImGui::Unindent(25.0f);
             }
         }

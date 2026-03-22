@@ -32,6 +32,9 @@ void RandomizeEncounters::setup()
     // Midgar Zolom
     addExclusions({ 469, 470 });
 
+    // Emerald Weapon only eyes formation (was probably for testing?)
+    addExclusions({ 987 });
+
     // Add all boss formations to excluded formations
     {
         std::set<uint16_t> bossIDs;
