@@ -18,11 +18,11 @@ private:
     bool noArmor = false;
     bool noAccessories = false;
 
-    bool noSummons = true;
+    bool noSummon = true;
     bool noMagic = false;
     bool noCommand = false;
     bool noSupport = false;
     bool noIndependent = false;
-    bool noESkill = false;
+    bool noEnemySkill = false;
     bool noMaster = false;
 };

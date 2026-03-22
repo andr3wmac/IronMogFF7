@@ -323,7 +323,7 @@ void BanItemsAndMateria::setup()
         Restrictions::banItem(319); // HypnoCrown
     }
 
-    if (noSummons)
+    if (noSummon)
     {
         Restrictions::banMateria(20); // W-Summon
         Restrictions::banMateria(74); // Choco/Mog
@@ -429,7 +429,7 @@ void BanItemsAndMateria::setup()
         Restrictions::banMateria(18); // HP<->MP
     }
 
-    if (noESkill)
+    if (noEnemySkill)
     {
         Restrictions::banMateria(44); // Enemy Skill
     }
@@ -453,12 +453,12 @@ bool BanItemsAndMateria::onSettingsGUI()
 
     ImGui::SeparatorText("Materia");
 
-    changed |= ImGui::Checkbox("Summon", &noSummons);
+    changed |= ImGui::Checkbox("Summon", &noSummon);
     changed |= ImGui::Checkbox("Magic", &noMagic);
     changed |= ImGui::Checkbox("Command", &noCommand);
     changed |= ImGui::Checkbox("Support", &noSupport);
     changed |= ImGui::Checkbox("Independent", &noIndependent);
-    changed |= ImGui::Checkbox("E.Skill", &noESkill);
+    changed |= ImGui::Checkbox("Enemy Skill", &noEnemySkill);
     changed |= ImGui::Checkbox("Master", &noMaster);
 
     return changed;
@@ -471,12 +471,12 @@ void BanItemsAndMateria::loadSettings(const ConfigFile& cfg)
     noArmor       = cfg.get<bool>("noArmor", noArmor);
     noAccessories = cfg.get<bool>("noAccessories", noAccessories);
 
-    noSummons     = cfg.get<bool>("noSummons", noSummons);
+    noSummon      = cfg.get<bool>("noSummon", noSummon);
     noMagic       = cfg.get<bool>("noMagic", noMagic);
     noCommand     = cfg.get<bool>("noCommand", noCommand);
     noSupport     = cfg.get<bool>("noSupport", noSupport);
     noIndependent = cfg.get<bool>("noIndependent", noIndependent);
-    noESkill      = cfg.get<bool>("noESkill", noESkill);
+    noEnemySkill  = cfg.get<bool>("noEnemySkill", noEnemySkill);
     noMaster      = cfg.get<bool>("noMaster", noMaster);
 }
 
@@ -487,31 +487,36 @@ void BanItemsAndMateria::saveSettings(ConfigFile& cfg)
     cfg.set<bool>("noArmor", noArmor);
     cfg.set<bool>("noAccessories", noAccessories);
 
-    cfg.set<bool>("noSummons", noSummons);
+    cfg.set<bool>("noSummon", noSummon);
     cfg.set<bool>("noMagic", noMagic);
     cfg.set<bool>("noCommand", noCommand);
     cfg.set<bool>("noSupport", noSupport);
     cfg.set<bool>("noIndependent", noIndependent);
-    cfg.set<bool>("noESkill", noESkill);
+    cfg.set<bool>("noEnemySkill", noEnemySkill);
     cfg.set<bool>("noMaster", noMaster);
 }
 
 std::vector<std::string> BanItemsAndMateria::describe(RuleDescripionType descType)
 {
-    if (descType == RuleDescripionType::Negation)
+    if (descType == RuleDescripionType::BanItems)
     {
         std::vector<std::string> results;
         if (noItems) results.push_back("Items");
         if (noWeapons) results.push_back("Weapons");
         if (noArmor) results.push_back("Armor");
         if (noAccessories) results.push_back("Accessories");
+        return results;
+    }
 
-        if (noSummons) results.push_back("Summons");
+    if (descType == RuleDescripionType::BanMateria)
+    {
+        std::vector<std::string> results;
+        if (noSummon) results.push_back("Summon");
         if (noMagic) results.push_back("Magic");
         if (noCommand) results.push_back("Command");
         if (noSupport) results.push_back("Support");
         if (noIndependent) results.push_back("Independent");
-        if (noESkill) results.push_back("E. Skill");
+        if (noEnemySkill) results.push_back("Enemy Skill");
         if (noMaster) results.push_back("Master");
         return results;
     }

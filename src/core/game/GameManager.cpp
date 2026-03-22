@@ -133,6 +133,8 @@ std::string GameManager::getSettingsSummary()
     groups["Randomized"] = {};
     groups["Multipliers"] = {};
     groups["Unique"] = {};
+    groups["BanItems"] = {};
+    groups["BanMateria"] = {};
 
     for (Rule* rule : Rule::getList())
     {
@@ -152,6 +154,12 @@ std::string GameManager::getSettingsSummary()
 
         std::vector<std::string> uniques = rule->describe(RuleDescripionType::Unique);
         groups["Unique"].insert(groups["Unique"].end(), uniques.begin(), uniques.end());
+
+        std::vector<std::string> bannedItems = rule->describe(RuleDescripionType::BanItems);
+        groups["BanItems"].insert(groups["BanItems"].end(), bannedItems.begin(), bannedItems.end());
+
+        std::vector<std::string> bannedMateria = rule->describe(RuleDescripionType::BanMateria);
+        groups["BanMateria"].insert(groups["BanMateria"].end(), bannedMateria.begin(), bannedMateria.end());
     }
 
     for (Extra* extra : Extra::getList())
@@ -166,6 +174,57 @@ std::string GameManager::getSettingsSummary()
     }
 
     std::stringstream ss;
+    if (groups["BanItems"].size() > 0 || groups["BanMateria"].size() > 0)
+    {
+        bool banItems = groups["BanItems"].size() > 0;
+        bool banMateria = groups["BanMateria"].size() > 0;
+
+        if (banItems)
+        {
+            auto& subjects = groups["BanItems"];
+            std::sort(subjects.begin(), subjects.end());
+
+            ss << "- Ban ";
+            for (size_t i = 0; i < subjects.size(); ++i)
+            {
+                std::string subject = subjects[i];
+                std::transform(subject.begin(), subject.end(), subject.begin(), [](unsigned char c) { return std::tolower(c); });
+                ss << subject << (i == subjects.size() - 1 ? "" : (i == subjects.size() - 2 ? " and " : ", "));
+            }
+            if (banMateria)
+            {
+                ss << ".";
+            }
+            else 
+            {
+                ss << ".\n";
+            }
+        }
+
+        if (banMateria)
+        {
+            auto& subjects = groups["BanMateria"];
+            std::sort(subjects.begin(), subjects.end());
+
+            if (banItems)
+            {
+                ss << " Ban ";
+            }
+            else 
+            {
+                ss << "- Ban ";
+            }
+            
+            for (size_t i = 0; i < subjects.size(); ++i)
+            {
+                std::string subject = subjects[i];
+                std::transform(subject.begin(), subject.end(), subject.begin(), [](unsigned char c) { return std::tolower(c); });
+                ss << subject << (i == subjects.size() - 1 ? "" : (i == subjects.size() - 2 ? " and " : ", "));
+            }
+            ss << " materia.\n";
+        }
+    }
+
     if (groups["No"].size() > 0)
     { 
         auto& subjects = groups["No"];

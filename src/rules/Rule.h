@@ -8,7 +8,9 @@ enum class RuleDescripionType : uint8_t
     Negation    = 0,
     Randomized  = 1,
     Multiplier  = 2,
-    Unique      = 3
+    Unique      = 3,
+    BanItems    = 4,
+    BanMateria  = 5
 };
 
 class Rule
