@@ -35,7 +35,7 @@ private:
     int levelsAbove = 5;
     float minStatMultiplier = 1.0f;
     float maxStatMultiplier = 1.0f;
-    bool fixDefenseScaling = true;
+    bool defenseSoftCap = true;
 
     std::bitset<UINT16_MAX> bossFormations;
     std::bitset<UINT16_MAX> excludedFormations;

@@ -53,10 +53,10 @@ bool RandomizeBosses::onSettingsGUI()
     ImGui::SameLine();
     changed |= ImGui::InputFloat("##bossMaxStatMultiplier", &maxStatMultiplier, 0, 0, "%.2f");
     ImGui::PopItemWidth();
-    ImGui::PushID("RandomizeBosses.fixDefenseScaling");
-    changed |= ImGui::Checkbox("Fix Defense Scaling", &fixDefenseScaling);
+    ImGui::PushID("RandomizeBosses.defenseSoftCap");
+    changed |= ImGui::Checkbox("Defense Soft Cap", &defenseSoftCap);
     ImGui::PopID();
-    ImGui::SetItemTooltip("Dampens stat multipliers on Def/MDef as they approach limit.\nPrevents 0 damage on enemies with already high Def/MDef.");
+    ImGui::SetItemTooltip("Prevents multiplied Def/MDef from hitting\ngame limit and becoming immune.");
 
     if (ImGui::CollapsingHeader("Resistance and Weakness"))
     {
@@ -105,7 +105,7 @@ void RandomizeBosses::loadSettings(const ConfigFile& cfg)
 {
     minStatMultiplier = cfg.get<float>("minStatMultiplier", minStatMultiplier);
     maxStatMultiplier = cfg.get<float>("maxStatMultiplier", maxStatMultiplier);
-    fixDefenseScaling = cfg.get<bool>("fixDefenseScaling", fixDefenseScaling);
+    defenseSoftCap = cfg.get<bool>("fixDefenseScaling", defenseSoftCap);
     randomMode = (RandomMode)cfg.get<int>("randomMode", 0);
 
     elementCount = cfg.get<int>("elementCount", elementCount);
@@ -119,7 +119,7 @@ void RandomizeBosses::saveSettings(ConfigFile& cfg)
 {
     cfg.set<float>("minStatMultiplier", minStatMultiplier);
     cfg.set<float>("maxStatMultiplier", maxStatMultiplier);
-    cfg.set<bool>("fixDefenseScaling", fixDefenseScaling);
+    cfg.set<bool>("fixDefenseScaling", defenseSoftCap);
     cfg.set<int>("randomMode", (int)randomMode);
 
     cfg.set<int>("elementCount", elementCount);
@@ -376,7 +376,7 @@ void RandomizeBosses::applyBossRandomization()
             }
 
             StatMultiplierSet& multiplierSet = bossStatMultipliers[formation->enemyIDs[i]];
-            game->applyBattleStatMultiplier(BattleOffsets::Enemies[i], multiplierSet, fixDefenseScaling);
+            game->applyBattleStatMultiplier(BattleOffsets::Enemies[i], multiplierSet, defenseSoftCap);
             LOG("Applied boss stat multipliers to %d: %s", formation->enemyIDs[i], multiplierSet.toString().c_str());
         }
     }

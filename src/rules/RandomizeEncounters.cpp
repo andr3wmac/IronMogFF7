@@ -105,10 +105,10 @@ bool RandomizeEncounters::onSettingsGUI()
     ImGui::SameLine();
     changed |= ImGui::InputFloat("##encMaxStatMultiplier", &maxStatMultiplier, 0, 0, "%.2f");
     ImGui::PopItemWidth();
-    ImGui::PushID("RandomizeEncounters.fixDefenseScaling");
-    changed |= ImGui::Checkbox("Fix Defense Scaling", &fixDefenseScaling);
+    ImGui::PushID("RandomizeEncounters.defenseSoftCap");
+    changed |= ImGui::Checkbox("Defense Soft Cap", &defenseSoftCap);
     ImGui::PopID();
-    ImGui::SetItemTooltip("Dampens stat multipliers on Def/MDef as they approach limit.\nPrevents 0 damage on enemies with already high Def/MDef.");
+    ImGui::SetItemTooltip("Prevents multiplied Def/MDef from hitting\ngame limit and becoming immune.");
 
     return changed;
 }
@@ -123,7 +123,7 @@ void RandomizeEncounters::loadSettings(const ConfigFile& cfg)
     levelsAbove        = cfg.get<int>("levelsAbove", levelsAbove);
     minStatMultiplier  = cfg.get<float>("minStatMultiplier", minStatMultiplier);
     maxStatMultiplier  = cfg.get<float>("maxStatMultiplier", maxStatMultiplier);
-    fixDefenseScaling  = cfg.get<bool>("fixDefenseScaling", fixDefenseScaling);
+    defenseSoftCap     = cfg.get<bool>("defenseSoftCap", defenseSoftCap);
 }
 
 void RandomizeEncounters::saveSettings(ConfigFile& cfg)
@@ -136,7 +136,7 @@ void RandomizeEncounters::saveSettings(ConfigFile& cfg)
     cfg.set<int>("levelsAbove",         levelsAbove);
     cfg.set<float>("minStatMultiplier", minStatMultiplier);
     cfg.set<float>("maxStatMultiplier", maxStatMultiplier);
-    cfg.set<bool>("fixDefenseScaling",  fixDefenseScaling);
+    cfg.set<bool>("defenseSoftCap",  defenseSoftCap);
 }
 
 void RandomizeEncounters::onDebugGUI()
@@ -377,7 +377,7 @@ void RandomizeEncounters::onBattleEnter()
         }
 
         StatMultiplierSet& multiplierSet = enemyStatMultipliers[formation->enemyIDs[i]];
-        game->applyBattleStatMultiplier(BattleOffsets::Enemies[i], multiplierSet, fixDefenseScaling);
+        game->applyBattleStatMultiplier(BattleOffsets::Enemies[i], multiplierSet, defenseSoftCap);
         LOG("Applied enemy stat multipliers to %d: %s", formation->enemyIDs[i], multiplierSet.toString().c_str());
     }
 }
