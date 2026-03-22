@@ -21,7 +21,7 @@ void RandomizeEncounters::setup()
     BIND_EVENT(game->onBattleEnter, RandomizeEncounters::onBattleEnter);
 
     // Debug Room fights
-    addExclusions({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 22, 23, 24, 25, 26, 952, 953, 954, 955, 957, 958, 959, 989, 990, 991, 996, 997, 998, 999 });
+    addExclusions({ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 22, 23, 24, 25, 26, 952, 953, 954, 955, 957, 958, 959, 989, 990, 991, 996, 997, 998, 999 });
 
     // Chocobo fights
     addExclusions({ 56, 57, 60, 61, 78, 79, 80, 81, 98, 99, 104, 105, 152, 153, 156, 157, 162, 163, 166, 167, 202, 203, 206, 207, 214, 215, 218, 219 });
@@ -102,6 +102,10 @@ bool RandomizeEncounters::onSettingsGUI()
     ImGui::SameLine();
     changed |= ImGui::InputFloat("##encMaxStatMultiplier", &maxStatMultiplier, 0, 0, "%.2f");
     ImGui::PopItemWidth();
+    ImGui::PushID("RandomizeEncounters.fixDefenseScaling");
+    changed |= ImGui::Checkbox("Fix Defense Scaling", &fixDefenseScaling);
+    ImGui::PopID();
+    ImGui::SetItemTooltip("Dampens stat multipliers on Def/MDef as they approach limit.\nPrevents 0 damage on enemies with already high Def/MDef.");
 
     return changed;
 }
@@ -116,6 +120,7 @@ void RandomizeEncounters::loadSettings(const ConfigFile& cfg)
     levelsAbove        = cfg.get<int>("levelsAbove", levelsAbove);
     minStatMultiplier  = cfg.get<float>("minStatMultiplier", minStatMultiplier);
     maxStatMultiplier  = cfg.get<float>("maxStatMultiplier", maxStatMultiplier);
+    fixDefenseScaling  = cfg.get<bool>("fixDefenseScaling", fixDefenseScaling);
 }
 
 void RandomizeEncounters::saveSettings(ConfigFile& cfg)
@@ -128,6 +133,7 @@ void RandomizeEncounters::saveSettings(ConfigFile& cfg)
     cfg.set<int>("levelsAbove",         levelsAbove);
     cfg.set<float>("minStatMultiplier", minStatMultiplier);
     cfg.set<float>("maxStatMultiplier", maxStatMultiplier);
+    cfg.set<bool>("fixDefenseScaling",  fixDefenseScaling);
 }
 
 void RandomizeEncounters::onDebugGUI()
@@ -367,7 +373,7 @@ void RandomizeEncounters::onBattleEnter()
         }
 
         StatMultiplierSet& multiplierSet = enemyStatMultipliers[formation->enemyIDs[i]];
-        game->applyBattleStatMultiplier(BattleOffsets::Enemies[i], multiplierSet);
+        game->applyBattleStatMultiplier(BattleOffsets::Enemies[i], multiplierSet, fixDefenseScaling);
         LOG("Applied enemy stat multipliers to %d: %s", formation->enemyIDs[i], multiplierSet.toString().c_str());
     }
 }
@@ -409,7 +415,7 @@ void RandomizeEncounters::addExclusions(std::initializer_list<uint16_t> ids)
     }
 }
 
-std::vector<uint16_t> RandomizeEncounters::findCandidates(int maxLevel, int battleType)
+std::vector<uint16_t> RandomizeEncounters::findCandidates(int maxLevel, int battleType, bool isArenaBattle)
 {
     std::vector<uint16_t> candidates;
 
@@ -445,6 +451,11 @@ std::vector<uint16_t> RandomizeEncounters::findCandidates(int maxLevel, int batt
                 continue;
             }
 
+            if (isArenaBattle && !candidateFormation.isArenaBattle())
+            {
+                continue;
+            }
+
             candidates.push_back(candidateFormation.id);
         }
     }
@@ -471,7 +482,7 @@ void RandomizeEncounters::generateRandomEncounterMap()
             }
 
             uint8_t maxLevel = getMaxLevelInFormation(scene, formation);
-            randomEncounterMap[formation.id] = findCandidates(maxLevel, formation.battleType);
+            randomEncounterMap[formation.id] = findCandidates(maxLevel, formation.battleType, formation.isArenaBattle());
         }
     }
 }

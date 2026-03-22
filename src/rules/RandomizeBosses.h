@@ -36,6 +36,7 @@ private:
 
     float minStatMultiplier = 1.0f;
     float maxStatMultiplier = 1.0f;
+    bool fixDefenseScaling = true;
 
     RandomMode randomMode = RandomMode::Shuffle;
     std::mt19937_64 rng;

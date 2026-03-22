@@ -53,6 +53,10 @@ bool RandomizeBosses::onSettingsGUI()
     ImGui::SameLine();
     changed |= ImGui::InputFloat("##bossMaxStatMultiplier", &maxStatMultiplier, 0, 0, "%.2f");
     ImGui::PopItemWidth();
+    ImGui::PushID("RandomizeBosses.fixDefenseScaling");
+    changed |= ImGui::Checkbox("Fix Defense Scaling", &fixDefenseScaling);
+    ImGui::PopID();
+    ImGui::SetItemTooltip("Dampens stat multipliers on Def/MDef as they approach limit.\nPrevents 0 damage on enemies with already high Def/MDef.");
 
     if (ImGui::CollapsingHeader("Resistance and Weakness"))
     {
@@ -99,8 +103,9 @@ bool RandomizeBosses::onSettingsGUI()
 
 void RandomizeBosses::loadSettings(const ConfigFile& cfg)
 {
-    minStatMultiplier = cfg.get<float>("minStatMultiplier", 1.0f);
-    maxStatMultiplier = cfg.get<float>("maxStatMultiplier", 1.0f);
+    minStatMultiplier = cfg.get<float>("minStatMultiplier", minStatMultiplier);
+    maxStatMultiplier = cfg.get<float>("maxStatMultiplier", maxStatMultiplier);
+    fixDefenseScaling = cfg.get<bool>("fixDefenseScaling", fixDefenseScaling);
     randomMode = (RandomMode)cfg.get<int>("randomMode", 0);
 
     elementCount = cfg.get<int>("elementCount", elementCount);
@@ -114,6 +119,7 @@ void RandomizeBosses::saveSettings(ConfigFile& cfg)
 {
     cfg.set<float>("minStatMultiplier", minStatMultiplier);
     cfg.set<float>("maxStatMultiplier", maxStatMultiplier);
+    cfg.set<bool>("fixDefenseScaling", fixDefenseScaling);
     cfg.set<int>("randomMode", (int)randomMode);
 
     cfg.set<int>("elementCount", elementCount);
@@ -370,7 +376,7 @@ void RandomizeBosses::applyBossRandomization()
             }
 
             StatMultiplierSet& multiplierSet = bossStatMultipliers[formation->enemyIDs[i]];
-            game->applyBattleStatMultiplier(BattleOffsets::Enemies[i], multiplierSet);
+            game->applyBattleStatMultiplier(BattleOffsets::Enemies[i], multiplierSet, fixDefenseScaling);
             LOG("Applied boss stat multipliers to %d: %s", formation->enemyIDs[i], multiplierSet.toString().c_str());
         }
     }

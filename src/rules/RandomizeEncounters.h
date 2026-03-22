@@ -23,7 +23,7 @@ private:
     void onBattleEnter();
 
     void addExclusions(std::initializer_list<uint16_t> ids);
-    std::vector<uint16_t> findCandidates(int maxLevel, int battleType);
+    std::vector<uint16_t> findCandidates(int maxLevel, int battleType, bool isArenaBattle);
     void generateRandomEncounterMap();
     void generateEnemyStatMultipliers();
 
@@ -35,6 +35,7 @@ private:
     int levelsAbove = 5;
     float minStatMultiplier = 1.0f;
     float maxStatMultiplier = 1.0f;
+    bool fixDefenseScaling = true;
 
     std::bitset<UINT16_MAX> excludedFormations;
     std::unordered_map<uint16_t, std::vector<uint16_t>> randomEncounterMap;

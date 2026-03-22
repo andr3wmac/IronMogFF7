@@ -20,4 +20,5 @@ private:
     bool noIndependent = false;
 
     bool noESkill = false;
+    bool noMaster = false;
 };

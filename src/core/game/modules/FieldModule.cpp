@@ -337,6 +337,12 @@ int FieldModule::findPickUpMessage(std::string itemName, uint8_t group, uint8_t 
         return findPickUpMessage("Counter", group, script, offset);
     }
 
+    // HACK: "Luck Plus" is misspelled as Lucky Plus in one text box.
+    if (bestIndex == -1 && itemName == "Luck Plus")
+    {
+        return findPickUpMessage("Lucky Plus", group, script, offset);
+    }
+
     return bestIndex;
 }
 

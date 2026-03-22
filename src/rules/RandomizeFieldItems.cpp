@@ -247,7 +247,6 @@ void RandomizeFieldItems::apply()
             if (newItem.id == newItem.id)
             {
                 LOG("Did not roll new item on field %d: %s (%d)", fieldData.id, oldItemName.c_str(), oldItem.quantity);
-                continue;
             }
         }
         
@@ -260,7 +259,6 @@ void RandomizeFieldItems::apply()
             if (randItemID == newItem.id)
             {
                 LOG("Did not roll unbanned item on field %d: %s (%d)", fieldData.id, oldItemName.c_str(), oldItem.quantity);
-                continue;
             }
 
             newItem.id = randItemID;

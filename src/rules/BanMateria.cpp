@@ -120,6 +120,13 @@ void BanMateria::setup()
     {
         Restrictions::banMateria(44); // Enemy Skill
     }
+
+    if (noMaster)
+    {
+        Restrictions::banMateria(48); // Master Command
+        Restrictions::banMateria(73); // Master Magic
+        Restrictions::banMateria(90); // Master Summon
+    }
 }
 
 bool BanMateria::onSettingsGUI()
@@ -132,6 +139,7 @@ bool BanMateria::onSettingsGUI()
     changed |= ImGui::Checkbox("Support", &noSupport);
     changed |= ImGui::Checkbox("Independent", &noIndependent);
     changed |= ImGui::Checkbox("E.Skill", &noESkill);
+    changed |= ImGui::Checkbox("Master", &noMaster);
 
     return changed;
 }
@@ -144,6 +152,7 @@ void BanMateria::loadSettings(const ConfigFile& cfg)
     noSupport     = cfg.get<bool>("noSupport", noSupport);
     noIndependent = cfg.get<bool>("noIndependent", noIndependent);
     noESkill      = cfg.get<bool>("noESkill", noESkill);
+    noMaster      = cfg.get<bool>("noMaster", noMaster);
 }
 
 void BanMateria::saveSettings(ConfigFile& cfg)
@@ -154,6 +163,7 @@ void BanMateria::saveSettings(ConfigFile& cfg)
     cfg.set<bool>("noSupport", noSupport);
     cfg.set<bool>("noIndependent", noIndependent);
     cfg.set<bool>("noESkill", noESkill);
+    cfg.set<bool>("noMaster", noMaster);
 }
 
 std::vector<std::string> BanMateria::describe(RuleDescripionType descType)
@@ -167,6 +177,7 @@ std::vector<std::string> BanMateria::describe(RuleDescripionType descType)
         if (noSupport) results.push_back("Support");
         if (noIndependent) results.push_back("Independent");
         if (noESkill) results.push_back("E. Skill");
+        if (noMaster) results.push_back("Master");
         return results;
     }
 

@@ -74,8 +74,8 @@ public:
     std::pair<BattleScene*, BattleFormation*> getBattleFormation();
 
     // Given an offset to a battle character this function will apply a multiplier to each of the chosen stats.
-    void applyBattleStatMultiplier(uintptr_t battleCharOffset, StatMultiplierSet& multiplierSet);
-    void applyBattleStatMultiplier(uintptr_t battleCharOffset, float multiplier, bool applyToHP = true, bool applyToMP = true, bool applyToStats = true);
+    void applyBattleStatMultiplier(uintptr_t battleCharOffset, StatMultiplierSet& multiplierSet, bool fixDefenseScaling = false);
+    void applyBattleStatMultiplier(uintptr_t battleCharOffset, float multiplier, bool applyToHP = true, bool applyToMP = true, bool applyToStats = true, bool fixDefenseScaling = false);
 
     // Returns the pointer to the line of field script last executed for a given group index.
     uint16_t getScriptExecutionPointer(uint8_t groupIndex) { return fieldScriptExecutionTable[groupIndex]; }

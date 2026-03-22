@@ -581,7 +581,31 @@ void multiplyStat(GameManager* game, uintptr_t offset, float multiplier)
     game->write<T>(offset, stat);
 }
 
-void GameManager::applyBattleStatMultiplier(uintptr_t battleCharOffset, StatMultiplierSet& multiplierSet)
+void multiplyDefense(GameManager* game, uintptr_t offset, float multiplier, bool fixScaling)
+{
+    if (multiplier == 1.0f)
+    {
+        return;
+    }
+
+    uint16_t stat = game->read<uint16_t>(offset);
+    if (fixScaling)
+    {
+        uint16_t orig = stat;
+        uint16_t naiveScaling = Utilities::clampTo<uint16_t>(stat * multiplier);
+        uint16_t halfGap = Utilities::clampTo<uint16_t>(512 - (512 - stat) * std::powf(0.5f, multiplier - 1.0f));
+        stat = std::min(naiveScaling, halfGap);
+        LOG("Fixed defense scaling. Orig: %d, Naive: %d, HalfGap: %d, Used: %d", orig, naiveScaling, halfGap, stat);
+    }
+    else 
+    {
+        stat = Utilities::clampTo<uint16_t>(stat * multiplier);
+    }
+
+    game->write<uint16_t>(offset, stat);
+}
+
+void GameManager::applyBattleStatMultiplier(uintptr_t battleCharOffset, StatMultiplierSet& multiplierSet, bool fixDefenseScaling)
 {
     if (getGameModule() != GameModule::Battle)
     {
@@ -598,11 +622,11 @@ void GameManager::applyBattleStatMultiplier(uintptr_t battleCharOffset, StatMult
     multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Evade, multiplierSet.evade);
     multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Speed, multiplierSet.speed);
     multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Luck, multiplierSet.luck);
-    multiplyStat<uint16_t>(this, battleCharOffset + BattleOffsets::Defense, multiplierSet.defense);
-    multiplyStat<uint16_t>(this, battleCharOffset + BattleOffsets::MDefense, multiplierSet.mDefense);
+    multiplyDefense(this, battleCharOffset + BattleOffsets::Defense, multiplierSet.defense, fixDefenseScaling);
+    multiplyDefense(this, battleCharOffset + BattleOffsets::MDefense, multiplierSet.mDefense, fixDefenseScaling);
 }
 
-void GameManager::applyBattleStatMultiplier(uintptr_t battleCharOffset, float multiplier, bool applyToHP, bool applyToMP, bool applyToStats)
+void GameManager::applyBattleStatMultiplier(uintptr_t battleCharOffset, float multiplier, bool applyToHP, bool applyToMP, bool applyToStats, bool fixDefenseScaling)
 {
     if (getGameModule() != GameModule::Battle)
     {
@@ -629,7 +653,7 @@ void GameManager::applyBattleStatMultiplier(uintptr_t battleCharOffset, float mu
         multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Evade, multiplier);
         multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Speed, multiplier);
         multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Luck, multiplier);
-        multiplyStat<uint16_t>(this, battleCharOffset + BattleOffsets::Defense, multiplier);
-        multiplyStat<uint16_t>(this, battleCharOffset + BattleOffsets::MDefense, multiplier);
+        multiplyDefense(this, battleCharOffset + BattleOffsets::Defense, multiplier, fixDefenseScaling);
+        multiplyDefense(this, battleCharOffset + BattleOffsets::MDefense, multiplier, fixDefenseScaling);
     }
 }
