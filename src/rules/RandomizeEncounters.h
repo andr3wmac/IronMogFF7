@@ -37,6 +37,7 @@ private:
     float maxStatMultiplier = 1.0f;
     bool fixDefenseScaling = true;
 
+    std::bitset<UINT16_MAX> bossFormations;
     std::bitset<UINT16_MAX> excludedFormations;
     std::unordered_map<uint16_t, std::vector<uint16_t>> randomEncounterMap;
     std::unordered_map<uint16_t, StatMultiplierSet> enemyStatMultipliers;

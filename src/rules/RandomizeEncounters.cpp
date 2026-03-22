@@ -51,7 +51,7 @@ void RandomizeEncounters::setup()
                 {
                     if (bossIDs.count(formation.enemyIDs[i]) > 0)
                     {
-                        excludedFormations.set(formation.id);
+                        bossFormations.set(formation.id);
                         break;
                     }
                 }
@@ -358,7 +358,8 @@ void RandomizeEncounters::onBattleEnter()
         return;
     }
 
-    if (randomEncounterMap.count(formation->id) == 0)
+    // Don't randomize stats on bosses
+    if (bossFormations.test(formation->id))
     {
         return;
     }
@@ -429,8 +430,8 @@ std::vector<uint16_t> RandomizeEncounters::findCandidates(int maxLevel, int batt
         {
             BattleFormation candidateFormation = candidateScene.formations[j];
 
-            // Skip excluded formations
-            if (excludedFormations.test(candidateFormation.id))
+            // Skip excluded and boss formations
+            if (excludedFormations.test(candidateFormation.id) || bossFormations.test(candidateFormation.id))
             {
                 continue;
             }
@@ -478,8 +479,8 @@ void RandomizeEncounters::generateRandomEncounterMap()
         {
             BattleFormation formation = scene.formations[i];
 
-            // Don't randomize excluded formations
-            if (excludedFormations.test(formation.id))
+            // Don't randomize excluded or boss formations
+            if (excludedFormations.test(formation.id) || bossFormations.test(formation.id))
             {
                 continue;
             }
