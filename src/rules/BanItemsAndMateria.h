@@ -2,7 +2,7 @@
 #include "Rule.h"
 #include <cstdint>
 
-class BanItems : public Rule
+class BanItemsAndMateria : public Rule
 {
 public:
     void setup() override;
@@ -13,8 +13,16 @@ public:
     std::vector<std::string> describe(RuleDescripionType descType) override;
 
 private:
-    bool noConsumables = false;
+    bool noItems = false;
     bool noWeapons = false;
     bool noArmor = false;
     bool noAccessories = false;
+
+    bool noSummons = true;
+    bool noMagic = false;
+    bool noCommand = false;
+    bool noSupport = false;
+    bool noIndependent = false;
+    bool noESkill = false;
+    bool noMaster = false;
 };
