@@ -105,7 +105,7 @@ void RandomizeBosses::loadSettings(const ConfigFile& cfg)
 {
     minStatMultiplier = cfg.get<float>("minStatMultiplier", minStatMultiplier);
     maxStatMultiplier = cfg.get<float>("maxStatMultiplier", maxStatMultiplier);
-    defenseSoftCap = cfg.get<bool>("fixDefenseScaling", defenseSoftCap);
+    defenseSoftCap = cfg.get<bool>("defenseSoftCap", defenseSoftCap);
     randomMode = (RandomMode)cfg.get<int>("randomMode", 0);
 
     elementCount = cfg.get<int>("elementCount", elementCount);
@@ -119,7 +119,7 @@ void RandomizeBosses::saveSettings(ConfigFile& cfg)
 {
     cfg.set<float>("minStatMultiplier", minStatMultiplier);
     cfg.set<float>("maxStatMultiplier", maxStatMultiplier);
-    cfg.set<bool>("fixDefenseScaling", defenseSoftCap);
+    cfg.set<bool>("defenseSoftCap", defenseSoftCap);
     cfg.set<int>("randomMode", (int)randomMode);
 
     cfg.set<int>("elementCount", elementCount);
