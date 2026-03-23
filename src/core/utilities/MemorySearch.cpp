@@ -306,8 +306,42 @@ std::vector<uintptr_t> MemorySearch::searchForString(const std::string& str)
     return search(encodedStr);
 }
 
+std::vector<uintptr_t> MemorySearch::searchForPointer(uintptr_t address, uintptr_t tolerance)
+{
+    std::vector<uintptr_t> results;
+
+    if (game == nullptr)
+    {
+        return results;
+    }
+
+    // Copy PS1 RAM into temporary storage
+    if (!game->read(0, PS1RAMSize, RAMData))
+    {
+        return results;
+    }
+
+    // Convert the memory offset into PS1 pointer format
+    uintptr_t ps1Pointer = address | 0x80000000;
+
+    for (uintptr_t i = 0; i <= PS1RAMSize - 4; i += 4)
+    {
+        uint32_t potentialPointer = *(uint32_t*)(&RAMData[i]);
+
+        // Check if the value falls within the target pointer +/- tolerance
+        if (potentialPointer >= (ps1Pointer - tolerance) &&  potentialPointer <= (ps1Pointer + tolerance))
+        {
+            // Store the offset in RAM where we found this pointer
+            results.push_back(i);
+        }
+    }
+
+    return results;
+}
+
 std::string getOpCodeName(int curType)
 {
+    if (curType == 0x2C) return "QUAD MONO TEX";
     if (curType == 0x3C) return "QUAD TEX";
     if (curType == 0x34) return "TRI TEX";
     if (curType == 0x30) return "TRI COLOR";
@@ -339,6 +373,30 @@ void MemorySearch::modelScan(uintptr_t startAddress, int maxSteps, bool verbose)
         {
             curType = 0;
             curCount = 0;
+        }
+
+        // quad, mono, tex
+        if (cmd0 == 0x2C)
+        {
+            if (curType != 0x2C && curType != 0)
+            {
+                LOG("%s ended with %d", getOpCodeName(curType).c_str(), curCount);
+                curCount = 0;
+            }
+
+            uintptr_t cmdAddr = curAddr;
+            if (polygonCount == 0) startAddr = curAddr;
+            curAddr += 10 * 4;
+            polygonCount++;
+            curType = 0x2C;
+            curCount++;
+
+            if (verbose)
+            {
+                LOG("QUAD MONO TEX %d %d %d Addr: %d", cmd3, cmd2, cmd1, cmdAddr);
+            }
+
+            continue;
         }
 
         // polygon, gouraud, quad, textured

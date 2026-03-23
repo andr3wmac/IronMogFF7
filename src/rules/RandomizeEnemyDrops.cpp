@@ -21,6 +21,17 @@ bool RandomizeEnemyDrops::onSettingsGUI()
 {
     bool changed = false;
 
+    changed |= ImGui::Checkbox("Randomize Every Fight", &randomizeEveryFight);
+    ImGui::SetItemTooltip("Whether drops should be randomized every fight\nor randomized once for each enemy.");
+
+    changed |= ImGui::Checkbox("Randomize Morphs", &randomizeMorphs);
+
+    ImGui::PushID("RandomizeEnemyDrops.keepItemType");
+    changed |= ImGui::Checkbox("Keep Item Type", &keepItemType);
+    ImGui::PopID();
+
+    ImGui::SetItemTooltip("Randomizes weapons with other weapons, armor with other armor, etc");
+
     ImGui::Text("Gil Multiplier");
     ImGui::SetItemTooltip("Multiplies the gil dropped by each enemy.");
     ImGui::SameLine();
@@ -50,14 +61,20 @@ bool RandomizeEnemyDrops::onSettingsGUI()
 
 void RandomizeEnemyDrops::loadSettings(const ConfigFile& cfg)
 {
-    minGilMultiplier = cfg.get<float>("minGilMultiplier", 1.0f);
-    maxGilMultiplier = cfg.get<float>("maxGilMultiplier", 1.0f);
-    minExpMultiplier = cfg.get<float>("minExpMultiplier", 1.0f);
-    maxExpMultiplier = cfg.get<float>("maxExpMultiplier", 1.0f);
+    randomizeEveryFight = cfg.get<bool>("randomizeEveryFight", randomizeEveryFight);
+    randomizeMorphs     = cfg.get<bool>("randomizeMorphs", randomizeMorphs);
+    keepItemType       = cfg.get<bool>("keepSameTypes", keepItemType);
+    minGilMultiplier    = cfg.get<float>("minGilMultiplier", minGilMultiplier);
+    maxGilMultiplier    = cfg.get<float>("maxGilMultiplier", maxGilMultiplier);
+    minExpMultiplier    = cfg.get<float>("minExpMultiplier", minExpMultiplier);
+    maxExpMultiplier    = cfg.get<float>("maxExpMultiplier", maxExpMultiplier);
 }
 
 void RandomizeEnemyDrops::saveSettings(ConfigFile& cfg)
 {
+    cfg.set<bool>("randomizeEveryFight", randomizeEveryFight);
+    cfg.set<bool>("randomizeMorphs", randomizeMorphs);
+    cfg.set<bool>("keepSameTypes", keepItemType);
     cfg.set<float>("minGilMultiplier", minGilMultiplier);
     cfg.set<float>("maxGilMultiplier", maxGilMultiplier);
     cfg.set<float>("minExpMultiplier", minExpMultiplier);
@@ -66,9 +83,7 @@ void RandomizeEnemyDrops::saveSettings(ConfigFile& cfg)
 
 void RandomizeEnemyDrops::onDebugGUI()
 {
-    std::pair<BattleScene*, BattleFormation*> battleData = game->getBattleFormation();
-    BattleScene* scene = battleData.first;
-    BattleFormation* formation = battleData.second;
+    const auto& [scene, formation] = game->getBattleFormation();
 
     if (scene == nullptr || formation == nullptr)
     {
@@ -99,7 +114,46 @@ void RandomizeEnemyDrops::onDebugGUI()
             std::string dropText = "  Drop " + std::to_string(j) + ": " + GameData::getItemName(dropID) + "(" + std::to_string(dropID) + ")";
             ImGui::Text(dropText.c_str());
         }
+
+        uint16_t morphID = game->read<uint16_t>(BattleSceneOffsets::Enemies[i] + BattleSceneOffsets::MorphItemID);
+        if (morphID != 0xFFFF)
+        {
+            std::string itemName = GameData::getItemName(morphID);
+            std::string morphText = "  Morph: " + std::to_string(morphID) + " " + itemName;
+            ImGui::Text(morphText.c_str());
+        }
+        else 
+        {
+            std::string morphText = "  Morph: None";
+            ImGui::Text(morphText.c_str());
+        }
     }
+}
+
+std::vector<std::string> RandomizeEnemyDrops::describe(RuleDescripionType descType)
+{
+    if (descType == RuleDescripionType::Randomized)
+    {
+        return { "Enemy Drops" };
+    }
+
+    if (descType == RuleDescripionType::Multiplier)
+    {
+        std::vector<std::string> results;
+
+        if (minGilMultiplier != 1.0f || maxGilMultiplier != 1.0f)
+        {
+            results.push_back(Utilities::formatFloat(minGilMultiplier) + "-" + Utilities::formatFloat(maxGilMultiplier) + "x Gil");
+        }
+        if (minExpMultiplier != 1.0f || maxExpMultiplier != 1.0f)
+        {
+            results.push_back(Utilities::formatFloat(minExpMultiplier) + "-" + Utilities::formatFloat(maxExpMultiplier) + "x Exp");
+        }
+
+        return results;
+    }
+
+    return {};
 }
 
 void RandomizeEnemyDrops::onStart()
@@ -112,11 +166,9 @@ void RandomizeEnemyDrops::onBattleEnter()
     uint16_t fieldID = game->getFieldID();
     uint16_t formationID = game->read<uint16_t>(BattleOffsets::FormationID);
 
-    std::pair<BattleScene*, BattleFormation*> battleData = game->getBattleFormation();
-    BattleScene* scene = battleData.first;
-    BattleFormation* formation = battleData.second;
+    const auto& [scene, formation] = game->getBattleFormation();
 
-    std::set<int> activeEnemyIDs;
+    std::set<int> activeEnemyIndexes;
     for (int i = 0; i < 6; ++i)
     {
         if (formation->enemyIDs[i] == UINT16_MAX)
@@ -128,7 +180,7 @@ void RandomizeEnemyDrops::onBattleEnter()
         {
             if (formation->enemyIDs[i] == scene->enemyIDs[j])
             {
-                activeEnemyIDs.insert(j);
+                activeEnemyIndexes.insert(j);
             }
         }
 
@@ -147,23 +199,62 @@ void RandomizeEnemyDrops::onBattleEnter()
         game->write<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::Exp, newExp);
     }
 
-    for (int id : activeEnemyIDs)
+    for (int idx : activeEnemyIndexes)
     {
+        if (!randomizeEveryFight)
+        {
+            // IF randomize every fight is disabled then we seed the RNG with the
+            // enemy ID so the same game seed + enemy ID will produce the same drop
+            // and morph randomization.
+            uint16_t enemyID = scene->enemyIDs[idx];
+            rng.seed(Utilities::makeSeed64(game->getSeed(), enemyID));
+        }
+
         // Maximum of 4 item slots per enemy
         for (int i = 0; i < 4; ++i)
         {
-            uint16_t dropID = game->read<uint16_t>(BattleSceneOffsets::Enemies[id] + BattleSceneOffsets::DropIDs[i]);
+            uint16_t dropID = game->read<uint16_t>(BattleSceneOffsets::Enemies[idx] + BattleSceneOffsets::DropIDs[i]);
             if (dropID == UINT16_MAX)
             {
                 continue;
             }
 
-            uint16_t newDropID = GameData::getRandomItemSameType(dropID, rng, true);
-            game->write<uint16_t>(BattleSceneOffsets::Enemies[id] + BattleSceneOffsets::DropIDs[i], newDropID);
-
             std::string oldItemName = GameData::getItemName(dropID);
-            std::string newItemName = GameData::getItemName(newDropID);
-            LOG("Randomized enemy drop in formation %d: %s changed to %s", formationID, oldItemName.c_str(), newItemName.c_str());
+
+            uint16_t newDropID = GameData::getRandomItem(dropID, rng, keepItemType);
+            if (newDropID != dropID)
+            {
+                game->write<uint16_t>(BattleSceneOffsets::Enemies[idx] + BattleSceneOffsets::DropIDs[i], newDropID);
+
+                std::string newItemName = GameData::getItemName(newDropID);
+                LOG("Randomized enemy drop in formation %d: %s changed to %s", formationID, oldItemName.c_str(), newItemName.c_str());
+            }
+            else 
+            {
+                LOG("Did not roll new enemy drop in formation %d: %s", formationID, oldItemName.c_str());
+            }
+        }
+
+        if (randomizeMorphs)
+        {
+            uint16_t morphID = game->read<uint16_t>(BattleSceneOffsets::Enemies[idx] + BattleSceneOffsets::MorphItemID);
+            if (morphID != 0xFFFF)
+            {
+                std::string oldItemName = GameData::getItemName(morphID);
+
+                uint16_t newMorphID = GameData::getRandomItem(morphID, rng, keepItemType);
+                if (newMorphID != morphID)
+                {
+                    game->write<uint16_t>(BattleSceneOffsets::Enemies[idx] + BattleSceneOffsets::MorphItemID, newMorphID);
+
+                    std::string newItemName = GameData::getItemName(newMorphID);
+                    LOG("Randomized enemy morph in formation %d: %s changed to %s", formationID, oldItemName.c_str(), newItemName.c_str());
+                }
+                else 
+                {
+                    LOG("Did not roll new item for morph in formation %d: %s", formationID, oldItemName.c_str());
+                }
+            }
         }
     }
 }

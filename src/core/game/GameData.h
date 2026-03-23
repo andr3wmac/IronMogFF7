@@ -65,6 +65,7 @@ struct FieldScriptItem
     uint32_t offset = 0;
     uint16_t id = 0;
     uint8_t quantity = 0;
+    bool isMateria = false;
 };
 
 struct FieldScriptMessage
@@ -245,6 +246,8 @@ struct StatMultiplierSet
     float luck      = 1.0f;
     float defense   = 1.0f;
     float mDefense  = 1.0f;
+
+    std::string toString();
 };
 
 class GameData
@@ -292,12 +295,12 @@ public:
 
     static void addFieldScriptItem(uint16_t fieldID, uint8_t groupIdx, uint8_t scriptIdx, uint32_t offset, uint16_t itemID, uint8_t quantity) 
     {
-        GameData::fieldData[fieldID].items.push_back({ groupIdx, scriptIdx, offset, itemID, quantity });
+        GameData::fieldData[fieldID].items.push_back({ groupIdx, scriptIdx, offset, itemID, quantity, false });
     }
 
     static void addFieldScriptMateria(uint16_t fieldID, uint8_t groupIdx, uint8_t scriptIdx, uint32_t offset, uint16_t matID) 
     {
-        GameData::fieldData[fieldID].materia.push_back({ groupIdx, scriptIdx, offset, matID, 1 });
+        GameData::fieldData[fieldID].materia.push_back({ groupIdx, scriptIdx, offset, matID, 1, true });
     }
 
     static void addFieldScriptMessage(uint16_t fieldID, uint8_t groupIdx, uint8_t scriptIdx, uint8_t windowIdx, uint32_t offset, uint32_t strOffset, uint32_t strLen) 
@@ -386,8 +389,8 @@ public:
     static Item* getItem(uint16_t id);
     static Item* getMateria(uint16_t id);
 
-    static uint16_t getRandomItemOfType(std::mt19937_64& rng, ItemType type, bool excludeBanned = true, bool excludeRare = false, const std::set<uint16_t>& excludeSet = {});
-    static uint16_t getRandomItemSameType(uint16_t origItemID, std::mt19937_64& rng, bool excludeBanned = true, bool excludeRare = false, const std::set<uint16_t>& excludeSet = {});
+    static std::vector<uint16_t> getItemsOfType(ItemType type, bool excludeBanned = true, bool excludeRare = false, const std::set<uint16_t>& excludeSet = {});
+    static uint16_t getRandomItem(uint16_t origItemID, std::mt19937_64& rng, bool keepType, bool excludeBanned = true, bool excludeRare = false, const std::set<uint16_t>& excludeSet = {});
     static uint16_t getRandomMateria(std::mt19937_64& rng, bool excludeBanned = true, bool excludeRare = false, const std::set<uint16_t>& excludeSet = {});
 
     static FieldData getField(uint16_t id);

@@ -53,6 +53,10 @@ bool RandomizeBosses::onSettingsGUI()
     ImGui::SameLine();
     changed |= ImGui::InputFloat("##bossMaxStatMultiplier", &maxStatMultiplier, 0, 0, "%.2f");
     ImGui::PopItemWidth();
+    ImGui::PushID("RandomizeBosses.defenseSoftCap");
+    changed |= ImGui::Checkbox("Defense Soft Cap", &defenseSoftCap);
+    ImGui::PopID();
+    ImGui::SetItemTooltip("Prevents multiplied Def/MDef from hitting\ngame limit and becoming immune.");
 
     if (ImGui::CollapsingHeader("Resistance and Weakness"))
     {
@@ -99,8 +103,9 @@ bool RandomizeBosses::onSettingsGUI()
 
 void RandomizeBosses::loadSettings(const ConfigFile& cfg)
 {
-    minStatMultiplier = cfg.get<float>("minStatMultiplier", 1.0f);
-    maxStatMultiplier = cfg.get<float>("maxStatMultiplier", 1.0f);
+    minStatMultiplier = cfg.get<float>("minStatMultiplier", minStatMultiplier);
+    maxStatMultiplier = cfg.get<float>("maxStatMultiplier", maxStatMultiplier);
+    defenseSoftCap = cfg.get<bool>("defenseSoftCap", defenseSoftCap);
     randomMode = (RandomMode)cfg.get<int>("randomMode", 0);
 
     elementCount = cfg.get<int>("elementCount", elementCount);
@@ -114,6 +119,7 @@ void RandomizeBosses::saveSettings(ConfigFile& cfg)
 {
     cfg.set<float>("minStatMultiplier", minStatMultiplier);
     cfg.set<float>("maxStatMultiplier", maxStatMultiplier);
+    cfg.set<bool>("defenseSoftCap", defenseSoftCap);
     cfg.set<int>("randomMode", (int)randomMode);
 
     cfg.set<int>("elementCount", elementCount);
@@ -149,9 +155,7 @@ std::string buildElementsString(uint64_t elementTypes, uint64_t elementRates, st
 
 void RandomizeBosses::onDebugGUI()
 {
-    std::pair<BattleScene*, BattleFormation*> battleData = game->getBattleFormation();
-    BattleScene* scene = battleData.first;
-    BattleFormation* formation = battleData.second;
+    const auto& [scene, formation] = game->getBattleFormation();
 
     if (scene == nullptr || formation == nullptr)
     {
@@ -185,6 +189,24 @@ void RandomizeBosses::onDebugGUI()
         }
         ImGui::Unindent(32.0f);
     }
+}
+
+std::vector<std::string> RandomizeBosses::describe(RuleDescripionType descType)
+{
+    if (descType == RuleDescripionType::Randomized)
+    {
+        return { "Bosses" };
+    }
+
+    if (descType == RuleDescripionType::Multiplier)
+    {
+        if (minStatMultiplier != 1.0f || maxStatMultiplier != 1.0f)
+        {
+            return { Utilities::formatFloat(minStatMultiplier) + "-" + Utilities::formatFloat(maxStatMultiplier) + "x Boss Stats" };
+        }
+    }
+
+    return {};
 }
 
 void RandomizeBosses::onStart()
@@ -225,9 +247,9 @@ void RandomizeBosses::generateBossStatMultipliers()
         StatMultiplierSet enemySet;
 
         enemySet.currentHP  = dist(rng);
-        enemySet.maxHP      = dist(rng);
+        enemySet.maxHP      = enemySet.currentHP;
         enemySet.currentMP  = dist(rng);
-        enemySet.maxMP      = dist(rng);
+        enemySet.maxMP      = enemySet.currentMP;
         enemySet.strength   = dist(rng);
         enemySet.magic      = dist(rng);
         enemySet.evade      = dist(rng);
@@ -353,7 +375,9 @@ void RandomizeBosses::applyBossRandomization()
                 continue;
             }
 
-            game->applyBattleStatMultiplier(BattleOffsets::Enemies[i], bossStatMultipliers[formation->enemyIDs[i]]);
+            StatMultiplierSet& multiplierSet = bossStatMultipliers[formation->enemyIDs[i]];
+            game->applyBattleStatMultiplier(BattleOffsets::Enemies[i], multiplierSet, defenseSoftCap);
+            LOG("Applied boss stat multipliers to %d: %s", formation->enemyIDs[i], multiplierSet.toString().c_str());
         }
     }
 }

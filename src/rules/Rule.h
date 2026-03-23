@@ -3,6 +3,16 @@
 #include "core/game/GameManager.h"
 #include "core/utilities/ConfigFile.h"
 
+enum class RuleDescripionType : uint8_t
+{
+    Negation    = 0,
+    Randomized  = 1,
+    Multiplier  = 2,
+    Unique      = 3,
+    BanItems    = 4,
+    BanMateria  = 5
+};
+
 class Rule
 {
 public:
@@ -19,6 +29,7 @@ public:
     virtual void saveSettings(ConfigFile& cfg) {}
     virtual bool hasDebugGUI() { return false; }
     virtual void onDebugGUI() { }
+    virtual std::vector<std::string> describe(RuleDescripionType descType) { return {}; }
 
     void setManager(GameManager* gameManager)
     {
@@ -26,7 +37,7 @@ public:
     }
 
 protected:
-    GameManager* game;
+    GameManager* game = nullptr;
 
 public:
     static std::vector<Rule*>& getList()

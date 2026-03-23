@@ -28,17 +28,28 @@ bool RandomizeFieldItems::onSettingsGUI()
     changed |= ImGui::RadioButton("Random", randomModeInt, 1);
     ImGui::SetItemTooltip("Items are replaced with a random selection.");
 
+    ImGui::BeginDisabled(randomMode != RandomMode::Random);
+    {
+        ImGui::PushID("RandomizeFieldItems.keepItemType");
+        changed |= ImGui::Checkbox("Keep Item Type", &keepItemType);
+        ImGui::PopID();
+        ImGui::SetItemTooltip("Randomizes weapons with other weapons, armor with other armor, etc");
+    }
+    ImGui::EndDisabled();
+
     return changed;
 }
 
 void RandomizeFieldItems::loadSettings(const ConfigFile& cfg)
 {
-    randomMode = (RandomMode)cfg.get<int>("randomMode", 0);
+    randomMode = (RandomMode)cfg.get<int>("randomMode", (int)randomMode);
+    keepItemType = cfg.get<bool>("keepItemType", keepItemType);
 }
 
 void RandomizeFieldItems::saveSettings(ConfigFile& cfg)
 {
     cfg.set<int>("randomMode", (int)randomMode);
+    cfg.set<bool> ("keepItemType", keepItemType);
 }
 
 void RandomizeFieldItems::onDebugGUI()
@@ -85,6 +96,16 @@ void RandomizeFieldItems::onDebugGUI()
     }
 }
 
+std::vector<std::string> RandomizeFieldItems::describe(RuleDescripionType descType)
+{
+    if (descType == RuleDescripionType::Randomized)
+    {
+        return { "Field Items" };
+    }
+
+    return {};
+}
+
 void RandomizeFieldItems::onStart()
 {
     generateRandomizedItems();
@@ -97,17 +118,7 @@ uint32_t makeKey(uint16_t fieldID, uint8_t index)
 
 void RandomizeFieldItems::onFrame(uint32_t frameNumber)
 {
-    for (int i = 0; i < overwriteMessages.size(); ++i)
-    {
-        const MessageOverwrite& overwriteMsg = overwriteMessages[i];
-        
-        // Check if the current dialog is overwrite message
-        uint16_t fieldScriptPtr = game->getScriptExecutionPointer(overwriteMsg.fieldMsg.group);
-        if (fieldScriptPtr == overwriteMsg.fieldMsg.offset)
-        {
-            game->writeString(getWindowTextOffset(overwriteMsg.fieldMsg.window), overwriteMsg.fieldMsg.strLength, overwriteMsg.text);
-        }
-    }
+
 }
 
 void RandomizeFieldItems::onFieldChanged(uint16_t fieldID)
@@ -191,9 +202,6 @@ void RandomizeFieldItems::apply()
         return;
     }
 
-    overwriteMessages.clear();
-    messagesToClear.clear();
-
     // Randomize items
     for (int i = 0; i < fieldData.items.size(); ++i)
     {
@@ -223,6 +231,7 @@ void RandomizeFieldItems::apply()
         }
 
         FieldScriptItem newItem = oldItem;
+        std::string oldItemName = GameData::getItemName(oldItem.id);
 
         if (randomMode == RandomMode::Shuffle)
         {
@@ -233,24 +242,40 @@ void RandomizeFieldItems::apply()
         {
             // Pick random one based on key.
             std::mt19937_64 rng64(Utilities::makeSeed64(game->getSeed(), fieldData.id, i));
-            newItem.id = GameData::getRandomItemSameType(newItem.id, rng64);
+            newItem.id = GameData::getRandomItem(newItem.id, rng64, keepItemType);
+
+            if (newItem.id == newItem.id)
+            {
+                LOG("Did not roll new item on field %d: %s (%d)", fieldData.id, oldItemName.c_str(), oldItem.quantity);
+            }
         }
         
         if (Restrictions::isItemBanned(newItem.id))
         {
             std::mt19937_64 rng64(Utilities::makeSeed64(game->getSeed(), fieldData.id, i));
-            newItem.id = GameData::getRandomItemSameType(newItem.id, rng64);
+            uint16_t randItemID = GameData::getRandomItem(newItem.id, rng64, keepItemType);
+            
+            // If this item is banned and we rolled the same one we skip changing this item.
+            if (randItemID == newItem.id)
+            {
+                LOG("Did not roll unbanned item on field %d: %s (%d)", fieldData.id, oldItemName.c_str(), oldItem.quantity);
+            }
+
+            newItem.id = randItemID;
         }
 
         game->write<uint16_t>(itemIDOffset, newItem.id);
         game->write<uint8_t>(itemQuantityOffset, newItem.quantity);
 
-        std::string oldItemName = GameData::getItemName(oldItem.id);
         std::string newItemName = GameData::getItemName(newItem.id);
         LOG("Randomized item on field %d: %s (%d) changed to: %s (%d)", fieldData.id, oldItemName.c_str(), oldItem.quantity, newItemName.c_str(), newItem.quantity);
 
         // Overwrite the popup message
-        overwriteMessage(fieldData, oldItem, newItem, oldItemName, newItemName);
+        int msgIndex = game->field.findPickUpMessage(oldItemName, oldItem.group, oldItem.script, oldItem.offset);
+        if (msgIndex >= 0)
+        {
+            game->field.overwriteMessage(msgIndex, newItemName);
+        }
     }
 
     // Randomize materia
@@ -295,7 +320,15 @@ void RandomizeFieldItems::apply()
         if (Restrictions::isMateriaBanned((uint8_t)newMateria.id))
         {
             std::mt19937_64 rng64(Utilities::makeSeed64(game->getSeed(), fieldData.id, (uint8_t)newMateria.id));
-            newMateria.id = GameData::getRandomMateria(rng64);
+            uint16_t randMateriaID = GameData::getRandomMateria(rng64);
+
+            // This will only happen if all materia are banned.
+            if (randMateriaID == UINT16_MAX)
+            {
+                continue;
+            }
+
+            newMateria.id = randMateriaID;
         }
 
         game->write<uint8_t>(idOffset, (uint8_t)newMateria.id);
@@ -305,62 +338,10 @@ void RandomizeFieldItems::apply()
         LOG("Randomized materia on field %d: %s changed to: %s", fieldData.id, oldMateriaName.c_str(), newMateriaName.c_str());
 
         // Overwrite the popup message
-        overwriteMessage(fieldData, oldMateria, newMateria, oldMateriaName, newMateriaName);
-    }
-
-    // Clear original messages that will be overwritten in real time
-    for (FieldScriptMessage& fieldMsg : messagesToClear)
-    {
-        game->writeString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength, "");
-    }
-}
-
-void RandomizeFieldItems::overwriteMessage(const FieldData& fieldData, const FieldScriptItem& oldItem, const FieldScriptItem& newItem, const std::string& oldName, const std::string& newName)
-{
-    // Overwrite the popup message
-    int msgIndex = game->findPickUpMessage(oldName, oldItem.group, oldItem.script, oldItem.offset);
-
-    // Counter Attack is shortened to "Counter" in field pick up messages.
-    if (msgIndex == -1 && oldName == "Counter Attack")
-    {
-        msgIndex = game->findPickUpMessage("Counter", oldItem.group, oldItem.script, oldItem.offset);
-    }
-
-    if (msgIndex >= 0)
-    {
-        const FieldScriptMessage& fieldMsg = fieldData.messages[msgIndex];
-
-        int strMsgCount = 0;
-        for (const FieldScriptItem& compareItem : fieldData.items)
+        int msgIndex = game->field.findPickUpMessage(oldMateriaName, oldMateria.group, oldMateria.script, oldMateria.offset);
+        if (msgIndex >= 0)
         {
-            std::string compareItemName = GameData::getItemName(compareItem.id);
-            int compareMsgIndex = game->findPickUpMessage(compareItemName, compareItem.group, compareItem.script, compareItem.offset);
-            if (compareMsgIndex >= 0)
-            {
-                const FieldScriptMessage& compareFieldMsg = fieldData.messages[compareMsgIndex];
-
-                if (fieldMsg.strOffset == compareFieldMsg.strOffset)
-                {
-                    strMsgCount++;
-                }
-            }
+            game->field.overwriteMessage(msgIndex, newMateriaName);
         }
-
-        // If the string has more than one message tied to it then we need to overwrite it
-        // in real time rather than just on field change. This is a consequence of randomizing
-        // every item separately and the fact the game reuses the same string for duplicates.
-        if (strMsgCount > 1)
-        {
-            overwriteMessages.push_back({ fieldMsg, newName });
-            messagesToClear.push_back(fieldMsg);
-        }
-        else
-        {
-            game->writeString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength, newName);
-        }
-    }
-    else 
-    {
-        LOG("Error: Unable to find message that contains: %s", oldName.c_str());
     }
 }

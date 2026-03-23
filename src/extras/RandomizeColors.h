@@ -13,12 +13,14 @@ public:
     void onDebugGUI() override;
     bool hasSettings() override { return true; }
     bool onSettingsGUI() override;
+    std::vector<std::string> describe(ExtraDescripionType descType) override;
 
 private:
     void onStart();
     void onFieldChanged(uint16_t fieldID);
     void onBattleEnter();
     void onWorldMapEnter();
+    void onModuleChanged(uint8_t gameModule);
     void onFrame(uint32_t frameNumber);
     void applyColors();
 
@@ -28,6 +30,15 @@ private:
 
     bool waitingForBattle = false;
     bool appliedHackFix = false;
+
+    uint8_t lastMotorbikeLoadValue = 0;
+    bool waitingForMotorbike = false;
+
+    uint8_t lastChocoboRacingValue = 0;
+    bool waitingForChocoboRace = false;
+
+    uint16_t lastSnowboardLoadValue = 0;
+    bool waitingForSnowboarding = false;
 
     // Debug variables
     char debugStartNum[20];

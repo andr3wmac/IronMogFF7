@@ -237,7 +237,8 @@ def outputFields(gen, discPath, version):
                     gen.write_line("addFieldScriptMessage(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " + str(windowIndex) + ", " + f"0x{addr:X}" + ", " + f"0x{stroffset:X}" + ", " + str(strlen) + ");", 4)
 
                 # Ensures the string contains an item/materia/etc name wrapped in quotes
-                match = next((word for word in gen.item_names if f'"{word}"' in string), None)
+                # Note: we only enforce quotes on the beginning of the name because theres spots where they put the puncuation inside the quotes. Example: Received "Turbo Ether!"
+                match = next((word for word in gen.item_names if f'"{word}' in string), None)
                 if match:
                     stroffset, strlen = fieldOffsets[values[3]]
                     gen.write_line("addFieldScriptMessage(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " + str(windowIndex) + ", " +  f"0x{addr:X}" + ", " + f"0x{stroffset:X}" + ", " + str(strlen) + ");", 4)
@@ -562,6 +563,7 @@ def outputModels(gen, discPath, version):
     outputModelFromField(discPath, "MRKT2.BSX", 3, "AERITH_DRESS")
     outputModelFromField(discPath, "COLNE_4.BSX", 5, "TIFA_DRESS")
     outputModelFromField(discPath, "MD0.BSX", 4, "CLOUD_SWORD")
+    outputModelFromField(discPath, "BLACKBGB.BSX", 2, "CLOUD_BIKE")
     outputModelFromField(discPath, "MTCRL_3.BSX", 3, "BARRET_COREL")
     outputModelFromField(discPath, "ITHOS.BSX", 9, "CLOUD_WHEELCHAIR")
     outputModelFromField(discPath, "MD8_5.BSX", 1, "CLOUD_PARACHUTE")
@@ -571,8 +573,11 @@ def outputModels(gen, discPath, version):
     outputModelFromField(discPath, "MD8_5.BSX", 5, "CID_PARACHUTE")
     outputModelFromField(discPath, "FSHIP_12.BSX", 5, "YUFFIE_PARACHUTE")
 
-    # Clouds model is slightly different on the world map for some reason, this was extracted from memory.
+    # These were all extracted from game memory at runtime.
     gen.write_line("addModel(\"CLOUD_WORLD\", 378, {{0, 0, 0, 0, 0, 0, 12, 6}, {0, 0, 0, 0, 0, 0, 6, 27}, {2, 4 + 2, 0, 0, 0, 0, 148 + 2, 12 + 1}, {0, 0, 0, 0, 0, 0, 10, 9}, {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 0, 0, 0, 0, 0, 6}, {0, 0, 0, 0, 0, 0, 10, 9}, {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 0, 0, 0, 0, 0, 6}, {0, 0, 0, 0, 0, 0, 8, 4}, {0, 0, 0, 0, 0, 0, 4, 14}, {0, 0, 0, 0, 0, 0, 2, 7}, {0, 0, 0, 0, 0, 0, 8, 4}, {0, 0, 0, 0, 0, 0, 4, 14}, {0, 0, 0, 0, 0, 0, 2, 7}});", 4)
+    gen.write_line("addModel(\"CLOUD_BIKE_GAME\", 208, {{0, 0, 0, 0, 0, 0, 10, 0}, {0, 0, 0, 0, 0, 0, 18, 0}, {0, 0, 2, 0, 0, 0, 46, 2}, {0, 0, 0, 0, 0, 0, 4, 0}, {0, 0, 0, 0, 0, 0, 6, 0}, {0, 0, 0, 0, 0, 0, 8, 0}, {0, 0, 0, 0, 0, 0, 8, 0}, {0, 0, 0, 0, 0, 0, 6, 0}, {0, 0, 0, 0, 0, 0, 6, 0}, {0, 0, 0, 0, 0, 0, 6, 0}, {0, 0, 0, 0, 0, 0, 26, 0}, {0, 0, 0, 0, 0, 0, 6, 0}, {0, 0, 0, 0, 0, 0, 6, 0}, {0, 0, 0, 0, 0, 0, 12, 0}, {0, 0, 0, 0, 0, 0, 8, 0}, {0, 0, 0, 0, 0, 0, 4, 0}, {0, 0, 0, 0, 0, 0, 12, 0}, {0, 0, 0, 0, 0, 0, 8, 0}, {0, 0, 0, 0, 0, 0, 4, 0}});", 4)
+    gen.write_line("addModel(\"CLOUD_CHOCOBO\", 153, {{0, 0, 0, 0, 0, 0, 10, 0}, {0, 0, 0, 0, 0, 0, 12, 2}, {0, 0, 0, 0, 0, 0, 65, 6}, {0, 0, 0, 0, 0, 0, 6, 0}, {0, 0, 0, 0, 0, 0, 6, 0},{0, 0, 0, 0, 0, 0, 6, 0}, {0, 0, 0, 0, 0, 0, 6, 0}, {0, 0, 0, 0, 0, 0, 8, 2}, {0, 0, 0, 0, 0, 0, 0, 3}, {0, 0, 0, 0, 0, 0, 4, 0}, {0, 0, 0, 0, 0, 0, 8, 2}, {0, 0, 0, 0, 0, 0, 0, 3}, {0, 0, 0, 0, 0, 0, 4, 0}});", 4)
+
     gen.write_line("")
 
     # Battle Models

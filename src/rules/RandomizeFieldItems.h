@@ -13,18 +13,13 @@ public:
     void saveSettings(ConfigFile& cfg) override;
     bool hasDebugGUI() override { return true; }
     void onDebugGUI() override;
+    std::vector<std::string> describe(RuleDescripionType descType) override;
 
 private:
     enum class RandomMode : int
     {
         Shuffle = 0,
         Random = 1
-    };
-
-    struct MessageOverwrite
-    {
-        FieldScriptMessage fieldMsg;
-        std::string text;
     };
 
     void onStart();
@@ -36,16 +31,11 @@ private:
 
     // Applies randomization to current field.
     void apply();
-    void overwriteMessage(const FieldData& fieldData, const FieldScriptItem& oldItem, const FieldScriptItem& newItem, const std::string& oldName, const std::string& newName);
 
     RandomMode randomMode;
+    bool keepItemType = true;
 
     // Generated randomization mapping
     std::unordered_map<uint32_t, FieldScriptItem> randomizedItems;
     std::unordered_map<uint32_t, FieldScriptItem> randomizedMateria;
-
-    // List of messages that should be overwritten in real time rather than on field change.
-    // This is for items that share the same message in memory and thus would conflict.
-    std::vector<MessageOverwrite> overwriteMessages;
-    std::vector<FieldScriptMessage> messagesToClear;
 };

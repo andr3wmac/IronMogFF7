@@ -5,6 +5,7 @@
 #include "core/utilities/Logging.h"
 #include "core/utilities/Utilities.h"
 #include "extras/Extra.h"
+#include "rules/RandomizeShops.h"
 #include "rules/Rule.h"
 
 #include <thread>
@@ -128,6 +129,13 @@ std::string GameManager::getSettingsSummary()
 {
     std::map<std::string, std::vector<std::string>> groups;
 
+    groups["No"] = {};
+    groups["Randomized"] = {};
+    groups["Multipliers"] = {};
+    groups["Unique"] = {};
+    groups["BanItems"] = {};
+    groups["BanMateria"] = {};
+
     for (Rule* rule : Rule::getList())
     {
         if (!rule->enabled)
@@ -135,18 +143,23 @@ std::string GameManager::getSettingsSummary()
             continue;
         }
 
-        std::string ruleName = rule->name;
-        size_t spacePos = ruleName.find(' ');
-        if (spacePos == std::string::npos) 
-        {
-            groups[ruleName] = {};
-            continue;
-        }
+        std::vector<std::string> negations = rule->describe(RuleDescripionType::Negation);
+        groups["No"].insert(groups["No"].end(), negations.begin(), negations.end());
 
-        std::string prefix = ruleName.substr(0, spacePos);
-        std::string subject = ruleName.substr(spacePos + 1);
-        std::transform(subject.begin(), subject.end(), subject.begin(), [](unsigned char c) { return std::tolower(c); });
-        groups[prefix].push_back(subject);
+        std::vector<std::string> randomized = rule->describe(RuleDescripionType::Randomized);
+        groups["Randomized"].insert(groups["Randomized"].end(), randomized.begin(), randomized.end());
+
+        std::vector<std::string> multipliers = rule->describe(RuleDescripionType::Multiplier);
+        groups["Multipliers"].insert(groups["Multipliers"].end(), multipliers.begin(), multipliers.end());
+
+        std::vector<std::string> uniques = rule->describe(RuleDescripionType::Unique);
+        groups["Unique"].insert(groups["Unique"].end(), uniques.begin(), uniques.end());
+
+        std::vector<std::string> bannedItems = rule->describe(RuleDescripionType::BanItems);
+        groups["BanItems"].insert(groups["BanItems"].end(), bannedItems.begin(), bannedItems.end());
+
+        std::vector<std::string> bannedMateria = rule->describe(RuleDescripionType::BanMateria);
+        groups["BanMateria"].insert(groups["BanMateria"].end(), bannedMateria.begin(), bannedMateria.end());
     }
 
     for (Extra* extra : Extra::getList())
@@ -156,41 +169,114 @@ std::string GameManager::getSettingsSummary()
             continue;
         }
 
-        std::string extraName = extra->name;
-        size_t spacePos = extraName.find(' ');
-        if (spacePos == std::string::npos)
-        {
-            groups[extraName] = {};
-            continue;
-        }
-
-        std::string prefix = extraName.substr(0, spacePos);
-        std::string subject = extraName.substr(spacePos + 1);
-        std::transform(subject.begin(), subject.end(), subject.begin(), [](unsigned char c) { return std::tolower(c); });
-        groups[prefix].push_back(subject);
+        std::vector<std::string> randomized = extra->describe(ExtraDescripionType::Randomized);
+        groups["Randomized"].insert(groups["Randomized"].end(), randomized.begin(), randomized.end());
     }
 
     std::stringstream ss;
-    for (auto& [prefix, subjects] : groups) 
+    if (groups["BanItems"].size() > 0 || groups["BanMateria"].size() > 0)
     {
-        std::sort(subjects.begin(), subjects.end());
+        bool banItems = groups["BanItems"].size() > 0;
+        bool banMateria = groups["BanMateria"].size() > 0;
 
-        ss << "- " << prefix;
-        if (subjects.size() > 0)
+        if (banItems)
         {
-            std::string connector = " and ";
-            if (prefix == "No")
-            {
-                connector = " or ";
-            }
+            auto& subjects = groups["BanItems"];
+            std::sort(subjects.begin(), subjects.end());
 
-            ss << " ";
+            ss << "- Ban ";
             for (size_t i = 0; i < subjects.size(); ++i)
             {
-                ss << subjects[i] << (i == subjects.size() - 1 ? "" : (i == subjects.size() - 2 ? connector : ", "));
+                std::string subject = subjects[i];
+                std::transform(subject.begin(), subject.end(), subject.begin(), [](unsigned char c) { return std::tolower(c); });
+                ss << subject << (i == subjects.size() - 1 ? "" : (i == subjects.size() - 2 ? " and " : ", "));
+            }
+            if (banMateria)
+            {
+                ss << ".";
+            }
+            else 
+            {
+                ss << ".\n";
             }
         }
+
+        if (banMateria)
+        {
+            auto& subjects = groups["BanMateria"];
+            std::sort(subjects.begin(), subjects.end());
+
+            if (banItems)
+            {
+                ss << " Ban ";
+            }
+            else 
+            {
+                ss << "- Ban ";
+            }
+            
+            for (size_t i = 0; i < subjects.size(); ++i)
+            {
+                std::string subject = subjects[i];
+                std::transform(subject.begin(), subject.end(), subject.begin(), [](unsigned char c) { return std::tolower(c); });
+                ss << subject << (i == subjects.size() - 1 ? "" : (i == subjects.size() - 2 ? " and " : ", "));
+            }
+            ss << " materia.\n";
+        }
+    }
+
+    if (groups["No"].size() > 0)
+    { 
+        auto& subjects = groups["No"];
+        std::sort(subjects.begin(), subjects.end());
+
+        ss << "- No ";
+        for (size_t i = 0; i < subjects.size(); ++i)
+        {
+            std::string subject = subjects[i];
+            std::transform(subject.begin(), subject.end(), subject.begin(), [](unsigned char c) { return std::tolower(c); });
+            ss << subject << (i == subjects.size() - 1 ? "" : (i == subjects.size() - 2 ? " or " : ", "));
+        }
         ss << ".\n";
+    }
+
+    if (groups["Randomized"].size() > 0)
+    {
+        auto& subjects = groups["Randomized"];
+        std::sort(subjects.begin(), subjects.end());
+
+        ss << "- Randomized ";
+        for (size_t i = 0; i < subjects.size(); ++i)
+        {
+            std::string subject = subjects[i];
+            std::transform(subject.begin(), subject.end(), subject.begin(), [](unsigned char c) { return std::tolower(c); });
+            ss << subject << (i == subjects.size() - 1 ? "" : (i == subjects.size() - 2 ? " and " : ", "));
+        }
+        ss << ".\n";
+    }
+
+    if (groups["Multipliers"].size() > 0)
+    {
+        auto& subjects = groups["Multipliers"];
+
+        ss << "- ";
+        for (size_t i = 0; i < subjects.size(); ++i)
+        {
+            std::string subject = subjects[i];
+            std::transform(subject.begin(), subject.end(), subject.begin(), [](unsigned char c) { return std::tolower(c); });
+            ss << subject << (i == subjects.size() - 1 ? "" : (i == subjects.size() - 2 ? " and " : ", "));
+        }
+        ss << ".\n";
+    }
+
+    if (groups["Unique"].size() > 0)
+    {
+        auto& subjects = groups["Unique"];
+
+        for (size_t i = 0; i < subjects.size(); ++i)
+        {
+            ss << "- " << subjects[i] << ".\n";
+        }
     }
 
     return ss.str();
@@ -213,6 +299,12 @@ void GameManager::setup(GameVersion version, uint32_t inputSeed)
 
     // Note: seed may change after loading a save file, so its important to not utilize it in rule setup.
     seed = inputSeed;
+
+    // Setup modules
+    battle.setup(this);
+    field.setup(this);
+    menu.setup(this);
+    world.setup(this);
 
     for (Rule* rule : Rule::getList())
     {
@@ -326,6 +418,7 @@ bool GameManager::update()
             loadSaveData();
             onStart.invoke();
             updatesSinceFrame = 0;
+            justEnteredGame = true;
         }
 
         lastGameState = state;
@@ -360,167 +453,63 @@ bool GameManager::update()
 
     // Update the field script execution table.
     read(FieldScriptOffsets::ExecutionTable, 128, (uint8_t*)(&fieldScriptExecutionTable[0]));
-
-    onUpdate.invoke();
     
+    // Check if the active module has changed.
     uint8_t newGameModule = read<uint8_t>(GameOffsets::CurrentModule);
     if (newGameModule != gameModule)
     {
-        // Entered battle
-        if (gameModule != GameModule::Battle && newGameModule == GameModule::Battle)
-        {
-            waitingForBattleData = true;
-        }
-
-        // Exited battle
-        if (gameModule == GameModule::Battle && newGameModule != GameModule::Battle)
-        {
-            onBattleExit.invoke();
-        }
-
         if (gameModule == GameModule::Battle && newGameModule == GameModule::Field)
         {
-            waitingForFieldData = true;
-        }
-
-        if (gameModule != GameModule::World && newGameModule == GameModule::World)
-        {
-            waitingForWorldData = true;
-            waitingForWorldChange = false;
-            lastWorldScreenFade = read<uint8_t>(GameOffsets::WorldScreenFade);
-            lastWorldMapID = read<uint32_t>(WorldOffsets::ScriptStart);
-        }
-
-        if (gameModule != GameModule::Menu && newGameModule == GameModule::Menu)
-        {
-            uint8_t menuType = read<uint8_t>(GameOffsets::MenuType);
-            if (menuType == MenuType::Shop)
+            // Check if we're playing game over music
+            uint16_t musicID = read<uint16_t>(GameOffsets::MusicID);
+            if (musicID == 59)
             {
-                waitingForShopData = true;
-                wasInShopMenu = true;
+                waitingForGameOver = true;
             }
-        }
-
-        if (newGameModule != GameModule::Menu && wasInShopMenu)
-        {
-            // HACK: when we exit a shop sometimes the field doesn't overwrite the shop data
-            // so it stays stale in memory, then the next time we open the shop isShopDataLoaded()
-            // gets false positive from old memory. So, we corrupt one of the materia prices on exit.
-            uint32_t lastMateriaPrice = read<uint32_t>(ShopOffsets::MateriaPricesStart + (68 * 4));
-            if (lastMateriaPrice == 9000) 
-            {
-                write<uint32_t>(ShopOffsets::MateriaPricesStart + (68 * 4), 0);
-            }
-            wasInShopMenu = false;
         }
 
         // Game module changed.
         gameModule = newGameModule;
         onModuleChanged.invoke(gameModule);
     }
-    
-    bool justConnected = fieldID == 0 || framesSinceReload == 0;
 
-    if (gameModule == GameModule::Battle)
+    if (justEnteredGame)
     {
-        // Ensure the battle data is ready before triggering the event.
-        if (waitingForBattleData && isBattleDataLoaded())
+        uint32_t igt = read<uint32_t>(GameOffsets::InGameTime);
+        if (igt > 2)
         {
-            onBattleEnter.invoke();
-            waitingForBattleData = false;
-            lastBattleFormation = read<uint16_t>(BattleOffsets::ActiveFormationID);
-            LOG("Entered battle formation %d", lastBattleFormation);
-        }
-
-        // Detect if the active formation changed due to a battle transition
-        uint16_t currentFormation = read<uint16_t>(BattleOffsets::ActiveFormationID);
-        if (!waitingForBattleData && currentFormation != lastBattleFormation)
-        {
-            waitingForFormation = true;
-            lastBattleFormation = currentFormation;
-        }
-
-        // Ensure the formation data is ready before triggering the event.
-        if (waitingForFormation && isFormationLoaded(currentFormation))
-        {
-            LOG("Battle transitioned to formation %d", lastBattleFormation, currentFormation);
-            onBattleTransition.invoke(currentFormation);
-            waitingForFormation = false;
-        }
-    }
-
-    if (gameModule == GameModule::Field)
-    {
-        // Detect if we're warping into the same field we're already in, this 
-        // is a reload and otherwise wouldn't trigger onFieldChanged.
-        uint8_t fieldWarpTrigger = read<uint8_t>(GameOffsets::FieldWarpTrigger);
-        if (fieldWarpTrigger == 1 && !waitingForFieldData)
-        {
-            uint16_t fieldWarpID = read<uint16_t>(GameOffsets::FieldWarpID);
-            if (fieldID == fieldWarpID)
+            uint16_t fieldID = read<uint16_t>(GameOffsets::FieldID);
+            if (fieldID == 116)
             {
-                lastFieldScreenFade = read<uint16_t>(GameOffsets::FieldScreenFade);
-                waitingForFieldData = true;
-                framesInField = 0;
+                LOG("New game started.");
+                onNewGame.invoke();
             }
-        }
-
-        uint16_t newFieldID = read<uint16_t>(GameOffsets::FieldID);
-        if (newFieldID != fieldID)
-        {
-            lastFieldScreenFade = read<uint16_t>(GameOffsets::FieldScreenFade);
-            waitingForFieldData = true;
-            framesInField = 0;
-            fieldID = newFieldID;
-        }
-
-        if (waitingForFieldData && isFieldDataLoaded(justConnected))
-        {
-            LOG("Loaded Field: %d", fieldID);
-            onFieldChanged.invoke(fieldID);
-            waitingForFieldData = false;
+            justEnteredGame = false;
         }
     }
 
-    if (gameModule == GameModule::World)
+    // Check if we are on game over screen
+    if (waitingForGameOver)
     {
-        uint32_t worldMapID = read<uint32_t>(WorldOffsets::ScriptStart);
-        if (worldMapID != lastWorldMapID)
+        uint8_t screenState = read<uint8_t>(0xEFBB1);
+        uint16_t musicID = read<uint16_t>(GameOffsets::MusicID);
+
+        // Screen state of 26 confirms we actually went to the game over screen.
+        if (screenState == 26 && musicID == 59)
         {
-            waitingForWorldChange = true;
-            lastWorldMapID = worldMapID;
+            LOG("Game over.");
+            onGameOver.invoke();
+            waitingForGameOver = false;
         }
-
-        if (waitingForWorldChange && isWorldDataLoaded(justConnected, true))
+        else if (musicID != 59)
         {
-            LOG("Changed world maps.");
-            onWorldMapEnter.invoke();
-            waitingForWorldChange = false;
-        }
-
-        if (waitingForWorldData && isWorldDataLoaded(justConnected))
-        {
-            // When exiting onto the world map field ID is updated to your exit location
-            // We don't trigger the onFieldChanged event for this but its important we update
-            // this value in case we re-enter the field we just left.
-            uint16_t newFieldID = read<uint16_t>(GameOffsets::FieldID);
-            fieldID = newFieldID;
-            waitingForFieldData = false;
-
-            LOG("Entered world map.");
-            onWorldMapEnter.invoke();
-            waitingForWorldData = false;
+            waitingForGameOver = false;
         }
     }
-
-    if (gameModule == GameModule::Menu)
-    {
-        if (waitingForShopData && isShopDataLoaded())
-        {
-            onShopOpened.invoke();
-            waitingForShopData = false;
-        }
-    }
+    
+    // Broadcast update event for anything that needs it
+    bool justConnected = field.getFieldID() == 0 || framesSinceReload == 0;
+    onUpdate.invoke(justConnected);
 
     uint32_t newFrameNumber = read<uint32_t>(GameOffsets::FrameNumber);
 
@@ -540,7 +529,6 @@ bool GameManager::update()
     {
         frameNumber = newFrameNumber;
         updatesSinceFrame = 0;
-        framesInField++;
 
         if (emulatorPaused)
         {
@@ -597,382 +585,9 @@ uint16_t GameManager::getGameMoment()
     return read<uint16_t>(GameOffsets::GameMoment);
 }
 
-bool GameManager::inBattle()
-{
-    return gameModule == GameModule::Battle && !waitingForBattleData;
-}
-
 bool GameManager::inMenu()
 {
     return gameModule == GameModule::Menu;
-}
-
-// When we switch to the battle module the actual data for the battle isn't fully loaded
-// so we can't time events to overwrite it. We introduce some heuristics to try to ensure
-// the data is fully loaded before we let anything modify it.
-bool GameManager::isBattleDataLoaded()
-{
-    if (gameModule != GameModule::Battle)
-    {
-        return false;
-    }
-
-    int verifiedPlayers = 0;
-    int verifiedEnemyDrops = 0;
-
-    // Verify that player data has been loaded
-    // We do this by watching for the players HP to be copied into the battle allies area
-    {
-        std::array<uint8_t, 3> partyIDs = getPartyIDs();
-        for (int i = 0; i < 3; ++i)
-        {
-            uint8_t id = partyIDs[i];
-            if (id == 0xFF)
-            {
-                verifiedPlayers++;
-                continue;
-            }
-
-            uintptr_t characterOffset = getCharacterDataOffset(id);
-            uint16_t worldMaxHP = read<uint16_t>(characterOffset + CharacterDataOffsets::MaxHP);
-            uint16_t battleMaxHP = read<uint16_t>(BattleOffsets::Allies[i] + BattleOffsets::MaxHP);
-
-            if (worldMaxHP == battleMaxHP)
-            {
-                verifiedPlayers++;
-            }
-        }
-    }
-
-    // Verify that enemy data has been loaded
-    // The concept here is that at least one drop slot of one of the enemies in all battle formations is going to be
-    // 65535, however before the enemy data is loaded none of them are equal to that.
-    {
-        for (int i = 0; i < 3; ++i)
-        {
-            // Maximum of 4 item slots per enemy
-            for (int j = 0; j < 4; ++j)
-            {
-                uint16_t dropID = read<uint16_t>(BattleSceneOffsets::Enemies[i] + BattleSceneOffsets::DropIDs[j]);
-
-                // Empty slot
-                if (dropID == 65535)
-                {
-                    verifiedEnemyDrops++;
-                }
-            }
-        }
-    }
-
-    if (verifiedPlayers == 3 && verifiedEnemyDrops > 0)
-    {
-        return true;
-    }
-
-    return false;
-}
-
-bool GameManager::isFormationLoaded(uint16_t formationID)
-{
-    if (gameModule != GameModule::Battle)
-    {
-        return false;
-    }
-
-    const auto [scene, formation] = getBattleFormation(formationID);
-    if (formation == nullptr)
-    {
-        return false;
-    }
-
-    for (int i = 0; i < 6; ++i)
-    {
-        if (formation->enemyIDs[i] == 0xFFFF)
-        {
-            continue;
-        }
-
-        uint16_t currentID = read<uint16_t>(BattleOffsets::Enemies[i] + BattleOffsets::EnemyID);
-        if (currentID != formation->enemyIDs[i])
-        {
-            return false;
-        }
-    }
-
-    return true;
-}
-
-// Detect if field data is fully loaded by verifying the set of information
-// we know about the field is confirmed in memory.
-bool GameManager::isFieldDataLoaded(bool justConnected)
-{
-    if (gameModule != GameModule::Field)
-    {
-        return false;
-    }
-
-    FieldData fieldData = GameData::getField(fieldID);
-    if (!fieldData.isValid())
-    {
-        return false;
-    }
-
-    int randomizedFieldItems = 0;
-    int randomizedFieldMateria = 0;
-
-    for (int i = 0; i < fieldData.items.size(); ++i)
-    {
-        FieldScriptItem& item = fieldData.items[i];
-        uintptr_t itemIDOffset = FieldScriptOffsets::ScriptStart + item.offset + FieldScriptOffsets::ItemID;
-        uintptr_t itemQuantityOffset = FieldScriptOffsets::ScriptStart + item.offset + FieldScriptOffsets::ItemQuantity;
-
-        uint16_t itemID = read<uint16_t>(itemIDOffset);
-        uint8_t itemQuantity = read<uint8_t>(itemQuantityOffset);
-
-        if (itemID != item.id || itemQuantity != item.quantity)
-        {
-            return false;
-        }
-    }
-
-    for (int i = 0; i < fieldData.materia.size(); ++i)
-    {
-        FieldScriptItem& materia = fieldData.materia[i];
-        uintptr_t idOffset = FieldScriptOffsets::ScriptStart + materia.offset + FieldScriptOffsets::MateriaID;
-
-        uint8_t materiaID = read<uint8_t>(idOffset);
-
-        if (materiaID != materia.id)
-        {
-            return false;
-        }
-    }
-
-    for (int i = 0; i < fieldData.messages.size(); ++i)
-    {
-        FieldScriptMessage& message = fieldData.messages[i];
-        uint8_t opCode = read<uint8_t>(FieldScriptOffsets::ScriptStart + message.offset);
-        uint8_t endChar = read<uint8_t>(FieldScriptOffsets::ScriptStart + message.strOffset + message.strLength);
-        if (opCode != 0x40 || endChar != 0xFF)
-        {
-            return false;
-        }
-    }
-
-    for (int i = 0; i < fieldData.worldExits.size(); ++i)
-    {
-        FieldWorldExit& exit = fieldData.worldExits[i];
-        uintptr_t exitOffset = FieldScriptOffsets::TriggersStart + exit.offset;
-
-        uint16_t fieldID = read<uint8_t>(exitOffset);
-        if (fieldID != exit.fieldID)
-        {
-            return false;
-        }
-    }
-
-    // Encounter data
-    {
-        for (int t = 0; t < 2; ++t)
-        {
-            uintptr_t tableOffset = FieldScriptOffsets::EncounterStart + fieldData.encounterOffset + (t * FieldScriptOffsets::EncounterTableStride);
-
-            Encounter encTable[10];
-            read(tableOffset + 2, sizeof(uint16_t) * 10, (uint8_t*)encTable);
-
-            for (int i = 0; i < 10; ++i)
-            {
-                Encounter& origEncounter = fieldData.getEncounter(t, i);
-                if (origEncounter.prob == 0 && origEncounter.id == 0)
-                {
-                    continue;
-                }
-
-                if (origEncounter.prob != encTable[i].prob || origEncounter.id != encTable[i].id)
-                {
-                    return false;
-                }
-            }
-        }
-    }
-
-    // Field is ready if we've hit peak fade out and started coming back down.
-    uint16_t screenFade = read<uint16_t>(GameOffsets::FieldScreenFade);
-    bool isScreenReady = (lastFieldScreenFade == 0x100 && screenFade < lastFieldScreenFade);
-    lastFieldScreenFade = screenFade;
-
-    if (justConnected && screenFade == 0)
-    {
-        isScreenReady = true;
-    }
-
-    // Hack fix for base of tower transition after wedge falls. For whatever reason 
-    // FieldScreenFade stays at 256 the whole time.
-    {
-        if (fieldID == 156 && getGameMoment() == 218)
-        {
-            uint16_t fieldWarpID = read<uint16_t>(GameOffsets::FieldWarpID);
-            uint8_t screenBlack = read<uint8_t>(0x9AC40);
-            if (fieldID != fieldWarpID && screenBlack == 0)
-            {
-                isScreenReady = true;
-            }
-        }
-
-        // Due to the previous problem of FieldScreenFade being stuck at 256 we need a special
-        // case for the transition to the next scene going up the tower.
-        if (fieldID == 158 && getGameMoment() == 221)
-        {
-            uint8_t screenBlack = read<uint8_t>(0x9AC40);
-            isScreenReady = (screenFade == 0 && screenBlack == 0);
-        }
-    }
-
-    return isScreenReady;
-}
-
-// Detect if shop data is fully loaded by verifying the set of information
-// we know about the shop is confirmed in memory.
-bool GameManager::isShopDataLoaded()
-{
-    if (gameModule != GameModule::Menu)
-    {
-        return false;
-    }
-
-    uintptr_t shopOffset = ShopOffsets::ShopStart + (84 * 2);
-
-    uint16_t shopType = read<uint16_t>(shopOffset + 0);
-    if (shopType > 8) { return false; }
-
-    uint8_t invCount = read<uint8_t>(shopOffset + 2);
-    if (invCount == 0 || invCount > SHOP_ITEM_MAX) { return false; }
-
-    uint8_t padding = read<uint8_t>(shopOffset + 3);
-    if (padding != 0) { return false; }
-
-    for (int i = invCount; i < SHOP_ITEM_MAX; ++i)
-    {
-        uintptr_t itemOffset = shopOffset + 4 + (i * 8);
-
-        uint32_t itemType = read<uint32_t>(itemOffset + 0);
-        uint16_t itemID = read<uint32_t>(itemOffset + 4);
-        uint16_t itemPadding = read<uint16_t>(itemOffset + 6);
-
-        // If we're outside the specified item count we should see all zeroes.
-        if (itemType != 0 || itemID != 0 || itemPadding != 0)
-        {
-            return false;
-        }
-    }
-
-    // Check some hardcoded prices to ensure the price table is loaded
-    {
-        uint32_t lastItemPrice = read<uint32_t>(ShopOffsets::PricesStart + (101 * 4));
-        if (lastItemPrice != 50) { return false; }
-
-        uint32_t lastWeaponPrice = read<uint32_t>(ShopOffsets::PricesStart + (255 * 4));
-        if (lastWeaponPrice != 999999) { return false; }
-
-        uint32_t lastArmorPrice = read<uint32_t>(ShopOffsets::PricesStart + (287 * 4));
-        if (lastArmorPrice != 2) { return false; }
-
-        uint32_t lastAccessoryPrice = read<uint32_t>(ShopOffsets::PricesStart + (317 * 4));
-        if (lastAccessoryPrice != 10000) { return false; }
-
-        uint32_t lastMateriaPrice = read<uint32_t>(ShopOffsets::MateriaPricesStart + (68 * 4));
-        if (lastMateriaPrice != 9000) { return false; }
-    }
-
-    return true;
-}
-
-bool GameManager::isWorldDataLoaded(bool justConnected, bool ignoreEncounterTable)
-{
-    read(WorldOffsets::EncounterStart, 2048, (uint8_t*)worldMapEncounterTable);
-
-    // When changing world maps to underwater the encounter table remains unchanged,
-    // so this check becomes invalid.
-    if (!ignoreEncounterTable)
-    {
-        for (int r = 0; r < 16; ++r)
-        {
-            WorldMapEncounters& origEncounters = GameData::worldMapEncounters[r];
-
-            for (int s = 0; s < 4; ++s)
-            {
-                std::vector<Encounter>& origEncSet = origEncounters.sets[s];
-                if (origEncSet.size() == 0)
-                {
-                    continue;
-                }
-
-                // worldMapEncounterTable is uint16_t so these are two byte strides.
-                uintptr_t dataOffset = (r * 64) + (s * 16) + 1;
-
-                for (int i = 0; i < 14; ++i)
-                {
-                    Encounter& origEnc = origEncSet[i];
-                    Encounter& encData = worldMapEncounterTable[dataOffset + i];
-
-                    if (origEnc.raw != encData.raw)
-                    {
-                        return false;
-                    }
-                }
-            }
-        }
-    }
-
-    // World is ready if we've hit peak fade out and started coming back down.
-    uint8_t screenFade = read<uint8_t>(GameOffsets::WorldScreenFade);
-    bool isScreenReady = (lastWorldScreenFade == 0xFF && screenFade < lastWorldScreenFade);
-    lastWorldScreenFade = screenFade;
-
-    if (justConnected && screenFade == 0)
-    {
-        isScreenReady = true;
-    }
-
-    return isScreenReady;
-}
-
-// The goal here is to find the message thats closest in memory (offset) that also contains
-// the name of the item. The message is usually: Received "{itemName}"!
-int GameManager::findPickUpMessage(std::string itemName, uint8_t group, uint8_t script, uint32_t offset)
-{
-    FieldData fieldData = GameData::getField(fieldID);
-    if (!fieldData.isValid())
-    {
-        return -1;
-    }
-
-    int bestIndex = -1;
-    uint32_t bestDistance = UINT32_MAX;
-
-    for (int i = 0; i < fieldData.messages.size(); ++i)
-    {
-        FieldScriptMessage& fieldMsg = fieldData.messages[i];
-
-        // The message is always in the same group+script as the pick up.
-        if (fieldMsg.group != group || fieldMsg.script != script)
-        {
-            continue;
-        }
-
-        std::string msg = readString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength);
-        if (msg.find(itemName) != std::string::npos)
-        {
-            uint32_t distance = std::abs((int32_t)(fieldMsg.offset - offset));
-            if (distance < bestDistance)
-            {
-                bestDistance = distance;
-                bestIndex = i;
-            }
-        }
-    }
-
-    return bestIndex;
 }
 
 std::string GameManager::getWindowText(uint8_t index)
@@ -1025,7 +640,31 @@ void multiplyStat(GameManager* game, uintptr_t offset, float multiplier)
     game->write<T>(offset, stat);
 }
 
-void GameManager::applyBattleStatMultiplier(uintptr_t battleCharOffset, StatMultiplierSet& multiplierSet)
+void multiplyDefense(GameManager* game, uintptr_t offset, float multiplier, bool softCap)
+{
+    if (multiplier == 1.0f)
+    {
+        return;
+    }
+
+    uint16_t stat = game->read<uint16_t>(offset);
+    if (softCap)
+    {
+        uint16_t orig = stat;
+        uint16_t naiveScaling = Utilities::clampTo<uint16_t>(stat * multiplier);
+        uint16_t halfGap = Utilities::clampTo<uint16_t>(512 - (512 - stat) * std::powf(0.5f, multiplier - 1.0f));
+        stat = std::min(naiveScaling, halfGap);
+        LOG("Applied defense soft cap: %d = %d or %d. Chose: %d", orig, naiveScaling, halfGap, stat);
+    }
+    else 
+    {
+        stat = Utilities::clampTo<uint16_t>(stat * multiplier);
+    }
+
+    game->write<uint16_t>(offset, stat);
+}
+
+void GameManager::applyBattleStatMultiplier(uintptr_t battleCharOffset, StatMultiplierSet& multiplierSet, bool defenseSoftCap)
 {
     if (getGameModule() != GameModule::Battle)
     {
@@ -1042,11 +681,11 @@ void GameManager::applyBattleStatMultiplier(uintptr_t battleCharOffset, StatMult
     multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Evade, multiplierSet.evade);
     multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Speed, multiplierSet.speed);
     multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Luck, multiplierSet.luck);
-    multiplyStat<uint16_t>(this, battleCharOffset + BattleOffsets::Defense, multiplierSet.defense);
-    multiplyStat<uint16_t>(this, battleCharOffset + BattleOffsets::MDefense, multiplierSet.mDefense);
+    multiplyDefense(this, battleCharOffset + BattleOffsets::Defense, multiplierSet.defense, defenseSoftCap);
+    multiplyDefense(this, battleCharOffset + BattleOffsets::MDefense, multiplierSet.mDefense, defenseSoftCap);
 }
 
-void GameManager::applyBattleStatMultiplier(uintptr_t battleCharOffset, float multiplier, bool applyToHP, bool applyToMP, bool applyToStats)
+void GameManager::applyBattleStatMultiplier(uintptr_t battleCharOffset, float multiplier, bool applyToHP, bool applyToMP, bool applyToStats, bool defenseSoftCap)
 {
     if (getGameModule() != GameModule::Battle)
     {
@@ -1073,7 +712,7 @@ void GameManager::applyBattleStatMultiplier(uintptr_t battleCharOffset, float mu
         multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Evade, multiplier);
         multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Speed, multiplier);
         multiplyStat<uint8_t>(this, battleCharOffset + BattleOffsets::Luck, multiplier);
-        multiplyStat<uint16_t>(this, battleCharOffset + BattleOffsets::Defense, multiplier);
-        multiplyStat<uint16_t>(this, battleCharOffset + BattleOffsets::MDefense, multiplier);
+        multiplyDefense(this, battleCharOffset + BattleOffsets::Defense, multiplier, defenseSoftCap);
+        multiplyDefense(this, battleCharOffset + BattleOffsets::MDefense, multiplier, defenseSoftCap);
     }
 }

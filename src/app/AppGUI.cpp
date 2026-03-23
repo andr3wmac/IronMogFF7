@@ -7,14 +7,13 @@
 #include "core/utilities/Platform.h"
 #include "core/utilities/Utilities.h"
 #include "extras/Extra.h"
-#include "extras/RandomizeMusic.h"
-#include "rules/Permadeath.h"
 #include "rules/Rule.h"
 
 #include <imgui.h>
 
 static const char* gameVersions[]{ "PlayStation | US (Original)", "PlayStation | US (CSR v0.13.0)"};
 static const char* emulators[]{ "DuckStation", "BizHawk", "Custom" };
+static const char* attemptsDisplayModes[]{ "Automatic", "Attempts", "Game Overs", "Disabled"};
 
 static ImColor dotRed(1.0f, 0.0f, 0.0f, 1.0f);
 static ImColor dotYellow(1.0f, 1.0f, 0.0f, 1.0f);
@@ -27,21 +26,38 @@ void App::draw()
         return;
     }
 
+#if _DEBUG
+    showDebugTab = true;
+#endif
+
     ImGui::Begin("IronMogFF7", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize);
     {
-        switch (currentPanel)
+        if (ImGui::BeginTabBar("##tabBar"))
         {
-            case Panels::Settings:
-                drawSettingsPanel();
-                break;
-
-            case Panels::Tracker:
+            if (ImGui::BeginTabItem("Setup"))
+            {
+                drawSetupPanel();
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Tracker"))
+            {
                 drawTrackerPanel();
-                break;
-
-            case Panels::Debug:
-                drawDebugPanel();
-                break;
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem(ICON_FA_COG))
+            {
+                drawAppSettingsPanel();
+                ImGui::EndTabItem();
+            }
+            if (showDebugTab)
+            {
+                if (ImGui::BeginTabItem("Debug"))
+                {
+                    drawDebugPanel();
+                    ImGui::EndTabItem();
+                }
+            }
+            ImGui::EndTabBar();
         }
     }
     ImGui::End();
@@ -49,7 +65,7 @@ void App::draw()
     gui.endFrame();
 }
 
-void App::drawSettingsPanel()
+void App::drawSetupPanel()
 {
     GUI::drawImage(logo, DPI(logo.width / 2), DPI(logo.height / 2));
 
@@ -75,7 +91,7 @@ void App::drawSettingsPanel()
     }
 
     ImGui::Spacing();
-    ImGui::BeginChild("##ScrollBox", ImVec2(0, (float)(gui.windowHeight - DPI(212))));
+    ImGui::BeginChild("##ScrollBox", ImVec2(0, (float)(gui.windowHeight - DPI(235))));
     ImGui::BeginDisabled(lockSettings);
     {
         ImGui::SeparatorText("Game");
@@ -254,152 +270,179 @@ void App::drawSettingsPanel()
     ImGui::EndChild();
     ImGui::Spacing();
 
-    drawBottomPanel();
+    // Draw bottom panel
+    {
+        const ImVec2 p = ImGui::GetCursorScreenPos();
+        ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+        if (connectionState == ConnectionState::NotConnected || connectionState == ConnectionState::Error)
+        {
+            drawList->AddCircleFilled(ImVec2(p.x + DPI(135.0f), p.y + DPI(10.0f)), DPI(5.0f), dotRed);
+        }
+        if (connectionState == ConnectionState::Connecting)
+        {
+            drawList->AddCircleFilled(ImVec2(p.x + DPI(135.0f), p.y + DPI(10.0f)), DPI(5.0f), dotYellow);
+        }
+        if (connectionState == ConnectionState::Connected)
+        {
+            drawList->AddCircleFilled(ImVec2(p.x + DPI(135.0f), p.y + DPI(10.0f)), DPI(5.0f), dotGreen);
+        }
+
+        if (connectionState == ConnectionState::NotConnected || connectionState == ConnectionState::Error)
+        {
+            if (ImGui::Button("Connect", ImVec2(DPI(120.0f), 0.0f)))
+            {
+                connect();
+            }
+        }
+        else
+        {
+            ImGui::BeginDisabled(connectionState == ConnectionState::Connecting);
+            if (ImGui::Button("Disconnect", ImVec2(DPI(120.0f), 0.0f)))
+            {
+                disconnect();
+            }
+            ImGui::EndDisabled();
+        }
+
+        ImGui::SameLine();
+        ImGui::Indent(DPI(150.0f));
+        ImGui::Text(connectionStatus.c_str());
+        ImGui::Unindent(DPI(150.0f));
+    }
 }
 
 void App::drawTrackerPanel()
 {
-    GUI::drawImage(logo, DPI(logo.width / 2), DPI(logo.height / 2));
+    tracker.update();
+
+    int headerHeight = 53;
+    if (tracker.showLogo)
+    {
+        GUI::drawImage(logo, DPI(logo.width / 2), DPI(logo.height / 2));
+        headerHeight = 212;
+    }
+
     gui.pushFont("Reactor7");
 
     ImGui::Spacing();
-    ImGui::BeginChild("##ScrollBox", ImVec2(0, (float)(gui.windowHeight - DPI(212))));
+    ImGui::BeginChild("##ScrollBox", ImVec2(0, (float)(gui.windowHeight - DPI(headerHeight))));
     {
-        if (connectionState == ConnectionState::Connected)
+        // Permadeath Character Portraits
+        if (tracker.showCharacters)
         {
-            // Permadeath Character Portraits
+            const int imgWidth = DPI(46);
+            const int imgHeight = DPI(53);
+
+            for (int i = 0; i < 9; ++i)
             {
-                Permadeath* permadeathRule = (Permadeath*)game->getRule("Permadeath");
-                uint16_t phsVisMask = game->read<uint16_t>(GameOffsets::PHSVisibilityMask);
+                uint8_t characterID = CharacterDataOffsets::CharacterIDs[i];
 
-                const int imgWidth = DPI(46);
-                const int imgHeight = DPI(53);
-
-                for (int i = 0; i < 9; ++i)
+                float iconAlpha = 0.25f;
+                if (tracker.characters[i].isActive)
                 {
-                    uint8_t characterID = CharacterDataOffsets::CharacterIDs[i];
+                    iconAlpha = 1.0f;
+                }
 
-                    float iconAlpha = 0.25f;
-                    if (Utilities::isBitSet(phsVisMask, i))
-                    {
-                        iconAlpha = 1.0f;
-                    }
+                ImVec2 p = ImGui::GetCursorScreenPos();
+                GUI::drawImage(characterPortraits[i], imgWidth, imgHeight, iconAlpha);
+                ImGui::SameLine();
 
-                    ImVec2 p = ImGui::GetCursorScreenPos();
-                    GUI::drawImage(characterPortraits[i], imgWidth, imgHeight, iconAlpha);
-                    ImGui::SameLine();
-
-                    if (permadeathRule != nullptr)
-                    {
-                        if (permadeathRule->isCharacterDead(characterID))
-                        {
-                            ImGui::GetWindowDrawList()->AddImage((ImTextureID)deadIcon.textureID, p, ImVec2(p.x + imgWidth, p.y + imgHeight), ImVec2(0, 0), ImVec2(1, 1));
-                        }
-                    }
+                // Draw red X over the portrait if the character is permadead.
+                if (tracker.characters[i].isPermadead)
+                {
+                    ImGui::GetWindowDrawList()->AddImage((ImTextureID)deadIcon.textureID, p, ImVec2(p.x + imgWidth, p.y + imgHeight), ImVec2(0, 0), ImVec2(1, 1));
                 }
             }
+        }
 
-            ImGui::Spacing();
-            ImGui::Spacing();
-            ImGui::Spacing();
-            ImGui::Indent(DPI(10.0f));
+        ImGui::Spacing();
+        ImGui::Spacing();
+        ImGui::Spacing();
+        ImGui::Indent(DPI(10.0f));
 
-            // Seed
+        // Seed
+        if (tracker.showSeed)
+        {
             std::string seedText = "Seed: " + std::string(seedValue);
             ImGui::Text(seedText.c_str());
-
-            // In Game Time
-            uint32_t igt = game->read<uint32_t>(GameOffsets::InGameTime);
-            std::string igtText = "Time: " + Utilities::formatTime(igt);
-            ImGui::Text(igtText.c_str());
-
-            // Current Song
-            if (game->isExtraEnabled("Randomize Music"))
-            {
-                RandomizeMusic* musicRando = (RandomizeMusic*)game->getExtra("Randomize Music");
-                if (musicRando->isPlaying())
-                {
-                    std::string currentSong = musicRando->getCurrentlyPlaying();
-                    std::string currentSongText = "Song: " + currentSong;
-                    ImGui::Text(currentSongText.c_str());
-                }
-            }
-            
-            // Rule summary
-            ImGui::Spacing();
-            std::string summaryText = game->getSettingsSummary();
-            ImGui::TextWrapped(summaryText.c_str());
-
-            ImGui::Unindent(DPI(10.0f));
         }
+
+        // In Game Time
+        if (tracker.showTime)
+        {
+            std::string igtText = "Time: " + tracker.inGameTime;
+            ImGui::Text(igtText.c_str());
+        }
+
+        // Current Song
+        if (tracker.showSong)
+        {
+            std::string songText = "Song: " + tracker.currentSong;
+            ImGui::Text(songText.c_str());
+        }
+            
+        // Attempts/Game Overs
+        if (tracker.showAttempts())
+        {
+            std::string attemptsText = "Attempt #" + std::to_string(tracker.attemptCounter);
+            ImGui::Text(attemptsText.c_str());
+        }
+        if (tracker.showGameOvers())
+        {
+            std::string gameOversText = "Game Overs: " + std::to_string(tracker.gameOverCounter);
+            ImGui::Text(gameOversText.c_str());
+        }
+        
+        // Rule summary
+        if (tracker.showRuleSummary)
+        {
+            ImGui::Spacing();
+            ImGui::TextWrapped(tracker.rulesSummary.c_str());
+        }
+
+        ImGui::Unindent(DPI(10.0f));
     }
     ImGui::EndChild();
     ImGui::Spacing();
 
     gui.popFont();
-    drawBottomPanel();
 }
 
-void App::drawBottomPanel()
+void App::drawAppSettingsPanel()
 {
-    const ImVec2 p = ImGui::GetCursorScreenPos();
-    ImDrawList* drawList = ImGui::GetWindowDrawList();
+    ImGui::SeparatorText("Tracker");
+    {
+        ImGui::Checkbox("Show Logo", &tracker.showLogo);
+        ImGui::Checkbox("Show Characters", &tracker.showCharacters);
+        ImGui::Checkbox("Show Seed", &tracker.showSeed);
+        ImGui::Checkbox("Show Time", &tracker.showTime);
+        ImGui::Checkbox("Show Song", &tracker.showSong);
+        ImGui::Checkbox("Show Rule Summary", &tracker.showRuleSummary);
 
-    if (connectionState == ConnectionState::NotConnected || connectionState == ConnectionState::Error)
-    {
-        drawList->AddCircleFilled(ImVec2(p.x + DPI(135.0f), p.y + DPI(10.0f)), DPI(5.0f), dotRed);
-    }
-    if (connectionState == ConnectionState::Connecting)
-    {
-        drawList->AddCircleFilled(ImVec2(p.x + DPI(135.0f), p.y + DPI(10.0f)), DPI(5.0f), dotYellow);
-    }
-    if (connectionState == ConnectionState::Connected)
-    {
-        drawList->AddCircleFilled(ImVec2(p.x + DPI(135.0f), p.y + DPI(10.0f)), DPI(5.0f), dotGreen);
-    }
-
-    if (connectionState == ConnectionState::NotConnected || connectionState == ConnectionState::Error)
-    {
-        if (ImGui::Button("Connect", ImVec2(DPI(120.0f), 0.0f)))
+        ImGui::Spacing();
+        ImGui::Text("Attempt Counter Mode:");
+        ImGui::SetItemTooltip("Sets the display mode of the attempts counter on the tracker.\nAutomatic will switch between Attempts and Game Overs\nbased on whether No Saving is enabled or not.");
+        ImGui::SameLine(DPI(160.0f));
+        ImGui::SetNextItemWidth(DPI(200.0f));
+        int attemptCounterIndex = (int)tracker.attemptsDisplayMode;
+        if (ImGui::Combo("##AppSettings_AttemptCounterMove", &attemptCounterIndex, attemptsDisplayModes, IM_ARRAYSIZE(attemptsDisplayModes)))
         {
-            connect();
+            tracker.attemptsDisplayMode = (AttemptsDisplayMode)attemptCounterIndex;
         }
-    }
-    else
-    {
-        ImGui::BeginDisabled(connectionState == ConnectionState::Connecting);
-        if (ImGui::Button("Disconnect", ImVec2(DPI(120.0f), 0.0f)))
+
+        ImGui::BeginDisabled(tracker.attemptsDisplayMode == AttemptsDisplayMode::Disabled);
         {
-            disconnect();
-        }
-        ImGui::EndDisabled();
-    }
+            ImGui::Text("Attempts:");
+            ImGui::SameLine(DPI(160.0f));
+            ImGui::InputInt("##AppSettings_Attempts", &tracker.attemptCounter, 0, 0);
 
-    ImGui::SameLine();
-    ImGui::Indent(DPI(150.0f));
-    ImGui::Text(connectionStatus.c_str());
-
-    ImGui::SameLine();
-    ImGui::Indent(DPI(210.0f));
-
-    if (currentPanel == Panels::Settings)
-    {
-        ImGui::BeginDisabled(connectionState != ConnectionState::Connected);
-        if (ImGui::Button("Tracker", ImVec2(DPI(120.0f), 0.0f)))
-        {
-            currentPanel = Panels::Tracker;
+            ImGui::Text("Game Overs:");
+            ImGui::SameLine(DPI(160.0f));
+            ImGui::InputInt("##AppSettings_GameOvers", &tracker.gameOverCounter, 0, 0);
         }
         ImGui::EndDisabled();
     }
-    else if (currentPanel == Panels::Tracker)
-    {
-        if (ImGui::Button("Settings", ImVec2(DPI(120.0f), 0.0f)))
-        {
-            currentPanel = Panels::Settings;
-        }
-    }
-
-    ImGui::Unindent(DPI(150.0f));
 }
 
 void App::drawDebugPanel()
@@ -529,8 +572,7 @@ void App::drawDebugPanel()
     {
         ImGui::Indent(25.0f);
 
-        std::pair<BattleScene*, BattleFormation*> battleData = game->getBattleFormation();
-        BattleFormation* formation = battleData.second;
+        const auto& [scene, formation] = game->getBattleFormation();
 
         if (formation != nullptr)
         {
@@ -586,6 +628,14 @@ void App::drawDebugPanel()
                 uint16_t mDef = game->read<uint16_t>(BattleOffsets::Enemies[i] + BattleOffsets::MDefense);
                 std::string mDefText = "Magic Defense: " + std::to_string(mDef);
                 ImGui::Text(mDefText.c_str());
+
+                std::string btnID = "Set1HPEnemy" + std::to_string(i);
+                ImGui::PushID(btnID.c_str());
+                if (ImGui::Button("Set 1 HP"))
+                {
+                    game->write<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::CurrentHP, 1);
+                }
+                ImGui::PopID();
 
                 ImGui::Unindent(25.0f);
             }
@@ -696,6 +746,26 @@ void App::drawDebugPanel()
                 LOG("Cheats: added materia %d to inventory", addMateriaID);
                 break;
             }
+        }
+
+        ImGui::Unindent(25.0f);
+    }
+
+    if (ImGui::CollapsingHeader("Field Models"))
+    {
+        ImGui::Indent(25.0f);
+
+        uint8_t fieldModelCount = game->read<uint8_t>(0x138250);
+        for (int i = 0; i < fieldModelCount; ++i)
+        {
+            uint8_t checkVal = game->read<uint8_t>(0x13825C);
+            uintptr_t ps1PointerA = game->read<uint32_t>(0x13825C + (i * 36) + 28);
+            uintptr_t ps1PointerB = game->read<uint32_t>(0x13825C + (i * 36) + 32);
+            uintptr_t offsetA = ps1PointerA & 0x00FFFFFF;
+            uintptr_t offsetB = ps1PointerB & 0x00FFFFFF;
+            
+            std::string offsetText = std::to_string(i) + ": " + std::to_string(checkVal) + " - " + std::to_string(offsetA) + " " + std::to_string(offsetB);
+            ImGui::Text(offsetText.c_str());
         }
 
         ImGui::Unindent(25.0f);

@@ -21,7 +21,7 @@ void RandomizeEncounters::setup()
     BIND_EVENT(game->onBattleEnter, RandomizeEncounters::onBattleEnter);
 
     // Debug Room fights
-    addExclusions({0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 22, 23, 24, 25, 26, 952, 953, 954, 955, 957, 958, 959, 989, 990, 991, 996, 997, 998, 999 });
+    addExclusions({ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 22, 23, 24, 25, 26, 952, 953, 954, 955, 957, 958, 959, 989, 990, 991, 996, 997, 998, 999 });
 
     // Chocobo fights
     addExclusions({ 56, 57, 60, 61, 78, 79, 80, 81, 98, 99, 104, 105, 152, 153, 156, 157, 162, 163, 166, 167, 202, 203, 206, 207, 214, 215, 218, 219 });
@@ -31,6 +31,9 @@ void RandomizeEncounters::setup()
 
     // Midgar Zolom
     addExclusions({ 469, 470 });
+
+    // Emerald Weapon only eyes formation (was probably for testing?)
+    addExclusions({ 987 });
 
     // Add all boss formations to excluded formations
     {
@@ -48,7 +51,7 @@ void RandomizeEncounters::setup()
                 {
                     if (bossIDs.count(formation.enemyIDs[i]) > 0)
                     {
-                        excludedFormations.set(formation.id);
+                        bossFormations.set(formation.id);
                         break;
                     }
                 }
@@ -102,6 +105,10 @@ bool RandomizeEncounters::onSettingsGUI()
     ImGui::SameLine();
     changed |= ImGui::InputFloat("##encMaxStatMultiplier", &maxStatMultiplier, 0, 0, "%.2f");
     ImGui::PopItemWidth();
+    ImGui::PushID("RandomizeEncounters.defenseSoftCap");
+    changed |= ImGui::Checkbox("Defense Soft Cap", &defenseSoftCap);
+    ImGui::PopID();
+    ImGui::SetItemTooltip("Prevents multiplied Def/MDef from hitting\ngame limit and becoming immune.");
 
     return changed;
 }
@@ -116,6 +123,7 @@ void RandomizeEncounters::loadSettings(const ConfigFile& cfg)
     levelsAbove        = cfg.get<int>("levelsAbove", levelsAbove);
     minStatMultiplier  = cfg.get<float>("minStatMultiplier", minStatMultiplier);
     maxStatMultiplier  = cfg.get<float>("maxStatMultiplier", maxStatMultiplier);
+    defenseSoftCap     = cfg.get<bool>("defenseSoftCap", defenseSoftCap);
 }
 
 void RandomizeEncounters::saveSettings(ConfigFile& cfg)
@@ -128,6 +136,7 @@ void RandomizeEncounters::saveSettings(ConfigFile& cfg)
     cfg.set<int>("levelsAbove",         levelsAbove);
     cfg.set<float>("minStatMultiplier", minStatMultiplier);
     cfg.set<float>("maxStatMultiplier", maxStatMultiplier);
+    cfg.set<bool>("defenseSoftCap",  defenseSoftCap);
 }
 
 void RandomizeEncounters::onDebugGUI()
@@ -199,6 +208,24 @@ void RandomizeEncounters::onDebugGUI()
             }
         }
     }
+}
+
+std::vector<std::string> RandomizeEncounters::describe(RuleDescripionType descType)
+{
+    if (descType == RuleDescripionType::Randomized)
+    {
+        return { "Encounters" };
+    }
+
+    if (descType == RuleDescripionType::Multiplier)
+    {
+        if (minStatMultiplier != 1.0f || maxStatMultiplier != 1.0f)
+        {
+            return { Utilities::formatFloat(minStatMultiplier) + "-" + Utilities::formatFloat(maxStatMultiplier) + "x Enemy Stats" };
+        }
+    }
+
+    return {};
 }
 
 void RandomizeEncounters::onStart()
@@ -325,14 +352,14 @@ void RandomizeEncounters::onBattleEnter()
         return;
     }
 
-    std::pair<BattleScene*, BattleFormation*> battleData = game->getBattleFormation();
-    BattleFormation* formation = battleData.second;
+    const auto& [scene, formation] = game->getBattleFormation();
     if (formation == nullptr)
     {
         return;
     }
 
-    if (randomEncounterMap.count(formation->id) == 0)
+    // Don't randomize stats on bosses
+    if (bossFormations.test(formation->id))
     {
         return;
     }
@@ -349,7 +376,9 @@ void RandomizeEncounters::onBattleEnter()
             continue;
         }
 
-        game->applyBattleStatMultiplier(BattleOffsets::Enemies[i], enemyStatMultipliers[formation->enemyIDs[i]]);
+        StatMultiplierSet& multiplierSet = enemyStatMultipliers[formation->enemyIDs[i]];
+        game->applyBattleStatMultiplier(BattleOffsets::Enemies[i], multiplierSet, defenseSoftCap);
+        LOG("Applied enemy stat multipliers to %d: %s", formation->enemyIDs[i], multiplierSet.toString().c_str());
     }
 }
 
@@ -390,7 +419,7 @@ void RandomizeEncounters::addExclusions(std::initializer_list<uint16_t> ids)
     }
 }
 
-std::vector<uint16_t> RandomizeEncounters::findCandidates(int maxLevel, int battleType)
+std::vector<uint16_t> RandomizeEncounters::findCandidates(int maxLevel, int battleType, bool isArenaBattle)
 {
     std::vector<uint16_t> candidates;
 
@@ -401,8 +430,8 @@ std::vector<uint16_t> RandomizeEncounters::findCandidates(int maxLevel, int batt
         {
             BattleFormation candidateFormation = candidateScene.formations[j];
 
-            // Skip excluded formations
-            if (excludedFormations.test(candidateFormation.id))
+            // Skip excluded and boss formations
+            if (excludedFormations.test(candidateFormation.id) || bossFormations.test(candidateFormation.id))
             {
                 continue;
             }
@@ -426,6 +455,11 @@ std::vector<uint16_t> RandomizeEncounters::findCandidates(int maxLevel, int batt
                 continue;
             }
 
+            if (isArenaBattle && !candidateFormation.isArenaBattle())
+            {
+                continue;
+            }
+
             candidates.push_back(candidateFormation.id);
         }
     }
@@ -445,14 +479,14 @@ void RandomizeEncounters::generateRandomEncounterMap()
         {
             BattleFormation formation = scene.formations[i];
 
-            // Don't randomize excluded formations
-            if (excludedFormations.test(formation.id))
+            // Don't randomize excluded or boss formations
+            if (excludedFormations.test(formation.id) || bossFormations.test(formation.id))
             {
                 continue;
             }
 
             uint8_t maxLevel = getMaxLevelInFormation(scene, formation);
-            randomEncounterMap[formation.id] = findCandidates(maxLevel, formation.battleType);
+            randomEncounterMap[formation.id] = findCandidates(maxLevel, formation.battleType, formation.isArenaBattle());
         }
     }
 }
@@ -484,9 +518,9 @@ void RandomizeEncounters::generateEnemyStatMultipliers()
         StatMultiplierSet enemySet;
 
         enemySet.currentHP  = dist(rng);
-        enemySet.maxHP      = dist(rng);
+        enemySet.maxHP      = enemySet.currentHP;
         enemySet.currentMP  = dist(rng);
-        enemySet.maxMP      = dist(rng);
+        enemySet.maxMP      = enemySet.currentMP;
         enemySet.strength   = dist(rng);
         enemySet.magic      = dist(rng);
         enemySet.evade      = dist(rng);

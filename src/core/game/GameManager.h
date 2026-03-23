@@ -2,6 +2,10 @@
 
 #include "core/emulators/Emulator.h"
 #include "core/game/GameData.h"
+#include "core/game/modules/BattleModule.h"
+#include "core/game/modules/FieldModule.h"
+#include "core/game/modules/MenuModule.h"
+#include "core/game/modules/WorldModule.h"
 #include "core/utilities/Event.h"
 #include <string>
 #include <array>
@@ -46,10 +50,9 @@ public:
     GameVersion getGameVersion() { return gameVersion; }
     uint8_t getGameModule() { return gameModule; }
     uint16_t getGameMoment();
-    bool inBattle();
+    bool inBattle() { return battle.inBattle(); }
     bool inMenu();
-    uint16_t getFieldID() { return fieldID; }
-    int getFramesInField() { return framesInField; }
+    uint16_t getFieldID() { return field.getFieldID(); }
 
     // Returns a list of the character IDs that are currently in the party. 0xFF is the slot is empty.
     std::array<uint8_t, 3> getPartyIDs();
@@ -61,9 +64,6 @@ public:
     // Returns a list of materia IDs currently in the party's possession.
     std::array<uint32_t, 200> getPartyMateria();
 
-    // Finds the nearest message that contains the item name
-    int findPickUpMessage(std::string itemName, uint8_t group, uint8_t script, uint32_t offset);
-
     // Returns the last text displayed in a window
     std::string getWindowText(uint8_t index);
 
@@ -74,27 +74,33 @@ public:
     std::pair<BattleScene*, BattleFormation*> getBattleFormation();
 
     // Given an offset to a battle character this function will apply a multiplier to each of the chosen stats.
-    void applyBattleStatMultiplier(uintptr_t battleCharOffset, StatMultiplierSet& multiplierSet);
-    void applyBattleStatMultiplier(uintptr_t battleCharOffset, float multiplier, bool applyToHP = true, bool applyToMP = true, bool applyToStats = true);
+    void applyBattleStatMultiplier(uintptr_t battleCharOffset, StatMultiplierSet& multiplierSet, bool defenseSoftCap = false);
+    void applyBattleStatMultiplier(uintptr_t battleCharOffset, float multiplier, bool applyToHP = true, bool applyToMP = true, bool applyToStats = true, bool defenseSoftCap = false);
 
     // Returns the pointer to the line of field script last executed for a given group index.
     uint16_t getScriptExecutionPointer(uint8_t groupIndex) { return fieldScriptExecutionTable[groupIndex]; }
 
-    // Returns pointer to the captured state of the world map encounter table after entering world map
-    Encounter* getWorldMapEncounterTable() { return worldMapEncounterTable; }
+    // Modules
+    BattleModule battle;
+    FieldModule field;
+    MenuModule menu;
+    WorldModule world;
 
     // Events
     Event<> onStart;
-    Event<> onUpdate;
+    Event<> onNewGame;
+    Event<> onGameOver;
+    Event<bool> onUpdate;                   // Triggers when IronMog updates which is more frequent than the game framerate. 
     Event<> onEmulatorPaused;
     Event<> onEmulatorResumed;
-    Event<int> onFrame;
+    Event<int> onFrame;                     // Triggers when the game's frame number advances.
     Event<uint8_t> onModuleChanged;
-    Event<> onBattleEnter;
-    Event<uint16_t> onBattleTransition;
+    Event<> onBattleEnter; 
+    Event<uint16_t> onBattleTransition;     // Triggers when a battle transitions from one formation to another. Like a multi-phase boss.
     Event<> onBattleExit;
     Event<uint16_t> onFieldChanged;
     Event<> onShopOpened;
+    Event<uint8_t> onShopMenuChanged;       // Triggers when player moves the cursor between Buy and Sell in shop menu.
     Event<> onWorldMapEnter;
 
     // Read/Write RAM Functions
@@ -138,30 +144,9 @@ private:
     uint32_t frameNumber = 0;
     int updatesSinceFrame = 0;
     int framesSinceReload = 0;
-    uint16_t fieldID = 0;
-    int framesInField = 0;
-    Encounter worldMapEncounterTable[1024];
+    bool justEnteredGame = false;
+    bool waitingForGameOver = false;
 
     // A set of pointers to the last line of field script executed within each group. 
     uint16_t fieldScriptExecutionTable[64];
-
-    uint16_t lastBattleFormation = 0;
-    bool waitingForBattleData = false;
-    bool isBattleDataLoaded();
-    bool waitingForFormation = false;
-    bool isFormationLoaded(uint16_t formationID);
-
-    bool waitingForFieldData = false;
-    int lastFieldScreenFade = 0;
-    bool isFieldDataLoaded(bool justConnected = false);
-
-    bool waitingForShopData = false;
-    bool wasInShopMenu = false;
-    bool isShopDataLoaded();
-
-    bool waitingForWorldData = false;
-    bool waitingForWorldChange = false;
-    int lastWorldScreenFade = 0;
-    uint32_t lastWorldMapID = 0;
-    bool isWorldDataLoaded(bool justConnected = false, bool ignoreEncounterTable = false);
 };

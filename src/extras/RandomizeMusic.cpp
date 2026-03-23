@@ -45,6 +45,7 @@ void RandomizeMusic::setup()
     BIND_EVENT_ONE_ARG(game->onFrame, RandomizeMusic::onFrame);
 
     previousMusicID = UnsetMusicID;
+    previousBattlePaused = 0;
 }
 
 bool RandomizeMusic::onSettingsGUI()
@@ -92,13 +93,21 @@ bool RandomizeMusic::onSettingsGUI()
     }
     ImGui::EndDisabled();
 
+    if (game != nullptr)
+    {
+        uint16_t musicID = game->read<uint16_t>(GameOffsets::MusicID);
+        std::string currentSongText = "Game Music: " + MusicList[musicID] + " (" + std::to_string(musicID) + ")";
+        ImGui::Text(currentSongText.c_str());
+    }
+
     return changed;
 }
 
 void RandomizeMusic::loadSettings(const ConfigFile& cfg)
 {
-    useCuratedMusic = cfg.get<bool>("useCuratedMusic", true);
-    currentVolume = cfg.get<float>("volume", 5);
+    useCuratedMusic = cfg.get<bool>("useCuratedMusic", useCuratedMusic);
+    currentVolume = cfg.get<float>("volume", currentVolume);
+    AudioManager::setMusicVolume(currentVolume);
 }
 
 void RandomizeMusic::saveSettings(ConfigFile& cfg)
@@ -121,6 +130,16 @@ void RandomizeMusic::onDebugGUI()
 
     std::string validStackStr = "Stack: " + std::to_string(previousValidStack[0]) + " " + std::to_string(previousValidStack[1]);
     ImGui::Text(validStackStr.c_str());
+}
+
+std::vector<std::string> RandomizeMusic::describe(ExtraDescripionType descType)
+{
+    if (descType == ExtraDescripionType::Randomized)
+    {
+        return { "Music" };
+    }
+
+    return {};
 }
 
 bool RandomizeMusic::isPlaying()
@@ -184,6 +203,26 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
             {
                 game->write<uint8_t>(GameOffsets::MusicLock, 0);
             }
+        }
+    }
+
+    // Handle pausing in battles
+    if (game->inBattle())
+    {
+        uint8_t battlePaused = game->read<uint8_t>(0x9A118);
+        if (battlePaused != previousBattlePaused)
+        {
+            if (battlePaused == 0xFF)
+            {
+                LOG("Battle paused.");
+                AudioManager::pauseMusic();
+            }
+            else
+            {
+                LOG("Battle resumed.");
+                AudioManager::resumeMusic();
+            }
+            previousBattlePaused = battlePaused;
         }
     }
 
@@ -293,8 +332,16 @@ void RandomizeMusic::scanMusicFolder()
         return;
     }
 
-    for (const std::string& name : MusicList)
+    for (const auto& musicEntry : fs::directory_iterator(basePath)) 
     {
+        if (!musicEntry.is_directory())
+        {
+            continue;
+        }
+
+        const std::string& name = musicEntry.path().filename().string();
+
+        // This is to prevent someone from overriding silence.
         if (name == "none" || name == "nothing")
         {
             continue;
@@ -356,6 +403,7 @@ Track RandomizeMusic::loadTrack(std::string path)
     track.loopStart = cfg.get<uint64_t>("LoopStart", 0);
     track.loopEnd   = cfg.get<uint64_t>("LoopEnd", UINT64_MAX);
     track.playOnce  = cfg.get<bool>("PlayOnce", false);
+    track.noFade    = cfg.get<bool>("NoFade", false);
 
     return track;
 }
@@ -376,7 +424,8 @@ void RandomizeMusic::addUniqueTrack(const Track& newTrack)
             track.start == newTrack.start &&
             track.loopStart == newTrack.loopStart &&
             track.loopEnd == newTrack.loopEnd &&
-            track.playOnce == newTrack.playOnce)
+            track.playOnce == newTrack.playOnce &&
+            track.noFade == newTrack.noFade)
         {
             isDuplicate = true;
             break;
@@ -391,7 +440,7 @@ void RandomizeMusic::addUniqueTrack(const Track& newTrack)
 
 bool RandomizeMusic::randomizeMusic(uint16_t musicID)
 {
-    if (musicID >= MusicList.size() || musicMap.count(MusicList[musicID]) == 0)
+    if (musicID >= MusicList.size())
     {
         return false;
     }
@@ -400,8 +449,20 @@ bool RandomizeMusic::randomizeMusic(uint16_t musicID)
 
     if (useCuratedMusic)
     {
-        // Get available tracks for this music ID
-        std::vector<Track> tracks = musicMap[MusicList[musicID]];
+        std::vector<Track> tracks;
+        uint8_t gameModule = game->getGameModule();
+
+        // Special cases
+        if (musicMap.count("snowboarding") > 0 && (gameModule == GameModule::Snowboarding1 || gameModule == GameModule::Snowboarding2))
+        {
+            tracks = musicMap["snowboarding"];
+        }
+        else if (musicMap.count(MusicList[musicID]) > 0)
+        {
+            tracks = musicMap[MusicList[musicID]];
+        }
+
+        // Exit if we haven't found any candidates to play.
         if (tracks.size() == 0)
         {
             return false;
@@ -437,6 +498,6 @@ void RandomizeMusic::play(const Track& track)
     currentSong = p.stem().string();
 
     overrideMusic = true;
-    AudioManager::playMusic(track.path, track.start, track.loopStart, track.loopEnd, track.playOnce);
+    AudioManager::playMusic(track.path, track.start, track.loopStart, track.loopEnd, track.playOnce, track.noFade);
     LOG("Playing: %s", track.path.c_str());
 }

@@ -414,6 +414,49 @@ class Model:
 
         self.animations.append(animation)
 
+    def loadModelFromTMD(self, data):
+        self.skeleton.append((0, -1, True))
+
+        ptr = 0
+        version = struct.unpack_from("<L", data, ptr)[0]
+        if not version == 0x41:
+            print("Unknown TMD version: " + str(version))
+
+        ptr = 8
+        part_count = struct.unpack_from("<L", data, ptr)[0]
+
+        ptr = 12
+        for partIdx in range(0, part_count):
+            vert_ptr = struct.unpack_from("<L", data, ptr + (partIdx * 28) + 0)[0]
+            vert_num = struct.unpack_from("<L", data, ptr + (partIdx * 28) + 4)[0]
+            norm_ptr = struct.unpack_from("<L", data, ptr + (partIdx * 28) + 8)[0]
+            norm_num = struct.unpack_from("<L", data, ptr + (partIdx * 28) + 12)[0]
+            prim_ptr = struct.unpack_from("<L", data, ptr + (partIdx * 28) + 16)[0]
+            prim_num = struct.unpack_from("<L", data, ptr + (partIdx * 28) + 20)[0]
+            scale    = struct.unpack_from("<L", data, ptr + (partIdx * 28) + 24)[0]
+
+            part = ModelPart()
+            part.bone_index = 0
+
+            for vertIdx in range(0, vert_num):
+                x, y, z, w = struct.unpack_from('<hhhh', data, vert_ptr + 12 + (vertIdx * 8))
+                part.vertices.append((x, y, z))
+
+            for primIdx in range(0, prim_num):
+                mode, r0, g0, b0, r1, g1, b1, r2, g2, b2, a, b, c = struct.unpack_from("<L BBBx BBBx BBBx HHHxx", data, prim_ptr + 12 + (primIdx * 24))
+                #print("Prim: " + str(mode) + " " + str(r0) + "," + str(g0) + "," + str(b0))
+
+                if a >= len(part.vertices) or b >= len(part.vertices) or c >= len(part.vertices):
+                    continue
+
+                poly = ((a,(r0, g0, b0), 0), (b, (r1, g1, b1), 0), (c, (r2, g2, b2), 0), 0)
+                part.tri_color.append(poly)
+                part.triangles.append([part.vertices[a], part.vertices[b], part.vertices[c], partIdx, primIdx])
+
+            part.poly_count = len(part.quad_color_tex) + len(part.tri_color_tex) + len(part.quad_mono_tex) + len(part.tri_mono_tex) + len(part.tri_mono) + len(part.quad_mono) + len(part.tri_color) + len(part.quad_color)
+            self.poly_count += part.poly_count
+            self.parts.append(part)
+
 def loadModelFromBCX(file):
     data = utils.loadLzs(file)
     (size, header_offset) = struct.unpack_from("<II", data, 0)
@@ -486,6 +529,16 @@ def loadModelFromLZS(file):
     model = Model()
     model.loadModelFromLZS(data, model_ptr)
     model.loadAnimationsFromLZS(data, anim_ptr)
+
+    return model
+
+def loadModelFromTMD(file):
+    cmpData = file.read()
+    compressedSize = struct.unpack_from("<L", cmpData)[0]
+    data = bytearray(lzss.decompress(cmpData[4:4 + compressedSize]))
+
+    model = Model()
+    model.loadModelFromTMD(data)
 
     return model
 

@@ -45,9 +45,10 @@ struct GameModule
     CONST_U8 Menu           = 5;
     CONST_U8 Motorbike      = 6;
     CONST_U8 ChocoboRacing  = 7;
-    CONST_U8 Snowboarding   = 8;
+    CONST_U8 Snowboarding1  = 8;
     CONST_U8 FortCondor     = 9;
     CONST_U8 Submarine      = 10;
+    CONST_U8 Snowboarding2  = 14;
 };
 
 struct MenuType
@@ -76,6 +77,9 @@ struct FieldScriptOffsets
 
     CONST_PTR TriggersStart = 0x114FF6;
     CONST_PTR ScriptStart   = 0x115000;
+
+    CONST_PTR ModelCount    = 0x138250; // uint8_t number of field models
+    CONST_PTR ModelPointers = 0x13827C; // 36 byte stride, contains PS1 formatted pointers to each of the models draw buffers.
 
     CONST_PTR EncounterStart       = 0x114FE4;
     CONST_PTR EncounterTableStride = 24;
@@ -292,6 +296,8 @@ struct BattleSceneOffsets
     // Drop/Steals
     CONST_PTR DropRates[] = { 0x88, 0x89, 0x8A, 0x8B };
     CONST_PTR DropIDs[]   = { 0x8C, 0x8E, 0x90, 0x92 };
+
+    CONST_PTR MorphItemID = 0xA0; // uint16_t item the enemy can be morphed into. 0xFFFF if none.
 };
 
 struct DropType

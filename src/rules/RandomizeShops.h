@@ -29,30 +29,36 @@ public:
     void saveSettings(ConfigFile& cfg) override;
     bool hasDebugGUI() override { return true; }
     void onDebugGUI() override;
+    std::vector<std::string> describe(RuleDescripionType descType) override;
+
+    bool areShopsDisabled() { return disableShops; }
 
 private:
     void onStart();
     void generateRandomizedShops();
     void onFieldChanged(uint16_t fieldID);
     void onShopOpened();
-    void onFrame(uint32_t frameNumber);
+    void onShopMenuChanged(uint8_t menuIdx);
 
     uint16_t randomizeShopItem(uint16_t itemID, const std::set<uint16_t>& previouslyChosen);
     uint16_t randomizeShopMateria(uint16_t materiaID, const std::set<uint16_t>& previouslyChosen);
 
     bool disableShops = false;
-    bool keepPrices = true;
+    bool keepShopPrices = true;
+    bool keepItemType = true;
     bool excludeRareItems = true;
     bool excludeSources = true;
+
+    float minPriceMultiplier = 1.0f;
+    float maxPriceMultiplier = 1.0f;
 
     std::mt19937_64 rng;
     std::unordered_map<uint8_t, RandomizedShop> randomizedShops;
     uint16_t lastFieldID = 0;
-    bool shopOpen = false;
     std::set<uint8_t> fieldShopIDs;
-    int shopMenuIndex = -1;
 
-    // Used exclusively for overwriting sell prices, decoupled from buy prices.
+    std::array<uint32_t, 320> itemBuyPrices;
     std::array<uint32_t, 320> itemSellPrices;
+    std::array<uint32_t, 91> materiaBuyPrices;
     std::array<uint32_t, 91> materiaSellPrices;
 };

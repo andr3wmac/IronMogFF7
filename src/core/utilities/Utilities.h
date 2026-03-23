@@ -164,6 +164,23 @@ public:
         return oss.str();
     }
 
+    // Strips extraneous digits from the end to return the most concise number.
+    // Example: 3.500001 returns "3.5" and 1.00001 returns "1"
+    static std::string formatFloat(float value, int precision = 3) 
+    {
+        std::ostringstream oss;
+        oss << std::fixed << std::setprecision(precision) << value;
+        std::string s = oss.str();
+
+        auto dot = s.find('.');
+        if (dot == std::string::npos) return s;
+
+        s.erase(s.find_last_not_of('0') + 1);
+        if (s.back() == '.') s.pop_back();
+
+        return s;
+    }
+
     template<typename T>
     static bool isBitSet(T value, unsigned int bitIndex) 
     {

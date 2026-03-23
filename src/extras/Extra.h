@@ -3,6 +3,11 @@
 #include "core/game/GameManager.h"
 #include "core/utilities/ConfigFile.h"
 
+enum class ExtraDescripionType : uint8_t
+{
+    Randomized = 0
+};
+
 class Extra
 {
 public:
@@ -18,6 +23,7 @@ public:
     virtual void saveSettings(ConfigFile& cfg) {}
     virtual bool hasDebugGUI() { return false; }
     virtual void onDebugGUI() {}
+    virtual std::vector<std::string> describe(ExtraDescripionType descType) { return {}; }
 
     void setManager(GameManager* gameManager)
     {
@@ -25,7 +31,7 @@ public:
     }
 
 protected:
-    GameManager* game;
+    GameManager* game = nullptr;
 
 public:
     static std::vector<Extra*>& getList()

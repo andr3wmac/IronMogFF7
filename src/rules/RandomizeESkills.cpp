@@ -97,6 +97,16 @@ void RandomizeESkills::onDebugGUI()
     }
 }
 
+std::vector<std::string> RandomizeESkills::describe(RuleDescripionType descType)
+{
+    if (descType == RuleDescripionType::Randomized)
+    {
+        return { "Enemy Skills" };
+    }
+
+    return {};
+}
+
 void RandomizeESkills::onStart()
 {
     battleEntered = false;

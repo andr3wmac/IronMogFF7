@@ -40,6 +40,10 @@ public:
     // Encodes string and then searches for it
     std::vector<uintptr_t> searchForString(const std::string& str);
 
+    // Search for a pointer given an address a tolerance. The address is expected to be in PS1 RAM
+    // offset, we'll add the 0x80 to the beginning. Tolerance specifies how close the value can be.
+    std::vector<uintptr_t> searchForPointer(uintptr_t address, uintptr_t tolerance = 0);
+
     // Scan for clusters of polygon render commands that look like they're models
     void modelScan(uintptr_t startAddress, int maxSteps, bool verbose = false);
 

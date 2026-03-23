@@ -16,6 +16,16 @@ void NoDuping::setup()
     BIND_EVENT_ONE_ARG(game->onFrame, NoDuping::onFrame);
 }
 
+std::vector<std::string> NoDuping::describe(RuleDescripionType descType)
+{
+    if (descType == RuleDescripionType::Negation)
+    {
+        return { "Duping" };
+    }
+
+    return {};
+}
+
 void NoDuping::onDebugGUI()
 {
     // Controller input state

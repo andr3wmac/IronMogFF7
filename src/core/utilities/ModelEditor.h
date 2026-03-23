@@ -16,7 +16,8 @@ public:
         uintptr_t bufferAddressA = 0;
         uintptr_t bufferAddressB = 0;
         size_t vertexStride = 0;
-        std::vector<Utilities::Color> vertexColors;
+        uint8_t vertexCount = 0;
+        Utilities::Color vertexColors[4];
     };
 
     struct ModelEditorPart
@@ -35,10 +36,16 @@ public:
 
     void setup(GameManager* gameManager);
     void clear();
-    void findFieldModels();
-    void openBattleModels();
-    bool areBattleModelsLoaded();
     std::vector<ModelEditor::ModelEditorModel>& getOpenModels();
+    
+    void openFieldModels();
+    bool openFieldModel(uintptr_t address, std::string name);
+
+    bool areBattleModelsLoaded();
+    void openBattleModels();
+   
+    bool isTMDLoaded(uintptr_t address);
+    bool openTMD(uintptr_t address, std::string name);
 
     // Overwrites a parts color entirely without any regard for its original color.
     void setPartColor(int modelIndex, int partIndex, Utilities::Color color, const std::set<int>& excludedPolys = std::set<int>());

@@ -16,6 +16,7 @@ public:
     void saveSettings(ConfigFile& cfg) override;
     bool hasDebugGUI() override { return true; }
     void onDebugGUI() override;
+    std::vector<std::string> describe(RuleDescripionType descType) override;
 
 private:
     enum class RandomMode : int
@@ -35,6 +36,7 @@ private:
 
     float minStatMultiplier = 1.0f;
     float maxStatMultiplier = 1.0f;
+    bool defenseSoftCap = true;
 
     RandomMode randomMode = RandomMode::Shuffle;
     std::mt19937_64 rng;

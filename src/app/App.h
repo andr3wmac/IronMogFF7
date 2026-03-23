@@ -1,5 +1,6 @@
 #pragma once
 
+#include "app/Tracker.h"
 #include "core/game/GameManager.h"
 #include "core/gui/GUI.h"
 #include "core/utilities/StringList.h"
@@ -11,20 +12,13 @@
 #define APP_WINDOW_HEIGHT 665
 #define APP_VERSION_MAJOR 0
 #define APP_VERSION_MINOR 8
-#define APP_VERSION_PATCH 0
-#define APP_VERSION_STRING "v0.8.0"
+#define APP_VERSION_PATCH 1
+#define APP_VERSION_STRING "v0.8.1"
 #define APP_SETTINGS_FOLDER "settings"
 
 class App
 {
 public:
-    enum class Panels : uint8_t
-    {
-        Settings    = 0,
-        Tracker     = 1,
-        Debug       = 2
-    };
-
     enum class EmulatorType : uint8_t
     {
         DuckStation = 0,
@@ -47,9 +41,9 @@ public:
     void saveSettings(const std::string& filePath, bool saveSeed = false);
 
     void draw();
-    void drawSettingsPanel();
+    void drawSetupPanel();
     void drawTrackerPanel();
-    void drawBottomPanel();
+    void drawAppSettingsPanel();
     void drawDebugPanel();
 
     void connect();
@@ -60,10 +54,12 @@ public:
 protected:
     GUI gui;
     GUIImage logo;
+    Tracker tracker;
     std::vector<GUIImage> characterPortraits;
     GUIImage deadIcon;
-    Panels currentPanel = Panels::Settings;
+    bool showDebugTab = false;
 
+    // Setup
     GameManager* game = nullptr;
     std::thread* managerThread = nullptr;
     std::atomic<bool> managerRunning = false;
@@ -86,4 +82,7 @@ protected:
     void onKeyPress(int key, int mods);
     void onResize(int width, int height);
     void onStart();
+
+    void guiSettingsRead(const char* section, const char* line);
+    void guiSettingsWrite(ImGuiTextBuffer* buf);
 };

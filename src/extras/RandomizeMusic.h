@@ -14,6 +14,7 @@ struct Track
     uint64_t loopEnd = UINT64_MAX;
 
     bool playOnce = false;
+    bool noFade = false;
 };
 
 class RandomizeMusic : public Extra
@@ -28,6 +29,7 @@ public:
     void saveSettings(ConfigFile& cfg) override;
     bool hasDebugGUI() override { return true; }
     void onDebugGUI() override;
+    std::vector<std::string> describe(ExtraDescripionType descType) override;
 
     bool isPlaying();
     std::string getCurrentlyPlaying();
@@ -54,6 +56,7 @@ private:
     uint16_t previousMusicID = 0;
     uint8_t previousGameModule = 0;
     uint16_t previousValidStack[2] = { 0, 0 };
+    uint8_t previousBattlePaused = 0;
     
     std::unordered_map<uint16_t, uint16_t> previousTrackSelection;
     std::unordered_map<std::string, std::vector<Track>> musicMap;

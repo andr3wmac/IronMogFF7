@@ -15,12 +15,17 @@ REGISTER_EXTRA(RandomizeColors, "Randomize Colors", "Playable characters’ clothi
 // Give each model 16 colors each to future proof against later changes
 #define COLORS_PER_MODEL 16
 
+#define MOTORBIKE_LOAD 0xB4218
+#define CHOCOBO_LOAD 0x19A02C
+#define SNOWBOARD_LOAD 0x62F44
+
 void RandomizeColors::setup()
 {
     BIND_EVENT(game->onStart, RandomizeColors::onStart);
     BIND_EVENT_ONE_ARG(game->onFieldChanged, RandomizeColors::onFieldChanged);
     BIND_EVENT(game->onBattleEnter, RandomizeColors::onBattleEnter);
     BIND_EVENT(game->onWorldMapEnter, RandomizeColors::onWorldMapEnter);
+    BIND_EVENT_ONE_ARG(game->onModuleChanged, RandomizeColors::onModuleChanged);
     BIND_EVENT_ONE_ARG(game->onFrame, RandomizeColors::onFrame);
 
     debugStartNum[0] = '\0';
@@ -47,7 +52,7 @@ void RandomizeColors::onDebugGUI()
         }
         else 
         {
-            modelEditor.findFieldModels();
+            modelEditor.openFieldModels();
             applyColors();
         }
     }
@@ -124,6 +129,16 @@ void RandomizeColors::onDebugGUI()
     }
 }
 
+std::vector<std::string> RandomizeColors::describe(ExtraDescripionType descType)
+{
+    if (descType == ExtraDescripionType::Randomized)
+    {
+        return { "Colors" };
+    }
+
+    return {};
+}
+
 Utilities::Color getRandomColor(std::mt19937& rng)
 {
     /*
@@ -154,10 +169,24 @@ Utilities::Color getRandomColor(std::mt19937& rng)
 
 bool RandomizeColors::onSettingsGUI()
 {
+    bool didRerollColors = false;
+
     ImGui::BeginDisabled(game == nullptr);
-    if (ImGui::Button("Reroll Colors", ImVec2(DPI(120.0f), 0.0f)))
+    if (ImGui::Button("Previous Colors", ImVec2(DPI(120.0f), 0.0f)))
+    {
+        rerollOffset--;
+        didRerollColors = true;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Next Colors", ImVec2(DPI(120.0f), 0.0f)))
     {
         rerollOffset++;
+        didRerollColors = true;
+    }
+    ImGui::EndDisabled();
+
+    if (didRerollColors)
+    {
         std::mt19937 rng(game->getSeed() + rerollOffset);
         randomModelColors.clear();
 
@@ -173,7 +202,6 @@ bool RandomizeColors::onSettingsGUI()
 
         applyColors();
     }
-    ImGui::EndDisabled();
 
     return false;
 }
@@ -198,7 +226,7 @@ void RandomizeColors::onStart()
 
 void RandomizeColors::onFieldChanged(uint16_t fieldID)
 {
-    modelEditor.findFieldModels();
+    modelEditor.openFieldModels();
     applyColors();
     appliedHackFix = false;
 }
@@ -210,8 +238,32 @@ void RandomizeColors::onBattleEnter()
 
 void RandomizeColors::onWorldMapEnter()
 {
-    modelEditor.findFieldModels();
+    modelEditor.openFieldModels();
     applyColors();
+}
+
+void RandomizeColors::onModuleChanged(uint8_t newModule)
+{
+    if (newModule == GameModule::Motorbike)
+    {
+        LOG("Entered motorbike mini-game.");
+        lastMotorbikeLoadValue = game->read<uint8_t>(MOTORBIKE_LOAD);
+        waitingForMotorbike = true;
+    }
+
+    if (newModule == GameModule::ChocoboRacing)
+    {
+        LOG("Entered chocobo racing mini-game.");
+        lastChocoboRacingValue = game->read<uint8_t>(CHOCOBO_LOAD);
+        waitingForChocoboRace = true;
+    }
+
+    if (newModule == GameModule::Snowboarding1 || newModule == GameModule::Snowboarding2)
+    {
+        LOG("Entered snowboarding mini-game.");
+        lastSnowboardLoadValue = game->read<uint16_t>(SNOWBOARD_LOAD);
+        waitingForSnowboarding = true;
+    }
 }
 
 void RandomizeColors::onFrame(uint32_t frameNumber)
@@ -225,7 +277,7 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
         // Hack fix for Tifa and Cloud scene before northern crater
         if (game->getFieldID() == 771 && game->getGameMoment() == 1612 && screenFade > 1 && screenFade < 120)
         {
-            modelEditor.findFieldModels();
+            modelEditor.openFieldModels();
             applyColors();
             appliedHackFix = true;
         }
@@ -255,6 +307,55 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
             waitingForBattle = false;
         }
     }
+
+    if (gameModule == GameModule::Motorbike && waitingForMotorbike)
+    {
+        // When the module first loads this value is zero, then it jumps to
+        // C8 once the screen gets revealed.
+        uint8_t loadValue = game->read<uint8_t>(MOTORBIKE_LOAD);
+        bool isScreenReady = (lastMotorbikeLoadValue == 0 && loadValue > 0);
+        lastMotorbikeLoadValue = loadValue;
+
+        if (isScreenReady && modelEditor.openFieldModel(0x1C03C4, "CLOUD_BIKE_GAME"))
+        {
+            applyColors();
+            waitingForMotorbike = false;
+        }
+    }
+
+    if (gameModule == GameModule::ChocoboRacing && waitingForChocoboRace)
+    {
+        // This value is set to zero when the module first loads, then seemingly
+        // once everything is loaded it flips to one. Very convenient for our use
+        // case but no idea what the value actually is.
+        uint8_t loadValue = game->read<uint8_t>(CHOCOBO_LOAD);
+        bool isScreenReady = lastChocoboRacingValue == 0 && loadValue == 1;
+        lastChocoboRacingValue = loadValue;
+
+        if (isScreenReady && modelEditor.openFieldModel(0x1C5134, "CLOUD_CHOCOBO"))
+        {
+            applyColors();
+            waitingForChocoboRace = false;
+        }
+    }
+
+    if ((gameModule == GameModule::Snowboarding1 || gameModule == GameModule::Snowboarding2) && waitingForSnowboarding)
+    {
+        // This value jumps to > 256 and then steadily decreases during the intro to snowboarding. 
+        // We use this as a trigger to know when its safe to start checking the models.
+        uint16_t loadValue = game->read<uint16_t>(SNOWBOARD_LOAD);
+        bool isScreenReady = (lastSnowboardLoadValue > 0 && loadValue < lastSnowboardLoadValue);
+        lastSnowboardLoadValue = loadValue;
+
+        uintptr_t modelAddress = (gameModule == GameModule::Snowboarding1) ? 0x180000 : 0x178000;
+        if (isScreenReady && modelEditor.isTMDLoaded(modelAddress))
+        {
+            std::string modelName = (gameModule == GameModule::Snowboarding1) ? "SNOWBOARDING1" : "SNOWBOARDING2";
+            modelEditor.openTMD(modelAddress, modelName);
+            applyColors();
+            waitingForSnowboarding = false;
+        }
+    }
 }
 
 void RandomizeColors::applyColors()
@@ -263,17 +364,18 @@ void RandomizeColors::applyColors()
 
     uint8_t gameModule = game->getGameModule();
 
+    // Field/World
     if (gameModule == GameModule::Field || gameModule == GameModule::World)
     {
         std::vector<ModelEditor::ModelEditorModel> openModels = modelEditor.getOpenModels();
         for (int i = 0; i < openModels.size(); ++i)
         {
-            std::string& modelName = openModels[i].modelName;
+            const std::string& modelName = openModels[i].modelName;
 
             if (modelName == "CLOUD" || modelName == "CLOUD_WORLD" || modelName == "CLOUD_PARACHUTE")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors["CLOUD"];
-                Utilities::Color& outfitColor = randomColors[0];
+                const std::vector<Utilities::Color>& randomColors = randomModelColors["CLOUD"];
+                const Utilities::Color& outfitColor = randomColors[0];
 
                 modelEditor.tintPart(i, 0, outfitColor);
 
@@ -298,9 +400,9 @@ void RandomizeColors::applyColors()
 
             if (modelName == "BARRET" || modelName == "BARRET_COREL" || modelName == "BARRET_PARACHUTE")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors["BARRET"];
-                Utilities::Color& pantsColor = randomColors[0];
-                Utilities::Color& shirtColor = randomColors[1];
+                const std::vector<Utilities::Color>& randomColors = randomModelColors["BARRET"];
+                const Utilities::Color& pantsColor = randomColors[0];
+                const Utilities::Color& shirtColor = randomColors[1];
 
                 int legsStart = 9;
 
@@ -331,9 +433,9 @@ void RandomizeColors::applyColors()
 
             if (modelName == "TIFA" || modelName == "TIFA_PARACHUTE")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors["TIFA"];
-                Utilities::Color& skirtColor = randomColors[0];
-                Utilities::Color& shirtColor = randomColors[1];
+                const std::vector<Utilities::Color>& randomColors = randomModelColors["TIFA"];
+                const Utilities::Color& skirtColor = randomColors[0];
+                const Utilities::Color& shirtColor = randomColors[1];
 
                 modelEditor.tintPart(i, 0, skirtColor);
                 if (modelName == "TIFA_PARACHUTE")
@@ -349,9 +451,9 @@ void RandomizeColors::applyColors()
 
             if (modelName == "AERITH" || modelName == "AERITH_INTRO")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors["AERITH"];
-                Utilities::Color& dressColor = randomColors[0];
-                Utilities::Color& jacketColor = randomColors[1];
+                const std::vector<Utilities::Color>& randomColors = randomModelColors["AERITH"];
+                const Utilities::Color& dressColor = randomColors[0];
+                const Utilities::Color& jacketColor = randomColors[1];
 
                 modelEditor.tintPart(i, 0, dressColor);
                 modelEditor.tintPolys(i, 1, dressColor, { 17, 18, 19, 20, 21, 22, 23, 37, 38, 39, 40, 41, 42, 43 });
@@ -375,9 +477,9 @@ void RandomizeColors::applyColors()
 
             if (modelName == "REDXIII" || modelName == "REDXIII_PARACHUTE")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors["REDXIII"];
-                Utilities::Color& skinColor = randomColors[0];
-                Utilities::Color& hairColor = randomColors[1];
+                const std::vector<Utilities::Color>& randomColors = randomModelColors["REDXIII"];
+                const Utilities::Color& skinColor = randomColors[0];
+                const Utilities::Color& hairColor = randomColors[1];
 
                 int bodyStart = 3;
 
@@ -442,9 +544,9 @@ void RandomizeColors::applyColors()
 
             if (modelName == "CID" || modelName == "CID_PARACHUTE")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors["CID"];
-                Utilities::Color& pantsColor = randomColors[0];
-                Utilities::Color& shirtColor = randomColors[1];
+                const std::vector<Utilities::Color>& randomColors = randomModelColors["CID"];
+                const Utilities::Color& pantsColor = randomColors[0];
+                const Utilities::Color& shirtColor = randomColors[1];
 
                 int legsStart = 9;
                 int armsStart = 3;
@@ -477,8 +579,8 @@ void RandomizeColors::applyColors()
 
             if (modelName == "CAITSITH")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors[modelName];
-                Utilities::Color& moogleColor = randomColors[0];
+                const std::vector<Utilities::Color>& randomColors = randomModelColors[modelName];
+                const Utilities::Color& moogleColor = randomColors[0];
 
                 modelEditor.tintPolyRange(i, 0, moogleColor, 19, 95);
                 modelEditor.tintPolyRange(i, 0, moogleColor, 110, 137);
@@ -492,9 +594,9 @@ void RandomizeColors::applyColors()
 
             if (modelName == "YUFFIE" || modelName == "YUFFIE_PARACHUTE")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors["YUFFIE"];
-                Utilities::Color& shirtColor = randomColors[0];
-                Utilities::Color& pantsColor = randomColors[1];
+                const std::vector<Utilities::Color>& randomColors = randomModelColors["YUFFIE"];
+                const Utilities::Color& shirtColor = randomColors[0];
+                const Utilities::Color& pantsColor = randomColors[1];
 
                 int offset = 0;
                 if (modelName == "YUFFIE_PARACHUTE")
@@ -523,8 +625,8 @@ void RandomizeColors::applyColors()
 
             if (modelName == "VINCENT")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors[modelName];
-                Utilities::Color& capeColor = randomColors[0];
+                const std::vector<Utilities::Color>& randomColors = randomModelColors[modelName];
+                const Utilities::Color& capeColor = randomColors[0];
 
                 modelEditor.tintPart(i, 1, capeColor, { 11, 23, 24, 25, 26, 27, 28, 29, 30, 31 });
                 modelEditor.tintPart(i, 4, capeColor);
@@ -534,8 +636,8 @@ void RandomizeColors::applyColors()
 
             if (modelName == "CLOUD_DRESS")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors[modelName];
-                Utilities::Color& dressColor = randomColors[0];
+                const std::vector<Utilities::Color>& randomColors = randomModelColors[modelName];
+                const Utilities::Color& dressColor = randomColors[0];
 
                 modelEditor.tintPart(i, 0, dressColor);
                 modelEditor.tintPolyRange(i, 1, dressColor, 2, 7);
@@ -552,8 +654,8 @@ void RandomizeColors::applyColors()
 
             if (modelName == "AERITH_DRESS")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors[modelName];
-                Utilities::Color& dressColor = randomColors[0];
+                const std::vector<Utilities::Color>& randomColors = randomModelColors[modelName];
+                const Utilities::Color& dressColor = randomColors[0];
 
                 modelEditor.tintPart(i, 0, dressColor);
                 modelEditor.tintPolyRange(i, 1, dressColor, 41, 57);
@@ -571,8 +673,8 @@ void RandomizeColors::applyColors()
 
             if (modelName == "TIFA_DRESS")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors[modelName];
-                Utilities::Color& dressColor = randomColors[0];
+                const std::vector<Utilities::Color>& randomColors = randomModelColors[modelName];
+                const Utilities::Color& dressColor = randomColors[0];
 
                 modelEditor.tintPolyRange(i, 0, dressColor, 0, 3);
                 modelEditor.tintPolyRange(i, 0, dressColor, 8, 26);
@@ -583,10 +685,23 @@ void RandomizeColors::applyColors()
                 modelEditor.tintPolyRange(i, 15, dressColor, 5, 22);
             }
 
+            if (modelName == "CLOUD_BIKE")
+            {
+                const std::vector<Utilities::Color>& randomColors = randomModelColors["CLOUD"];
+                const Utilities::Color& outfitColor = randomColors[0];
+
+                modelEditor.tintPart(i, 0, outfitColor);
+                modelEditor.tintPart(i, 1, outfitColor);
+                modelEditor.tintPart(i, 13, outfitColor);
+                modelEditor.tintPart(i, 14, outfitColor);
+                modelEditor.tintPart(i, 16, outfitColor);
+                modelEditor.tintPart(i, 17, outfitColor);
+            }
+
             if (modelName == "CLOUD_SWORD")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors["CLOUD"];
-                Utilities::Color& outfitColor = randomColors[0];
+                const std::vector<Utilities::Color>& randomColors = randomModelColors["CLOUD"];
+                const Utilities::Color& outfitColor = randomColors[0];
 
                 modelEditor.tintPart(i, 0, outfitColor);
                 modelEditor.tintPart(i, 1, outfitColor);
@@ -598,8 +713,8 @@ void RandomizeColors::applyColors()
 
             if (modelName == "CLOUD_WHEELCHAIR")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors["CLOUD"];
-                Utilities::Color& outfitColor = randomColors[0];
+                const std::vector<Utilities::Color>& randomColors = randomModelColors["CLOUD"];
+                const Utilities::Color& outfitColor = randomColors[0];
 
                 modelEditor.tintPart(i, 0, outfitColor);
                 modelEditor.tintPart(i, 1, outfitColor);
@@ -612,17 +727,18 @@ void RandomizeColors::applyColors()
         }
     }
 
+    // Battle
     if (gameModule == GameModule::Battle)
     {
         std::vector<ModelEditor::ModelEditorModel> openModels = modelEditor.getOpenModels();
         for (int i = 0; i < openModels.size(); ++i)
         {
-            std::string& modelName = openModels[i].modelName;
+            const std::string& modelName = openModels[i].modelName;
 
             if (modelName == "CLOUD")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors[modelName];
-                Utilities::Color& outfitColor = randomColors[0];
+                const std::vector<Utilities::Color>& randomColors = randomModelColors[modelName];
+                const Utilities::Color& outfitColor = randomColors[0];
 
                 modelEditor.tintPart(i, 0, outfitColor);
                 modelEditor.tintPolys(i, 1, outfitColor, { 17, 20, 113, 119, 120, 121, 122, 123, 124, 125, 126, 127 });
@@ -635,8 +751,8 @@ void RandomizeColors::applyColors()
 
             if (modelName == "HICLOUD")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors["CLOUD"];
-                Utilities::Color& outfitColor = randomColors[0];
+                const std::vector<Utilities::Color>& randomColors = randomModelColors["CLOUD"];
+                const Utilities::Color& outfitColor = randomColors[0];
 
                 modelEditor.tintPart(i, 0, outfitColor);
                 modelEditor.tintPart(i, 1, outfitColor);
@@ -653,9 +769,9 @@ void RandomizeColors::applyColors()
 
             if (modelName == "BARRET")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors[modelName];
-                Utilities::Color& pantsColor = randomColors[0];
-                Utilities::Color& shirtColor = randomColors[1];
+                const std::vector<Utilities::Color>& randomColors = randomModelColors[modelName];
+                const Utilities::Color& pantsColor = randomColors[0];
+                const Utilities::Color& shirtColor = randomColors[1];
 
                 modelEditor.tintPolyRange(i, 0, pantsColor, 0, 25);
                 modelEditor.tintPolys(i, 0, pantsColor, { 34, 35, 36 });
@@ -671,9 +787,9 @@ void RandomizeColors::applyColors()
 
             if (modelName == "TIFA")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors[modelName];
-                Utilities::Color& skirtColor = randomColors[0];
-                Utilities::Color& shirtColor = randomColors[1];
+                const std::vector<Utilities::Color>& randomColors = randomModelColors[modelName];
+                const Utilities::Color& skirtColor = randomColors[0];
+                const Utilities::Color& shirtColor = randomColors[1];
 
                 modelEditor.tintPolyRange(i, 0, shirtColor, 51, 145);
                 modelEditor.tintPolyRange(i, 0, shirtColor, 195, 199);
@@ -685,9 +801,9 @@ void RandomizeColors::applyColors()
 
             if (modelName == "AERITH")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors[modelName];
-                Utilities::Color& dressColor = randomColors[0];
-                Utilities::Color& jacketColor = randomColors[1];
+                const std::vector<Utilities::Color>& randomColors = randomModelColors[modelName];
+                const Utilities::Color& dressColor = randomColors[0];
+                const Utilities::Color& jacketColor = randomColors[1];
 
                 modelEditor.tintPart(i, 0, dressColor);
                 modelEditor.tintPolyRange(i, 1, dressColor, 0, 34);
@@ -712,9 +828,9 @@ void RandomizeColors::applyColors()
 
             if (modelName == "CID")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors[modelName];
-                Utilities::Color& pantsColor = randomColors[0];
-                Utilities::Color& shirtColor = randomColors[1];
+                const std::vector<Utilities::Color>& randomColors = randomModelColors[modelName];
+                const Utilities::Color& pantsColor = randomColors[0];
+                const Utilities::Color& shirtColor = randomColors[1];
 
                 modelEditor.tintPolyRange(i, 0, pantsColor, 0, 29);
                 modelEditor.tintPolyRange(i, 0, pantsColor, 39, 40);
@@ -739,8 +855,8 @@ void RandomizeColors::applyColors()
 
             if (modelName == "CAITSITH")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors[modelName];
-                Utilities::Color& moogleColor = randomColors[0];
+                const std::vector<Utilities::Color>& randomColors = randomModelColors[modelName];
+                const Utilities::Color& moogleColor = randomColors[0];
 
                 modelEditor.tintPart(i, 0, moogleColor);
                 modelEditor.tintPart(i, 1, moogleColor);
@@ -758,8 +874,8 @@ void RandomizeColors::applyColors()
 
             if (modelName == "VINCENT")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors[modelName];
-                Utilities::Color& capeColor = randomColors[0];
+                const std::vector<Utilities::Color>& randomColors = randomModelColors[modelName];
+                const Utilities::Color& capeColor = randomColors[0];
 
                 modelEditor.tintPolyRange(i, 0, capeColor, 8, 83);
                 modelEditor.tintPolys(i, 0, capeColor, { 100, 114, 115, 116 });
@@ -784,9 +900,9 @@ void RandomizeColors::applyColors()
 
             if (modelName == "REDXIII")
             {
-                std::vector<Utilities::Color> randomColors = randomModelColors[modelName];
-                Utilities::Color& skinColor = randomColors[0];
-                Utilities::Color& hairColor = randomColors[1];
+                const std::vector<Utilities::Color>& randomColors = randomModelColors[modelName];
+                const Utilities::Color& skinColor = randomColors[0];
+                const Utilities::Color& hairColor = randomColors[1];
 
                 modelEditor.tintPart(i, 0, skinColor);
                 modelEditor.tintPolyRange(i, 1, skinColor, 0, 69);
@@ -841,6 +957,125 @@ void RandomizeColors::applyColors()
                 modelEditor.tintPart(i, 7, hairColor);
                 modelEditor.tintPolyRange(i, 8, hairColor, 0, 3);
                 modelEditor.tintPart(i, 9, hairColor);
+            }
+        }
+    }
+
+    // Motorbike Game
+    if (gameModule == GameModule::Motorbike)
+    {
+        std::vector<ModelEditor::ModelEditorModel> openModels = modelEditor.getOpenModels();
+        for (int i = 0; i < openModels.size(); ++i)
+        {
+            const std::string& modelName = openModels[i].modelName;
+
+            if (modelName == "CLOUD_BIKE_GAME")
+            {
+                const std::vector<Utilities::Color>& randomColors = randomModelColors["CLOUD"];
+                const Utilities::Color& outfitColor = randomColors[0];
+
+                modelEditor.tintPart(i, 0, outfitColor);
+                modelEditor.tintPart(i, 1, outfitColor);
+                modelEditor.tintPart(i, 13, outfitColor);
+                modelEditor.tintPart(i, 14, outfitColor);
+                modelEditor.tintPart(i, 16, outfitColor);
+                modelEditor.tintPart(i, 17, outfitColor);
+            }
+        }
+    }
+
+    // Chocobo Racing
+    if (gameModule == GameModule::ChocoboRacing)
+    {
+        std::vector<ModelEditor::ModelEditorModel> openModels = modelEditor.getOpenModels();
+        for (int i = 0; i < openModels.size(); ++i)
+        {
+            const std::string& modelName = openModels[i].modelName;
+
+            if (modelName == "CLOUD_CHOCOBO")
+            {
+                const std::vector<Utilities::Color>& randomColors = randomModelColors["CLOUD"];
+                const Utilities::Color& outfitColor = randomColors[0];
+
+                modelEditor.tintPart(i, 0, outfitColor);
+                modelEditor.tintPart(i, 1, outfitColor);
+                modelEditor.tintPart(i, 7, outfitColor);
+                modelEditor.tintPart(i, 8, outfitColor);
+                modelEditor.tintPart(i, 10, outfitColor);
+                modelEditor.tintPart(i, 11, outfitColor);
+            }
+        }
+    }
+
+    // Snowboarding
+    if (gameModule == GameModule::Snowboarding1 || gameModule == GameModule::Snowboarding2)
+    {
+        std::vector<ModelEditor::ModelEditorModel> openModels = modelEditor.getOpenModels();
+        for (int i = 0; i < openModels.size(); ++i)
+        {
+            const std::string& modelName = openModels[i].modelName;
+
+            // Snowboarding data is loaded in one big file and not separated by model.
+            // We apply the colors for all the characters at once.
+
+            if (modelName == "SNOWBOARDING1")
+            {
+                // Cloud
+                {
+                    const std::vector<Utilities::Color>& randomColors = randomModelColors["CLOUD"];
+                    const Utilities::Color& outfitColor = randomColors[0];
+
+                    modelEditor.tintPolyRange(i, 6, outfitColor, 0, 9);
+                    modelEditor.tintPart(i, 7, outfitColor);
+                    modelEditor.tintPolyRange(i, 9, outfitColor, 0, 9);
+                    modelEditor.tintPart(i, 10, outfitColor);
+                    modelEditor.tintPart(i, 11, outfitColor);
+                    modelEditor.tintPart(i, 12, outfitColor);
+                }
+            }
+
+            if (modelName == "SNOWBOARDING2")
+            {
+                // Cloud
+                {
+                    const std::vector<Utilities::Color>& randomColors = randomModelColors["CLOUD"];
+                    const Utilities::Color& outfitColor = randomColors[0];
+
+                    modelEditor.tintPolyRange(i, 6, outfitColor, 0, 9);
+                    modelEditor.tintPart(i, 7, outfitColor);
+                    modelEditor.tintPolyRange(i, 9, outfitColor, 0, 9);
+                    modelEditor.tintPart(i, 10, outfitColor);
+                    modelEditor.tintPart(i, 11, outfitColor);
+                    modelEditor.tintPart(i, 12, outfitColor);
+                }
+
+                // Tifa
+                {
+                    const std::vector<Utilities::Color>& randomColors = randomModelColors["TIFA"];
+                    const  Utilities::Color& skirtColor = randomColors[0];
+                    const Utilities::Color& shirtColor = randomColors[1];
+
+                    modelEditor.tintPolyRange(i, 260, shirtColor, 0, 5);
+                    modelEditor.tintPolyRange(i, 260, shirtColor, 31, 61);
+                    modelEditor.tintPart(i, 261, skirtColor, { 2, 3, 12, 13 });
+                }
+
+                // Cid
+                {
+                    const std::vector<Utilities::Color>& randomColors = randomModelColors["CID"];
+                    const Utilities::Color& pantsColor = randomColors[0];
+                    const Utilities::Color& shirtColor = randomColors[1];
+
+                    modelEditor.tintPolyRange(i, 267, shirtColor, 10, 27);
+                    modelEditor.tintPolyRange(i, 269, shirtColor, 10, 27);
+                    modelEditor.tintPolyRange(i, 276, shirtColor, 10, 76);
+
+                    modelEditor.tintPolyRange(i, 271, pantsColor, 0, 19);
+                    modelEditor.tintPart(i, 272, pantsColor);
+                    modelEditor.tintPolyRange(i, 274, pantsColor, 0, 19);
+                    modelEditor.tintPart(i, 275, pantsColor);
+                    modelEditor.tintPart(i, 277, pantsColor);
+                }
             }
         }
     }
