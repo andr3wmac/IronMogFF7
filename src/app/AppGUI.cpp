@@ -13,7 +13,7 @@
 
 static const char* gameVersions[]{ "PlayStation | US (Original)", "PlayStation | US (CSR v0.13.0)"};
 static const char* emulators[]{ "DuckStation", "BizHawk", "Custom" };
-static const char* attemptCounterModes[]{ "Automatic", "Attempts", "Game Overs", "Disabled"};
+static const char* attemptsDisplayModes[]{ "Automatic", "Attempts", "Game Overs", "Disabled"};
 
 static ImColor dotRed(1.0f, 0.0f, 0.0f, 1.0f);
 static ImColor dotYellow(1.0f, 1.0f, 0.0f, 1.0f);
@@ -422,10 +422,11 @@ void App::drawAppSettingsPanel()
 
         ImGui::Spacing();
         ImGui::Text("Attempt Counter Mode:");
+        ImGui::SetItemTooltip("Sets the display mode of the attempts counter on the tracker.\nAutomatic will switch between Attempts and Game Overs\nbased on whether No Saving is enabled or not.");
         ImGui::SameLine(DPI(160.0f));
         ImGui::SetNextItemWidth(DPI(200.0f));
         int attemptCounterIndex = (int)tracker.attemptsDisplayMode;
-        if (ImGui::Combo("##AppSettings_AttemptCounterMove", &attemptCounterIndex, attemptCounterModes, IM_ARRAYSIZE(attemptCounterModes)))
+        if (ImGui::Combo("##AppSettings_AttemptCounterMove", &attemptCounterIndex, attemptsDisplayModes, IM_ARRAYSIZE(attemptsDisplayModes)))
         {
             tracker.attemptsDisplayMode = (AttemptsDisplayMode)attemptCounterIndex;
         }
