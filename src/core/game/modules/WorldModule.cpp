@@ -23,7 +23,6 @@ void WorldModule::onModuleChanged(uint8_t newGameModule)
         lastWorldMapID = game->read<uint32_t>(WorldOffsets::ScriptStart);
     }
 
-
     gameModule = newGameModule;
 }
 

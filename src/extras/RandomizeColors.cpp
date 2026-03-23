@@ -169,10 +169,24 @@ Utilities::Color getRandomColor(std::mt19937& rng)
 
 bool RandomizeColors::onSettingsGUI()
 {
+    bool didRerollColors = false;
+
     ImGui::BeginDisabled(game == nullptr);
-    if (ImGui::Button("Reroll Colors", ImVec2(DPI(120.0f), 0.0f)))
+    if (ImGui::Button("Previous Colors", ImVec2(DPI(120.0f), 0.0f)))
+    {
+        rerollOffset--;
+        didRerollColors = true;
+    }
+    ImGui::SameLine();
+    if (ImGui::Button("Next Colors", ImVec2(DPI(120.0f), 0.0f)))
     {
         rerollOffset++;
+        didRerollColors = true;
+    }
+    ImGui::EndDisabled();
+
+    if (didRerollColors)
+    {
         std::mt19937 rng(game->getSeed() + rerollOffset);
         randomModelColors.clear();
 
@@ -188,7 +202,6 @@ bool RandomizeColors::onSettingsGUI()
 
         applyColors();
     }
-    ImGui::EndDisabled();
 
     return false;
 }
