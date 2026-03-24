@@ -14,7 +14,7 @@ For a comprehensive breakdown of all available options, please visit the [Featur
 # Requirements
 - Windows
 - PS1 Emulator (DuckStation or BizHawk recommended)
-- Final Fantasy VII US NTSC (SCUS-94163)
+- Final Fantasy VII US NTSC or [CSR v0.13.0](https://github.com/individualcontributordev/Final-Fantasy-7-CSR)
   
 The mod is designed to be played with an emulator and cannot be played on console. To ensure the best experience with the mod, please use your emulator's default settings. We recommend avoiding features like Runahead, as they may conflict with the mod's internal logic.
 
@@ -25,7 +25,7 @@ Fast Forward and Rewind are known to cause issues and should be avoided, but Sav
 - **Launch Game**: Open your emulator (DuckStation or BizHawk) and load Final Fantasy VII.
 - **Prepare**: Wait until the game reaches the Main Menu.
 - **Run Mod**: Open IronMogFF7.exe.
-- **Connect**: Select your emulator type, adjust your settings, and click Connect.
+- **Connect**: Select your game version and emulator type, adjust your settings, and then click Connect.
 - **Start**: Once the status light turns green, you are ready to start a New Game.
 
 To use an emulator other than DuckStation or BizHawk you must determine the memory address for the PS1 RAM and then enter that address under Custom emulator, then connect.
@@ -47,7 +47,9 @@ Currently only Windows platforms are supported and Microsoft Visual Studio 2022 
 # Contributors
 - [Jordan Marczak](https://www.jordanmarczak.com/) - _Logo_
 - [Saturn Sounds](https://linktr.ee/saturn.sounds) - _Music curation_
-- [Zheal](https://www.twitch.tv/zheal) - _Consulting and testing_
+- [Zheal](https://www.twitch.tv/zheal)
+- [Kuma](https://www.twitch.tv/kumatv__)
+- brutalspeed
 
 # Resources
 Below are some of the notable resources that were referenced during development:
