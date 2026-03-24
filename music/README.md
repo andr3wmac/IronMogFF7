@@ -102,7 +102,7 @@ Music randomization works by setting the music volume to 0 in game and then moni
 | yume | Who Are You |
 
 # Snowboarding Folder
-The game normally does not play music during the snowboarding section at the beginning of Disc 2, however it common for streamers to play music during this section in its absense. To accomodate this support for a `snowboarding` folder was added that can be filled with songs that can be randomly selected for the snowboarding section.
+The game normally does not play music during the snowboarding section at the beginning of Disc 2, however, it is common for streamers to play music during this section in its absense. To accomodate this support for a `snowboarding` folder was added that can be filled with songs that can be randomly selected for the snowboarding section.
 
 # cfg Files
 Some tracks have an intro and then loop a subsection of the song so music randomization includes the ability to do this as well. If you create a .cfg file which has the same name as an mp3 in the folder, when the mp3 is loaded the config file will be loaded with it and used when the song is selected to play. 
