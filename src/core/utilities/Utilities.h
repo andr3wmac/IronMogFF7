@@ -124,6 +124,29 @@ public:
         return vec;
     }
 
+    static std::vector<std::string> loadListFromFile(const std::string& filename) 
+    {
+        std::vector<std::string> lines;
+
+        std::ifstream file(filename);
+        if (!file.is_open()) 
+        {
+            return lines;
+        }
+
+        std::string currentLine;
+        while (std::getline(file, currentLine)) 
+        {
+            if (!currentLine.empty()) 
+            {
+                lines.push_back(currentLine);
+            }
+        }
+
+        file.close();
+        return lines;
+    }
+
     static inline std::string trim(const std::string& str) 
     {
         const char* whitespace = " \t\n\r";

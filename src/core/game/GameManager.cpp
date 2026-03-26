@@ -55,7 +55,7 @@ std::string GameManager::readString(uintptr_t offset, uint32_t length)
     return GameData::decodeString(strData);
 }
 
-void GameManager::writeString(uintptr_t offset, uint32_t length, const std::string& string, bool centerAlign)
+size_t GameManager::writeString(uintptr_t offset, uint32_t length, const std::string& string, bool centerAlign)
 {
     std::vector<uint8_t> strData = GameData::encodeString(string);
 
@@ -71,6 +71,7 @@ void GameManager::writeString(uintptr_t offset, uint32_t length, const std::stri
     }
 
     emulator->write(offset, finalStrData.data(), length);
+    return strLen;
 }
 
 bool GameManager::isRuleEnabled(std::string ruleName)

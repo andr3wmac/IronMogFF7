@@ -4,6 +4,8 @@
 #include "core/utilities/Logging.h"
 #include "rules/Restrictions.h"
 
+std::string CharacterNames[] = { "Cloud", "Barret", "Tifa", "Aeris", "Red XIII", "Yuffie", "Cait Sith", "Vincent", "Cid" };
+
 void MenuModule::setup(GameManager* game)
 {
     this->game = game;
@@ -22,6 +24,10 @@ void MenuModule::onModuleChanged(uint8_t newGameModule)
         if (menuType == MenuType::Shop)
         {
             waitingForShopData = true;
+        }
+        if (menuType == MenuType::NameEntry)
+        {
+            waitingForNameData = true;
         }
     }
 
@@ -52,6 +58,21 @@ void MenuModule::onUpdate(bool justConnected)
             game->onShopOpened.invoke();
             waitingForShopData = false;
             inShopMenu = true;
+        }
+
+        if (waitingForNameData)
+        {
+            std::string name = game->readString(GameOffsets::NameEntryString, 9);
+
+            for (int i = 0; i < 9; ++i)
+            {
+                if (name == CharacterNames[i])
+                {
+                    game->onNameEntryOpened.invoke(name);
+                    waitingForNameData = false;
+                    break;
+                }
+            }
         }
     }
 }

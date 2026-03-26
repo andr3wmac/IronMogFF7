@@ -29,6 +29,8 @@ struct GameOffsets
     CONST_PTR PHSVisibilityMask = 0x9D78A;  // uint16_t bitmask of which characters are on PHS
     CONST_PTR WindowText        = 0xE4944;  // Array of window text entries, each window gets 256 characters, terminated by 0xFF.
     CONST_PTR WorldScreenFade   = 0x10B488; // uint8_t, 0 - 255 how much screen is faded for loading world map
+    CONST_PTR NameEntryString   = 0x1D977C; // string used during character name entry
+    CONST_PTR NameEntryCursor   = 0x1D978C; // uint8_t cursor position in name entry
 };
 
 inline uintptr_t getWindowTextOffset(uint8_t index)

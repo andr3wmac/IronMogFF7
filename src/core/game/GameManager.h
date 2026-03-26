@@ -101,6 +101,7 @@ public:
     Event<uint16_t> onFieldChanged;
     Event<> onShopOpened;
     Event<uint8_t> onShopMenuChanged;       // Triggers when player moves the cursor between Buy and Sell in shop menu.
+    Event<std::string> onNameEntryOpened;
     Event<> onWorldMapEnter;
 
     // Read/Write RAM Functions
@@ -129,7 +130,7 @@ public:
     }
 
     std::string readString(uintptr_t offset, uint32_t length);
-    void writeString(uintptr_t offset, uint32_t length, const std::string& string, bool centerAlign = false);
+    size_t writeString(uintptr_t offset, uint32_t length, const std::string& string, bool centerAlign = false);
 
 private:
     Emulator* emulator;

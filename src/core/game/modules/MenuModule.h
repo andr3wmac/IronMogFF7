@@ -22,4 +22,6 @@ private:
     int shopMenuIndex = -1;
     bool waitingForShopData = false;
     bool inShopMenu = false;
+
+    bool waitingForNameData = false;
 };
