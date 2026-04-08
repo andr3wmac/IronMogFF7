@@ -32,21 +32,23 @@ bool RandomizeEnemyDrops::onSettingsGUI()
 
     ImGui::SetItemTooltip("Randomizes weapons with other weapons, armor with other armor, etc");
 
-    ImGui::Text("Gil Multiplier");
-    ImGui::SetItemTooltip("Multiplies the gil dropped by each enemy.");
-    ImGui::SameLine();
+    // AP Multiplier
+    ImGui::Text("AP Multiplier");
+    ImGui::SetItemTooltip("Multiplies the AP obtained from each enemy.");
+    ImGui::SameLine(DPI(140.0f));
 
     ImGui::PushItemWidth(DPI(60.0f));
-    changed |= ImGui::InputFloat("##minGilMultiplier", &minGilMultiplier, 0, 0, "%.2f");
+    changed |= ImGui::InputFloat("##minAPMultiplier", &minAPMultiplier, 0, 0, "%.2f");
     ImGui::SameLine();
     ImGui::Text("to");
     ImGui::SameLine();
-    changed |= ImGui::InputFloat("##maxGilMultiplier", &maxGilMultiplier, 0, 0, "%.2f");
+    changed |= ImGui::InputFloat("##maxAPMultiplier", &maxAPMultiplier, 0, 0, "%.2f");
     ImGui::PopItemWidth();
 
+    // Exp Multiplier
     ImGui::Text("Exp Multiplier");
     ImGui::SetItemTooltip("Multiplies the exp obtained from each enemy.");
-    ImGui::SameLine();
+    ImGui::SameLine(DPI(140.0f));
 
     ImGui::PushItemWidth(DPI(60.0f));
     changed |= ImGui::InputFloat("##minExpMultiplier", &minExpMultiplier, 0, 0, "%.2f");
@@ -56,6 +58,19 @@ bool RandomizeEnemyDrops::onSettingsGUI()
     changed |= ImGui::InputFloat("##maxExpMultiplier", &maxExpMultiplier, 0, 0, "%.2f");
     ImGui::PopItemWidth();
 
+    // Gil Multiplier
+    ImGui::Text("Gil Multiplier");
+    ImGui::SetItemTooltip("Multiplies the gil dropped by each enemy.");
+    ImGui::SameLine(DPI(140.0f));
+
+    ImGui::PushItemWidth(DPI(60.0f));
+    changed |= ImGui::InputFloat("##minGilMultiplier", &minGilMultiplier, 0, 0, "%.2f");
+    ImGui::SameLine();
+    ImGui::Text("to");
+    ImGui::SameLine();
+    changed |= ImGui::InputFloat("##maxGilMultiplier", &maxGilMultiplier, 0, 0, "%.2f");
+    ImGui::PopItemWidth();
+
     return changed;
 }
 
@@ -63,11 +78,13 @@ void RandomizeEnemyDrops::loadSettings(const ConfigFile& cfg)
 {
     randomizeEveryFight = cfg.get<bool>("randomizeEveryFight", randomizeEveryFight);
     randomizeMorphs     = cfg.get<bool>("randomizeMorphs", randomizeMorphs);
-    keepItemType       = cfg.get<bool>("keepSameTypes", keepItemType);
-    minGilMultiplier    = cfg.get<float>("minGilMultiplier", minGilMultiplier);
-    maxGilMultiplier    = cfg.get<float>("maxGilMultiplier", maxGilMultiplier);
+    keepItemType        = cfg.get<bool>("keepSameTypes", keepItemType);
+    minAPMultiplier     = cfg.get<float>("minAPMultiplier", minAPMultiplier);
+    maxAPMultiplier     = cfg.get<float>("maxAPMultiplier", maxAPMultiplier);
     minExpMultiplier    = cfg.get<float>("minExpMultiplier", minExpMultiplier);
     maxExpMultiplier    = cfg.get<float>("maxExpMultiplier", maxExpMultiplier);
+    minGilMultiplier    = cfg.get<float>("minGilMultiplier", minGilMultiplier);
+    maxGilMultiplier    = cfg.get<float>("maxGilMultiplier", maxGilMultiplier);
 }
 
 void RandomizeEnemyDrops::saveSettings(ConfigFile& cfg)
@@ -75,10 +92,12 @@ void RandomizeEnemyDrops::saveSettings(ConfigFile& cfg)
     cfg.set<bool>("randomizeEveryFight", randomizeEveryFight);
     cfg.set<bool>("randomizeMorphs", randomizeMorphs);
     cfg.set<bool>("keepSameTypes", keepItemType);
-    cfg.set<float>("minGilMultiplier", minGilMultiplier);
-    cfg.set<float>("maxGilMultiplier", maxGilMultiplier);
+    cfg.set<float>("minAPMultiplier", minAPMultiplier);
+    cfg.set<float>("maxAPMultiplier", maxAPMultiplier);
     cfg.set<float>("minExpMultiplier", minExpMultiplier);
     cfg.set<float>("maxExpMultiplier", maxExpMultiplier);
+    cfg.set<float>("minGilMultiplier", minGilMultiplier);
+    cfg.set<float>("maxGilMultiplier", maxGilMultiplier);
 }
 
 void RandomizeEnemyDrops::onDebugGUI()
@@ -184,23 +203,33 @@ void RandomizeEnemyDrops::onBattleEnter()
             }
         }
 
-        std::uniform_real_distribution<float> gilDist(minGilMultiplier, maxGilMultiplier);
-        float gilMultiplier = gilDist(rng);
-
+        // Apply Exp Multipliers
         std::uniform_real_distribution<float> expDist(minExpMultiplier, maxExpMultiplier);
         float expMultiplier = expDist(rng);
 
-        // Gil and EXP Multipliers
-        uint32_t gil = game->read<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::Gil);
         uint32_t exp = game->read<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::Exp);
-        uint32_t newGil = Utilities::clampTo<uint32_t>(gil * gilMultiplier);
         uint32_t newExp = Utilities::clampTo<uint32_t>(exp * expMultiplier);
-        game->write<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::Gil, newGil);
         game->write<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::Exp, newExp);
+
+        // Apply Gil Multiplier
+        std::uniform_real_distribution<float> gilDist(minGilMultiplier, maxGilMultiplier);
+        float gilMultiplier = gilDist(rng);
+
+        uint32_t gil = game->read<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::Gil);
+        uint32_t newGil = Utilities::clampTo<uint32_t>(gil * gilMultiplier);
+        game->write<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::Gil, newGil);
     }
 
     for (int idx : activeEnemyIndexes)
     {
+        // Apply AP multiplier
+        std::uniform_real_distribution<float> apDist(minAPMultiplier, maxAPMultiplier);
+        float apMultiplier = apDist(rng);
+
+        uint32_t ap = game->read<uint16_t>(BattleSceneOffsets::Enemies[idx] + BattleSceneOffsets::AP);
+        uint16_t newAP = Utilities::clampTo<uint16_t>(ap * apMultiplier);
+        game->write<uint16_t>(BattleSceneOffsets::Enemies[idx] + BattleSceneOffsets::AP, newAP);
+
         if (!randomizeEveryFight)
         {
             // IF randomize every fight is disabled then we seed the RNG with the

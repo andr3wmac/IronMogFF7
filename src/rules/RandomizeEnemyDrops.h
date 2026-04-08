@@ -23,8 +23,10 @@ private:
     bool randomizeEveryFight = false;
     bool randomizeMorphs = true;
     bool keepItemType = true;
-    float minGilMultiplier = 1.0f;
-    float maxGilMultiplier = 1.0f;
+    float minAPMultiplier = 1.0f;
+    float maxAPMultiplier = 1.0f;
     float minExpMultiplier = 1.0f;
     float maxExpMultiplier = 1.0f;
+    float minGilMultiplier = 1.0f;
+    float maxGilMultiplier = 1.0f;
 };
