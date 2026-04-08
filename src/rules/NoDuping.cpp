@@ -7,7 +7,7 @@
 #include <imgui.h>
 #include <sstream>
 
-REGISTER_RULE(NoDuping, "No Duping", "Prevents duping with W-Item.")
+REGISTER_RULE(NoDuping, "No Duping", "Prevents duping with W-Item and field item dupes.")
 
 void NoDuping::setup()
 {
@@ -82,6 +82,21 @@ void NoDuping::onBattleEnter()
     wItemCache.clear();
 }
 
+void NoDuping::onFrame(uint32_t frameNumber)
+{
+    uint8_t gameModule = game->getGameModule();
+
+    if (gameModule == GameModule::Battle)
+    {
+        checkWItemDuping();
+    }
+
+    if (gameModule == GameModule::Field)
+    {
+        checkFieldItemDuping();
+    }
+}
+
 void NoDuping::checkPartyMembers()
 {
     wItemPartyMembers = { false, false, false };
@@ -130,13 +145,8 @@ void NoDuping::checkPartyMembers()
     }
 }
 
-void NoDuping::onFrame(uint32_t frameNumber)
+void NoDuping::checkWItemDuping()
 {
-    if (game->getGameModule() != GameModule::Battle)
-    {
-        return;
-    }
-
     uint8_t activePlayer = game->read<uint8_t>(BattleMenuOffsets::ActivePlayer);
     if (activePlayer >= 3)
     {
@@ -241,5 +251,26 @@ void NoDuping::onFrame(uint32_t frameNumber)
         }
 
         lastTargetTrigger = targetTrigger;
+    }
+}
+
+void NoDuping::checkFieldItemDuping()
+{
+    uint16_t fieldID = game->getFieldID();
+
+    // Great Glacier Cave hyou8_2
+    if (fieldID == 678)
+    {
+        uint16_t fieldScriptPtr = game->getScriptExecutionPointer(12);
+        if (fieldScriptPtr == 0x4E4)
+        {
+            Flags<uint8_t> elixirFlags = game->read<uint8_t>(0x9D2AD);
+            if (!elixirFlags.isBitSet(0))
+            {
+                LOG("Fixed elixir dupe in hyou8_2.");
+                elixirFlags.setBit(0, true);
+                game->write<uint8_t>(0x9D2AD, elixirFlags.value());
+            }
+        }
     }
 }
