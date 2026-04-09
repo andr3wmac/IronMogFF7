@@ -291,3 +291,88 @@ class StringList:
             offsetData.extend(struct.pack("<H", offset + numStrings*2))
 
         return offsetData + data
+
+class CharacterData:
+    def __init__(self, data: bytearray):
+        # Level-up curves (0x00-0x08)
+        self.strength_level_up_curve   = data[0x00]
+        self.vitality_level_up_curve   = data[0x01]
+        self.magic_level_up_curve      = data[0x02]
+        self.spirit_level_up_curve     = data[0x03]
+        self.dexterity_level_up_curve  = data[0x04]
+        self.luck_level_up_curve       = data[0x05]
+        self.hp_level_up_curve         = data[0x06]
+        self.mp_level_up_curve         = data[0x07]
+        self.experience_level_up_curve = data[0x08]
+        # 0x09 padding, skipped
+
+        self.starting_level = data[0x0A]
+        # 0x0B padding, skipped
+
+        # Limit commands
+        self.limit_command_1_1 = data[0x0C]
+        self.limit_command_1_2 = data[0x0D]
+        # 0x0E UNUSED, skipped
+        self.limit_command_2_1 = data[0x0F]
+        self.limit_command_2_2 = data[0x10]
+        # 0x11 UNUSED, skipped
+        self.limit_command_3_1 = data[0x12]
+        self.limit_command_3_2 = data[0x13]
+        # 0x14 UNUSED, skipped
+        self.limit_command_4_1 = data[0x15]
+        # 0x16, 0x17 UNUSED, skipped
+
+        # Kill/use thresholds
+        self.kills_required_for_limit_level_2 = struct.unpack_from('<H', data, 0x18)[0]
+        self.kills_required_for_limit_level_3 = struct.unpack_from('<H', data, 0x1A)[0]
+        self.uses_required_for_limit_1_2      = struct.unpack_from('<H', data, 0x1C)[0]
+        # 0x1E UNUSED, skipped
+        self.uses_required_for_limit_2_2      = struct.unpack_from('<H', data, 0x20)[0]
+        # 0x22 UNUSED, skipped
+        self.uses_required_for_limit_3_2      = struct.unpack_from('<H', data, 0x24)[0]
+        # 0x26 UNUSED, skipped
+
+        # HP divisors for limit levels
+        self.hp_divisor_for_limit_level_1 = struct.unpack_from('<I', data, 0x28)[0]
+        self.hp_divisor_for_limit_level_2 = struct.unpack_from('<I', data, 0x2C)[0]
+        self.hp_divisor_for_limit_level_3 = struct.unpack_from('<I', data, 0x30)[0]
+        self.hp_divisor_for_limit_level_4 = struct.unpack_from('<I', data, 0x34)[0]
+
+class CharacterInit:
+    def __init__(self, data: bytearray):
+        self.id         = data[0x00]
+        self.level      = data[0x01]
+        self.strength   = data[0x02]
+        self.vitality   = data[0x03]
+        self.magic      = data[0x04]
+        self.spirit     = data[0x05]
+        self.dexterity  = data[0x06]
+        self.luck       = data[0x07]
+
+class WeaponData:
+    def __init__(self, data: bytearray):
+        self.target_flags        = data[0x00]
+        self.attack_effect_id    = data[0x01]
+        self.damage_calculation  = data[0x02]
+        # 0x03 not used, skipped
+        self.attack_strength     = data[0x04]
+        self.status_attack       = data[0x05]
+        self.materia_growth_rate = data[0x06]
+        self.critical_hit_chance = data[0x07]
+        self.hit_chance          = data[0x08]
+        self.weapon_model        = data[0x09]
+        # 0x0A alignment, skipped
+        self.high_sound_id_mask  = data[0x0B]
+        self.camera_movement_id  = struct.unpack_from('<H', data, 0x0C)[0]
+        self.equip_mask          = struct.unpack_from('<H', data, 0x0E)[0]
+        self.attack_element      = struct.unpack_from('<H', data, 0x10)[0]
+        # 0x12 unknown, skipped
+        self.increase_stat_type         = struct.unpack_from('<I', data, 0x14)[0]
+        self.stat_amount_increased      = struct.unpack_from('<I', data, 0x18)[0]
+        self.materia_slots              = data[0x1C:0x24]
+        self.sound_effect_normal_hit    = data[0x24]
+        self.sound_effect_critical_hit  = data[0x25]
+        self.sound_effect_missed        = data[0x26]
+        self.impact_effect_id           = data[0x27]
+        self.special_attack_flags       = struct.unpack_from('<H', data, 0x28)[0]
+        self.restriction_mask           = struct.unpack_from('<H', data, 0x2A)[0]

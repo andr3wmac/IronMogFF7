@@ -35,6 +35,41 @@ def listToCPPArray(src_list):
     list_string = ", ".join(map(str, src_list))
     return "{" + list_string + "}"
 
+def outputCharacters(gen, discPath, version):
+    CharacterNames = ["Cloud", "Barret", "Tifa", "Aeris", "Red XIII", "Yuffie", "Cait Sith", "Vincent", "Cid"]
+
+    # Retrieve the kernel data file
+    kernelDataFile = ff7.game.retrieveFile(discPath, "INIT", "KERNEL.BIN")
+    kernelBin = ff7.kernel.Archive(kernelDataFile)
+
+    growthData = kernelBin.getFile(2, 0).getData()
+    initData = kernelBin.getFile(3, 0).getData()
+
+    for i in range(0, 9):
+        charData = ff7.kernel.CharacterData(growthData[(i * 56):])
+        charInitData = ff7.kernel.CharacterInit(initData[(i * 132):])
+
+        initStats = str(charInitData.strength) + ", " + \
+            str(charInitData.vitality) + ", " + \
+            str(charInitData.magic) + ", " + \
+            str(charInitData.spirit) + ", " + \
+            str(charInitData.dexterity) + ", " + \
+            str(charInitData.luck)
+
+        statCurves = str(charData.strength_level_up_curve) + ", " + \
+            str(charData.vitality_level_up_curve) + ", " + \
+            str(charData.magic_level_up_curve) + ", " + \
+            str(charData.spirit_level_up_curve) + ", " + \
+            str(charData.dexterity_level_up_curve) + ", " + \
+            str(charData.luck_level_up_curve) + ", " + \
+            str(charData.hp_level_up_curve) + ", " + \
+            str(charData.mp_level_up_curve) + ", " + \
+            str(charData.experience_level_up_curve)
+
+        gen.write_line("addCharacter(\"" + str(CharacterNames[i]) + "\", {" + initStats + "}, {" + statCurves + "});", 4)  
+
+    gen.write_line("")
+
 def outputInventory(gen, discPath, version):
     # Retrieve the kernel data file
     kernelDataFile = ff7.game.retrieveFile(discPath, "INIT", "KERNEL.BIN")
@@ -647,6 +682,7 @@ gen = GameDataGenerator(outputFileName, outputFunction)
 gen.open_file()
 gen.write_header()
 
+outputCharacters(gen, discPath, version)
 outputInventory(gen, discPath, version)
 outputOther(gen, discPath, version)
 outputFields(gen, discPath, version)

@@ -24,6 +24,36 @@ enum class ItemType : uint8_t
     Accessory = 3
 };
 
+struct Character
+{
+    struct InitStats
+    {
+        uint8_t strength  = 0;
+        uint8_t vitality  = 0;
+        uint8_t magic     = 0;
+        uint8_t spirit    = 0;
+        uint8_t dexterity = 0;
+        uint8_t luck      = 0;
+    };
+
+    struct GrowthCurves
+    {
+        uint8_t strength   = 0;
+        uint8_t vitality   = 0;
+        uint8_t magic      = 0;
+        uint8_t spirit     = 0;
+        uint8_t dexterity  = 0;
+        uint8_t luck       = 0;
+        uint8_t hp         = 0;
+        uint8_t mp         = 0;
+        uint8_t experience = 0;
+    };
+
+    std::string name = "";
+    InitStats initStats{};
+    GrowthCurves growthStats{};
+};
+
 struct Item
 {
     std::string name = "";
@@ -253,6 +283,7 @@ struct StatMultiplierSet
 class GameData
 {
 public:
+    static std::vector<Character> characters;
     static std::unordered_map<uint16_t, Item> items;
     static std::unordered_map<uint16_t, Item> materia;
     static std::vector<ESkill> eSkills;
@@ -267,6 +298,11 @@ public:
 
     static void clearGameData();
     static void loadGameData(GameVersion gameVersion, uint8_t gameDisc);
+
+    static void addCharacter(std::string name, Character::InitStats initStats, Character::GrowthCurves growthCurves)
+    {
+        characters.push_back({ name, initStats, growthCurves });
+    }
 
     static void addItem(uint16_t id, const std::string& name, uint32_t shopPrice) 
     { 

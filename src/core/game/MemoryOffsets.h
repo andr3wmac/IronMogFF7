@@ -200,6 +200,22 @@ inline std::string getCharacterName(uint8_t characterID)
     return "CLOUD";
 }
 
+struct CharacterGrowthOffsets
+{
+    CONST_PTR Start  = 0x82268;
+    CONST_PTR Stride = 56;
+
+    CONST_PTR StrengthCurve   = 0x00;
+    CONST_PTR VitalityCurve   = 0x01;
+    CONST_PTR MagicCurve      = 0x02;
+    CONST_PTR SpiritCurve     = 0x03;
+    CONST_PTR DexterityCurve  = 0x04;
+    CONST_PTR LuckCurve       = 0x05;
+    CONST_PTR HPCurve         = 0x06;
+    CONST_PTR MPCurve         = 0x07;
+    CONST_PTR ExperienceCurve = 0x08;
+};
+
 struct PlayerOffsets
 {
     CONST_PTR Players[] = { 0x9D84C, 0x9DC8C, 0x9E0CC };

@@ -688,6 +688,47 @@ void App::drawDebugPanel()
         ImGui::Unindent(25.0f);
     }
 
+    if (ImGui::CollapsingHeader("Characters"))
+    {
+        ImGui::Indent(25.0f);
+        for (int i = 0; i < 9; ++i)
+        {
+            uint8_t characterID = CharacterDataOffsets::CharacterIDs[i];
+            uintptr_t characterPtr = CharacterDataOffsets::Characters[i];
+
+            std::string name = getCharacterName(characterID);
+            ImGui::Text(name.c_str());
+
+            ImGui::Indent(25.0f);
+            uint8_t strength = game->read<uint8_t>(characterPtr + 0x02);
+            std::string strengthText = "Strength: " + std::to_string(strength);
+            ImGui::Text(strengthText.c_str());
+
+            uint8_t vitality = game->read<uint8_t>(characterPtr + 0x03);
+            std::string vitalityText = "Vitality: " + std::to_string(vitality);
+            ImGui::Text(vitalityText.c_str());
+
+            uint8_t magic = game->read<uint8_t>(characterPtr + 0x04);
+            std::string magicText = "Magic: " + std::to_string(magic);
+            ImGui::Text(magicText.c_str());
+
+            uint8_t spirit = game->read<uint8_t>(characterPtr + 0x05);
+            std::string spiritText = "Spirit: " + std::to_string(spirit);
+            ImGui::Text(spiritText.c_str());
+
+            uint8_t dexterity = game->read<uint8_t>(characterPtr + 0x06);
+            std::string dexterityText = "Dexterity: " + std::to_string(dexterity);
+            ImGui::Text(dexterityText.c_str());
+
+            uint8_t luck = game->read<uint8_t>(characterPtr + 0x07);
+            std::string luckText = "Luck: " + std::to_string(luck);
+            ImGui::Text(luckText.c_str());
+
+            ImGui::Unindent(25.0f);
+        }
+        ImGui::Unindent(25.0f);
+    }
+
     if (ImGui::CollapsingHeader("Cheats"))
     {
         ImGui::Indent(25.0f);

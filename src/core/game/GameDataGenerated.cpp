@@ -3,6 +3,16 @@
 
 void GameData::loadGameData(GameVersion gameVersion, uint8_t gameDisc)
 {
+    addCharacter("Cloud", {20, 16, 19, 17, 6, 14}, {1, 6, 3, 4, 26, 34, 37, 46, 55});
+    addCharacter("Barret", {15, 13, 11, 9, 5, 13}, {5, 2, 18, 14, 29, 36, 39, 48, 57});
+    addCharacter("Tifa", {11, 11, 11, 10, 7, 14}, {6, 18, 16, 9, 25, 33, 38, 47, 56});
+    addCharacter("Aeris", {10, 11, 13, 14, 5, 14}, {23, 20, 0, 1, 28, 35, 40, 49, 58});
+    addCharacter("Red XIII", {10, 12, 11, 10, 10, 14}, {12, 11, 13, 9, 23, 35, 41, 50, 59});
+    addCharacter("Yuffie", {0, 0, 0, 0, 0, 0}, {16, 19, 11, 10, 24, 32, 44, 53, 62});
+    addCharacter("Cait Sith", {12, 12, 11, 10, 6, 5}, {19, 22, 6, 4, 28, 33, 43, 52, 61});
+    addCharacter("Vincent", {85, 72, 68, 70, 65, 46}, {21, 22, 6, 4, 28, 33, 45, 54, 63});
+    addCharacter("Cid", {12, 12, 11, 10, 6, 14}, {11, 7, 17, 15, 27, 36, 42, 51, 60});
+
     // Items
     addItem(0, "Potion", 50);
     addItem(1, "Hi-Potion", 300);
