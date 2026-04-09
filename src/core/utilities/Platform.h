@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <fstream>
+#include <functional>
 #include <iomanip>
 #include <sstream>
 #include <string>
@@ -44,6 +45,12 @@ public:
     static uint32_t getProcessIDByName(const std::string& processName);
     static uintptr_t getProcessBaseAddress(void* processHandle);
     static std::vector<std::string> getRunningProcesses();
+
+    // Searches the target process for a shared section object that satisfies the given
+    // validator and maps it into the current process's address space. Returns a pointer
+    // to the mapped view, or nullptr if no matching section is found.
+    static void* mapSharedSection(void* processHandle, size_t minSize, std::function<bool(void* view, size_t viewSize)> validator);
+    static void unmapSharedSection(void* view);
 
     static void debuggerLog(const std::string& message);
 

@@ -4,5 +4,5 @@
 
 class DuckStation : public Emulator
 {
-    uintptr_t getPS1MemoryOffset() override;
+    bool resolveMemory() override;
 };

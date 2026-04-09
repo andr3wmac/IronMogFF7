@@ -45,6 +45,11 @@ Emulator::Emulator()
 
 Emulator::~Emulator()
 {
+    if (ps1MappedView)
+    {
+        Platform::unmapSharedSection(ps1MappedView);
+    }
+
     if (processHandle != 0)
     {
         Platform::closeProcess(processHandle);
@@ -67,23 +72,41 @@ bool Emulator::connect(std::string processName)
         return false;
     }
 
-    ps1BaseAddress = getPS1MemoryOffset();
+    if (!resolveMemory())
+    {
+        LOG("Failed to locate PS1 memory.");
+        return false;
+    }
 
     // This is just to ensure we actually attached to the right memory. This will fail if the offset is wrong.
     uintptr_t fieldXOffset = FieldOffsets::FieldX;
     int32_t fieldX = 0;
-    if (!Platform::read(processHandle, ps1BaseAddress + fieldXOffset, &fieldX, sizeof(fieldX)))
+    if (!read(fieldXOffset, &fieldX, sizeof(fieldX)))
     {
         LOG("Failed to read playstation memory.");
         return false;
     }
 
-    LOG("Successfully connected to emulator at: 0x%X", ps1BaseAddress);
+    if (ps1MappedView)
+    {
+        LOG("Successfully connected to emulator via shared section mapping.");
+    }
+    else
+    {
+        LOG("Successfully connected to emulator at: 0x%X", ps1BaseAddress);
+    }
+
     return true;
 }
 
 bool Emulator::read(uintptr_t offset, void* outBuffer, size_t size)
 {
+    if (ps1MappedView)
+    {
+        memcpy(outBuffer, static_cast<uint8_t*>(ps1MappedView) + offset, size);
+        return true;
+    }
+
     if (!Platform::read(processHandle, ps1BaseAddress + offset, outBuffer, size))
     {
         readErrorCount++;
@@ -96,6 +119,12 @@ bool Emulator::read(uintptr_t offset, void* outBuffer, size_t size)
 
 bool Emulator::write(uintptr_t offset, void* inValue, size_t size)
 {
+    if (ps1MappedView)
+    {
+        memcpy(static_cast<uint8_t*>(ps1MappedView) + offset, inValue, size);
+        return true;
+    }
+
     if (!Platform::write(processHandle, ps1BaseAddress + offset, inValue, size))
     {
         writeErrorCount++;

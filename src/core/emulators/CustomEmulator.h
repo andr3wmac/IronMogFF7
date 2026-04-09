@@ -11,9 +11,10 @@ public:
 
     }
 
-    uintptr_t getPS1MemoryOffset() override
+    bool resolveMemory() override
     {
-        return customMemoryAddress;
+        ps1BaseAddress = customMemoryAddress;
+        return true;
     }
 
 protected:
