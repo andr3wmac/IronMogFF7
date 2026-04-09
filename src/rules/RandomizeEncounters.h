@@ -21,6 +21,7 @@ private:
     void onFieldChanged(uint16_t fieldID);
     void onWorldMapEnter();
     void onBattleEnter();
+    void onDifficultyScaleChanged(float newDifficultyScale);
 
     void addExclusions(std::initializer_list<uint16_t> ids);
     std::vector<uint16_t> findCandidates(int maxLevel, int battleType, bool isArenaBattle);

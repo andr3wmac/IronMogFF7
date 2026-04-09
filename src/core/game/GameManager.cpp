@@ -419,6 +419,7 @@ bool GameManager::update()
             loadSaveData();
             onStart.invoke();
             updatesSinceFrame = 0;
+            lastGameMoment = 0;
             justEnteredGame = true;
         }
 
@@ -489,6 +490,13 @@ bool GameManager::update()
         }
     }
 
+    uint16_t currentGameMoment = getGameMoment();
+    if (currentGameMoment != lastGameMoment)
+    {
+        onGameMomentChanged.invoke(currentGameMoment);
+        lastGameMoment = currentGameMoment;
+    }
+
     // Check if we are on game over screen
     if (waitingForGameOver)
     {
@@ -543,6 +551,17 @@ bool GameManager::update()
 
     lastUpdateDuration = Utilities::getTimeMS() - currentTime;
     return true;
+}
+
+void GameManager::setDifficultyScale(float newScale)
+{
+    if (difficultyScale == newScale)
+    {
+        return;
+    }
+
+    difficultyScale = std::min(std::max(newScale, 0.0f), 1.0f);
+    onDifficultyScaleChanged.invoke(difficultyScale);
 }
 
 std::array<uint8_t, 3> GameManager::getPartyIDs()

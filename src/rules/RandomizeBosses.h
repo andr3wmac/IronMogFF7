@@ -31,6 +31,7 @@ private:
     std::pair<uint64_t, uint64_t> getWeightedRandomElements(uint16_t bossID);
     void onBattleEnter();
     void onBattleTransition(uint16_t newFormationID);
+    void onDifficultyScaleChanged(float newDifficultyScale);
 
     void applyBossRandomization();
 
