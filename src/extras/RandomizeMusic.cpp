@@ -42,6 +42,7 @@ void RandomizeMusic::setup()
     BIND_EVENT(game->onStart, RandomizeMusic::onStart);
     BIND_EVENT(game->onEmulatorPaused, RandomizeMusic::onEmulatorPaused);
     BIND_EVENT(game->onEmulatorResumed, RandomizeMusic::onEmulatorResumed);
+    BIND_EVENT(game->onUpdate, RandomizeMusic::onUpdate);
     BIND_EVENT_ONE_ARG(game->onFrame, RandomizeMusic::onFrame);
 
     previousMusicID = UnsetMusicID;
@@ -187,6 +188,20 @@ void RandomizeMusic::onEmulatorResumed()
     AudioManager::resumeMusic();
 }
 
+void RandomizeMusic::onUpdate()
+{
+    if (disabled)
+    {
+        return;
+    }
+
+    // Keep in game music volume locked to 1 (lowest volume)
+    if (overrideMusic)
+    {
+        game->write<uint16_t>(GameOffsets::MusicVolume, 1);
+    }
+}
+
 void RandomizeMusic::onFrame(uint32_t frameNumber)
 {
     if (disabled)
@@ -226,7 +241,7 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
         }
     }
 
-    // Keep in game music volume locked to 0
+    // Keep in game music volume locked to 1 (lowest volume)
     if (overrideMusic)
     {
         game->write<uint16_t>(GameOffsets::MusicVolume, 1);

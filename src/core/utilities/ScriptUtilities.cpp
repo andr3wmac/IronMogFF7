@@ -26,6 +26,9 @@ void ScriptUtilities::decompileWorldScript(GameManager* game, uintptr_t startAdd
 
         uint16_t opCode = opCodes[i];
         if (opCode == 0x017) { opText = "LOGICAL NOT"; }
+        if (opCode == 0x060) { opText = "LESS"; }
+        if (opCode == 0x062) { opText = "LESS EQUAL"; }
+        if (opCode == 0x063) { opText = "GREATER EQUAL"; }
         if (opCode == 0x070) { opText = "EQUAL"; }
         if (opCode == 0x0c0) { opText = "LOGICAL OR"; }
         if (opCode == 0x0e0) { opText = "WRITE"; }
@@ -35,9 +38,11 @@ void ScriptUtilities::decompileWorldScript(GameManager* game, uintptr_t startAdd
         if (opCode == 0x118) { opText = "PUSH SAVEMAP BYTE " + std::to_string(opCodes[++i]); }
         if (opCode == 0x119) { opText = "PUSH BYTE FROM BANK1 " + std::to_string(opCodes[++i]); }
         if (opCode == 0x11b) { opText = "PUSH SPECIAL " + std::to_string(opCodes[++i]); }
+        if (opCode == 0x11c) { opText = "PUSH WORD FROM BANK0 " + std::to_string(opCodes[++i]); }
         if (opCode == 0x200) { opText = "GOTO " + std::to_string(opCodes[++i]); }
         if (opCode == 0x201) { opText = "GOTO IF FALSE " + std::to_string(opCodes[++i]); }
         if (opCode == 0x203) { opText = "RETURN"; }
+        if (opCode == 0x300) { opText = "LOAD MODEL"; }
         if (opCode == 0x305) { opText = "SET WAIT FRAMES"; }
         if (opCode == 0x306) { opText = "WAIT"; }
         if (opCode == 0x307) { opText = "SET CONTROL LOCK"; }
@@ -47,6 +52,10 @@ void ScriptUtilities::decompileWorldScript(GameManager* game, uintptr_t startAdd
         if (opCode == 0x330) { opText = "SET ACTIVE ENTITY"; }
         if (opCode == 0x333) { opText = "ROTATE ENTITY TO MODEL"; }
         if (opCode == 0x334) { opText = "WAIT FOR FUNCTION"; }
+        if (opCode == 0x349) { opText = "SET WORLD PROGRESS"; }
+        if (opCode == 0x34B) { opText = "SET CHOCOBO TYPE"; }
+        if (opCode == 0x34C) { opText = "SET SUBMARINE COLOR"; }
+        if (opCode == 0x350) { opText = "SET METEOR"; }
 
         if (opCode >= 0x204 && opCode < 0x300)
         {
