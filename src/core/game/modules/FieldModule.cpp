@@ -343,6 +343,12 @@ int FieldModule::findPickUpMessage(std::string itemName, uint8_t group, uint8_t 
         return findPickUpMessage("Lucky Plus", group, script, offset);
     }
 
+    // HACK: "Megalixir" is sometimes "Last Elixir" in field pick up messages.
+    if (bestIndex == -1 && itemName == "Megalixir")
+    {
+        return findPickUpMessage("Last Elixir", group, script, offset);
+    }
+
     return bestIndex;
 }
 

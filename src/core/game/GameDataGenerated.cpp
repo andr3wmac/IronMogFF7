@@ -1524,6 +1524,7 @@ void GameData::loadGameData(GameVersion gameVersion, uint8_t gameDisc)
     addFieldScriptBattle(0x02B9, 4, 5, 0x5A1, 717);
     addFieldScriptBattle(0x02B9, 5, 5, 0x5DB, 718);
     addFieldScriptBattle(0x02B9, 6, 5, 0x615, 717);
+    addFieldScriptMessage(0x02B9, 15, 1, 0, 0x8C8, 0x97B, 23);
     addFieldScriptItem(0x02B9, 15, 1, 0x8CB, 6, 1);
     addFieldScriptMessage(0x02B9, 16, 1, 0, 0x94C, 0x993, 23);
     addFieldScriptItem(0x02B9, 16, 1, 0x94F, 278, 1);
@@ -2301,6 +2302,7 @@ void GameData::loadGameData(GameVersion gameVersion, uint8_t gameDisc)
     addFieldScriptItem(0x02FB, 6, 1, 0x11A1, 271, 1);
     addFieldScriptMessage(0x02FB, 6, 1, 1, 0x11B2, 0x1E09, 18);
     addFieldScriptItem(0x02FB, 6, 1, 0x11B9, 5, 1);
+    addFieldScriptMessage(0x02FB, 7, 1, 1, 0x143F, 0x2117, 23);
     addFieldScriptItem(0x02FB, 7, 1, 0x144A, 6, 1);
     addFieldScriptMateria(0x02FB, 7, 1, 0x14A9, 19);
     addFieldScriptMateria(0x02FB, 7, 1, 0x14B2, 24);
@@ -2313,6 +2315,7 @@ void GameData::loadGameData(GameVersion gameVersion, uint8_t gameDisc)
     addFieldScriptItem(0x02FB, 8, 1, 0x16CC, 15, 1);
     addFieldScriptMessage(0x02FB, 8, 1, 1, 0x16DD, 0x1E7F, 20);
     addFieldScriptItem(0x02FB, 8, 1, 0x16E4, 2, 1);
+    addFieldScriptMessage(0x02FB, 9, 1, 1, 0x181E, 0x1C3B, 23);
     addFieldScriptItem(0x02FB, 9, 1, 0x1825, 6, 1);
     addFieldScriptMessage(0x02FB, 9, 1, 1, 0x1845, 0x1EDA, 24);
     addFieldScriptItem(0x02FB, 9, 1, 0x184C, 73, 1);
@@ -5742,6 +5745,7 @@ void GameData::loadGameData(GameVersion gameVersion, uint8_t gameDisc)
         addFieldScriptItem(0x02FB, 6, 1, 0x11B5, 271, 1);
         addFieldScriptMessage(0x02FB, 6, 1, 1, 0x11C6, 0x1E1D, 18);
         addFieldScriptItem(0x02FB, 6, 1, 0x11CD, 5, 1);
+        addFieldScriptMessage(0x02FB, 7, 1, 1, 0x1453, 0x212B, 23);
         addFieldScriptItem(0x02FB, 7, 1, 0x145E, 6, 1);
         addFieldScriptMateria(0x02FB, 7, 1, 0x14BD, 19);
         addFieldScriptMateria(0x02FB, 7, 1, 0x14C6, 24);
@@ -5754,6 +5758,7 @@ void GameData::loadGameData(GameVersion gameVersion, uint8_t gameDisc)
         addFieldScriptItem(0x02FB, 8, 1, 0x16E0, 15, 1);
         addFieldScriptMessage(0x02FB, 8, 1, 1, 0x16F1, 0x1E93, 20);
         addFieldScriptItem(0x02FB, 8, 1, 0x16F8, 2, 1);
+        addFieldScriptMessage(0x02FB, 9, 1, 1, 0x1832, 0x1C4F, 23);
         addFieldScriptItem(0x02FB, 9, 1, 0x1839, 6, 1);
         addFieldScriptMessage(0x02FB, 9, 1, 1, 0x1859, 0x1EEE, 24);
         addFieldScriptItem(0x02FB, 9, 1, 0x1860, 73, 1);
