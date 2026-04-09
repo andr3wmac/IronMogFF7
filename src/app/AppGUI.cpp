@@ -555,6 +555,50 @@ void App::drawDebugPanel()
         }
 
         // Warp
+        ImGui::PushItemWidth(DPI(60.0f));
+        static char debugWarpFieldX[8] = "";
+        static char debugWarpFieldY[8] = "";
+        static char debugWarpFieldZ[8] = "";
+        ImGui::InputText("##DebugWarpFieldX", debugWarpFieldX, 8);
+        ImGui::SameLine();
+        ImGui::InputText("##DebugWarpFieldY", debugWarpFieldY, 8);
+        ImGui::SameLine();
+        ImGui::InputText("##DebugWarpFieldZ", debugWarpFieldZ, 8);
+        ImGui::PopItemWidth();
+        ImGui::SameLine();
+        if (ImGui::Button("Set Position"))
+        {
+            if (game->getGameModule() == GameModule::World)
+            {
+                position[0] = atoi(debugWarpFieldX);
+                position[1] = atoi(debugWarpFieldY);
+                position[2] = atoi(debugWarpFieldZ);
+
+                game->write<int>(WorldOffsets::WorldX, position[0]);
+                game->write<int>(WorldOffsets::WorldY, position[1]);
+                game->write<int>(WorldOffsets::WorldZ, position[2]);
+            }
+            else
+            {
+                position[0] = atoi(debugWarpFieldX) * 4096;
+                position[1] = atoi(debugWarpFieldY) * 4096;
+                position[2] = atoi(debugWarpFieldZ) * 4096;
+
+                game->write<int>(FieldOffsets::FieldX, position[0]);
+                game->write<int>(FieldOffsets::FieldY, position[1]);
+                game->write<int>(FieldOffsets::FieldZ, position[2]);
+            }
+        }
+
+        static char debugWarpTriangle[5];
+        ImGui::InputText("##DebugWarpTriangle", debugWarpTriangle, 5);
+        ImGui::SameLine();
+        if (ImGui::Button("Set Triangle"))
+        {
+            uint16_t warpTriangle = atoi(debugWarpTriangle);
+            game->write<uint16_t>(FieldOffsets::Triangle, warpTriangle);
+        }
+
         static char debugWarpFieldID[5] = "";
         ImGui::InputText("##DebugWarpFieldID", debugWarpFieldID, 5);
         ImGui::SameLine();
