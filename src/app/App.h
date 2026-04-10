@@ -12,8 +12,8 @@
 #define APP_WINDOW_HEIGHT 665
 #define APP_VERSION_MAJOR 0
 #define APP_VERSION_MINOR 8
-#define APP_VERSION_PATCH 1
-#define APP_VERSION_STRING "v0.8.1"
+#define APP_VERSION_PATCH 2
+#define APP_VERSION_STRING "v0.8.2"
 #define APP_SETTINGS_FOLDER "settings"
 
 class App
