@@ -204,7 +204,17 @@ std::vector<std::string> RandomizeBosses::describe(RuleDescripionType descType)
     {
         if (minStatMultiplier != 1.0f || maxStatMultiplier != 1.0f)
         {
-            return { Utilities::formatFloat(minStatMultiplier) + "-" + Utilities::formatFloat(maxStatMultiplier) + "x Boss Stats" };
+            float difficultyScale = game->getDifficultyScale();
+
+            float scaledMin = minStatMultiplier >= 1.0f
+                ? 1.0f + (minStatMultiplier - 1.0f) * difficultyScale
+                : minStatMultiplier;
+
+            float scaledMax = maxStatMultiplier >= 1.0f
+                ? 1.0f + (maxStatMultiplier - 1.0f) * difficultyScale
+                : maxStatMultiplier;
+
+            return { Utilities::formatFloat(scaledMin) + "-" + Utilities::formatFloat(scaledMax) + "x Boss Stats" };
         }
     }
 
