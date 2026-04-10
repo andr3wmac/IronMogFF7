@@ -41,6 +41,9 @@ bool RandomizeShops::onSettingsGUI()
         changed |= ImGui::Checkbox("Exclude Sources", &excludeSources);
         ImGui::SetItemTooltip("Excludes power, guard, magic, mind, speed, and luck sources.");
 
+        changed |= ImGui::Checkbox("Use Balanced Prices", &useBalancedPrices);
+        ImGui::SetItemTooltip("Loads a set of balanced prices from `settings/Shop Prices.ini`");
+
         ImGui::Text("Price Multiplier");
         ImGui::SetItemTooltip("Multiplies the price of each item/materia.");
         ImGui::SameLine();
@@ -162,7 +165,28 @@ std::vector<std::string> RandomizeShops::describe(RuleDescripionType descType)
 
 void RandomizeShops::onStart()
 {
+    customPrices.clear();
+
+    if (useBalancedPrices)
+    {
+        GUI::readIni("settings/Shop Prices.ini", "ShopPrices",
+            [this](const char* section, const char* line) { this->onShopPricesRead(section, line); }
+        );
+
+        LOG("Loaded %d prices from Shop Prices.ini", customPrices.size());
+    }
+
     generateRandomizedShops();
+}
+
+void RandomizeShops::onShopPricesRead(const char* section, const char* line)
+{
+    char key[256];
+    int value;
+    if (sscanf(line, "%255[^=]=%d", key, &value) == 2) 
+    {
+        customPrices[key] = value;
+    }
 }
 
 void RandomizeShops::generateRandomizedShops()
@@ -178,22 +202,54 @@ void RandomizeShops::generateRandomizedShops()
 
     for (const auto& [id, item] : GameData::items)
     {
-        uint32_t price = Utilities::clampTo<uint32_t>(item.price * priceDist(rng));
-        price = (price / 10) * 10;
-        if (price < 2) price = 2;
+        uint32_t itemPrice = item.price;
 
-        itemBuyPrices[id] = price;
-        itemSellPrices[id] = price;
+        // Load custom prices if available
+        if (useBalancedPrices)
+        {
+            std::string itemKey = Utilities::toIniKey(item.name);
+            if (customPrices.count(itemKey))
+            {
+                itemPrice = customPrices[itemKey];
+            }
+            else
+            {
+                LOG("Missing item price for %s", itemKey.c_str());
+            }
+        }
+
+        uint32_t finalPrice = Utilities::clampTo<uint32_t>(itemPrice * priceDist(rng));
+        finalPrice = (finalPrice / 10) * 10;
+        if (finalPrice < 2) finalPrice = 2;
+
+        itemBuyPrices[id] = finalPrice;
+        itemSellPrices[id] = finalPrice;
     }
 
     for (const auto& [id, materia] : GameData::materia)
     {
-        uint32_t price = Utilities::clampTo<uint32_t>(materia.price * priceDist(rng));
-        price = (price / 10) * 10;
-        if (price < 1) price = 1;
+        uint32_t materiaPrice = materia.price;
 
-        materiaBuyPrices[id] = price;
-        materiaSellPrices[id] = price;
+        // Load custom prices if available
+        if (useBalancedPrices)
+        {
+            std::string materiaKey = Utilities::toIniKey(materia.name);
+            if (customPrices.count(materiaKey))
+            {
+                materiaPrice = customPrices[materiaKey];
+            }
+            else
+            {
+                LOG("Missing materia price for %s", materiaKey.c_str());
+            }
+        }
+
+        uint32_t finalPrice = Utilities::clampTo<uint32_t>(materia.price * priceDist(rng));
+        finalPrice = (finalPrice / 10) * 10;
+        if (finalPrice < 1) finalPrice = 1;
+
+        materiaBuyPrices[id] = finalPrice;
+        materiaSellPrices[id] = finalPrice;
     }
 
     // Below we randomize each shops items/materia. There is an extra step thats done

@@ -26,7 +26,7 @@ void App::run()
     processMemoryOffset[0] = '\0';
 
     // We embed the app settings in the same app.ini that ImGui uses.
-    gui.registerSettingsHandler("IronMogFF7",
+    GUI::registerSettingsHandler("IronMogFF7",
         [this](const char* section, const char* line) { this->guiSettingsRead(section, line); },
         [this](ImGuiTextBuffer* buf) { this->guiSettingsWrite(buf); }
     );

@@ -314,4 +314,32 @@ public:
 
         return folderEnd == canonicalFolder.end();
     }
+
+    // Strips white space and other symbols to produce an Ini friendly key
+    static std::string toIniKey(const std::string& name)
+    {
+        std::string result;
+        bool capitalizeNext = true;
+
+        for (unsigned char c : name)
+        {
+            if (std::isalpha(c))
+            {
+                result += capitalizeNext ? std::toupper(c) : std::tolower(c);
+                capitalizeNext = false;
+            }
+            else if (std::isdigit(c))
+            {
+                result += c;
+                capitalizeNext = true; // .title() capitalizes after digits
+            }
+            else if (c == ' ')
+            {
+                capitalizeNext = true;
+            }
+            // other characters: skip without changing capitalizeNext
+        }
+
+        return result;
+    }
 };

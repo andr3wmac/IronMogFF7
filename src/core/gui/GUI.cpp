@@ -135,30 +135,12 @@ void setupStyle()
 }
 
 float GUI::dpiScale = 1.0f;
+std::vector<std::unique_ptr<SettingsHandler>> GUI::settingsHandlers;
 
 GUI::GUI()
 {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-}
-
-void GUI::registerSettingsHandler(const char* name, std::function<void(const char*, const char*)> onReadLine, std::function<void(ImGuiTextBuffer*)> onWrite)
-{
-    auto entry = std::make_unique<SettingsHandler>();
-    entry->typeName = name;
-    entry->readLineFn = onReadLine;
-    entry->writeAllFn = onWrite;
-
-    ImGuiSettingsHandler imgui_handler;
-    imgui_handler.TypeName = entry->typeName.c_str();
-    imgui_handler.TypeHash = ImHashStr(imgui_handler.TypeName);
-    imgui_handler.UserData = entry.get();
-    imgui_handler.ReadOpenFn = GUI::imGuiSettingsReadOpen;
-    imgui_handler.ReadLineFn = GUI::imGuiSettingsReadLine;
-    imgui_handler.WriteAllFn = GUI::imGuiSettingsWriteAll;
-
-    ImGui::GetCurrentContext()->SettingsHandlers.push_back(imgui_handler);
-    settingsHandlers.push_back(std::move(entry));
 }
 
 bool GUI::initialize(int width, int height, const char* windowTitle)
@@ -425,7 +407,9 @@ bool GUIImage::loadFromMemory(const void* data, size_t data_size)
     int image_height = 0;
     unsigned char* image_data = stbi_load_from_memory((const unsigned char*)data, (int)data_size, &image_width, &image_height, NULL, 4);
     if (image_data == NULL)
+    {
         return false;
+    }
 
     // Create a OpenGL texture identifier
     GLuint image_texture;
@@ -465,6 +449,51 @@ bool GUIImage::loadFromFile(const char* file_name)
     bool ret = loadFromMemory(file_data, file_size);
     IM_FREE(file_data);
     return ret;
+}
+
+void GUI::readIni(const char* filePath, const char* name, std::function<void(const char*, const char*)> onReadLine)
+{
+    auto entry = std::make_unique<SettingsHandler>();
+    entry->typeName = name;
+    entry->readLineFn = onReadLine;
+    entry->writeAllFn = nullptr;
+
+    ImGuiSettingsHandler imgui_handler;
+    imgui_handler.TypeName = entry->typeName.c_str();
+    imgui_handler.TypeHash = ImHashStr(imgui_handler.TypeName);
+    imgui_handler.UserData = entry.get();
+    imgui_handler.ReadOpenFn = GUI::imGuiSettingsReadOpen;
+    imgui_handler.ReadLineFn = GUI::imGuiSettingsReadLine;
+    imgui_handler.WriteAllFn = GUI::imGuiSettingsWriteAll;
+
+    ImGui::GetCurrentContext()->SettingsHandlers.push_back(imgui_handler);
+    settingsHandlers.push_back(std::move(entry));
+
+    // Load the settings
+    ImGui::LoadIniSettingsFromDisk(filePath);
+
+    // Remove the handler
+    ImGui::GetCurrentContext()->SettingsHandlers.pop_back();
+    settingsHandlers.pop_back();
+}
+
+void GUI::registerSettingsHandler(const char* name, std::function<void(const char*, const char*)> onReadLine, std::function<void(ImGuiTextBuffer*)> onWrite)
+{
+    auto entry = std::make_unique<SettingsHandler>();
+    entry->typeName = name;
+    entry->readLineFn = onReadLine;
+    entry->writeAllFn = onWrite;
+
+    ImGuiSettingsHandler imgui_handler;
+    imgui_handler.TypeName = entry->typeName.c_str();
+    imgui_handler.TypeHash = ImHashStr(imgui_handler.TypeName);
+    imgui_handler.UserData = entry.get();
+    imgui_handler.ReadOpenFn = GUI::imGuiSettingsReadOpen;
+    imgui_handler.ReadLineFn = GUI::imGuiSettingsReadLine;
+    imgui_handler.WriteAllFn = GUI::imGuiSettingsWriteAll;
+
+    ImGui::GetCurrentContext()->SettingsHandlers.push_back(imgui_handler);
+    settingsHandlers.push_back(std::move(entry));
 }
 
 void GUI::drawImage(GUIImage& image, int width, int height, float alpha)
