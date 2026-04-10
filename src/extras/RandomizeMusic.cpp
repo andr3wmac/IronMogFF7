@@ -195,7 +195,7 @@ void RandomizeMusic::onUpdate()
         return;
     }
 
-    // Keep in game music volume locked to 1 (lowest volume)
+    // Keep master music volume locked to 1 (lowest volume)
     if (overrideMusic)
     {
         game->write<uint16_t>(GameOffsets::MusicVolume, 1);
@@ -241,10 +241,17 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
         }
     }
 
-    // Keep in game music volume locked to 1 (lowest volume)
     if (overrideMusic)
     {
+        // Keep master music volume locked to 1 (lowest volume)
         game->write<uint16_t>(GameOffsets::MusicVolume, 1);
+
+        // Set all of the AKOA track volumes to 0
+        for (int i = 0; i < 24; i++)
+        {
+            uint32_t akaoTrackAddr = AKAOOffsets::TrackStart + (i * AKAOOffsets::TrackStride) + AKAOOffsets::MasterVolume;
+            game->write<uint32_t>(akaoTrackAddr, 0);
+        }
     }
 
     uint16_t musicID = game->read<uint16_t>(GameOffsets::MusicID);

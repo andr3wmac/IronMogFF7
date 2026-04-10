@@ -424,3 +424,12 @@ struct SavemapOffsets
 
     CONST_PTR BuggyHighwindPosition = Start + 0x0F74;
 };
+
+struct AKAOOffsets
+{
+    CONST_PTR TrackStart = 0x96608;
+    CONST_PTR TrackStride = 0x108;
+
+    // Fields on each on AKAO Track
+    CONST_PTR MasterVolume = 0x2C;
+};
