@@ -19,8 +19,11 @@ public:
     std::vector<std::string> describe(RuleDescripionType descType) override;
 
 private:
+    void onStart();
     void onGameMomentChanged(uint16_t gameMoment);
     void onBattleExit();
+
+    void updateDifficulty();
 
     ProgressionSource progressionSource = ProgressionSource::GameProgress;
     int progressionEnd = 0;

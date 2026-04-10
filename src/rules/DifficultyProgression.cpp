@@ -10,11 +10,12 @@ REGISTER_RULE(DifficultyProgression, "Difficulty Progression", "Progressively sc
 
 static const char* progressSource[] { "Game Progress", "Highest Level" };
 
-static const char* progressEnds[] { "After 7th Heaven", "Exit Midgar", "End of Disc 1", "End of Disc 2", "Final Descent" };
-static uint16_t progressGameMoments[]{ 105, 341, 677, 1620, 1997 };
+static const char* progressEnds[] { "Cloud Named", "After 7th Heaven", "Exit Midgar", "End of Disc 1", "End of Disc 2", "Final Descent" };
+static uint16_t progressGameMoments[]{ 7, 105, 341, 677, 1620, 1997 };
 
 void DifficultyProgression::setup()
 {
+    BIND_EVENT(game->onStart, DifficultyProgression::onStart);
     BIND_EVENT_ONE_ARG(game->onGameMomentChanged, DifficultyProgression::onGameMomentChanged);
     BIND_EVENT(game->onBattleExit, DifficultyProgression::onBattleExit);
 }
@@ -58,7 +59,7 @@ bool DifficultyProgression::onSettingsGUI()
         ImGui::PushItemWidth(DPI(50.0f));
         if (ImGui::InputInt("##DifficultyProfession_endLevel", &progressionEndLevel, 0, 0))
         {
-            progressionEndLevel = std::max(0, progressionEndLevel);
+            progressionEndLevel = std::max(6, progressionEndLevel);
             changed = true;
         }
         ImGui::PopItemWidth();
@@ -103,52 +104,77 @@ std::vector<std::string> DifficultyProgression::describe(RuleDescripionType desc
     return {};
 }
 
+void DifficultyProgression::onStart()
+{
+    updateDifficulty();
+}
+
 void DifficultyProgression::onGameMomentChanged(uint16_t gameMoment)
 {
-    if (progressionSource != ProgressionSource::GameProgress)
-    {
-        return;
-    }
-
-    uint16_t endMoment = progressGameMoments[progressionEnd];
-
-    float difficultyScale = (float)gameMoment / endMoment;
-    if (difficultyScale > 1.0f)
-    {
-        difficultyScale = 1.0f;
-    }
-
-    game->setDifficultyScale(difficultyScale);
-    LOG("Game Moment changed to: %d, difficulty scale now: %f", gameMoment, difficultyScale);
+    updateDifficulty();
 }
 
 void DifficultyProgression::onBattleExit()
 {
-    if (progressionSource != ProgressionSource::HighestLevel)
+    updateDifficulty();
+}
+
+void DifficultyProgression::updateDifficulty()
+{
+    if (progressionSource == ProgressionSource::GameProgress)
     {
-        return;
-    }
+        uint16_t gameMoment = game->getGameMoment();
+        uint16_t endMoment = progressGameMoments[progressionEnd];
 
-    uint16_t phsVisMask = game->read<uint16_t>(GameOffsets::PHSVisibilityMask);
-    int maxLevel = 0;
-
-    for (int i = 0; i < 9; ++i)
-    {
-        uint8_t characterID = CharacterDataOffsets::CharacterIDs[i];
-
-        // Note: Cloud is always included
-        if (i == 0 || Utilities::isBitSet(phsVisMask, i))
+        float difficultyScale = (float)gameMoment / endMoment;
+        if (difficultyScale > 1.0f)
         {
-            uint8_t level = game->read<uint8_t>(CharacterDataOffsets::Characters[i] + CharacterDataOffsets::Level);
-            maxLevel = std::max(maxLevel, (int)level);
+            difficultyScale = 1.0f;
         }
+
+        game->setDifficultyScale(difficultyScale);
+        LOG("Game Moment changed to: %d, difficulty scale now: %f", gameMoment, difficultyScale);
     }
 
-    if (maxLevel > 0 && maxLevel != lastMaxLevel)
+    if (progressionSource == ProgressionSource::HighestLevel)
     {
-        float difficultyScale = (float)maxLevel / progressionEndLevel;
-        game->setDifficultyScale(difficultyScale);
-        LOG("Max level changed to: %d, difficulty scale now: %f", maxLevel, difficultyScale);
-        lastMaxLevel = maxLevel;
+        uint16_t phsVisMask = game->read<uint16_t>(GameOffsets::PHSVisibilityMask);
+        int maxLevel = 0;
+
+        for (int i = 0; i < 9; ++i)
+        {
+            uint8_t characterID = CharacterDataOffsets::CharacterIDs[i];
+
+            // Note: Cloud is always included
+            if (i == 0 || Utilities::isBitSet(phsVisMask, i))
+            {
+                uint8_t level = game->read<uint8_t>(CharacterDataOffsets::Characters[i] + CharacterDataOffsets::Level);
+                maxLevel = std::max(maxLevel, (int)level);
+            }
+        }
+
+        const int minLevel = 6;
+
+        if (maxLevel > lastMaxLevel)
+        {
+            // Calculate how far we are above the floor
+            int relativeProgress = maxLevel - minLevel;
+            int totalRange = progressionEndLevel - minLevel;
+
+            // Ensure we don't divide by zero and clamp at 0 if maxLevel < 6
+            float difficultyScale = 0.0f;
+            if (totalRange > 0)
+            {
+                difficultyScale = (float)relativeProgress / totalRange;
+            }
+
+            // Clamp the scale between 0.0 and 1.0 to prevent weirdness
+            difficultyScale = Utilities::clamp(difficultyScale, 0.0f, 1.0f);
+
+            game->setDifficultyScale(difficultyScale);
+            LOG("Max level changed to: %d, difficulty scale now: %f", maxLevel, difficultyScale);
+
+            lastMaxLevel = maxLevel;
+        }
     }
 }

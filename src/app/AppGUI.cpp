@@ -544,6 +544,10 @@ void App::drawDebugPanel()
         ImGui::Text(triangleText.c_str());
     }
 
+    float difficultyScale = game->getDifficultyScale();
+    std::string difficultyText = "Difficulty Scale: " + std::to_string(difficultyScale);
+    ImGui::Text(difficultyText.c_str());
+
     if (ImGui::CollapsingHeader("Advanced"))
     {
         ImGui::Indent(25.0f);

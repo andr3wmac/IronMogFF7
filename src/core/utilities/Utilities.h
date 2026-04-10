@@ -290,6 +290,12 @@ public:
         };
     }
 
+    template<class T>
+    static constexpr const T& clamp(const T& v, const T& lo, const T& hi) 
+    {
+        return (v < lo) ? lo : (hi < v) ? hi : v;
+    }
+
     template <typename Target, typename Source>
     static Target clampTo(Source value) 
     {

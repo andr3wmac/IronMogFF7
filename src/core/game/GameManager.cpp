@@ -560,7 +560,7 @@ void GameManager::setDifficultyScale(float newScale)
         return;
     }
 
-    difficultyScale = std::min(std::max(newScale, 0.0f), 1.0f);
+    difficultyScale = Utilities::clamp(newScale, 0.0f, 1.0f);
     onDifficultyScaleChanged.invoke(difficultyScale);
 }
 
