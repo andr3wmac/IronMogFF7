@@ -31,7 +31,7 @@ bool DifficultyProgression::onSettingsGUI()
     ImGui::SetNextItemWidth(DPI(200.0f));
 
     int progressionSourceIndex = (int)progressionSource;
-    if (ImGui::Combo("##DifficultyProfession_progressionSource", &progressionSourceIndex, progressSource, IM_ARRAYSIZE(progressSource)))
+    if (ImGui::Combo("##DifficultyProgression_progressionSource", &progressionSourceIndex, progressSource, IM_ARRAYSIZE(progressSource)))
     {
         progressionSource = (ProgressionSource)progressionSourceIndex;
         changed = true;
@@ -42,7 +42,7 @@ bool DifficultyProgression::onSettingsGUI()
     ImGui::SetItemTooltip("The amount of progression you start the game at.\nThis prevents always starting at lowest difficulty.");
     ImGui::SameLine(DPI(120.0f));
     ImGui::PushItemWidth(DPI(50.0f));
-    if (ImGui::InputFloat("##DifficultyProfession_endLevel", &progressionStart, 0, 0, "%.2f"))
+    if (ImGui::InputFloat("##DifficultyProgression_progressionStart", &progressionStart, 0, 0, "%.2f"))
     {
         progressionStart = Utilities::clamp(progressionStart, 0.0f, 100.0f);
         changed = true;
@@ -60,7 +60,7 @@ bool DifficultyProgression::onSettingsGUI()
         ImGui::SameLine(DPI(120.0f));
         ImGui::SetNextItemWidth(DPI(200.0f));
 
-        changed = ImGui::Combo("##DifficultyProfession_progressionEnd", &progressionEnd, progressEnds, IM_ARRAYSIZE(progressEnds));
+        changed = ImGui::Combo("##DifficultyProgression_progressionEnd", &progressionEnd, progressEnds, IM_ARRAYSIZE(progressEnds));
     }
 
     // Highest Level
@@ -71,7 +71,7 @@ bool DifficultyProgression::onSettingsGUI()
         ImGui::SetItemTooltip("When a member of your party reaches\nthis level progression is complete.");
         ImGui::SameLine(DPI(120.0f));
         ImGui::PushItemWidth(DPI(50.0f));
-        if (ImGui::InputInt("##DifficultyProfession_endLevel", &progressionEndLevel, 0, 0))
+        if (ImGui::InputInt("##DifficultyProgression_endLevel", &progressionEndLevel, 0, 0))
         {
             progressionEndLevel = std::max(6, progressionEndLevel);
             changed = true;
