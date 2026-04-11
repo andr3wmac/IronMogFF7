@@ -68,7 +68,7 @@ bool RandomizeMusic::onSettingsGUI()
     ImGui::Text("Volume");
     ImGui::SameLine(DPI(75.0f));
     ImGui::SetNextItemWidth(DPI(250.0f));
-    changed |= ImGui::SliderScalar("##musicVolume", ImGuiDataType_Float, &currentVolume, &min, &max, "%.3lf");
+    changed |= ImGui::SliderScalar("##musicVolume", ImGuiDataType_Float, &currentVolume, &min, &max, "%.2lf");
 
     if (currentVolume != previousVolume)
     {
