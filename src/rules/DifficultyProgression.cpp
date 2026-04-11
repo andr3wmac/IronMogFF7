@@ -106,6 +106,7 @@ std::vector<std::string> DifficultyProgression::describe(RuleDescripionType desc
 
 void DifficultyProgression::onStart()
 {
+    lastMaxLevel = 0;
     updateDifficulty();
 }
 

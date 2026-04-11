@@ -137,7 +137,7 @@ void RandomizeEncounters::saveSettings(ConfigFile& cfg)
     cfg.set<int>("levelsAbove",         levelsAbove);
     cfg.set<float>("minStatMultiplier", minStatMultiplier);
     cfg.set<float>("maxStatMultiplier", maxStatMultiplier);
-    cfg.set<bool>("defenseSoftCap",  defenseSoftCap);
+    cfg.set<bool>("defenseSoftCap",     defenseSoftCap);
 }
 
 void RandomizeEncounters::onDebugGUI()
@@ -233,6 +233,25 @@ std::vector<std::string> RandomizeEncounters::describe(RuleDescripionType descTy
                 : maxStatMultiplier;
 
             return { Utilities::formatFloat(scaledMin) + "-" + Utilities::formatFloat(scaledMax) + "x Enemy Stats" };
+        }
+    }
+
+    if (descType == RuleDescripionType::Unique)
+    {
+        float difficultyScale = game->getDifficultyScale();
+        int scaledLevelsAbove = (int)(levelsAbove * difficultyScale);
+
+        if (levelsBelow == 0 && levelsAbove > 0)
+        {
+            return { "Random encounters up to " + std::to_string(scaledLevelsAbove) + " levels higher"};
+        }
+        else if (levelsBelow > 0 && levelsAbove == 0)
+        {
+            return { "Random encounters up to " + std::to_string(scaledLevelsAbove) + " levels lower" };
+        }
+        else if (levelsBelow > 0 && levelsAbove > 0)
+        {
+            return { "Random encounters -" + std::to_string(levelsBelow) + "/+" + std::to_string(scaledLevelsAbove) + " levels" };
         }
     }
 

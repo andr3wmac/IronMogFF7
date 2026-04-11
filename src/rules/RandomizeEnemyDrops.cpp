@@ -160,13 +160,17 @@ std::vector<std::string> RandomizeEnemyDrops::describe(RuleDescripionType descTy
     {
         std::vector<std::string> results;
 
-        if (minGilMultiplier != 1.0f || maxGilMultiplier != 1.0f)
+        if (minAPMultiplier != 1.0f || maxAPMultiplier != 1.0f)
         {
-            results.push_back(Utilities::formatFloat(minGilMultiplier) + "-" + Utilities::formatFloat(maxGilMultiplier) + "x Gil");
+            results.push_back(Utilities::formatFloat(minAPMultiplier) + "-" + Utilities::formatFloat(maxAPMultiplier) + "x AP");
         }
         if (minExpMultiplier != 1.0f || maxExpMultiplier != 1.0f)
         {
             results.push_back(Utilities::formatFloat(minExpMultiplier) + "-" + Utilities::formatFloat(maxExpMultiplier) + "x Exp");
+        }
+        if (minGilMultiplier != 1.0f || maxGilMultiplier != 1.0f)
+        {
+            results.push_back(Utilities::formatFloat(minGilMultiplier) + "-" + Utilities::formatFloat(maxGilMultiplier) + "x Gil");
         }
 
         return results;
