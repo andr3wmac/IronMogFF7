@@ -152,6 +152,10 @@ struct CharacterDataOffsets
     CONST_PTR CurrentHP         = 0x2C;
     CONST_PTR MaxHP             = 0x38;
 
+    CONST_PTR EquippedWeapon    = 0x1C; // uint8_t
+    CONST_PTR EquippedArmor     = 0x1D; // uint8_t
+    CONST_PTR EquippedAccessory = 0x1E; // uint8_t
+
     CONST_PTR WeaponMateria[] = { 0x40, 0x44, 0x48, 0x4C, 0x50, 0x54, 0x58, 0x5C };
     CONST_PTR ArmorMateria[]  = { 0x60, 0x64, 0x68, 0x6C, 0x70, 0x74, 0x78, 0x7C };
 };
