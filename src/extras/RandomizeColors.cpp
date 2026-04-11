@@ -275,7 +275,8 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
         uint16_t screenFade = game->read<uint16_t>(GameOffsets::FieldScreenFade);
 
         // Hack fix for Tifa and Cloud scene before northern crater
-        if (game->getFieldID() == 771 && game->getGameMoment() == 1612 && screenFade > 1 && screenFade < 120)
+        if (game->getFieldID() == 771 && game->getGameMoment() == 1612 && 
+            screenFade > 1 && screenFade < 120)
         {
             modelEditor.openFieldModels();
             applyColors();
@@ -295,6 +296,16 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
                 applyColors();
                 appliedHackFix = true;
             }
+        }
+
+        // CSR has a bug when we flash to cloud upside in the tree.
+        if (game->getGameVersion() == GameVersion::PlayStationUS_CSR && 
+            game->getFieldID() == 707 && game->getGameMoment() == 794 &&
+            screenFade > 5)
+        {
+            modelEditor.openFieldModels();
+            applyColors();
+            appliedHackFix = true;
         }
     }
 

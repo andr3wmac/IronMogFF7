@@ -264,8 +264,7 @@ bool FieldModule::isFieldDataLoaded(bool justConnected)
     // Field is ready if we've hit peak fade out and started coming back down.
     uint16_t screenFade = game->read<uint16_t>(GameOffsets::FieldScreenFade);
     bool isScreenReady = (lastFieldScreenFade == 0x100 && screenFade < lastFieldScreenFade);
-    lastFieldScreenFade = screenFade;
-
+    
     if (justConnected && screenFade == 0)
     {
         isScreenReady = true;
@@ -291,8 +290,15 @@ bool FieldModule::isFieldDataLoaded(bool justConnected)
             uint8_t screenBlack = game->read<uint8_t>(0x9AC40);
             isScreenReady = (screenFade == 0 && screenBlack == 0);
         }
+
+        // Hack fix for Tifa waking up in Dr's Office
+        if (fieldID == 400 && game->getGameMoment() == 999)
+        {
+            isScreenReady = lastFieldScreenFade == 0 && screenFade > 0;
+        }
     }
 
+    lastFieldScreenFade = screenFade;
     return isScreenReady;
 }
 
