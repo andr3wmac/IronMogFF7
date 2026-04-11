@@ -448,16 +448,25 @@ void RandomizeWorldMap::onUpdate()
         }
     }
 
-    uint16_t exitIndex = getRandomEntrance(3);
-    WorldMapEntrance& randEntrance = GameData::worldMapEntrances[exitIndex];
+    // Find which randomized entrance takes us to chocobo ranch
+    int ranchEntranceIdx = -1;
+    for (auto entry : randomizedEntrances)
+    {
+        // Index 2 is exit 3 (chocobo ranch)
+        if (entry.second == 2)
+        {
+            ranchEntranceIdx = entry.first;
+        }
+    }
 
     // Don't need to patch if it wasn't randomized.
-    if (randEntrance.fieldID == 3)
+    if (ranchEntranceIdx == -1 || ranchEntranceIdx == 2)
     {
         enteringWorld = false;
         return;
     }
 
+    WorldMapEntrance& randEntrance = GameData::worldMapEntrances[ranchEntranceIdx];
     LOG("Patching world map script for chocobo stable exit: %d", randEntrance.fieldID);
 
     static uintptr_t posAddr[4] = { 0xD0D96, 0xD0DCA, 0xD0E80, 0xD0EB4 };

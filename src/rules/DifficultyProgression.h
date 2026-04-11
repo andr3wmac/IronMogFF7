@@ -26,6 +26,7 @@ private:
     void updateDifficulty();
 
     ProgressionSource progressionSource = ProgressionSource::GameProgress;
+    float progressionStart = 0.0f;
     int progressionEnd = 0;
     int progressionEndLevel = 30;
 

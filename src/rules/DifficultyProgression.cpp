@@ -37,6 +37,20 @@ bool DifficultyProgression::onSettingsGUI()
         changed = true;
     }
 
+    ImGui::Spacing();
+    ImGui::Text("Start At:");
+    ImGui::SetItemTooltip("The amount of progression you start the game at.\nThis prevents always starting at lowest difficulty.");
+    ImGui::SameLine(DPI(120.0f));
+    ImGui::PushItemWidth(DPI(50.0f));
+    if (ImGui::InputFloat("##DifficultyProfession_endLevel", &progressionStart, 0, 0, "%.2f"))
+    {
+        progressionStart = Utilities::clamp(progressionStart, 0.0f, 100.0f);
+        changed = true;
+    }
+    ImGui::PopItemWidth();
+    ImGui::SameLine();
+    ImGui::Text("%%");
+
     // Game Progress
     if (progressionSource == ProgressionSource::GameProgress)
     {
@@ -71,6 +85,7 @@ bool DifficultyProgression::onSettingsGUI()
 void DifficultyProgression::loadSettings(const ConfigFile& cfg)
 {
     progressionSource   = (ProgressionSource)cfg.get<int>("progressionSource", (int)progressionSource);
+    progressionStart    = cfg.get<float>("progressionStart", progressionStart);
     progressionEnd      = cfg.get<int>("progressionEnd", progressionEnd);
     progressionEndLevel = cfg.get<int>("progressionEndLevel", progressionEndLevel);
 }
@@ -78,6 +93,7 @@ void DifficultyProgression::loadSettings(const ConfigFile& cfg)
 void DifficultyProgression::saveSettings(ConfigFile& cfg)
 {
     cfg.set<int>("progressionSource", (int)progressionSource);
+    cfg.set<float>("progressionStart", progressionStart);
     cfg.set<int>("progressionEnd", progressionEnd);
     cfg.set<int>("progressionEndLevel", progressionEndLevel);
 }
@@ -127,11 +143,10 @@ void DifficultyProgression::updateDifficulty()
         uint16_t gameMoment = game->getGameMoment();
         uint16_t endMoment = progressGameMoments[progressionEnd];
 
-        float difficultyScale = (float)gameMoment / endMoment;
-        if (difficultyScale > 1.0f)
-        {
-            difficultyScale = 1.0f;
-        }
+        float progress = Utilities::clamp((float)gameMoment / endMoment, 0.0f, 1.0f);
+
+        float difficultyScale = Utilities::lerp(progressionStart / 100.0f, 1.0f, progress);
+        difficultyScale = Utilities::clamp(difficultyScale, 0.0f, 1.0f);
 
         game->setDifficultyScale(difficultyScale);
         LOG("Game Moment changed to: %d, difficulty scale now: %f", gameMoment, difficultyScale);
@@ -163,13 +178,13 @@ void DifficultyProgression::updateDifficulty()
             int totalRange = progressionEndLevel - minLevel;
 
             // Ensure we don't divide by zero and clamp at 0 if maxLevel < 6
-            float difficultyScale = 0.0f;
+            float progress = 0.0f;
             if (totalRange > 0)
             {
-                difficultyScale = (float)relativeProgress / totalRange;
+                progress = Utilities::clamp((float)relativeProgress / totalRange, 0.0f, 1.0f);
             }
 
-            // Clamp the scale between 0.0 and 1.0 to prevent weirdness
+            float difficultyScale = Utilities::lerp(progressionStart / 100.0f, 1.0f, progress);
             difficultyScale = Utilities::clamp(difficultyScale, 0.0f, 1.0f);
 
             game->setDifficultyScale(difficultyScale);

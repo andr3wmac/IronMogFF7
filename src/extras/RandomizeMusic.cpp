@@ -180,7 +180,7 @@ void RandomizeMusic::onEmulatorPaused()
 
 void RandomizeMusic::onEmulatorResumed()
 {
-    if (disabled)
+    if (disabled || !overrideMusic || currentSong == "")
     {
         return;
     }

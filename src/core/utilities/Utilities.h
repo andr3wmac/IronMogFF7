@@ -296,6 +296,12 @@ public:
         return (v < lo) ? lo : (hi < v) ? hi : v;
     }
 
+    template<class T, class U>
+    static constexpr T lerp(const T& a, const T& b, const U& t)
+    {
+        return a + t * (b - a);
+    }
+
     template <typename Target, typename Source>
     static Target clampTo(Source value) 
     {
