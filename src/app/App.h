@@ -48,6 +48,7 @@ public:
 
     void connect();
     void disconnect();
+    void reconnect();
     void runGameManager();
     void stopGameManager();
 
