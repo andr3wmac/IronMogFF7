@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 import ff7
 from ff7.field import opcodes, specialOpcodes, Op, fieldIDTable
@@ -35,6 +36,10 @@ def listToCPPArray(src_list):
     list_string = ", ".join(map(str, src_list))
     return "{" + list_string + "}"
 
+def toIniKey(name):
+    cleaned = re.sub(r'[^a-zA-Z0-9 ]', '', name)
+    return cleaned.title().replace(' ', '')
+
 def outputInventory(gen, discPath, version):
     # Retrieve the kernel data file
     kernelDataFile = ff7.game.retrieveFile(discPath, "INIT", "KERNEL.BIN")
@@ -43,6 +48,9 @@ def outputInventory(gen, discPath, version):
     # Extract shop price lists
     shopData = ff7.menu.ShopMenuData(ff7.game.retrieveFile(discPath, "MENU", "SHOPMENU.MNU"))
 
+    # Dump a shop_prices.ini to use as a template
+    shopPricesIni = open("shop_prices.ini", "w")
+
     # Extract all string lists
     for index, numStrings, compressed, transDir, transFileName in ff7.data.kernelStringData:
         stringList = ff7.kernel.StringList(kernelBin.getFile(9, index).getData(), numStrings, ff7.game.isJapanese(version))
@@ -50,7 +58,9 @@ def outputInventory(gen, discPath, version):
 
         # Item Names
         if (index == 10):
+            shopPricesIni.write("[ShopPrices][Items]\n")
             gen.write_line("// Items", 4)
+
             for idx in range(0, len(lines)):
                 item_name = lines[idx]
                 if (item_name == ""):
@@ -61,11 +71,17 @@ def outputInventory(gen, discPath, version):
 
                 gen.write_line("addItem(" + str(item_id) + ", \"" + item_name + "\", " + str(item_price) + ");", 4)  
                 gen.item_names.append(item_name)
+
+                shopPricesIni.write(toIniKey(item_name) + "=" + str(item_price) + "\n")
+
+            shopPricesIni.write("\n")
             gen.write_line("")
 
         # Weapon Names
         if (index == 11):
+            shopPricesIni.write("[ShopPrices][Weapons]\n")
             gen.write_line("// Weapons", 4)
+
             for idx in range(0, len(lines)):
                 item_name = lines[idx]
                 if (item_name == ""):
@@ -74,13 +90,18 @@ def outputInventory(gen, discPath, version):
                 item_id = idx + 128
                 item_price = shopData.item_prices[item_id]
 
+                shopPricesIni.write(toIniKey(item_name) + "=" + str(item_price) + "\n")
                 gen.write_line("addItem(" + str(item_id) + ", \"" + item_name + "\", " + str(item_price) + ");", 4)  
                 gen.item_names.append(item_name)
+
+            shopPricesIni.write("\n")
             gen.write_line("")
 
         # Armor Names
         if (index == 12):
+            shopPricesIni.write("[ShopPrices][Armor]\n")
             gen.write_line("// Armor", 4)
+
             for idx in range(0, len(lines)):
                 item_name = lines[idx]
                 if (item_name == ""):
@@ -89,13 +110,18 @@ def outputInventory(gen, discPath, version):
                 item_id = idx + 256
                 item_price = shopData.item_prices[item_id]
 
+                shopPricesIni.write(toIniKey(item_name) + "=" + str(item_price) + "\n")
                 gen.write_line("addItem(" + str(item_id) + ", \"" + item_name + "\", " + str(item_price) + ");", 4)  
                 gen.item_names.append(item_name)
+
+            shopPricesIni.write("\n")
             gen.write_line("")
 
         # Accessory Names
         if (index == 13):
+            shopPricesIni.write("[ShopPrices][Accessories]\n")
             gen.write_line("// Accessories", 4)
+
             for idx in range(0, len(lines)):
                 item_name = lines[idx]
                 if (item_name == ""):
@@ -104,13 +130,18 @@ def outputInventory(gen, discPath, version):
                 item_id = idx + 288
                 item_price = shopData.item_prices[item_id]
 
+                shopPricesIni.write(toIniKey(item_name) + "=" + str(item_price) + "\n")
                 gen.write_line("addItem(" + str(item_id) + ", \"" + item_name + "\", " + str(item_price) + ");", 4)   
                 gen.item_names.append(item_name)
+
+            shopPricesIni.write("\n")
             gen.write_line("")
 
         # Materia Names
         if (index == 14):
+            shopPricesIni.write("[ShopPrices][Materia]\n")
             gen.write_line("// Materia", 4)
+
             for idx in range(0, len(lines)):
                 materia_name = lines[idx]
                 if (materia_name == ""):
@@ -119,9 +150,14 @@ def outputInventory(gen, discPath, version):
                 materia_id = idx
                 materia_price = shopData.materia_prices[materia_id]
                 
+                shopPricesIni.write(toIniKey(materia_name) + "=" + str(materia_price) + "\n")
                 gen.write_line("addMateria(" + str(idx) + ", \"" + materia_name + "\", " + str(materia_price) + ");", 4) 
                 gen.item_names.append(materia_name) 
+
+            shopPricesIni.write("\n")
             gen.write_line("")
+
+    shopPricesIni.close()
 
 def outputOther(gen, discPath, version):
     # Enemy Skills
@@ -236,10 +272,17 @@ def outputFields(gen, discPath, version):
                     stroffset, strlen = fieldOffsets[values[3]]
                     gen.write_line("addFieldScriptMessage(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " + str(windowIndex) + ", " + f"0x{addr:X}" + ", " + f"0x{stroffset:X}" + ", " + str(strlen) + ");", 4)
 
+                # Handles cases where we miss the message because they named it wrong.
+                hack_match = False
+                if "Last Elixir" in string:
+                    hack_match = True
+                if "Cursed Ring" in string:
+                    hack_match = True
+
                 # Ensures the string contains an item/materia/etc name wrapped in quotes
                 # Note: we only enforce quotes on the beginning of the name because theres spots where they put the puncuation inside the quotes. Example: Received "Turbo Ether!"
                 match = next((word for word in gen.item_names if f'"{word}' in string), None)
-                if match:
+                if match or hack_match:
                     stroffset, strlen = fieldOffsets[values[3]]
                     gen.write_line("addFieldScriptMessage(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " + str(windowIndex) + ", " +  f"0x{addr:X}" + ", " + f"0x{stroffset:X}" + ", " + str(strlen) + ");", 4)
 

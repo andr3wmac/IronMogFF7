@@ -2,7 +2,9 @@
 #include "core/game/MemoryOffsets.h"
 #include "core/utilities/Logging.h"
 
+#include <iomanip>
 #include <string>
+#include <sstream>
 
 void ScriptUtilities::decompileWorldScript(GameManager* game, uintptr_t startAddress, size_t sizeInBytes)
 {
@@ -12,41 +14,55 @@ void ScriptUtilities::decompileWorldScript(GameManager* game, uintptr_t startAdd
     uint16_t* opCodes = (uint16_t*)data;
     size_t opCodeCount = sizeInBytes / 2;
 
+    auto toHex = [](uint16_t value) -> std::string 
+    {
+        std::stringstream ss;
+        ss << std::hex << std::setw(4) << std::setfill('0') << value;
+        return ss.str();
+    };
+
     int line = 0;
     for (int i = 0; i < opCodeCount; ++i)
     {
         std::string opText = "";
 
-        if (i == 91)
-        {
-            LOG("-- END OF NORMAL SCRIPT --");
-        }
-
         int opCodeOffset = (i * 2);
-
         uint16_t opCode = opCodes[i];
+
         if (opCode == 0x017) { opText = "LOGICAL NOT"; }
+        if (opCode == 0x060) { opText = "LESS"; }
+        if (opCode == 0x062) { opText = "LESS EQUAL"; }
+        if (opCode == 0x063) { opText = "GREATER EQUAL"; }
         if (opCode == 0x070) { opText = "EQUAL"; }
         if (opCode == 0x0c0) { opText = "LOGICAL OR"; }
         if (opCode == 0x0e0) { opText = "WRITE"; }
         if (opCode == 0x100) { opText = "RESET"; }
-        if (opCode == 0x110) { opText = "PUSH CONSTANT " + std::to_string(opCodes[++i]); }
-        if (opCode == 0x114) { opText = "PUSH SAVEMAP BIT " + std::to_string(opCodes[++i]); }
-        if (opCode == 0x118) { opText = "PUSH SAVEMAP BYTE " + std::to_string(opCodes[++i]); }
-        if (opCode == 0x119) { opText = "PUSH BYTE FROM BANK1 " + std::to_string(opCodes[++i]); }
-        if (opCode == 0x11b) { opText = "PUSH SPECIAL " + std::to_string(opCodes[++i]); }
-        if (opCode == 0x200) { opText = "GOTO " + std::to_string(opCodes[++i]); }
-        if (opCode == 0x201) { opText = "GOTO IF FALSE " + std::to_string(opCodes[++i]); }
+        if (opCode == 0x110) { opText = "PUSH CONSTANT " + toHex(opCodes[++i]); }
+        if (opCode == 0x114) { opText = "PUSH SAVEMAP BIT " + toHex(opCodes[++i]); }
+        if (opCode == 0x118) { opText = "PUSH SAVEMAP BYTE " + toHex(opCodes[++i]); }
+        if (opCode == 0x119) { opText = "PUSH BYTE FROM BANK1 " + toHex(opCodes[++i]); }
+        if (opCode == 0x11b) { opText = "PUSH SPECIAL " + toHex(opCodes[++i]); }
+        if (opCode == 0x11c) { opText = "PUSH WORD FROM BANK0 " + toHex(opCodes[++i]); }
+        if (opCode == 0x200) { opText = "GOTO " + toHex(opCodes[++i]); }
+        if (opCode == 0x201) { opText = "GOTO IF FALSE " + toHex(opCodes[++i]); }
         if (opCode == 0x203) { opText = "RETURN"; }
+        if (opCode == 0x300) { opText = "LOAD MODEL"; }
+        if (opCode == 0x304) { opText = "SET DIR"; }
         if (opCode == 0x305) { opText = "SET WAIT FRAMES"; }
         if (opCode == 0x306) { opText = "WAIT"; }
         if (opCode == 0x307) { opText = "SET CONTROL LOCK"; }
+        if (opCode == 0x308) { opText = "SET MESH POS"; }
+        if (opCode == 0x308) { opText = "SET LOCAL POS"; }
         if (opCode == 0x30c) { opText = "ENTER VEHICLE"; }
         if (opCode == 0x318) { opText = "ENTER FIELD"; }
         if (opCode == 0x32b) { opText = "SET BATTLE LOCK"; }
         if (opCode == 0x330) { opText = "SET ACTIVE ENTITY"; }
         if (opCode == 0x333) { opText = "ROTATE ENTITY TO MODEL"; }
         if (opCode == 0x334) { opText = "WAIT FOR FUNCTION"; }
+        if (opCode == 0x349) { opText = "SET WORLD PROGRESS"; }
+        if (opCode == 0x34B) { opText = "SET CHOCOBO TYPE"; }
+        if (opCode == 0x34C) { opText = "SET SUBMARINE COLOR"; }
+        if (opCode == 0x350) { opText = "SET METEOR"; }
 
         if (opCode >= 0x204 && opCode < 0x300)
         {

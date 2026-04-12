@@ -42,6 +42,7 @@ void RandomizeMusic::setup()
     BIND_EVENT(game->onStart, RandomizeMusic::onStart);
     BIND_EVENT(game->onEmulatorPaused, RandomizeMusic::onEmulatorPaused);
     BIND_EVENT(game->onEmulatorResumed, RandomizeMusic::onEmulatorResumed);
+    BIND_EVENT(game->onUpdate, RandomizeMusic::onUpdate);
     BIND_EVENT_ONE_ARG(game->onFrame, RandomizeMusic::onFrame);
 
     previousMusicID = UnsetMusicID;
@@ -67,7 +68,7 @@ bool RandomizeMusic::onSettingsGUI()
     ImGui::Text("Volume");
     ImGui::SameLine(DPI(75.0f));
     ImGui::SetNextItemWidth(DPI(250.0f));
-    changed |= ImGui::SliderScalar("##musicVolume", ImGuiDataType_Float, &currentVolume, &min, &max, "%.3lf");
+    changed |= ImGui::SliderScalar("##musicVolume", ImGuiDataType_Float, &currentVolume, &min, &max, "%.2lf");
 
     if (currentVolume != previousVolume)
     {
@@ -179,12 +180,26 @@ void RandomizeMusic::onEmulatorPaused()
 
 void RandomizeMusic::onEmulatorResumed()
 {
-    if (disabled)
+    if (disabled || !overrideMusic || currentSong == "")
     {
         return;
     }
 
     AudioManager::resumeMusic();
+}
+
+void RandomizeMusic::onUpdate()
+{
+    if (disabled)
+    {
+        return;
+    }
+
+    // Keep master music volume locked to 1 (lowest volume)
+    if (overrideMusic)
+    {
+        game->write<uint16_t>(GameOffsets::MusicVolume, 1);
+    }
 }
 
 void RandomizeMusic::onFrame(uint32_t frameNumber)
@@ -226,10 +241,17 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
         }
     }
 
-    // Keep in game music volume locked to 0
     if (overrideMusic)
     {
+        // Keep master music volume locked to 1 (lowest volume)
         game->write<uint16_t>(GameOffsets::MusicVolume, 1);
+
+        // Set all of the AKOA track volumes to 0
+        for (int i = 0; i < 24; i++)
+        {
+            uint32_t akaoTrackAddr = AKAOOffsets::TrackStart + (i * AKAOOffsets::TrackStride) + AKAOOffsets::MasterVolume;
+            game->write<uint32_t>(akaoTrackAddr, 0);
+        }
     }
 
     uint16_t musicID = game->read<uint16_t>(GameOffsets::MusicID);

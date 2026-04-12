@@ -4,7 +4,7 @@
 #include "core/utilities/Logging.h"
 #include "core/utilities/Platform.h"
 
-uintptr_t BizHawk::getPS1MemoryOffset()
+bool BizHawk::resolveMemory()
 {
     uintptr_t finalAddress = 0;
 
@@ -24,10 +24,11 @@ uintptr_t BizHawk::getPS1MemoryOffset()
 
     if (verifyPS1MemoryOffset(finalAddress))
     {
-        return finalAddress;
+        ps1BaseAddress = finalAddress;
+        return true;
     }
 
-    return 0;
+    return false;
 }
 
 uintptr_t BizHawk::findPS1MemoryOffset(uintptr_t startAddr, uintptr_t endAddr)

@@ -270,11 +270,21 @@ void RandomizeFieldItems::apply()
         std::string newItemName = GameData::getItemName(newItem.id);
         LOG("Randomized item on field %d: %s (%d) changed to: %s (%d)", fieldData.id, oldItemName.c_str(), oldItem.quantity, newItemName.c_str(), newItem.quantity);
 
-        // Overwrite the popup message
-        int msgIndex = game->field.findPickUpMessage(oldItemName, oldItem.group, oldItem.script, oldItem.offset);
-        if (msgIndex >= 0)
+        // HACK: In Mideel the Curse Ring dialog is very unique so we special case it here.
+        if (fieldData.id == 717 && oldItemName == "Curse Ring")
         {
-            game->field.overwriteMessage(msgIndex, newItemName);
+            // Overwrite both Tifa and Cids messages.
+            game->field.overwriteMessage(0, newItemName);
+            game->field.overwriteMessage(1, newItemName);
+        }
+        else 
+        {
+            // Overwrite the popup message
+            int msgIndex = game->field.findPickUpMessage(oldItemName, oldItem.group, oldItem.script, oldItem.offset);
+            if (msgIndex >= 0)
+            {
+                game->field.overwriteMessage(msgIndex, newItemName);
+            }
         }
     }
 

@@ -55,7 +55,7 @@ std::string GameManager::readString(uintptr_t offset, uint32_t length)
     return GameData::decodeString(strData);
 }
 
-void GameManager::writeString(uintptr_t offset, uint32_t length, const std::string& string, bool centerAlign)
+size_t GameManager::writeString(uintptr_t offset, uint32_t length, const std::string& string, bool centerAlign)
 {
     std::vector<uint8_t> strData = GameData::encodeString(string);
 
@@ -71,6 +71,7 @@ void GameManager::writeString(uintptr_t offset, uint32_t length, const std::stri
     }
 
     emulator->write(offset, finalStrData.data(), length);
+    return strLen;
 }
 
 bool GameManager::isRuleEnabled(std::string ruleName)
@@ -418,6 +419,7 @@ bool GameManager::update()
             loadSaveData();
             onStart.invoke();
             updatesSinceFrame = 0;
+            lastGameMoment = 0;
             justEnteredGame = true;
         }
 
@@ -488,6 +490,13 @@ bool GameManager::update()
         }
     }
 
+    uint16_t currentGameMoment = getGameMoment();
+    if (currentGameMoment != lastGameMoment)
+    {
+        onGameMomentChanged.invoke(currentGameMoment);
+        lastGameMoment = currentGameMoment;
+    }
+
     // Check if we are on game over screen
     if (waitingForGameOver)
     {
@@ -542,6 +551,17 @@ bool GameManager::update()
 
     lastUpdateDuration = Utilities::getTimeMS() - currentTime;
     return true;
+}
+
+void GameManager::setDifficultyScale(float newScale)
+{
+    if (difficultyScale == newScale)
+    {
+        return;
+    }
+
+    difficultyScale = Utilities::clamp(newScale, 0.0f, 1.0f);
+    onDifficultyScaleChanged.invoke(difficultyScale);
 }
 
 std::array<uint8_t, 3> GameManager::getPartyIDs()

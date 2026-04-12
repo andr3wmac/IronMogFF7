@@ -17,6 +17,8 @@ private:
     void onFrame(uint32_t frameNumber);
 
     void checkPartyMembers();
+    void checkWItemDuping();
+    void checkFieldItemDuping();
 
     std::array<bool, 3> wItemPartyMembers;
     std::deque<std::pair<uint16_t, uint8_t>> wItemCache;

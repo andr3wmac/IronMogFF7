@@ -19,6 +19,7 @@ void RandomizeEncounters::setup()
     BIND_EVENT_ONE_ARG(game->onFieldChanged, RandomizeEncounters::onFieldChanged);
     BIND_EVENT(game->onWorldMapEnter, RandomizeEncounters::onWorldMapEnter);
     BIND_EVENT(game->onBattleEnter, RandomizeEncounters::onBattleEnter);
+    BIND_EVENT_ONE_ARG(game->onDifficultyScaleChanged, RandomizeEncounters::onDifficultyScaleChanged);
 
     // Debug Room fights
     addExclusions({ 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 22, 23, 24, 25, 26, 952, 953, 954, 955, 957, 958, 959, 989, 990, 991, 996, 997, 998, 999 });
@@ -136,7 +137,7 @@ void RandomizeEncounters::saveSettings(ConfigFile& cfg)
     cfg.set<int>("levelsAbove",         levelsAbove);
     cfg.set<float>("minStatMultiplier", minStatMultiplier);
     cfg.set<float>("maxStatMultiplier", maxStatMultiplier);
-    cfg.set<bool>("defenseSoftCap",  defenseSoftCap);
+    cfg.set<bool>("defenseSoftCap",     defenseSoftCap);
 }
 
 void RandomizeEncounters::onDebugGUI()
@@ -221,7 +222,36 @@ std::vector<std::string> RandomizeEncounters::describe(RuleDescripionType descTy
     {
         if (minStatMultiplier != 1.0f || maxStatMultiplier != 1.0f)
         {
-            return { Utilities::formatFloat(minStatMultiplier) + "-" + Utilities::formatFloat(maxStatMultiplier) + "x Enemy Stats" };
+            float difficultyScale = game->getDifficultyScale();
+
+            float scaledMin = minStatMultiplier >= 1.0f
+                ? 1.0f + (minStatMultiplier - 1.0f) * difficultyScale
+                : minStatMultiplier;
+
+            float scaledMax = maxStatMultiplier >= 1.0f
+                ? 1.0f + (maxStatMultiplier - 1.0f) * difficultyScale
+                : maxStatMultiplier;
+
+            return { Utilities::formatFloat(scaledMin) + "-" + Utilities::formatFloat(scaledMax) + "x Enemy Stats" };
+        }
+    }
+
+    if (descType == RuleDescripionType::Unique)
+    {
+        float difficultyScale = game->getDifficultyScale();
+        int scaledLevelsAbove = (int)(levelsAbove * difficultyScale);
+
+        if (levelsBelow == 0 && levelsAbove > 0)
+        {
+            return { "Random encounters up to " + std::to_string(scaledLevelsAbove) + " levels higher"};
+        }
+        else if (levelsBelow > 0 && levelsAbove == 0)
+        {
+            return { "Random encounters up to " + std::to_string(scaledLevelsAbove) + " levels lower" };
+        }
+        else if (levelsBelow > 0 && levelsAbove > 0)
+        {
+            return { "Random encounters -" + std::to_string(levelsBelow) + "/+" + std::to_string(scaledLevelsAbove) + " levels" };
         }
     }
 
@@ -382,6 +412,15 @@ void RandomizeEncounters::onBattleEnter()
     }
 }
 
+void RandomizeEncounters::onDifficultyScaleChanged(float newDifficultyScale)
+{
+    // Recompute enemy stat multipliers
+    generateEnemyStatMultipliers();
+
+    // Recompute level ranges
+    generateRandomEncounterMap();
+}
+
 uint8_t getMaxLevelInFormation(const BattleScene& scene, const BattleFormation& formation)
 {
     uint8_t maxLevel = 0;
@@ -423,6 +462,10 @@ std::vector<uint16_t> RandomizeEncounters::findCandidates(int maxLevel, int batt
 {
     std::vector<uint16_t> candidates;
 
+    // Scale Levels Above based on difficulty scaling
+    float difficultyScale = game->getDifficultyScale();
+    int scaledLevelsAbove = (int)(levelsAbove * difficultyScale);
+
     for (const auto& [candidateSceneID, candidateScene] : GameData::battleScenes)
     {
         // Check each formation in this scene.
@@ -444,7 +487,7 @@ std::vector<uint16_t> RandomizeEncounters::findCandidates(int maxLevel, int batt
 
             // Skip formation if it exceeds the allowable range
             int candidateMaxLevel = getMaxLevelInFormation(candidateScene, candidateFormation);
-            if (candidateMaxLevel < maxLevel - levelsBelow || candidateMaxLevel > (maxLevel + levelsAbove))
+            if (candidateMaxLevel < maxLevel - levelsBelow || candidateMaxLevel > (maxLevel + scaledLevelsAbove))
             {
                 continue;
             }
@@ -511,7 +554,21 @@ void RandomizeEncounters::generateEnemyStatMultipliers()
         }
     }
 
-    std::uniform_real_distribution<float> dist(minStatMultiplier, maxStatMultiplier);
+    // If min or max stat multipliers are less than 1.0 then its making the game easier
+    // and difficulty progression does not apply, those go through unchanged.
+    // Otherwise we lerp from 1.0 towards the final value based on difficulty scale value.
+
+    float difficultyScale = game->getDifficultyScale();
+
+    float scaledMin = minStatMultiplier >= 1.0f
+        ? 1.0f + (minStatMultiplier - 1.0f) * difficultyScale
+        : minStatMultiplier;
+
+    float scaledMax = maxStatMultiplier >= 1.0f
+        ? 1.0f + (maxStatMultiplier - 1.0f) * difficultyScale
+        : maxStatMultiplier;
+
+    std::uniform_real_distribution<float> dist(scaledMin, scaledMax);
 
     for (uint16_t enemyID : enemyIDs)
     {

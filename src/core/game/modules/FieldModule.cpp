@@ -264,14 +264,13 @@ bool FieldModule::isFieldDataLoaded(bool justConnected)
     // Field is ready if we've hit peak fade out and started coming back down.
     uint16_t screenFade = game->read<uint16_t>(GameOffsets::FieldScreenFade);
     bool isScreenReady = (lastFieldScreenFade == 0x100 && screenFade < lastFieldScreenFade);
-    lastFieldScreenFade = screenFade;
-
+    
     if (justConnected && screenFade == 0)
     {
         isScreenReady = true;
     }
 
-    // Hack fix for base of tower transition after wedge falls. For whatever reason 
+    // HACK: fix for base of tower transition after wedge falls. For whatever reason 
     // FieldScreenFade stays at 256 the whole time.
     {
         if (fieldID == 156 && game->getGameMoment() == 218)
@@ -291,8 +290,15 @@ bool FieldModule::isFieldDataLoaded(bool justConnected)
             uint8_t screenBlack = game->read<uint8_t>(0x9AC40);
             isScreenReady = (screenFade == 0 && screenBlack == 0);
         }
+
+        // HACK: fix for Tifa waking up in Dr's Office
+        if (fieldID == 400 && game->getGameMoment() == 999)
+        {
+            isScreenReady = lastFieldScreenFade == 0 && screenFade > 0;
+        }
     }
 
+    lastFieldScreenFade = screenFade;
     return isScreenReady;
 }
 
@@ -341,6 +347,12 @@ int FieldModule::findPickUpMessage(std::string itemName, uint8_t group, uint8_t 
     if (bestIndex == -1 && itemName == "Luck Plus")
     {
         return findPickUpMessage("Lucky Plus", group, script, offset);
+    }
+
+    // HACK: "Megalixir" is sometimes "Last Elixir" in field pick up messages.
+    if (bestIndex == -1 && itemName == "Megalixir")
+    {
+        return findPickUpMessage("Last Elixir", group, script, offset);
     }
 
     return bestIndex;

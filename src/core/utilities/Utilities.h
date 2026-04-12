@@ -124,6 +124,29 @@ public:
         return vec;
     }
 
+    static std::vector<std::string> loadListFromFile(const std::string& filename) 
+    {
+        std::vector<std::string> lines;
+
+        std::ifstream file(filename);
+        if (!file.is_open()) 
+        {
+            return lines;
+        }
+
+        std::string currentLine;
+        while (std::getline(file, currentLine)) 
+        {
+            if (!currentLine.empty()) 
+            {
+                lines.push_back(currentLine);
+            }
+        }
+
+        file.close();
+        return lines;
+    }
+
     static inline std::string trim(const std::string& str) 
     {
         const char* whitespace = " \t\n\r";
@@ -267,6 +290,18 @@ public:
         };
     }
 
+    template<class T>
+    static constexpr const T& clamp(const T& v, const T& lo, const T& hi) 
+    {
+        return (v < lo) ? lo : (hi < v) ? hi : v;
+    }
+
+    template<class T, class U>
+    static constexpr T lerp(const T& a, const T& b, const U& t)
+    {
+        return a + t * (b - a);
+    }
+
     template <typename Target, typename Source>
     static Target clampTo(Source value) 
     {
@@ -290,5 +325,33 @@ public:
         );
 
         return folderEnd == canonicalFolder.end();
+    }
+
+    // Strips white space and other symbols to produce an Ini friendly key
+    static std::string toIniKey(const std::string& name)
+    {
+        std::string result;
+        bool capitalizeNext = true;
+
+        for (unsigned char c : name)
+        {
+            if (std::isalpha(c))
+            {
+                result += capitalizeNext ? std::toupper(c) : std::tolower(c);
+                capitalizeNext = false;
+            }
+            else if (std::isdigit(c))
+            {
+                result += c;
+                capitalizeNext = true; // .title() capitalizes after digits
+            }
+            else if (c == ' ')
+            {
+                capitalizeNext = true;
+            }
+            // other characters: skip without changing capitalizeNext
+        }
+
+        return result;
     }
 };

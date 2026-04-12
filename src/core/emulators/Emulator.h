@@ -17,8 +17,11 @@ public:
     Emulator();
     ~Emulator();
 
-    virtual uintptr_t getPS1MemoryOffset() { return 0; }
     virtual bool connect(std::string processName);
+
+    // Locates the PS1 memory space and sets either ps1MappedView (fast path)
+    // or ps1BaseAddress (cross-process path). Returns false if memory could not be found.
+    virtual bool resolveMemory() { return false; }
 
     virtual bool read(uintptr_t offset, void* outBuffer, size_t size);
     virtual bool write(uintptr_t offset, void* inValue, size_t size);
@@ -32,8 +35,9 @@ public:
     bool pollErrors(int errorThreshold = 5);
 
 protected:
-    void* processHandle;
-    uintptr_t ps1BaseAddress;
-    int readErrorCount = 0;
-    int writeErrorCount = 0;
+    void* processHandle      = nullptr;
+    uintptr_t ps1BaseAddress = 0;
+    void* ps1MappedView      = nullptr;
+    int readErrorCount       = 0;
+    int writeErrorCount      = 0;
 };

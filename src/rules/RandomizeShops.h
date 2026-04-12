@@ -35,6 +35,7 @@ public:
 
 private:
     void onStart();
+    void onShopPricesRead(const char* section, const char* line);
     void generateRandomizedShops();
     void onFieldChanged(uint16_t fieldID);
     void onShopOpened();
@@ -43,11 +44,12 @@ private:
     uint16_t randomizeShopItem(uint16_t itemID, const std::set<uint16_t>& previouslyChosen);
     uint16_t randomizeShopMateria(uint16_t materiaID, const std::set<uint16_t>& previouslyChosen);
 
-    bool disableShops = false;
-    bool keepShopPrices = true;
-    bool keepItemType = true;
-    bool excludeRareItems = true;
-    bool excludeSources = true;
+    bool disableShops       = false;
+    bool keepShopPrices     = true;
+    bool keepItemType       = true;
+    bool excludeRareItems   = true;
+    bool excludeSources     = true;
+    bool useBalancedPrices  = true;
 
     float minPriceMultiplier = 1.0f;
     float maxPriceMultiplier = 1.0f;
@@ -56,6 +58,8 @@ private:
     std::unordered_map<uint8_t, RandomizedShop> randomizedShops;
     uint16_t lastFieldID = 0;
     std::set<uint8_t> fieldShopIDs;
+
+    std::unordered_map<std::string, uint32_t> customPrices;
 
     std::array<uint32_t, 320> itemBuyPrices;
     std::array<uint32_t, 320> itemSellPrices;

@@ -53,6 +53,26 @@ void Permadeath::setup()
     }
 }
 
+bool Permadeath::onSettingsGUI()
+{
+    bool changed = false;
+
+    changed |= ImGui::Checkbox("Delete Equipped", &deleteEquipped);
+    ImGui::SetItemTooltip("Anything equipped at the time of death is deleted.");
+
+    return changed;
+}
+
+void Permadeath::loadSettings(const ConfigFile& cfg)
+{
+    deleteEquipped = cfg.get<bool>("deleteEquipped", deleteEquipped);
+}
+
+void Permadeath::saveSettings(ConfigFile& cfg)
+{
+    cfg.set<bool>("deleteEquipped", deleteEquipped);
+}
+
 void Permadeath::onDebugGUI()
 {
     std::string deadCharText = "Dead Characters: ";
@@ -89,10 +109,10 @@ void Permadeath::onDebugGUI()
     ImGui::SameLine();
     if (ImGui::Button("Kill"))
     {
-        uint16_t charID = atoi(debugKillCharacterIndex);
+        uint8_t charID = atoi(debugKillCharacterIndex);
         if (charID >= 0 && charID <= 9)
         {
-            deadCharacters.setBit(charID, true);
+            killCharacter(charID);
         }
     }
 }
@@ -154,10 +174,7 @@ void Permadeath::onFrame(uint32_t frameNumber)
 
             if (isDead)
             {
-                deadCharacters.setBit(id, true);
-                game->write<uint16_t>(SavemapOffsets::IronMogPermadeath, deadCharacters.value());
-                justDiedCharacters.insert(id);
-                LOG("Character has died: %d", id);
+                killCharacter(id);
             }
         }
 
@@ -253,6 +270,34 @@ void Permadeath::onBattleExit()
     if (fieldID == RUFUS_FIELD_ID && appliedRufusRandom)
     {
         waitingOnBattleExit = true;
+    }
+}
+
+void Permadeath::killCharacter(uint8_t id)
+{
+    deadCharacters.setBit(id, true);
+    game->write<uint16_t>(SavemapOffsets::IronMogPermadeath, deadCharacters.value());
+    justDiedCharacters.insert(id);
+    LOG("Character has died: %d", id);
+
+    if (deleteEquipped)
+    {
+        // Weapons IDs for each characters default weapon.
+        static uint8_t defaultWeapons[] = { 0, 32, 16, 62, 48, 87, 101, 114, 73 };
+
+        uintptr_t characterOffset = getCharacterDataOffset(id);
+
+        // Delete equipment
+        game->write<uint8_t>(characterOffset + CharacterDataOffsets::EquippedWeapon, defaultWeapons[id]);
+        game->write<uint8_t>(characterOffset + CharacterDataOffsets::EquippedArmor, 0x00);
+        game->write<uint8_t>(characterOffset + CharacterDataOffsets::EquippedAccessory, 0xFF);
+
+        // Clear weapon and armor materia slots
+        for (int i = 0; i < 8; ++i)
+        {
+            game->write<uint32_t>(characterOffset + CharacterDataOffsets::WeaponMateria[i], 0xFFFFFFFF);
+            game->write<uint32_t>(characterOffset + CharacterDataOffsets::ArmorMateria[i], 0xFFFFFFFF);
+        }
     }
 }
 

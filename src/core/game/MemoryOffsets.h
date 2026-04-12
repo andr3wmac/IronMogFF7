@@ -29,6 +29,8 @@ struct GameOffsets
     CONST_PTR PHSVisibilityMask = 0x9D78A;  // uint16_t bitmask of which characters are on PHS
     CONST_PTR WindowText        = 0xE4944;  // Array of window text entries, each window gets 256 characters, terminated by 0xFF.
     CONST_PTR WorldScreenFade   = 0x10B488; // uint8_t, 0 - 255 how much screen is faded for loading world map
+    CONST_PTR NameEntryString   = 0x1D977C; // string used during character name entry
+    CONST_PTR NameEntryCursor   = 0x1D978C; // uint8_t cursor position in name entry
 };
 
 inline uintptr_t getWindowTextOffset(uint8_t index)
@@ -149,6 +151,10 @@ struct CharacterDataOffsets
     CONST_PTR Name              = 0x10;
     CONST_PTR CurrentHP         = 0x2C;
     CONST_PTR MaxHP             = 0x38;
+
+    CONST_PTR EquippedWeapon    = 0x1C; // uint8_t
+    CONST_PTR EquippedArmor     = 0x1D; // uint8_t
+    CONST_PTR EquippedAccessory = 0x1E; // uint8_t
 
     CONST_PTR WeaponMateria[] = { 0x40, 0x44, 0x48, 0x4C, 0x50, 0x54, 0x58, 0x5C };
     CONST_PTR ArmorMateria[]  = { 0x60, 0x64, 0x68, 0x6C, 0x70, 0x74, 0x78, 0x7C };
@@ -297,6 +303,7 @@ struct BattleSceneOffsets
     CONST_PTR DropRates[] = { 0x88, 0x89, 0x8A, 0x8B };
     CONST_PTR DropIDs[]   = { 0x8C, 0x8E, 0x90, 0x92 };
 
+    CONST_PTR AP          = 0x9E; // uint16_t amount of AP points received from this enemy.
     CONST_PTR MorphItemID = 0xA0; // uint16_t item the enemy can be morphed into. 0xFFFF if none.
 };
 
@@ -420,4 +427,13 @@ struct SavemapOffsets
     CONST_PTR IronMogPermadeath = Start + 0x0B63;  // uint16_t used by permadeath to track dead characters
 
     CONST_PTR BuggyHighwindPosition = Start + 0x0F74;
+};
+
+struct AKAOOffsets
+{
+    CONST_PTR TrackStart = 0x96608;
+    CONST_PTR TrackStride = 0x108;
+
+    // Fields on each on AKAO Track
+    CONST_PTR MasterVolume = 0x2C;
 };

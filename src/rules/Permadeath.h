@@ -15,6 +15,10 @@ class Permadeath : public Rule
 {
 public:
     void setup() override;
+    bool hasSettings() override { return true; }
+    bool onSettingsGUI() override;
+    void loadSettings(const ConfigFile& cfg) override;
+    void saveSettings(ConfigFile& cfg) override;
     bool hasDebugGUI() override { return true; }
     void onDebugGUI() override;
     std::vector<std::string> describe(RuleDescripionType descType) override;
@@ -30,11 +34,14 @@ private:
     void onFieldChanged(uint16_t fieldID);
     void onBattleExit();
 
+    void killCharacter(uint8_t id);
     bool isExempt(uint16_t fieldID);
     std::vector<uint8_t> getLivingCharacters();
     int selectRandomLivingCharacter(uint16_t fieldID, uint8_t ignoreCharacter);
     void updateOverrideFights();
     
+    bool deleteEquipped = true;
+
     std::vector<PermadeathExemption> exemptions;
     Flags<uint16_t> deadCharacters;
     std::set<uint8_t> justDiedCharacters;

@@ -274,15 +274,16 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
     {
         uint16_t screenFade = game->read<uint16_t>(GameOffsets::FieldScreenFade);
 
-        // Hack fix for Tifa and Cloud scene before northern crater
-        if (game->getFieldID() == 771 && game->getGameMoment() == 1612 && screenFade > 1 && screenFade < 120)
+        // HACK: fix for Tifa and Cloud scene before northern crater
+        if (game->getFieldID() == 771 && game->getGameMoment() == 1612 && 
+            screenFade > 1 && screenFade < 120)
         {
             modelEditor.openFieldModels();
             applyColors();
             appliedHackFix = true;
         }
 
-        // Hack fix for Aerith forest scene after demons gate.
+        // HACK: fix for Aerith forest scene after demons gate.
         // Her model seems to have the colors reloaded after they do a bright white
         // effect to it. Its reloaded behind the tree, so we detect when her models
         // at the position behind the tree then reapply coloring.
@@ -295,6 +296,16 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
                 applyColors();
                 appliedHackFix = true;
             }
+        }
+
+        // HACK: CSR has fails to apply colors when we flash to cloud upside in the tree.
+        if (game->getGameVersion() == GameVersion::PlayStationUS_CSR && 
+            game->getFieldID() == 707 && game->getGameMoment() == 794 &&
+            screenFade > 5)
+        {
+            modelEditor.openFieldModels();
+            applyColors();
+            appliedHackFix = true;
         }
     }
 

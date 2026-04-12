@@ -5,6 +5,7 @@
 #include <windows.h>
 #include <tlhelp32.h>
 #include <psapi.h>
+#include <winternl.h>
 
 #pragma comment(lib, "Winmm.lib")
 #include <timeapi.h>
@@ -29,6 +30,39 @@ typedef NTSTATUS(WINAPI* NtWriteVirtualMemory_t)(
     SIZE_T BufferSize,
     PSIZE_T NumberOfBytesWritten
     );
+
+// NtQuerySystemInformation function signature
+typedef NTSTATUS(NTAPI* NtQuerySystemInformation_t)(
+    SYSTEM_INFORMATION_CLASS, PVOID, ULONG, PULONG);
+
+// NtMapViewOfSection function signature
+typedef NTSTATUS(NTAPI* NtMapViewOfSection_t)(
+    HANDLE, HANDLE, PVOID*, ULONG_PTR, SIZE_T,
+    PLARGE_INTEGER, PSIZE_T, DWORD, ULONG, ULONG);
+
+// NtUnmapViewOfSection function signature
+typedef NTSTATUS(NTAPI* NtUnmapViewOfSection_t)(
+    HANDLE, PVOID);
+
+typedef struct _SYSTEM_HANDLE_TABLE_ENTRY_INFO {
+    USHORT UniqueProcessId;
+    USHORT CreatorBackTraceIndex;
+    UCHAR ObjectTypeIndex;
+    UCHAR HandleAttributes;
+    USHORT HandleValue;
+    PVOID Object;
+    ULONG GrantedAccess;
+} SYSTEM_HANDLE_TABLE_ENTRY_INFO;
+
+typedef struct _SYSTEM_HANDLE_INFORMATION {
+    ULONG NumberOfHandles;
+    SYSTEM_HANDLE_TABLE_ENTRY_INFO Handles[1];
+} SYSTEM_HANDLE_INFORMATION;
+
+constexpr SYSTEM_INFORMATION_CLASS SystemHandleInformation = (SYSTEM_INFORMATION_CLASS)16;
+
+#define STATUS_INFO_LENGTH_MISMATCH ((NTSTATUS)0xC0000004L)
+#define ViewUnmapped 1
 
 void Platform::initialize()
 {
@@ -313,4 +347,131 @@ void Platform::sleep(double sleepTimeMS)
     {
         YieldProcessor();
     }
+}
+
+void* Platform::mapSharedSection(void* processHandle, size_t minSize, std::function<bool(void*, size_t)> validator)
+{
+    static NtQuerySystemInformation_t NtQuerySystemInformationFn = nullptr;
+    static NtMapViewOfSection_t NtMapViewOfSectionFn = nullptr;
+    static NtUnmapViewOfSection_t NtUnmapViewOfSectionFn = nullptr;
+
+    if (!NtQuerySystemInformationFn || !NtMapViewOfSectionFn || !NtUnmapViewOfSectionFn)
+    {
+        HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+        if (!ntdll)
+        {
+            return nullptr;
+        }
+
+        NtQuerySystemInformationFn = (NtQuerySystemInformation_t)GetProcAddress(ntdll, "NtQuerySystemInformation");
+        NtMapViewOfSectionFn       = (NtMapViewOfSection_t)GetProcAddress(ntdll, "NtMapViewOfSection");
+        NtUnmapViewOfSectionFn     = (NtUnmapViewOfSection_t)GetProcAddress(ntdll, "NtUnmapViewOfSection");
+    }
+
+    DWORD targetPid = GetProcessId(processHandle);
+
+    // Query all system handles, growing buffer as needed
+    ULONG bufSize = 1 << 20;
+    std::unique_ptr<BYTE[]> buf;
+    NTSTATUS status;
+    do 
+    {
+        buf = std::make_unique<BYTE[]>(bufSize);
+        status = NtQuerySystemInformationFn(SystemHandleInformation, buf.get(), bufSize, nullptr);
+        if (status == STATUS_INFO_LENGTH_MISMATCH)
+        {
+            bufSize *= 2;
+        }
+    } while (status == STATUS_INFO_LENGTH_MISMATCH);
+
+    if (!NT_SUCCESS(status))
+    {
+        return nullptr;
+    }
+
+    auto* handleInfo = reinterpret_cast<SYSTEM_HANDLE_INFORMATION*>(buf.get());
+
+    for (ULONG i = 0; i < handleInfo->NumberOfHandles; i++)
+    {
+        auto& entry = handleInfo->Handles[i];
+
+        // Only look at handles belonging to the target process
+        if (entry.UniqueProcessId != targetPid)
+        {
+            continue;
+        }
+
+        // Try to duplicate the handle into our process
+        HANDLE localHandle = nullptr;
+        if (!DuplicateHandle(
+            processHandle,
+            (HANDLE)(uintptr_t)entry.HandleValue,
+            GetCurrentProcess(),
+            &localHandle,
+            FILE_MAP_READ | FILE_MAP_WRITE,
+            FALSE,
+            0))
+        {
+            continue;
+        }
+
+        // Try to map it as a section
+        PVOID view = nullptr;
+        SIZE_T viewSize = 0;
+        LARGE_INTEGER offset{};
+        status = NtMapViewOfSectionFn(
+            localHandle,
+            GetCurrentProcess(),
+            &view,
+            0, 0,
+            &offset,
+            &viewSize,
+            ViewUnmapped,
+            0,
+            PAGE_READWRITE);
+
+        if (!NT_SUCCESS(status) || !view)
+        {
+            CloseHandle(localHandle);
+            continue;
+        }
+
+        if (viewSize < minSize)
+        {
+            NtUnmapViewOfSectionFn(GetCurrentProcess(), view);
+            CloseHandle(localHandle);
+            continue;
+        }
+
+        if (validator(view, viewSize))
+        {
+            // Found a match. The view holds its own reference so we can
+            // close the duplicated localHandle immediately.
+            CloseHandle(localHandle);
+            return view;
+        }
+
+        NtUnmapViewOfSectionFn(GetCurrentProcess(), view);
+        CloseHandle(localHandle);
+    }
+
+    return nullptr;
+}
+
+void Platform::unmapSharedSection(void* view)
+{
+    static NtUnmapViewOfSection_t NtUnmapViewOfSectionFn = nullptr;
+
+    if (!NtUnmapViewOfSectionFn)
+    {
+        HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+        if (!ntdll)
+        {
+            return;
+        }
+
+        NtUnmapViewOfSectionFn = (NtUnmapViewOfSection_t)GetProcAddress(ntdll, "NtUnmapViewOfSection");
+    }
+
+    NtUnmapViewOfSectionFn(GetCurrentProcess(), view);
 }

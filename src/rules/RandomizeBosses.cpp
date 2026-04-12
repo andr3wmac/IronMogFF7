@@ -35,7 +35,9 @@ void RandomizeBosses::setup()
 {
     BIND_EVENT(game->onStart, RandomizeBosses::onStart);
     BIND_EVENT(game->onBattleEnter, RandomizeBosses::onBattleEnter);
+    BIND_EVENT(game->onBattleEnter, RandomizeBosses::onBattleEnter);
     BIND_EVENT_ONE_ARG(game->onBattleTransition, RandomizeBosses::onBattleTransition);
+    BIND_EVENT_ONE_ARG(game->onDifficultyScaleChanged, RandomizeBosses::onDifficultyScaleChanged);
 }
 
 bool RandomizeBosses::onSettingsGUI()
@@ -202,7 +204,17 @@ std::vector<std::string> RandomizeBosses::describe(RuleDescripionType descType)
     {
         if (minStatMultiplier != 1.0f || maxStatMultiplier != 1.0f)
         {
-            return { Utilities::formatFloat(minStatMultiplier) + "-" + Utilities::formatFloat(maxStatMultiplier) + "x Boss Stats" };
+            float difficultyScale = game->getDifficultyScale();
+
+            float scaledMin = minStatMultiplier >= 1.0f
+                ? 1.0f + (minStatMultiplier - 1.0f) * difficultyScale
+                : minStatMultiplier;
+
+            float scaledMax = maxStatMultiplier >= 1.0f
+                ? 1.0f + (maxStatMultiplier - 1.0f) * difficultyScale
+                : maxStatMultiplier;
+
+            return { Utilities::formatFloat(scaledMin) + "-" + Utilities::formatFloat(scaledMax) + "x Boss Stats" };
         }
     }
 
@@ -240,7 +252,21 @@ void RandomizeBosses::generateBossStatMultipliers()
 {
     bossStatMultipliers.clear();
 
-    std::uniform_real_distribution<float> dist(minStatMultiplier, maxStatMultiplier);
+    // If min or max stat multipliers are less than 1.0 then its making the game easier
+    // and difficulty progression does not apply, those go through unchanged.
+    // Otherwise we lerp from 1.0 towards the final value based on difficulty scale value.
+
+    float difficultyScale = game->getDifficultyScale();
+
+    float scaledMin = minStatMultiplier >= 1.0f
+        ? 1.0f + (minStatMultiplier - 1.0f) * difficultyScale
+        : minStatMultiplier;
+
+    float scaledMax = maxStatMultiplier >= 1.0f
+        ? 1.0f + (maxStatMultiplier - 1.0f) * difficultyScale
+        : maxStatMultiplier;
+
+    std::uniform_real_distribution<float> dist(scaledMin, scaledMax);
 
     for (const Boss& boss : GameData::bosses)
     {
@@ -313,6 +339,12 @@ void RandomizeBosses::onBattleEnter()
 void RandomizeBosses::onBattleTransition(uint16_t newFormationID)
 {
     applyBossRandomization();
+}
+
+void RandomizeBosses::onDifficultyScaleChanged(float newDifficultyScale)
+{
+    // Recompute boss stat multipliers
+    generateBossStatMultipliers();
 }
 
 void RandomizeBosses::applyBossRandomization()

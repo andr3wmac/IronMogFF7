@@ -5,7 +5,7 @@
 class BizHawk : public Emulator
 {
 public:
-    uintptr_t getPS1MemoryOffset() override;
+    bool resolveMemory() override;
 
 private:
     uintptr_t findPS1MemoryOffset(uintptr_t searchStartAddr, uintptr_t searchEndAddr);

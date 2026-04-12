@@ -44,6 +44,9 @@ public:
     GameState getState();
     bool update();
 
+    float getDifficultyScale() { return difficultyScale; }
+    void setDifficultyScale(float newScale);
+
     // Returns how long the last update() took in ms.
     double getLastUpdateDuration() { return lastUpdateDuration; }
 
@@ -95,13 +98,16 @@ public:
     Event<> onEmulatorResumed;
     Event<int> onFrame;                     // Triggers when the game's frame number advances.
     Event<uint8_t> onModuleChanged;
+    Event<uint16_t> onGameMomentChanged;
     Event<> onBattleEnter; 
     Event<uint16_t> onBattleTransition;     // Triggers when a battle transitions from one formation to another. Like a multi-phase boss.
     Event<> onBattleExit;
     Event<uint16_t> onFieldChanged;
     Event<> onShopOpened;
     Event<uint8_t> onShopMenuChanged;       // Triggers when player moves the cursor between Buy and Sell in shop menu.
+    Event<std::string> onNameEntryOpened;
     Event<> onWorldMapEnter;
+    Event<float> onDifficultyScaleChanged;  // Triggers when the difficulty scaling changes, intended to trigger rules to update.
 
     // Read/Write RAM Functions
     template <typename T>
@@ -129,7 +135,7 @@ public:
     }
 
     std::string readString(uintptr_t offset, uint32_t length);
-    void writeString(uintptr_t offset, uint32_t length, const std::string& string, bool centerAlign = false);
+    size_t writeString(uintptr_t offset, uint32_t length, const std::string& string, bool centerAlign = false);
 
 private:
     Emulator* emulator;
@@ -137,6 +143,7 @@ private:
     uint8_t gameDisc = 1;
 
     GameState lastGameState = GameState::BootScreen;
+    uint16_t lastGameMoment = 0;
     bool emulatorPaused = false;
     double lastUpdateDuration = 0.0;
     uint32_t seed = 0;
@@ -146,6 +153,7 @@ private:
     int framesSinceReload = 0;
     bool justEnteredGame = false;
     bool waitingForGameOver = false;
+    float difficultyScale = 1.0f;
 
     // A set of pointers to the last line of field script executed within each group. 
     uint16_t fieldScriptExecutionTable[64];

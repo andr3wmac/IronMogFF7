@@ -38,6 +38,7 @@ private:
     void onStart();
     void onEmulatorPaused();
     void onEmulatorResumed();
+    void onUpdate();
     void onFrame(uint32_t frameNumber);
 
     void scanMusicFolder();

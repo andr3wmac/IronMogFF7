@@ -26,7 +26,6 @@ public:
     Event<int, int> onResize;
 
     GUI();
-    void registerSettingsHandler(const char* name, std::function<void(const char*, const char*)> onReadLine, std::function<void(ImGuiTextBuffer*)> onWrite);
     bool initialize(int width, int height, const char* windowTitle);
     void destroy();
 
@@ -42,14 +41,14 @@ public:
     std::string saveFileDialog();
 
 private:
-    std::vector<std::unique_ptr<SettingsHandler>> settingsHandlers;
     GLFWwindow* window;
 
     void onResizeCallback(GLFWwindow* window, int width, int height);
     void onKeyCallback(int key, int scancode, int action, int mods);
 
 public:
-    static float dpiScale;
+    static void readIni(const char* filePath, const char* name, std::function<void(const char*, const char*)> onReadLine);
+    static void registerSettingsHandler(const char* name, std::function<void(const char*, const char*)> onReadLine, std::function<void(ImGuiTextBuffer*)> onWrite);
 
     static void drawImage(GUIImage& image, int width, int height, float alpha = 1.0f);
     static void drawColorGrid(const std::string& name, std::vector<Utilities::Color>& colors, std::function<void(int, Utilities::Color)> onClickCallback = {}, float boxSize = 16.0f, float spacing = 2.0f, int colorsPerRow = 24);
@@ -59,6 +58,9 @@ public:
     static void* imGuiSettingsReadOpen(ImGuiContext*, ImGuiSettingsHandler* handler, const char* name);
     static void imGuiSettingsReadLine(ImGuiContext*, ImGuiSettingsHandler* handler, void* entry, const char* line);
     static void imGuiSettingsWriteAll(ImGuiContext*, ImGuiSettingsHandler* handler, ImGuiTextBuffer* buf);
+
+    static std::vector<std::unique_ptr<SettingsHandler>> settingsHandlers;
+    static float dpiScale;
 };
 
 struct GUIImage

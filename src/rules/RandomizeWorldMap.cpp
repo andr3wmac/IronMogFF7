@@ -16,6 +16,8 @@ void RandomizeWorldMap::setup()
     BIND_EVENT_ONE_ARG(game->onFrame, RandomizeWorldMap::onFrame);
     BIND_EVENT(game->onWorldMapEnter, RandomizeWorldMap::onWorldMapEnter);
     BIND_EVENT_ONE_ARG(game->onFieldChanged, RandomizeWorldMap::onFieldChanged);
+    BIND_EVENT_ONE_ARG(game->onModuleChanged, RandomizeWorldMap::onModuleChanged);
+    BIND_EVENT(game->onUpdate, RandomizeWorldMap::onUpdate);
 }
 
 void RandomizeWorldMap::onDebugGUI()
@@ -333,6 +335,17 @@ void RandomizeWorldMap::onFieldChanged(uint16_t fieldID)
         }
     }
 
+    // Chocobo ranch exit on chocobo needs to be patched.
+    if (fieldID == 345)
+    {
+        uint16_t exitIndex = getRandomEntrance(3);
+        WorldMapEntrance& randEntrance = GameData::worldMapEntrances[exitIndex];
+
+        // Overwrite the MAPJUMP command to jump to the field we want.
+        game->write<uint16_t>(FieldScriptOffsets::ScriptStart + 0x35A8 + 1, randEntrance.fieldID);
+        LOG("Changed chocobo stable exit to: %d", randEntrance.fieldID);
+    }
+
     // Weapons seller will teleport us back onto world map, we need to patch it.
     if (fieldID == 79 && currentGameMoment < 566)
     {
@@ -395,4 +408,98 @@ uint16_t RandomizeWorldMap::getRandomEntrance(uint16_t entranceIndex)
 
     uint16_t randomEntIndex = randomizedEntrances[entranceIndex];
     return randomEntIndex;
+}
+
+void RandomizeWorldMap::onModuleChanged(uint8_t newModule)
+{
+    if (newModule == GameModule::World)
+    {
+        enteringWorld = true;
+    }
+}
+
+// We're trying to hot patch world scripts before they get executed so 
+// this takes recognizing they're loaded as early as possible.
+void RandomizeWorldMap::onUpdate()
+{
+    if (!enteringWorld)
+    {
+        return;
+    }
+
+    // We only need to patch if we're exiting chocobo ranch stables
+    uint16_t fieldId = game->getFieldID();
+    if (fieldId != 345)
+    {
+        enteringWorld = false;
+        return;
+    }
+
+    // Check the four gotos we're expecting for the chocobo ranch possibilities.
+    static uintptr_t gotoAddr[4] = { 0xD0DB4, 0xD0DE8, 0xD0E9E, 0xD0ED2 };
+    for (int i = 0; i < 4; ++i)
+    {
+        uint16_t gotoOp = game->read<uint16_t>(gotoAddr[i] + 0);
+        uint16_t gotoVal = game->read<uint16_t>(gotoAddr[i] + 2);
+
+        if (gotoOp != 0x0200 || gotoVal != 0x083D)
+        {
+            return;
+        }
+    }
+
+    // Find which randomized entrance takes us to chocobo ranch
+    int ranchEntranceIdx = -1;
+    for (auto entry : randomizedEntrances)
+    {
+        // Index 2 is exit 3 (chocobo ranch)
+        if (entry.second == 2)
+        {
+            ranchEntranceIdx = entry.first;
+        }
+    }
+
+    // Don't need to patch if it wasn't randomized.
+    if (ranchEntranceIdx == -1 || ranchEntranceIdx == 2)
+    {
+        enteringWorld = false;
+        return;
+    }
+
+    // The patch works as follows:
+    // - Patch the final GOTO in whatever exit we came out at to jump to the chocobo ranch exit code.
+    // - Patch the chocobo ranch exit code to move character to the randomized exit location.
+    // This way we hit both sections of exit code but still get the chocobo riding.
+
+    WorldMapEntrance& randEntrance = GameData::worldMapEntrances[ranchEntranceIdx];
+    LOG("Patching world map script for chocobo stable exit: %d", randEntrance.fieldID);
+
+    // These are location data thats used to set the player position on exit.
+    static uintptr_t posAddr[4] = { 0xD0D96, 0xD0DCA, 0xD0E80, 0xD0EB4 };
+    static uint16_t patchValues[4][4] = {
+        {0x0016, 0x000F, 0x1524, 0x01BD}, // Midgar
+        {0x0018, 0x000D, 0x13D6, 0x1920}, // Kalm
+        {0x001D, 0x0010, 0x0712, 0x1D23}, // Chocobo Ranch
+        {0x001A, 0x0012, 0x073D, 0x15BA}  // Mithril Mine 
+    };
+
+    if (randEntrance.fieldID == 1 || randEntrance.fieldID == 2 || randEntrance.fieldID == 4)
+    {
+        int idx = randEntrance.fieldID - 1;
+
+        // Jump to chocobo setup
+        game->write<uint16_t>(gotoAddr[idx] + 2, 0x0208);
+
+        // Set position to randomized location
+        game->write<uint16_t>(0xD0E82, patchValues[idx][0]);
+        game->write<uint16_t>(0xD0E86, patchValues[idx][1]);
+        game->write<uint16_t>(0xD0E8E, patchValues[idx][2]);
+        game->write<uint16_t>(0xD0E92, patchValues[idx][3]);
+    }
+    else 
+    {
+        LOG("Chocobo ranch randomized to unexpected entrance: %d", randEntrance.fieldID);
+    }
+
+    enteringWorld = false;
 }
