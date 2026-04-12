@@ -1864,6 +1864,8 @@ void GameData::loadGameData(GameVersion gameVersion, uint8_t gameDisc)
     addFieldScriptMateria(0x02CF, 11, 1, 0xB2A, 69);
     addFieldModels(0x02CF, {3,4,5,6,7,8,9,0,0,0,0});
     addField(0x02CD, "itown_w");
+    addFieldScriptMessage(0x02CD, 2, 21, 0, 0x776, 0x2003, 43);
+    addFieldScriptMessage(0x02CD, 4, 21, 0, 0xA3A, 0x2047, 41);
     addFieldScriptShop(0x02CD, 8, 1, 0xAD4, 47);
     addFieldScriptShop(0x02CD, 8, 3, 0xB30, 47);
     addFieldScriptMateria(0x02CD, 11, 1, 0x102D, 69);
@@ -5626,6 +5628,8 @@ void GameData::loadGameData(GameVersion gameVersion, uint8_t gameDisc)
         addFieldModels(0x02CB, {3,5,6,7,8,9,0});
         clearField(0x02CD);
         addField(0x02CD, "itown_w");
+        addFieldScriptMessage(0x02CD, 2, 21, 0, 0x776, 0x1FD3, 43);
+        addFieldScriptMessage(0x02CD, 4, 21, 0, 0xA35, 0x2017, 41);
         addFieldScriptShop(0x02CD, 8, 1, 0xACF, 47);
         addFieldScriptShop(0x02CD, 8, 3, 0xB2B, 47);
         addFieldScriptMateria(0x02CD, 11, 1, 0x1006, 69);
