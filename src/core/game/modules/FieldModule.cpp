@@ -270,7 +270,7 @@ bool FieldModule::isFieldDataLoaded(bool justConnected)
         isScreenReady = true;
     }
 
-    // Hack fix for base of tower transition after wedge falls. For whatever reason 
+    // HACK: fix for base of tower transition after wedge falls. For whatever reason 
     // FieldScreenFade stays at 256 the whole time.
     {
         if (fieldID == 156 && game->getGameMoment() == 218)
@@ -291,7 +291,7 @@ bool FieldModule::isFieldDataLoaded(bool justConnected)
             isScreenReady = (screenFade == 0 && screenBlack == 0);
         }
 
-        // Hack fix for Tifa waking up in Dr's Office
+        // HACK: fix for Tifa waking up in Dr's Office
         if (fieldID == 400 && game->getGameMoment() == 999)
         {
             isScreenReady = lastFieldScreenFade == 0 && screenFade > 0;

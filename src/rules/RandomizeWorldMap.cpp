@@ -418,7 +418,7 @@ void RandomizeWorldMap::onModuleChanged(uint8_t newModule)
     }
 }
 
-// Were trying to hot patch world scripts before they get executed so 
+// We're trying to hot patch world scripts before they get executed so 
 // this takes recognizing they're loaded as early as possible.
 void RandomizeWorldMap::onUpdate()
 {
@@ -466,9 +466,15 @@ void RandomizeWorldMap::onUpdate()
         return;
     }
 
+    // The patch works as follows:
+    // - Patch the final GOTO in whatever exit we came out at to jump to the chocobo ranch exit code.
+    // - Patch the chocobo ranch exit code to move character to the randomized exit location.
+    // This way we hit both sections of exit code but still get the chocobo riding.
+
     WorldMapEntrance& randEntrance = GameData::worldMapEntrances[ranchEntranceIdx];
     LOG("Patching world map script for chocobo stable exit: %d", randEntrance.fieldID);
 
+    // These are location data thats used to set the player position on exit.
     static uintptr_t posAddr[4] = { 0xD0D96, 0xD0DCA, 0xD0E80, 0xD0EB4 };
     static uint16_t patchValues[4][4] = {
         {0x0016, 0x000F, 0x1524, 0x01BD}, // Midgar

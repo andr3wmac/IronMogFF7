@@ -280,15 +280,16 @@ void Permadeath::killCharacter(uint8_t id)
     justDiedCharacters.insert(id);
     LOG("Character has died: %d", id);
 
-    static uint8_t defaultWeapons[] = {0, 32, 16, 62, 48, 87, 101, 114, 73};
-
     if (deleteEquipped)
     {
+        // Weapons IDs for each characters default weapon.
+        static uint8_t defaultWeapons[] = { 0, 32, 16, 62, 48, 87, 101, 114, 73 };
+
         uintptr_t characterOffset = getCharacterDataOffset(id);
 
         // Delete equipment
         game->write<uint8_t>(characterOffset + CharacterDataOffsets::EquippedWeapon, defaultWeapons[id]);
-        game->write<uint8_t>(characterOffset + CharacterDataOffsets::EquippedArmor, 0);
+        game->write<uint8_t>(characterOffset + CharacterDataOffsets::EquippedArmor, 0x00);
         game->write<uint8_t>(characterOffset + CharacterDataOffsets::EquippedAccessory, 0xFF);
 
         // Clear weapon and armor materia slots
