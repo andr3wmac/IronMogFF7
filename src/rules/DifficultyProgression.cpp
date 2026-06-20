@@ -8,7 +8,7 @@
 
 REGISTER_RULE(DifficultyProgression, "Difficulty Progression", "Progressively scales into your randomizer settings.")
 
-static const char* progressSource[] { "Game Progress", "Highest Level" };
+static const char* progressSource[] { "Game Progress", "Highest Level", "In-Game Time"};
 
 static const char* progressEnds[] { "Cloud Named", "After 7th Heaven", "Exit Midgar", "End of Disc 1", "End of Disc 2", "Final Descent" };
 static uint16_t progressGameMoments[]{ 7, 105, 341, 677, 1620, 1997 };
@@ -18,6 +18,7 @@ void DifficultyProgression::setup()
     BIND_EVENT(game->onStart, DifficultyProgression::onStart);
     BIND_EVENT_ONE_ARG(game->onGameMomentChanged, DifficultyProgression::onGameMomentChanged);
     BIND_EVENT(game->onBattleExit, DifficultyProgression::onBattleExit);
+    BIND_EVENT_ONE_ARG(game->onFrame, DifficultyProgression::onFrame);
 }
 
 bool DifficultyProgression::onSettingsGUI()
@@ -56,7 +57,7 @@ bool DifficultyProgression::onSettingsGUI()
     {
         ImGui::Spacing();
         ImGui::Text("End Moment:");
-        ImGui::SetItemTooltip("Sets the point in the game where difficulty has fully progressed.");
+        ImGui::SetItemTooltip("The point in the game where difficulty has fully progressed.");
         ImGui::SameLine(DPI(120.0f));
         ImGui::SetNextItemWidth(DPI(200.0f));
 
@@ -79,6 +80,37 @@ bool DifficultyProgression::onSettingsGUI()
         ImGui::PopItemWidth();
     }
 
+    // In-Game Time 
+    if (progressionSource == ProgressionSource::InGameTime)
+    {
+        ImGui::Spacing();
+        ImGui::Text("End Time:");
+        ImGui::SetItemTooltip("The in-game time where difficulty has fully progressed.");
+        ImGui::SameLine(DPI(120.0f));
+        ImGui::PushItemWidth(DPI(25.0f));
+
+        bool timeChanged = false;
+        int endH, endM, endS;
+        Utilities::splitTime(progressionEndTime, endH, endM, endS);
+
+        timeChanged |= ImGui::InputInt("##DifficultyProgression_endTimeH", &endH, 0, 0);
+        ImGui::SameLine();
+        ImGui::Text(":");
+        ImGui::SameLine();
+        timeChanged |= ImGui::InputInt("##DifficultyProgression_endTimeM", &endM, 0, 0);
+        ImGui::SameLine();
+        ImGui::Text(":");
+        ImGui::SameLine();
+        timeChanged |= ImGui::InputInt("##DifficultyProgression_endTimeS", &endS, 0, 0);
+        ImGui::PopItemWidth();
+
+        if (timeChanged)
+        {
+            progressionEndTime = Utilities::toTotalSeconds(endH, endM, endS);
+            changed = true;
+        }
+    }
+
     return changed;
 }
 
@@ -88,6 +120,7 @@ void DifficultyProgression::loadSettings(const ConfigFile& cfg)
     progressionStart    = cfg.get<float>("progressionStart", progressionStart);
     progressionEnd      = cfg.get<int>("progressionEnd", progressionEnd);
     progressionEndLevel = cfg.get<int>("progressionEndLevel", progressionEndLevel);
+    progressionEndTime  = cfg.get<uint32_t>("progressionEndTime", progressionEndTime);
 }
 
 void DifficultyProgression::saveSettings(ConfigFile& cfg)
@@ -96,6 +129,7 @@ void DifficultyProgression::saveSettings(ConfigFile& cfg)
     cfg.set<float>("progressionStart", progressionStart);
     cfg.set<int>("progressionEnd", progressionEnd);
     cfg.set<int>("progressionEndLevel", progressionEndLevel);
+    cfg.set<uint32_t>("progressionEndTime", progressionEndTime);
 }
 
 std::vector<std::string> DifficultyProgression::describe(RuleDescripionType descType)
@@ -113,6 +147,12 @@ std::vector<std::string> DifficultyProgression::describe(RuleDescripionType desc
         {
             progressionString += "level " + std::to_string(progressionEndLevel);
         }
+
+        if (progressionSource == ProgressionSource::InGameTime)
+        {
+            
+            progressionString += "at " + Utilities::formatTime(progressionEndTime);
+        }
         
         return { progressionString };
     }
@@ -123,6 +163,9 @@ std::vector<std::string> DifficultyProgression::describe(RuleDescripionType desc
 void DifficultyProgression::onStart()
 {
     lastMaxLevel = 0;
+    lastUpdateIGT = 0;
+    lastLogIGT = 0;
+
     updateDifficulty();
 }
 
@@ -135,6 +178,19 @@ void DifficultyProgression::onBattleExit()
 {
     updateDifficulty();
 }
+
+void DifficultyProgression::onFrame(int frameNumber)
+{
+    uint32_t currentTime = game->read<uint32_t>(GameOffsets::InGameTime);
+
+    // Only update every 60 seconds.
+    if (currentTime - lastUpdateIGT >= 60)
+    {
+        updateDifficulty();
+        lastUpdateIGT = currentTime;
+    }
+}
+
 
 void DifficultyProgression::updateDifficulty()
 {
@@ -191,6 +247,24 @@ void DifficultyProgression::updateDifficulty()
             LOG("Max level changed to: %d, difficulty scale now: %f", maxLevel, difficultyScale);
 
             lastMaxLevel = maxLevel;
+        }
+    }
+
+    if (progressionSource == ProgressionSource::InGameTime)
+    {
+        uint32_t currentTime = game->read<uint32_t>(GameOffsets::InGameTime);
+        float progress = Utilities::clamp((float)currentTime / progressionEndTime, 0.0f, 1.0f);
+
+        float difficultyScale = Utilities::lerp(progressionStart / 100.0f, 1.0f, progress);
+        difficultyScale = Utilities::clamp(difficultyScale, 0.0f, 1.0f);
+
+        game->setDifficultyScale(difficultyScale);
+
+        // To cut down on log spam we only log every 15 minutes.
+        if (lastLogIGT == 0 || currentTime - lastLogIGT > (15 * 60))
+        {
+            LOG("In-Game Time changed to: %u, difficulty scale now: %f", currentTime, difficultyScale);
+            lastLogIGT = currentTime;
         }
     }
 }
