@@ -2,8 +2,8 @@
 #include "livemod/game/GameData.h"
 #include "livemod/game/MemoryOffsets.h"
 #include "core/gui/GUI.h"
-#include "core/utilities/Logging.h"
-#include "core/utilities/Utilities.h"
+#include "livemod/utilities/Logging.h"
+#include "livemod/utilities/Utilities.h"
 #include "rules/Restrictions.h"
 
 #include <algorithm>

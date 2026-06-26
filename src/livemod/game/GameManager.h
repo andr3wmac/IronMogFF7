@@ -6,12 +6,9 @@
 #include "livemod/game/modules/FieldModule.h"
 #include "livemod/game/modules/MenuModule.h"
 #include "livemod/game/modules/WorldModule.h"
-#include "core/utilities/Event.h"
+#include "livemod/utilities/Event.h"
 #include <string>
 #include <array>
-
-class Extra;
-class Rule;
 
 class GameManager
 {
@@ -30,12 +27,6 @@ public:
     bool connectToEmulator(std::string processName);
     bool connectToEmulator(std::string processName, uintptr_t memoryAddress);
     bool isPaused() { return emulatorPaused; }
-
-    bool isRuleEnabled(std::string ruleName);
-    Rule* getRule(std::string ruleName);
-    bool isExtraEnabled(std::string extraName);
-    Extra* getExtra(std::string extraName);
-    std::string getSettingsSummary();
 
     void setup(GameVersion version, uint32_t inputSeed);
     void loadSaveData();

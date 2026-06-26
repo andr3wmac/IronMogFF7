@@ -1,7 +1,7 @@
 #include "DifficultyProgression.h"
 #include "livemod/game/MemoryOffsets.h"
 #include "rules/Restrictions.h"
-#include "core/utilities/Logging.h"
+#include "livemod/utilities/Logging.h"
 
 #include <imgui.h>
 #include "core/gui/GUI.h"

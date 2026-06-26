@@ -1,7 +1,7 @@
 #include "MemorySearch.h"
 #include "livemod/game/GameData.h"
-#include "core/utilities/Logging.h"
-#include "core/utilities/Utilities.h"
+#include "livemod/utilities/Logging.h"
+#include "livemod/utilities/Utilities.h"
 
 const uintptr_t PS1RAMSize = 0x200000; // 2 MB
 

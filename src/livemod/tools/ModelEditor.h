@@ -2,7 +2,7 @@
 
 #include "livemod/game/GameData.h"
 #include "livemod/game/GameManager.h"
-#include "core/utilities/Utilities.h"
+#include "livemod/utilities/Utilities.h"
 
 #include <cstdint>
 #include <set>

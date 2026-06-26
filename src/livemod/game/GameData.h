@@ -389,10 +389,6 @@ public:
     static Item* getItem(uint16_t id);
     static Item* getMateria(uint16_t id);
 
-    static std::vector<uint16_t> getItemsOfType(ItemType type, bool excludeBanned = true, bool excludeRare = false, const std::set<uint16_t>& excludeSet = {});
-    static uint16_t getRandomItem(uint16_t origItemID, std::mt19937_64& rng, bool keepType, bool excludeBanned = true, bool excludeRare = false, const std::set<uint16_t>& excludeSet = {});
-    static uint16_t getRandomMateria(std::mt19937_64& rng, bool excludeBanned = true, bool excludeRare = false, const std::set<uint16_t>& excludeSet = {});
-
     static FieldData getField(uint16_t id);
     static std::string getItemName(uint16_t itemID);
     static uint32_t getItemPrice(uint16_t itemID);

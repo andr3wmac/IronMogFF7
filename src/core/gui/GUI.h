@@ -1,7 +1,7 @@
 #pragma once
 #include <functional>
-#include "core/utilities/Event.h"
-#include "core/utilities/Utilities.h"
+#include "livemod/utilities/Event.h"
+#include "livemod/utilities/Utilities.h"
 
 struct GLFWwindow;
 struct GUIImage;

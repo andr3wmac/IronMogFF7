@@ -1,8 +1,7 @@
 #include "MenuModule.h"
 #include "livemod/game/GameManager.h"
 #include "livemod/game/MemoryOffsets.h"
-#include "core/utilities/Logging.h"
-#include "rules/Restrictions.h"
+#include "livemod/utilities/Logging.h"
 
 std::string CharacterNames[] = { "Cloud", "Barret", "Tifa", "Aeris", "Red XIII", "Yuffie", "Cait Sith", "Vincent", "Cid" };
 
@@ -154,68 +153,6 @@ bool MenuModule::isShopDataLoaded()
 
 void MenuModule::onShopMenuChanged(uint8_t menuIndex)
 {
+    // Trigger anything else that might modify the shop (e.g. randomizers, ban enforcement).
     game->onShopMenuChanged.invoke(menuIndex);
-
-    // Buy menu
-    if (menuIndex == 0)
-    {
-        // Check for banned items.
-        FieldData fieldData = GameData::getField(game->getFieldID());
-        if (!fieldData.isValid())
-        {
-            return;
-        }
-
-        std::set<uint8_t> checkedShopIDs;
-        for (int i = 0; i < fieldData.shops.size(); ++i)
-        {
-            uint8_t shopID = fieldData.shops[i].shopID;
-            if (checkedShopIDs.count(shopID) > 0)
-            {
-                continue;
-            }
-            
-            uintptr_t shopOffset = ShopOffsets::ShopStart + (ShopOffsets::ShopStride * shopID);
-            uint8_t invCount = game->read<uint8_t>(shopOffset + 2);
-
-            if (invCount > SHOP_ITEM_MAX)
-            {
-                continue;
-            }
-
-            for (int j = 0; j < invCount; ++j)
-            {
-                uintptr_t itemOffset = shopOffset + 4 + (j * 8);
-                uint32_t itemType = game->read<uint32_t>(itemOffset + 0);
-                uint16_t itemID = game->read<uint16_t>(itemOffset + 4);
-
-                bool shouldDelete = false;
-
-                // Item
-                if (itemType == 0)
-                {
-                    if (Restrictions::isItemBanned(itemID))
-                    {
-                        shouldDelete = true;
-                    }
-                }
-                // Materia
-                else if (itemType == 1)
-                {
-                    if (Restrictions::isMateriaBanned(itemID))
-                    {
-                        shouldDelete = true;
-                    }
-                }
-                
-                if (shouldDelete)
-                {
-                    // By writing an item type of 2 in the game makes the slot invalid.
-                    game->write<uint32_t>(itemOffset + 0, 2);
-                }
-            }
-
-            checkedShopIDs.insert(shopID);
-        }
-    }
 }

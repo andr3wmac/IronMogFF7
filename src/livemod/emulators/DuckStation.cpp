@@ -1,8 +1,8 @@
 #include "DuckStation.h"
 #include "livemod/game/GameManager.h"
 #include "livemod/game/MemoryOffsets.h"
-#include "core/utilities/Logging.h"
-#include "core/utilities/Platform.h"
+#include "livemod/utilities/Logging.h"
+#include "livemod/utilities/Platform.h"
 
 #include <unordered_map>
 

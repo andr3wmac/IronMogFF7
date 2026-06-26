@@ -1,6 +1,7 @@
 #include "Tracker.h"
 #include "livemod/game/MemoryOffsets.h"
-#include "core/utilities/Utilities.h"
+#include "livemod/utilities/Utilities.h"
+#include "app/RuleManager.h"
 #include "extras/RandomizeMusic.h"
 #include "rules/Permadeath.h"
 
@@ -42,7 +43,7 @@ void Tracker::update()
 
     // Permadeath Character Portraits
     {
-        Permadeath* permadeathRule = (Permadeath*)game->getRule("Permadeath");
+        Permadeath* permadeathRule = (Permadeath*)RuleManager::getRule("Permadeath");
         uint16_t phsVisMask = game->read<uint16_t>(GameOffsets::PHSVisibilityMask);
 
         for (int i = 0; i < 9; ++i)
@@ -67,9 +68,9 @@ void Tracker::update()
     inGameTime = Utilities::formatTime(igt);
 
     // Current Song
-    if (game->isExtraEnabled("Randomize Music"))
+    if (RuleManager::isExtraEnabled("Randomize Music"))
     {
-        RandomizeMusic* musicRando = (RandomizeMusic*)game->getExtra("Randomize Music");
+        RandomizeMusic* musicRando = (RandomizeMusic*)RuleManager::getExtra("Randomize Music");
         if (musicRando->isPlaying())
         {
             currentSong = musicRando->getCurrentlyPlaying();
@@ -81,7 +82,7 @@ void Tracker::update()
     }
 
     // Rules summary
-    rulesSummary = game->getSettingsSummary();
+    rulesSummary = RuleManager::getSettingsSummary();
 }
 
 bool Tracker::showAttempts()
@@ -94,7 +95,7 @@ bool Tracker::showAttempts()
         }
 
         // If No Saving is on then we show attempts.
-        return game->isRuleEnabled("No Saving");
+        return RuleManager::isRuleEnabled("No Saving");
     }
     else if (attemptsDisplayMode == AttemptsDisplayMode::Attempts)
     {
@@ -114,7 +115,7 @@ bool Tracker::showGameOvers()
         }
 
         // If No Saving is on then we show attempts.
-        return !game->isRuleEnabled("No Saving");
+        return !RuleManager::isRuleEnabled("No Saving");
     }
     else if (attemptsDisplayMode == AttemptsDisplayMode::GameOvers)
     {

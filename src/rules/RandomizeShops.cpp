@@ -2,8 +2,9 @@
 #include "core/gui/GUI.h"
 #include "livemod/game/GameData.h"
 #include "livemod/game/MemoryOffsets.h"
-#include "core/utilities/Logging.h"
-#include "core/utilities/Utilities.h"
+#include "livemod/utilities/Logging.h"
+#include "core/utilities/Randomizer.h"
+#include "livemod/utilities/Utilities.h"
 #include "rules/Restrictions.h"
 
 #include <imgui.h>
@@ -497,10 +498,10 @@ uint16_t RandomizeShops::randomizeShopItem(uint16_t itemID, const std::set<uint1
         excludeSet.insert(76); // Luck Source
     }
 
-    return GameData::getRandomItem(itemID, rng, keepItemType, true, excludeRareItems, excludeSet);
+    return Randomizer::getRandomItem(itemID, rng, keepItemType, true, excludeRareItems, excludeSet);
 }
 
 uint16_t RandomizeShops::randomizeShopMateria(uint16_t materiaID, const std::set<uint16_t>& previouslyChosen)
 {
-    return GameData::getRandomMateria(rng, true, excludeRareItems, previouslyChosen);
+    return Randomizer::getRandomMateria(rng, true, excludeRareItems, previouslyChosen);
 }

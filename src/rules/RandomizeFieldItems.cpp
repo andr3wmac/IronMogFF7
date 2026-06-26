@@ -1,8 +1,9 @@
 #include "RandomizeFieldItems.h"
 #include "livemod/game/GameData.h"
 #include "livemod/game/MemoryOffsets.h"
-#include "core/utilities/Logging.h"
-#include "core/utilities/Utilities.h"
+#include "livemod/utilities/Logging.h"
+#include "core/utilities/Randomizer.h"
+#include "livemod/utilities/Utilities.h"
 #include "rules/Restrictions.h"
 
 #include <algorithm>
@@ -242,7 +243,7 @@ void RandomizeFieldItems::apply()
         {
             // Pick random one based on key.
             std::mt19937_64 rng64(Utilities::makeSeed64(game->getSeed(), fieldData.id, i));
-            newItem.id = GameData::getRandomItem(newItem.id, rng64, keepItemType);
+            newItem.id = Randomizer::getRandomItem(newItem.id, rng64, keepItemType);
 
             if (newItem.id == newItem.id)
             {
@@ -253,7 +254,7 @@ void RandomizeFieldItems::apply()
         if (Restrictions::isItemBanned(newItem.id))
         {
             std::mt19937_64 rng64(Utilities::makeSeed64(game->getSeed(), fieldData.id, i));
-            uint16_t randItemID = GameData::getRandomItem(newItem.id, rng64, keepItemType);
+            uint16_t randItemID = Randomizer::getRandomItem(newItem.id, rng64, keepItemType);
             
             // If this item is banned and we rolled the same one we skip changing this item.
             if (randItemID == newItem.id)
@@ -324,13 +325,13 @@ void RandomizeFieldItems::apply()
         {
             // Pick random one based on key.
             std::mt19937_64 rng64(Utilities::makeSeed64(game->getSeed(), fieldData.id, (uint8_t)oldMateria.id));
-            newMateria.id = GameData::getRandomMateria(rng64);
+            newMateria.id = Randomizer::getRandomMateria(rng64);
         }
         
         if (Restrictions::isMateriaBanned((uint8_t)newMateria.id))
         {
             std::mt19937_64 rng64(Utilities::makeSeed64(game->getSeed(), fieldData.id, (uint8_t)newMateria.id));
-            uint16_t randMateriaID = GameData::getRandomMateria(rng64);
+            uint16_t randMateriaID = Randomizer::getRandomMateria(rng64);
 
             // This will only happen if all materia are banned.
             if (randMateriaID == UINT16_MAX)

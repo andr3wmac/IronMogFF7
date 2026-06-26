@@ -1,7 +1,7 @@
 #include "WorldModule.h"
 #include "livemod/game/GameManager.h"
 #include "livemod/game/MemoryOffsets.h"
-#include "core/utilities/Logging.h"
+#include "livemod/utilities/Logging.h"
 
 void WorldModule::setup(GameManager* game)
 {

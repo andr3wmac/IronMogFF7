@@ -2,8 +2,9 @@
 #include "livemod/game/GameData.h"
 #include "livemod/game/MemoryOffsets.h"
 #include "core/gui/GUI.h"
-#include "core/utilities/Logging.h"
-#include "core/utilities/Utilities.h"
+#include "livemod/utilities/Logging.h"
+#include "core/utilities/Randomizer.h"
+#include "livemod/utilities/Utilities.h"
 
 #include <imgui.h>
 #include <random>
@@ -254,7 +255,7 @@ void RandomizeEnemyDrops::onBattleEnter()
 
             std::string oldItemName = GameData::getItemName(dropID);
 
-            uint16_t newDropID = GameData::getRandomItem(dropID, rng, keepItemType);
+            uint16_t newDropID = Randomizer::getRandomItem(dropID, rng, keepItemType);
             if (newDropID != dropID)
             {
                 game->write<uint16_t>(BattleSceneOffsets::Enemies[idx] + BattleSceneOffsets::DropIDs[i], newDropID);
@@ -275,7 +276,7 @@ void RandomizeEnemyDrops::onBattleEnter()
             {
                 std::string oldItemName = GameData::getItemName(morphID);
 
-                uint16_t newMorphID = GameData::getRandomItem(morphID, rng, keepItemType);
+                uint16_t newMorphID = Randomizer::getRandomItem(morphID, rng, keepItemType);
                 if (newMorphID != morphID)
                 {
                     game->write<uint16_t>(BattleSceneOffsets::Enemies[idx] + BattleSceneOffsets::MorphItemID, newMorphID);

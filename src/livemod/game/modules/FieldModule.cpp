@@ -1,8 +1,7 @@
 #include "FieldModule.h"
 #include "livemod/game/GameManager.h"
 #include "livemod/game/MemoryOffsets.h"
-#include "core/utilities/Logging.h"
-#include "rules/Restrictions.h"
+#include "livemod/utilities/Logging.h"
 
 void FieldModule::setup(GameManager* game)
 {
@@ -90,75 +89,9 @@ void FieldModule::onFieldChanged(uint16_t fieldID)
     overwriteMessages.clear();
     messagesToClear.clear();
 
-    // First trigger anything else that might modify field items/materia.
+    // Trigger anything else that might modify field items/materia (e.g. randomizers,
+    // ban enforcement). Ban enforcement runs last and may queue message overwrites below.
     game->onFieldChanged.invoke(fieldID);
-
-    // Now check each field item for something thats banned. This way if it wasn't
-    // replaced by a randomizer we delete it to enforce the ban.
-
-    FieldData fieldData = GameData::getField(fieldID);
-    if (!fieldData.isValid())
-    {
-        return;
-    }
-
-    for (int i = 0; i < fieldData.items.size(); ++i)
-    {
-        FieldScriptItem& item = fieldData.items[i];
-        uintptr_t itemIDOffset = FieldScriptOffsets::ScriptStart + item.offset + FieldScriptOffsets::ItemID;
-        uint16_t itemID = game->read<uint16_t>(itemIDOffset);
-
-        // Do not delete Battery in Wall Market.
-        if (fieldData.id == 196 && itemID == 85)
-        {
-            continue;
-        }
-
-        if (Restrictions::isItemBanned(itemID))
-        {
-            // Delete item.
-            for (int b = 0; b < 5; ++b)
-            {
-                game->write<uint8_t>(FieldScriptOffsets::ScriptStart + item.offset + b, 0x5F);
-            }
-
-            // Replace the popup message with "Nothing"
-            std::string itemName = GameData::getItemName(itemID);
-            int msgIndex = findPickUpMessage(itemName, item.group, item.script, item.offset);
-            if (msgIndex >= 0)
-            {
-                overwriteMessage(msgIndex, "Nothing");
-            }
-
-            LOG("Deleted banned item: %s %d", itemName.c_str(), itemID);
-        }
-    }
-
-    for (int i = 0; i < fieldData.materia.size(); ++i)
-    {
-        FieldScriptItem& materia = fieldData.materia[i];
-        uintptr_t idOffset = FieldScriptOffsets::ScriptStart + materia.offset + FieldScriptOffsets::MateriaID;
-        uint8_t materiaID = game->read<uint8_t>(idOffset);
-
-        if (Restrictions::isMateriaBanned(materiaID))
-        {
-            // Delete materia.
-            for (int b = 0; b < 7; ++b)
-            {
-                game->write<uint8_t>(FieldScriptOffsets::ScriptStart + materia.offset + b, 0x5F);
-            }
-
-            // Replace the popup message with "Nothing"
-            std::string materiaName = GameData::getItemName(materiaID);
-            int msgIndex = findPickUpMessage(materiaName, materia.group, materia.script, materia.offset);
-            if (msgIndex >= 0)
-            {
-                overwriteMessage(msgIndex, "Nothing");
-            }
-
-            LOG("Deleted banned materia: %d", materiaID);
-        }
-    }
 
     // Clear original messages that will be overwritten in real time
     for (FieldScriptMessage& fieldMsg : messagesToClear)

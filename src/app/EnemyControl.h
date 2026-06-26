@@ -1,7 +1,7 @@
 #pragma once
 
 #include "livemod/game/GameManager.h"
-#include "core/utilities/BattleScriptBuilder.h"
+#include "livemod/tools/BattleScriptBuilder.h"
 
 #include <cstdint>
 

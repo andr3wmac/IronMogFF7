@@ -1,5 +1,5 @@
 #include "Logging.h"
-#include "core/utilities/Platform.h"
+#include "livemod/utilities/Platform.h"
 
 #include <filesystem>
 #include <iomanip>

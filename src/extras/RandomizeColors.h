@@ -1,7 +1,7 @@
 #pragma once
 #include "extras/Extra.h"
-#include "core/utilities/ModelEditor.h"
-#include "core/utilities/Utilities.h"
+#include "livemod/tools/ModelEditor.h"
+#include "livemod/utilities/Utilities.h"
 #include <cstdint>
 #include <unordered_map>
 

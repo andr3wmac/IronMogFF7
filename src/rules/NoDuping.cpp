@@ -1,7 +1,7 @@
 #include "NoDuping.h"
 #include "livemod/game/MemoryOffsets.h"
 #include "core/utilities/Flags.h"
-#include "core/utilities/Logging.h"
+#include "livemod/utilities/Logging.h"
 
 #include <bitset>
 #include <imgui.h>

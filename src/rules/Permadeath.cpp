@@ -1,8 +1,8 @@
 #include "Permadeath.h"
 #include "livemod/game/MemoryOffsets.h"
 #include "core/utilities/Flags.h"
-#include "core/utilities/Logging.h"
-#include "core/utilities/Utilities.h"
+#include "livemod/utilities/Logging.h"
+#include "livemod/utilities/Utilities.h"
 
 #include <imgui.h>
 #include <random>

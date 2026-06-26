@@ -1,8 +1,7 @@
 #include "BattleModule.h"
 #include "livemod/game/GameManager.h"
 #include "livemod/game/MemoryOffsets.h"
-#include "core/utilities/Logging.h"
-#include "rules/Restrictions.h"
+#include "livemod/utilities/Logging.h"
 
 void BattleModule::setup(GameManager* game)
 {
@@ -63,71 +62,14 @@ void BattleModule::onUpdate(bool justConnected)
 
 void BattleModule::onBattleEnter()
 {
-    // First trigger anything else that might modify battles
+    // Trigger anything else that might modify battles (e.g. randomizers, ban enforcement).
     game->onBattleEnter.invoke();
-
-    // Now delete any banned drops/steals.
-    deleteBannedDrops();
 }
 
 void BattleModule::onBattleTransition(uint16_t formation)
 {
-    // First trigger anything else that might modify battles
+    // Trigger anything else that might modify battles (e.g. randomizers, ban enforcement).
     game->onBattleTransition.invoke(formation);
-
-    // Now delete any banned drops/steals.
-    deleteBannedDrops();
-}
-
-void BattleModule::deleteBannedDrops()
-{
-    const auto& [scene, formation] = game->getBattleFormation();
-
-    std::set<int> activeEnemyIndexes;
-    for (int i = 0; i < 6; ++i)
-    {
-        if (formation->enemyIDs[i] == UINT16_MAX)
-        {
-            continue;
-        }
-
-        for (int j = 0; j < 3; ++j)
-        {
-            if (formation->enemyIDs[i] == scene->enemyIDs[j])
-            {
-                activeEnemyIndexes.insert(j);
-            }
-        }
-    }
-
-    for (int idx : activeEnemyIndexes)
-    {
-        // Maximum of 4 item slots per enemy
-        for (int i = 0; i < 4; ++i)
-        {
-            uint16_t dropID = game->read<uint16_t>(BattleSceneOffsets::Enemies[idx] + BattleSceneOffsets::DropIDs[i]);
-            if (dropID == UINT16_MAX)
-            {
-                continue;
-            }
-
-            if (Restrictions::isItemBanned(dropID))
-            {
-                game->write<uint16_t>(BattleSceneOffsets::Enemies[idx] + BattleSceneOffsets::DropIDs[i], UINT16_MAX);
-                LOG("Deleted banned item from enemy drops: %d", dropID);
-            }
-        }
-
-        uint16_t morphID = game->read<uint16_t>(BattleSceneOffsets::Enemies[idx] + BattleSceneOffsets::MorphItemID);
-        if (morphID != UINT16_MAX)
-        {
-            if (Restrictions::isItemBanned(morphID))
-            {
-                game->write<uint16_t>(BattleSceneOffsets::Enemies[idx] + BattleSceneOffsets::MorphItemID, UINT16_MAX);
-                LOG("Deleted banned item from enemy morph: %d", morphID);
-            }
-        }
-    }
 }
 
 bool BattleModule::inBattle()

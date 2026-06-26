@@ -16,7 +16,6 @@ public:
 private:
     void onBattleEnter();
     void onBattleTransition(uint16_t formation);
-    void deleteBannedDrops();
     bool isBattleDataLoaded();
     bool isFormationLoaded(uint16_t formationID);
 

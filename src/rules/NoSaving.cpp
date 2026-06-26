@@ -1,7 +1,7 @@
 #include "NoSaving.h"
 #include "livemod/game/MemoryOffsets.h"
 #include "core/utilities/Flags.h"
-#include "core/utilities/Logging.h"
+#include "livemod/utilities/Logging.h"
 
 REGISTER_RULE(NoSaving, "No Saving", "Saving your game is prohibited.")
 

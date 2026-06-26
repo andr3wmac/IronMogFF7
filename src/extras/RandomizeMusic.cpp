@@ -4,8 +4,8 @@
 #include "livemod/game/MemoryOffsets.h"
 #include "core/gui/GUI.h"
 #include "core/utilities/ConfigFile.h"
-#include "core/utilities/Logging.h"
-#include "core/utilities/Utilities.h"
+#include "livemod/utilities/Logging.h"
+#include "livemod/utilities/Utilities.h"
 
 #include <imgui.h>
 #include <filesystem>

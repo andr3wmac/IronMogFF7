@@ -1,6 +1,6 @@
 #include "ScriptUtilities.h"
 #include "livemod/game/MemoryOffsets.h"
-#include "core/utilities/Logging.h"
+#include "livemod/utilities/Logging.h"
 
 #include <iomanip>
 #include <string>

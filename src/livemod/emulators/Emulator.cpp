@@ -3,9 +3,9 @@
 #include "DuckStation.h"
 #include "BizHawk.h"
 #include "livemod/game/MemoryOffsets.h"
-#include "core/utilities/Logging.h"
-#include "core/utilities/Platform.h"
-#include "core/utilities/Utilities.h"
+#include "livemod/utilities/Logging.h"
+#include "livemod/utilities/Platform.h"
+#include "livemod/utilities/Utilities.h"
 
 // These values seem to be the same regardless of what game is loaded.
 std::vector<std::pair<uintptr_t, uint32_t>> Emulator::ps1MemoryChecks = {
