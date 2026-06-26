@@ -1,6 +1,6 @@
 #include "BizHawk.h"
-#include "core/game/GameManager.h"
-#include "core/game/MemoryOffsets.h"
+#include "livemod/game/GameManager.h"
+#include "livemod/game/MemoryOffsets.h"
 #include "core/utilities/Logging.h"
 #include "core/utilities/Platform.h"
 

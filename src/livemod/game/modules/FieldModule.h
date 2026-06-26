@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/game/GameData.h"
+#include "livemod/game/GameData.h"
 
 #include <cstdint>
 #include <string>

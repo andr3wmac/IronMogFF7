@@ -1,5 +1,5 @@
 #include "Restrictions.h"
-#include "core/game/MemoryOffsets.h"
+#include "livemod/game/MemoryOffsets.h"
 #include <set>
 
 std::set<uint16_t> bannedItems;

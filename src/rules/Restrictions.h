@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/game/GameManager.h"
+#include "livemod/game/GameManager.h"
 
 class Restrictions
 {

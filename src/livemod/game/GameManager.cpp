@@ -1,11 +1,9 @@
 ﻿#include "GameManager.h"
-#include "core/audio/AudioManager.h"
-#include "core/game/GameData.h"
-#include "core/game/MemoryOffsets.h"
+#include "livemod/game/GameData.h"
+#include "livemod/game/MemoryOffsets.h"
 #include "core/utilities/Logging.h"
 #include "core/utilities/Utilities.h"
 #include "extras/Extra.h"
-#include "rules/RandomizeShops.h"
 #include "rules/Rule.h"
 
 #include <thread>
@@ -411,7 +409,7 @@ bool GameManager::update()
         {
             // Clearing save data prevents stale state getting stuck from a game over.
             clearSaveData();
-            AudioManager::pauseMusic();
+            onGameExit.invoke();
         }
 
         if (lastGameState != GameState::InGame && state == GameState::InGame)

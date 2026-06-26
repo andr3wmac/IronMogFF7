@@ -1,6 +1,6 @@
 #include "App.h"
 #include "core/audio/AudioManager.h"
-#include "core/game/MemoryOffsets.h"
+#include "livemod/game/MemoryOffsets.h"
 #include "core/utilities/Logging.h"
 #include "core/utilities/ConfigFile.h"
 #include "core/utilities/MemoryMonitor.h"
@@ -174,6 +174,7 @@ void App::runGameManager()
     Restrictions::reset();
 
     tracker.setup(game);
+    enemyControl.setup(game);
     game->setup(selectedGameVersion, Utilities::hexStringToSeed(seedValue));
 
     managerRunning = true;
@@ -203,6 +204,7 @@ void App::runGameManager()
 void App::stopGameManager()
 {
     tracker.reset();
+    enemyControl.reset();
     managerRunning = false;
     if (managerThread != nullptr)
     {

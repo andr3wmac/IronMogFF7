@@ -36,6 +36,7 @@ public:
 
 private:
     void onStart();
+    void onGameExit();
     void onEmulatorPaused();
     void onEmulatorResumed();
     void onUpdate();

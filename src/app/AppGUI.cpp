@@ -1,6 +1,6 @@
 #include "App.h"
-#include "core/game/GameData.h"
-#include "core/game/MemoryOffsets.h"
+#include "livemod/game/GameData.h"
+#include "livemod/game/MemoryOffsets.h"
 #include "core/gui/IconsFontAwesome5.h"
 #include "core/utilities/Logging.h"
 #include "core/utilities/MemorySearch.h"
@@ -42,6 +42,11 @@ void App::draw()
             if (ImGui::BeginTabItem("Tracker"))
             {
                 drawTrackerPanel();
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Enemy Control"))
+            {
+                drawEnemyControlPanel();
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem(ICON_FA_COG))
@@ -850,4 +855,14 @@ void App::drawDebugPanel()
             ImGui::Unindent(25.0f);
         }
     }
+}
+
+void App::drawEnemyControlPanel()
+{
+    if (connectionState != ConnectionState::Connected)
+    {
+        return;
+    }
+
+    enemyControl.draw();
 }

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core/game/GameData.h"
-#include "core/game/GameManager.h"
+#include "livemod/game/GameData.h"
+#include "livemod/game/GameManager.h"
 #include "core/utilities/Utilities.h"
 
 #include <cstdint>

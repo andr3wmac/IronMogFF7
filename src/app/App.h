@@ -1,7 +1,8 @@
 #pragma once
 
+#include "app/EnemyControl.h"
 #include "app/Tracker.h"
-#include "core/game/GameManager.h"
+#include "livemod/game/GameManager.h"
 #include "core/gui/GUI.h"
 #include "core/utilities/StringList.h"
 
@@ -45,6 +46,7 @@ public:
     void drawTrackerPanel();
     void drawAppSettingsPanel();
     void drawDebugPanel();
+    void drawEnemyControlPanel();
 
     void connect();
     void disconnect();
@@ -56,6 +58,7 @@ protected:
     GUI gui;
     GUIImage logo;
     Tracker tracker;
+    EnemyControl enemyControl;
     std::vector<GUIImage> characterPortraits;
     GUIImage deadIcon;
     bool showDebugTab = false;

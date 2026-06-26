@@ -1,7 +1,7 @@
 #include "RandomizeMusic.h"
 #include "core/audio/AudioManager.h"
-#include "core/game/GameData.h"
-#include "core/game/MemoryOffsets.h"
+#include "livemod/game/GameData.h"
+#include "livemod/game/MemoryOffsets.h"
 #include "core/gui/GUI.h"
 #include "core/utilities/ConfigFile.h"
 #include "core/utilities/Logging.h"
@@ -40,6 +40,7 @@ RandomizeMusic::RandomizeMusic()
 void RandomizeMusic::setup()
 {
     BIND_EVENT(game->onStart, RandomizeMusic::onStart);
+    BIND_EVENT(game->onGameExit, RandomizeMusic::onGameExit);
     BIND_EVENT(game->onEmulatorPaused, RandomizeMusic::onEmulatorPaused);
     BIND_EVENT(game->onEmulatorResumed, RandomizeMusic::onEmulatorResumed);
     BIND_EVENT(game->onUpdate, RandomizeMusic::onUpdate);
@@ -168,6 +169,12 @@ void RandomizeMusic::onStart()
     scanMusicFolder();
 }
 
+void RandomizeMusic::onGameExit()
+{
+    // Stop playback when leaving the game (game over, reset, return to menu).
+    AudioManager::pauseMusic();
+}
+
 void RandomizeMusic::onEmulatorPaused()
 {
     if (disabled)
@@ -214,7 +221,7 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
     {
         if (game->read<uint8_t>(GameOffsets::MusicLock) == 1)
         {
-            if (game->getWindowText(0) == "Cloud ‘Hojo!  Stop right there!!’")
+            if (game->getWindowText(0) == "Cloud ï¿½Hojo!  Stop right there!!ï¿½")
             {
                 game->write<uint8_t>(GameOffsets::MusicLock, 0);
             }

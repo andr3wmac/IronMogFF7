@@ -2,7 +2,7 @@
 #include "CustomEmulator.h"
 #include "DuckStation.h"
 #include "BizHawk.h"
-#include "core/game/MemoryOffsets.h"
+#include "livemod/game/MemoryOffsets.h"
 #include "core/utilities/Logging.h"
 #include "core/utilities/Platform.h"
 #include "core/utilities/Utilities.h"

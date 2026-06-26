@@ -1,5 +1,5 @@
 #include "NoLimitBreaks.h"
-#include "core/game/MemoryOffsets.h"
+#include "livemod/game/MemoryOffsets.h"
 
 REGISTER_RULE(NoLimitBreaks, "No Limit Breaks", "Limit breaks are disabled.")
 

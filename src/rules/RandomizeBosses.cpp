@@ -1,6 +1,6 @@
 #include "RandomizeBosses.h"
-#include "core/game/GameData.h"
-#include "core/game/MemoryOffsets.h"
+#include "livemod/game/GameData.h"
+#include "livemod/game/MemoryOffsets.h"
 #include "core/gui/GUI.h"
 #include "core/utilities/Logging.h"
 #include "core/utilities/Utilities.h"

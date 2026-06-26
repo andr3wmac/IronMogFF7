@@ -1,11 +1,11 @@
 #pragma once
 
-#include "core/emulators/Emulator.h"
-#include "core/game/GameData.h"
-#include "core/game/modules/BattleModule.h"
-#include "core/game/modules/FieldModule.h"
-#include "core/game/modules/MenuModule.h"
-#include "core/game/modules/WorldModule.h"
+#include "livemod/emulators/Emulator.h"
+#include "livemod/game/GameData.h"
+#include "livemod/game/modules/BattleModule.h"
+#include "livemod/game/modules/FieldModule.h"
+#include "livemod/game/modules/MenuModule.h"
+#include "livemod/game/modules/WorldModule.h"
 #include "core/utilities/Event.h"
 #include <string>
 #include <array>
@@ -93,6 +93,7 @@ public:
     Event<> onStart;
     Event<> onNewGame;
     Event<> onGameOver;
+    Event<> onGameExit;                     // Triggers when leaving the in-game state (game over, reset, return to menu).
     Event<bool> onUpdate;                   // Triggers when IronMog updates which is more frequent than the game framerate. 
     Event<> onEmulatorPaused;
     Event<> onEmulatorResumed;

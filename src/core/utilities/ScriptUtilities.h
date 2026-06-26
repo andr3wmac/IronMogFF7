@@ -1,7 +1,7 @@
 #pragma once
 
 #include <cstdint>
-#include "core/game/GameManager.h"
+#include "livemod/game/GameManager.h"
 
 class ScriptUtilities
 {

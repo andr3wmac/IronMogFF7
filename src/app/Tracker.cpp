@@ -1,5 +1,5 @@
 #include "Tracker.h"
-#include "core/game/MemoryOffsets.h"
+#include "livemod/game/MemoryOffsets.h"
 #include "core/utilities/Utilities.h"
 #include "extras/RandomizeMusic.h"
 #include "rules/Permadeath.h"

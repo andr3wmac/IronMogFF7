@@ -1,5 +1,5 @@
 #include "NoEscapes.h"
-#include "core/game/MemoryOffsets.h"
+#include "livemod/game/MemoryOffsets.h"
 #include "rules/Restrictions.h"
 
 REGISTER_RULE(NoEscapes, "No Escapes", "Escaping from battles is prohibited, including the use of Exit materia.")

@@ -1,5 +1,5 @@
 #include "GameplayMods.h"
-#include "core/game/MemoryOffsets.h"
+#include "livemod/game/MemoryOffsets.h"
 #include "rules/Restrictions.h"
 #include "core/utilities/Flags.h"
 #include "core/utilities/Logging.h"
