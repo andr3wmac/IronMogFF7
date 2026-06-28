@@ -1,14 +1,13 @@
 #include "RandomizeColors.h"
-#include "core/audio/AudioManager.h"
-#include "livemod/game/GameData.h"
-#include "livemod/game/MemoryOffsets.h"
-#include "core/gui/GUI.h"
-#include "livemod/utilities/Logging.h"
-#include "livemod/tools/MemorySearch.h"
-#include "livemod/tools/ModelEditor.h"
-#include "livemod/utilities/Utilities.h"
-
-#include <imgui.h>
+#include "app/audio/AudioManager.h"
+#include "app/gui/GUI.h"
+#include "AppFrame/AppFrame.h"
+#include "LiveModFF7/game/GameData.h"
+#include "LiveModFF7/game/MemoryOffsets.h"
+#include "LiveModFF7/utilities/Logging.h"
+#include "LiveModFF7/tools/MemorySearch.h"
+#include "LiveModFF7/tools/ModelEditor.h"
+#include "LiveModFF7/utilities/Utilities.h"
 
 REGISTER_EXTRA(RandomizeColors, "Randomize Colors", "Playable characters’ clothing colors are randomized.")
 
@@ -71,7 +70,7 @@ void RandomizeColors::onDebugGUI()
         for (auto kv : randomModelColors)
         {
             ImGui::Text(kv.first.c_str());
-            GUI::drawColorGrid(kv.first, randomModelColors[kv.first], {}, 16.0f, 2.0f, 16);
+            GUI::drawColorGrid(kv.first, randomModelColors[kv.first], 16.0f, 2.0f, 16);
         }
     }
 

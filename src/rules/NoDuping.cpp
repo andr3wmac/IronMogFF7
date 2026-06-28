@@ -1,10 +1,10 @@
 #include "NoDuping.h"
-#include "livemod/game/MemoryOffsets.h"
-#include "core/utilities/Flags.h"
-#include "livemod/utilities/Logging.h"
+#include "AppFrame/AppFrame.h"
+#include "LiveModFF7/game/MemoryOffsets.h"
+#include "LiveModFF7/utilities/Logging.h"
+#include "utilities/Flags.h"
 
 #include <bitset>
-#include <imgui.h>
 #include <sstream>
 
 REGISTER_RULE(NoDuping, "No Duping", "Prevents duping with W-Item and field item dupes.")

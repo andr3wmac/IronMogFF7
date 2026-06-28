@@ -1,8 +1,10 @@
 #pragma once
+
 #include "Rule.h"
+#include "utilities/Flags.h"
+
 #include <cstdint>
 #include <set>
-#include "core/utilities/Flags.h"
 
 struct PermadeathExemption
 {

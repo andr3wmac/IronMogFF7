@@ -1,25 +1,44 @@
 #include "App.h"
-#include "core/audio/AudioManager.h"
-#include "livemod/game/MemoryOffsets.h"
-#include "core/utilities/Logging.h"
-#include "core/utilities/ConfigFile.h"
-#include "core/utilities/MemoryMonitor.h"
-#include "core/utilities/MemorySearch.h"
-#include "core/utilities/ModelEditor.h"
-#include "core/utilities/Platform.h"
-#include "core/utilities/ScriptUtilities.h"
-#include "core/utilities/Utilities.h"
+#include "app/audio/AudioManager.h"
+#include "app/RuleManager.h"
 #include "extras/Extra.h"
+#include "LiveModFF7/game/MemoryOffsets.h"
+#include "LiveModFF7/utilities/Logging.h"
+#include "LiveModFF7/tools/MemoryMonitor.h"
+#include "LiveModFF7/tools/MemorySearch.h"
+#include "LiveModFF7/tools/ModelEditor.h"
+#include "LiveModFF7/utilities/Platform.h"
+#include "LiveModFF7/tools/ScriptUtilities.h"
+#include "LiveModFF7/utilities/Utilities.h"
 #include "rules/Restrictions.h"
 #include "rules/Rule.h"
+#include "utilities/ConfigFile.h"
+#include "utilities/Randomizer.h"
 
-#include <imgui.h>
+#include "AppFrame/AppFrame.h"
 #include <random>
 
 #include <filesystem>
 namespace fs = std::filesystem;
 
-void App::run()
+using GUI = AppFrame::GUI;
+
+AppFrame::AppConfig App::configure() const
+{
+    AppFrame::AppConfig config;
+    config.windowWidth = APP_WINDOW_WIDTH;
+    config.windowHeight = APP_WINDOW_HEIGHT;
+    config.windowTitle = "IronMog FF7 " APP_VERSION_STRING;
+    config.iniFilename = "settings/app.ini";
+    config.windowIconPath = "resources/icon.png";
+    config.lockHorizontalResize = true;
+    config.fonts.push_back({ "Inter", "resources/Inter_18pt-Regular.ttf", 18.0f });
+    config.fonts.push_back({ "Reactor7", "resources/Reactor7.ttf", 18.0f });
+    config.iconFontPath = "resources/fa-solid-900.ttf";
+    return config;
+}
+
+bool App::onInitialize()
 {
     LOG("IronMog FF7 %s", APP_VERSION_STRING);
 
@@ -31,16 +50,7 @@ void App::run()
         [this](ImGuiTextBuffer* buf) { this->guiSettingsWrite(buf); }
     );
 
-    if (!gui.initialize(APP_WINDOW_WIDTH, APP_WINDOW_HEIGHT, "IronMog FF7 " APP_VERSION_STRING))
-    {
-        LOG("Graphics failure: could not initialize GUI.");
-        return;
-    }
-
     Platform::initialize();
-
-    BIND_EVENT_TWO_ARG(gui.onKeyPress, App::onKeyPress);
-    BIND_EVENT_TWO_ARG(gui.onResize, App::onResize);
     generateSeed();
 
     // Load images
@@ -61,28 +71,31 @@ void App::run()
     // Load any settings files
     scanSettings(APP_SETTINGS_FOLDER, "Default");
 
-    while (true)
+    return true;
+}
+
+void App::onShutdown()
+{
+    if (managerThread != nullptr)
     {
-        if (gui.wasWindowClosed())
-        {
-            break;
-        }
-
-        draw();
-
-        // Check to see if the game manager thread exited from an error and clean up.
-        if (connectionState == ConnectionState::Error && !managerRunning && managerThread != nullptr)
-        {
-            stopGameManager();
-            AudioManager::pauseMusic();
-        }
-
-        // Run the GUI at 60fps
-        Platform::sleep(16.67);
+        stopGameManager();
     }
-
-    gui.destroy();
     Platform::shutdown();
+}
+
+void App::onFrame()
+{
+    draw();
+}
+
+void App::onAfterFrame()
+{
+    // Check to see if the game manager thread exited from an error and clean up.
+    if (connectionState == ConnectionState::Error && !managerRunning && managerThread != nullptr)
+    {
+        stopGameManager();
+        AudioManager::pauseMusic();
+    }
 }
 
 void App::connect()
@@ -173,9 +186,25 @@ void App::runGameManager()
     // Reset any global restrictions as we might be using a different set of rules on this run.
     Restrictions::reset();
 
+    // Teach the Randomizer utility how to recognize a banned id. The utility has no concept of
+    // our specific bans; this routes its excludeBanned checks back to our Restrictions set.
+    Randomizer::setItemBanFilter(&Restrictions::isItemBanned);
+    Randomizer::setMateriaBanFilter(&Restrictions::isMateriaBanned);
+
     tracker.setup(game);
-    enemyControl.setup(game);
     game->setup(selectedGameVersion, Utilities::hexStringToSeed(seedValue));
+
+    // Set up the rules/extras after the engine so the seed is ready and their event
+    // listeners are bound before the ban-enforcement listeners below.
+    RuleManager::setup(game);
+
+    // Enforce item/materia bans by deleting anything banned that a randomizer (or
+    // nothing) left in place. Bound after the rules so these listeners run last
+    // on each event, ensuring we only remove what wasn't already replaced.
+    game->onBattleEnter.addListener([this]() { Restrictions::enforceBattleBans(game); });
+    game->onBattleTransition.addListener([this](uint16_t) { Restrictions::enforceBattleBans(game); });
+    game->onFieldChanged.addListener([this](uint16_t fieldID) { Restrictions::enforceFieldBans(game, fieldID); });
+    game->onShopMenuChanged.addListener([this](uint8_t menuIndex) { Restrictions::enforceShopBans(game, menuIndex); });
 
     managerRunning = true;
     while (managerRunning.load())
@@ -204,7 +233,6 @@ void App::runGameManager()
 void App::stopGameManager()
 {
     tracker.reset();
-    enemyControl.reset();
     managerRunning = false;
     if (managerThread != nullptr)
     {

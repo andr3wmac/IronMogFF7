@@ -1,10 +1,9 @@
 #pragma once
 
-#include "app/EnemyControl.h"
 #include "app/Tracker.h"
-#include "livemod/game/GameManager.h"
-#include "core/gui/GUI.h"
-#include "core/utilities/StringList.h"
+#include "AppFrame/Application.h"
+#include "LiveModFF7/game/GameManager.h"
+#include "utilities/StringList.h"
 
 #include <atomic>
 #include <thread>
@@ -17,7 +16,7 @@
 #define APP_VERSION_STRING "v0.8.2"
 #define APP_SETTINGS_FOLDER "settings"
 
-class App
+class App : public AppFrame::Application
 {
 public:
     enum class EmulatorType : uint8_t
@@ -35,7 +34,6 @@ public:
         Error        = 3
     };
 
-    void run();
     void generateSeed();
     void scanSettings(std::string settingsFolder, std::string loadIfAvailable = "Default");
     void loadSettings(const std::string& filePath);
@@ -46,7 +44,6 @@ public:
     void drawTrackerPanel();
     void drawAppSettingsPanel();
     void drawDebugPanel();
-    void drawEnemyControlPanel();
 
     void connect();
     void disconnect();
@@ -55,12 +52,10 @@ public:
     void stopGameManager();
 
 protected:
-    GUI gui;
-    GUIImage logo;
+    AppFrame::GUIImage logo;
     Tracker tracker;
-    EnemyControl enemyControl;
-    std::vector<GUIImage> characterPortraits;
-    GUIImage deadIcon;
+    std::vector<AppFrame::GUIImage> characterPortraits;
+    AppFrame::GUIImage deadIcon;
     bool showDebugTab = false;
 
     // Setup
@@ -83,8 +78,13 @@ protected:
     ConnectionState connectionState = ConnectionState::NotConnected;
     std::string connectionStatus = "Not Connected";
 
-    void onKeyPress(int key, int mods);
-    void onResize(int width, int height);
+    AppFrame::AppConfig configure() const override;
+    bool onInitialize() override;
+    void onShutdown() override;
+    void onFrame() override;
+    void onAfterFrame() override;
+    void onKeyPress(int key, int mods) override;
+    void onResize(int width, int height) override;
     void onStart();
 
     void guiSettingsRead(const char* section, const char* line);

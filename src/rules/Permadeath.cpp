@@ -1,10 +1,10 @@
 #include "Permadeath.h"
-#include "livemod/game/MemoryOffsets.h"
-#include "core/utilities/Flags.h"
-#include "livemod/utilities/Logging.h"
-#include "livemod/utilities/Utilities.h"
+#include "AppFrame/AppFrame.h"
+#include "LiveModFF7/game/MemoryOffsets.h"
+#include "LiveModFF7/utilities/Logging.h"
+#include "LiveModFF7/utilities/Utilities.h"
+#include "utilities/Flags.h"
 
-#include <imgui.h>
 #include <random>
 
 REGISTER_RULE(Permadeath, "Permadeath", "If a character dies, they cannot be revived and will remain dead for the rest of the playthrough.")

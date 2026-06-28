@@ -1,13 +1,12 @@
 #include "RandomizeShops.h"
-#include "core/gui/GUI.h"
-#include "livemod/game/GameData.h"
-#include "livemod/game/MemoryOffsets.h"
-#include "livemod/utilities/Logging.h"
-#include "core/utilities/Randomizer.h"
-#include "livemod/utilities/Utilities.h"
+#include "app/gui/GUI.h"
+#include "AppFrame/AppFrame.h"
+#include "LiveModFF7/game/GameData.h"
+#include "LiveModFF7/game/MemoryOffsets.h"
+#include "LiveModFF7/utilities/Logging.h"
+#include "LiveModFF7/utilities/Utilities.h"
 #include "rules/Restrictions.h"
-
-#include <imgui.h>
+#include "utilities/Randomizer.h"
 
 REGISTER_RULE(RandomizeShops, "Randomize Shops", "Shop inventories are randomized.")
 

@@ -1,11 +1,10 @@
 #include "GameplayMods.h"
-#include "livemod/game/MemoryOffsets.h"
+#include "app/gui/GUI.h"
+#include "AppFrame/AppFrame.h"
+#include "LiveModFF7/game/MemoryOffsets.h"
+#include "LiveModFF7/utilities/Logging.h"
 #include "rules/Restrictions.h"
-#include "core/utilities/Flags.h"
-#include "livemod/utilities/Logging.h"
-
-#include <imgui.h>
-#include "core/gui/GUI.h"
+#include "utilities/Flags.h"
 
 REGISTER_RULE(GameplayMods, "Gameplay Mods", "Modify aspects of how the game works.")
 

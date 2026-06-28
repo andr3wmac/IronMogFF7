@@ -1,13 +1,19 @@
 local ROOT_DIR = "./"
 local LIB_DIR = "./lib/"
+local APPFRAME_DIR = "./lib/AppFrame/"
+local LIVEMOD_DIR = "./lib/LiveModFF7/"
+
+-- References to other projects premake5.lua scripts.
+includeexternal(APPFRAME_DIR)
+includeexternal(LIVEMOD_DIR)
 
 solution "IronMogFF7"
     startproject "IronMogFF7"
 
     configurations { "Release", "Debug" }
-    platforms { "x86_64" }
+    platforms { "x64" }
 
-    filter "platforms:x86_64"
+    filter "platforms:x64"
         architecture "x86_64"
 
     filter "configurations:Release*"
@@ -42,10 +48,8 @@ project "IronMogFF7"
 
     includedirs {
         path.join(ROOT_DIR, "src/"),
-        path.join(LIB_DIR, "glfw/include/"),
-        path.join(LIB_DIR, "imgui/"),
-        path.join(LIB_DIR, "stb/include/"),
-        path.join(LIB_DIR, "nativefiledialog-extended/include/"),
+        path.join(LIB_DIR, "LiveModFF7/include/"),
+        path.join(APPFRAME_DIR, "include/"),
     }
 
     files { 
@@ -54,9 +58,28 @@ project "IronMogFF7"
         path.join(ROOT_DIR, "src/**.h")
     }
 
-    links { 
-        "opengl32",
-        path.join(LIB_DIR, "glfw/lib/Release/glfw3"),
-        path.join(LIB_DIR, "stb/lib/Release/stb"),
-        path.join(LIB_DIR, "nativefiledialog-extended/lib/Release/nfd")
+    removefiles {
+        path.join(ROOT_DIR, "src/app/gui/GUI.cpp"),
+        path.join(ROOT_DIR, "src/app/gui/imgui_impl_glfw.cpp"),
+        path.join(ROOT_DIR, "src/app/gui/imgui_impl_glfw.h"),
+        path.join(ROOT_DIR, "src/app/gui/imgui_impl_opengl2.cpp"),
+        path.join(ROOT_DIR, "src/app/gui/imgui_impl_opengl2.h"),
     }
+
+    links { 
+        "AppFrame",
+        "LiveModFF7",
+    }
+    appFrameLinks(APPFRAME_DIR)
+
+    filter {}
+
+group "lib"
+
+project "AppFrame"
+    appFrameProject(APPFRAME_DIR)
+    location ("build/" .. _ACTION .. "/lib")
+
+project "LiveModFF7"
+    liveModProject(LIVEMOD_DIR)
+    location ("build/" .. _ACTION .. "/lib")

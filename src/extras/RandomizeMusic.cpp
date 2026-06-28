@@ -1,13 +1,13 @@
 #include "RandomizeMusic.h"
-#include "core/audio/AudioManager.h"
-#include "livemod/game/GameData.h"
-#include "livemod/game/MemoryOffsets.h"
-#include "core/gui/GUI.h"
-#include "core/utilities/ConfigFile.h"
-#include "livemod/utilities/Logging.h"
-#include "livemod/utilities/Utilities.h"
+#include "app/audio/AudioManager.h"
+#include "app/gui/GUI.h"
+#include "AppFrame/AppFrame.h"
+#include "LiveModFF7/game/GameData.h"
+#include "LiveModFF7/game/MemoryOffsets.h"
+#include "LiveModFF7/utilities/Logging.h"
+#include "LiveModFF7/utilities/Utilities.h"
+#include "utilities/ConfigFile.h"
 
-#include <imgui.h>
 #include <filesystem>
 namespace fs = std::filesystem;
 

@@ -1,6 +1,8 @@
 #pragma once
+
 #include "Rule.h"
-#include "core/utilities/Flags.h"
+#include "utilities/Flags.h"
+
 #include <cstdint>
 
 class RandomizeESkills : public Rule

@@ -1,6 +1,6 @@
 #pragma once
 #include "Rule.h"
-#include "livemod/game/GameData.h"
+#include "LiveModFF7/game/GameData.h"
 #include <cstdint>
 #include <bitset>
 

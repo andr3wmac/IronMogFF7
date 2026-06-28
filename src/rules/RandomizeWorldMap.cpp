@@ -1,11 +1,11 @@
 #include "RandomizeWorldMap.h"
-#include "livemod/game/GameData.h"
-#include "livemod/game/MemoryOffsets.h"
-#include "core/utilities/Flags.h"
-#include "livemod/utilities/Logging.h"
-#include "livemod/utilities/Utilities.h"
+#include "AppFrame/AppFrame.h"
+#include "LiveModFF7/game/GameData.h"
+#include "LiveModFF7/game/MemoryOffsets.h"
+#include "LiveModFF7/utilities/Logging.h"
+#include "LiveModFF7/utilities/Utilities.h"
+#include "utilities/Flags.h"
 
-#include <imgui.h>
 #include <random>
 
 REGISTER_RULE(RandomizeWorldMap, "Randomize World Map", "World map entrances are shuffled so entering Kalm might take you to Midgar.")
@@ -143,7 +143,6 @@ void RandomizeWorldMap::onStart()
 
     // Random generator
     uint32_t seed = game->getSeed();
-    std::random_device rd;
     std::mt19937 rng(seed);
 
     for (int i = 0; i < entranceGroups.size(); ++i)

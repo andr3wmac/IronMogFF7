@@ -1,5 +1,5 @@
 #include "RuleManager.h"
-#include "livemod/game/GameManager.h"
+#include "LiveModFF7/game/GameManager.h"
 #include "rules/Rule.h"
 #include "extras/Extra.h"
 

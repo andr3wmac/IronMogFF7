@@ -1,13 +1,13 @@
 #include "RandomizeFieldItems.h"
-#include "livemod/game/GameData.h"
-#include "livemod/game/MemoryOffsets.h"
-#include "livemod/utilities/Logging.h"
-#include "core/utilities/Randomizer.h"
-#include "livemod/utilities/Utilities.h"
+#include "AppFrame/AppFrame.h"
+#include "LiveModFF7/game/GameData.h"
+#include "LiveModFF7/game/MemoryOffsets.h"
+#include "LiveModFF7/utilities/Logging.h"
+#include "LiveModFF7/utilities/Utilities.h"
 #include "rules/Restrictions.h"
+#include "utilities/Randomizer.h"
 
 #include <algorithm>
-#include <imgui.h>
 #include <random>
 
 REGISTER_RULE(RandomizeFieldItems, "Randomize Field Items", "Any items obtained from the field (such as from boxes or chests) are randomized.")

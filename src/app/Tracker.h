@@ -1,4 +1,4 @@
-#include "livemod/game/GameManager.h"
+#include "LiveModFF7/game/GameManager.h"
 
 struct TrackedCharacter
 {

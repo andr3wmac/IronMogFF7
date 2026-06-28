@@ -1,15 +1,14 @@
 #include "App.h"
-#include "livemod/game/GameData.h"
-#include "livemod/game/MemoryOffsets.h"
-#include "core/gui/IconsFontAwesome5.h"
-#include "livemod/utilities/Logging.h"
-#include "livemod/tools/MemorySearch.h"
-#include "livemod/utilities/Platform.h"
-#include "livemod/utilities/Utilities.h"
+#include "AppFrame/AppFrame.h"
+#include "AppFrame/IconsFontAwesome5.h"
+#include "LiveModFF7/game/GameData.h"
+#include "LiveModFF7/game/MemoryOffsets.h"
+#include "LiveModFF7/tools/MemorySearch.h"
+#include "LiveModFF7/utilities/Logging.h"
+#include "LiveModFF7/utilities/Platform.h"
+#include "LiveModFF7/utilities/Utilities.h"
 #include "extras/Extra.h"
 #include "rules/Rule.h"
-
-#include <imgui.h>
 
 static const char* gameVersions[]{ "PlayStation | US (Original)", "PlayStation | US (CSR v0.13.0)"};
 static const char* emulators[]{ "DuckStation", "BizHawk", "Custom" };
@@ -19,13 +18,10 @@ static ImColor dotRed(1.0f, 0.0f, 0.0f, 1.0f);
 static ImColor dotYellow(1.0f, 1.0f, 0.0f, 1.0f);
 static ImColor dotGreen(0.0f, 1.0f, 0.0f, 1.0f);
 
+using GUI = AppFrame::GUI;
+
 void App::draw()
 {
-    if (!gui.beginFrame())
-    {
-        return;
-    }
-
 #if _DEBUG
     showDebugTab = true;
 #endif
@@ -42,11 +38,6 @@ void App::draw()
             if (ImGui::BeginTabItem("Tracker"))
             {
                 drawTrackerPanel();
-                ImGui::EndTabItem();
-            }
-            if (ImGui::BeginTabItem("Enemy Control"))
-            {
-                drawEnemyControlPanel();
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem(ICON_FA_COG))
@@ -66,8 +57,6 @@ void App::draw()
         }
     }
     ImGui::End();
-
-    gui.endFrame();
 }
 
 void App::drawSetupPanel()
@@ -855,14 +844,4 @@ void App::drawDebugPanel()
             ImGui::Unindent(25.0f);
         }
     }
-}
-
-void App::drawEnemyControlPanel()
-{
-    if (connectionState != ConnectionState::Connected)
-    {
-        return;
-    }
-
-    enemyControl.draw();
 }

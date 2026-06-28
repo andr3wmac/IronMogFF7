@@ -1,7 +1,8 @@
 #include "Restrictions.h"
-#include "livemod/game/GameData.h"
-#include "livemod/game/MemoryOffsets.h"
-#include "livemod/utilities/Logging.h"
+#include "LiveModFF7/game/GameData.h"
+#include "LiveModFF7/game/MemoryOffsets.h"
+#include "LiveModFF7/utilities/Logging.h"
+
 #include <set>
 
 std::set<uint16_t> bannedItems;

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "livemod/game/GameManager.h"
-#include "core/utilities/ConfigFile.h"
+#include "LiveModFF7/game/GameManager.h"
+#include "utilities/ConfigFile.h"
 
 enum class RuleDescripionType : uint8_t
 {

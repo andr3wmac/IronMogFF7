@@ -1,15 +1,15 @@
 #include "app/App.h"
-#include "core/audio/AudioManager.h"
+#include "app/audio/AudioManager.h"
+#include "AppFrame/EntryPoint.h"
 
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-
-int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
+class IronMogApp : public App
 {
-    AudioManager::initialize();
+protected:
+    bool onInitialize() override
+    {
+        AudioManager::initialize();
+        return App::onInitialize();
+    }
+};
 
-    App app;
-    app.run();
-
-    return 0;
-}
+APPFRAME_MAIN(IronMogApp)
