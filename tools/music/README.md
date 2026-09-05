@@ -10,7 +10,7 @@ Before running the script, ensure you have the following installed:
 
 * **Python 3.9 or higher:** [Download Python](https://www.python.org/downloads/)
 * **FFmpeg:** Required for the `ffmpeg-normalize` dependency. 
-    * *Note:* Ensure FFmpeg is added to your system's **PATH** so the script can access it.
+    * *Note:* Ensure FFmpeg is added to your system's **PATH** so the script can access it _or_ place `ffmpeg.exe` and `ffprobe.exe` next to the scripts.
 
 ## Setup
 

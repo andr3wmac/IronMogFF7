@@ -4,6 +4,15 @@ import os
 import shutil
 import subprocess
 import tempfile
+from pathlib import Path
+
+# If ffmpeg.exe (and ffprobe.exe) are next to this script, make them discoverable by 
+# ffmpeg-normalize and pymusiclooper no matter which directory
+_SCRIPT_DIR = Path(__file__).resolve().parent
+if (_SCRIPT_DIR / "ffmpeg.exe").exists():
+    os.environ["PATH"] = str(_SCRIPT_DIR) + os.pathsep + os.environ.get("PATH", "")
+    # ffmpeg-normalize honors FFMPEG_PATH to locate the ffmpeg binary directly.
+    os.environ.setdefault("FFMPEG_PATH", str(_SCRIPT_DIR / "ffmpeg.exe"))
 
 def normalize_files(files, output_dir, bitrate="320k"):
     files = list(files)
