@@ -9,6 +9,8 @@ from mutagen.easyid3 import EasyID3
 from pathlib import Path
 from urllib.parse import unquote
 
+from process_music import batch_normalize_folder, batch_loop_folder
+
 download_music   = False
 create_folders   = True
 unzip_sources    = False
@@ -166,64 +168,12 @@ if rename_files:
     renameToTitles("workspace/FF8/", "FF8")
     renameToTitles("workspace/FF9/", "FF9")
 
-def batch_normalize_folder(input_dir, output_dir, target_lufs=-14):
-    files = glob.glob(f"{input_dir}/*.mp3")
-    
-    command = [
-        "ffmpeg-normalize",
-        *files,
-        "--preset", "podcast",
-        "-c:a", "libmp3lame",
-        "-b:a", "320k",
-        "-of", output_dir,
-        "-ext", "mp3",
-        "-f"
-    ]
-    
-    subprocess.run(command)
-
 if normalize_volume:
     print("Normalizing Volume..")
     batch_normalize_folder("workspace/FF6/", "workspace/FF6_Normalized/")
     batch_normalize_folder("workspace/FF7/", "workspace/FF7_Normalized/")
     batch_normalize_folder("workspace/FF8/", "workspace/FF8_Normalized/")
     batch_normalize_folder("workspace/FF9/", "workspace/FF9_Normalized/")
-
-def get_loop_points(file_path):
-    cmd = ["pymusiclooper", "export-points", "--path", file_path]
-    
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=True)
-        output = result.stdout
-        
-        loop_start = None
-        loop_end = None
-        
-        for line in output.splitlines():
-            if "LOOP_START:" in line:
-                loop_start = int(line.split(":")[1].strip())
-            elif "LOOP_END:" in line:
-                loop_end = int(line.split(":")[1].strip())
-        
-        return loop_start, loop_end
-
-    except subprocess.CalledProcessError as e:
-        print(f"Error processing {file_path}: {e}")
-        return None, None
-    
-def batch_loop_folder(input_dir):
-    files = glob.glob(f"{input_dir}/*.mp3")
-
-    for file in files:
-        loop_start, loop_end = get_loop_points(file)
-
-        if loop_start and loop_end:
-            print(str(file) + ": " + str(loop_start) + " - " + str(loop_end))
-            cfg_path = file.replace(".mp3", ".cfg")
-
-            with open(cfg_path, "w") as f:
-                f.write("LoopStart=" + str(loop_start) + "\n")
-                f.write("LoopEnd=" + str(loop_end) + "\n")
 
 if find_loops:
     print("Finding loops..")

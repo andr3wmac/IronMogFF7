@@ -28,3 +28,11 @@ The process is fully automated. To build the music library, simply run the build
 python build.py
   ```
 When its finished you can copy the 'music' folder into your IronMog FF7 folder.
+
+### Adding Additional Songs
+
+To use the automatic volume normalization and loop point finding on a folder of your own MP3s you can run:
+  ```bash
+python process_music.py <Path To MP3 or Folder of MP3s>
+  ```
+**Warning**: This process will overwrite the MP3s in place.
