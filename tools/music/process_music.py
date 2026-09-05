@@ -3,7 +3,17 @@ import glob
 import os
 import shutil
 import subprocess
+import sys
 import tempfile
+from pathlib import Path
+
+# If ffmpeg.exe (and ffprobe.exe) are next to this script, make them discoverable by 
+# ffmpeg-normalize and pymusiclooper no matter which directory
+_SCRIPT_DIR = Path(__file__).resolve().parent
+if (_SCRIPT_DIR / "ffmpeg.exe").exists():
+    os.environ["PATH"] = str(_SCRIPT_DIR) + os.pathsep + os.environ.get("PATH", "")
+    # ffmpeg-normalize honors FFMPEG_PATH to locate the ffmpeg binary directly.
+    os.environ.setdefault("FFMPEG_PATH", str(_SCRIPT_DIR / "ffmpeg.exe"))
 
 def normalize_files(files, output_dir, bitrate="320k"):
     files = list(files)
@@ -13,7 +23,7 @@ def normalize_files(files, output_dir, bitrate="320k"):
     os.makedirs(output_dir, exist_ok=True)
 
     command = [
-        "ffmpeg-normalize",
+        sys.executable, "-m", "ffmpeg_normalize",
         *files,
         "--preset", "podcast",
         "-c:a", "libmp3lame",
@@ -43,7 +53,7 @@ def batch_normalize_folder(input_dir, output_dir):
     normalize_files(glob.glob(f"{input_dir}/*.mp3"), output_dir)
 
 def get_loop_points(file_path):
-    cmd = ["pymusiclooper", "export-points", "--path", file_path]
+    cmd = [sys.executable, "-m", "pymusiclooper", "export-points", "--path", file_path]
 
     try:
         result = subprocess.run(cmd, capture_output=True, text=True, check=True)
