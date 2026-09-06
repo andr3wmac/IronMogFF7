@@ -163,8 +163,12 @@ void Permadeath::onFrame(uint32_t frameNumber)
 
             if (game->inBattle())
             {
+                // The game sets the Dead status bit the moment an enemy attack begins, before the animation plays out. 
+                // We also require the displayed HP gauge to have drained to 0 so permadeath triggers when the death is 
+                // actually visible on screen, rather than spoiling it at the start of the attack.
                 Flags<uint16_t> statusFlags = game->read<uint16_t>(BattleOffsets::Allies[i] + BattleOffsets::Status);
-                isDead = statusFlags.isSet(StatusFlags::Dead);
+                uint16_t hpDisplay = game->read<uint16_t>(BattleStateOffsets::Allies[i] + BattleStateOffsets::HPDisplay);
+                isDead = statusFlags.isSet(StatusFlags::Dead) && hpDisplay == 0;
             }
             else 
             {

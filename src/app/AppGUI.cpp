@@ -86,6 +86,8 @@ void App::drawSetupPanel()
                 saveSettings("settings/Last Settings.cfg", true);
             }
             
+            LOG("Detected game start, reconnecting GameManager..");
+            reconnect();
         }
         previousState = state;
     }

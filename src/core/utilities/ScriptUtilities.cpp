@@ -89,7 +89,7 @@ void ScriptUtilities::decompileWorldScript(GameManager* game, uintptr_t startAdd
 
 void ScriptUtilities::findWorldScripts(GameManager* game, uintptr_t startAddress, uintptr_t endAddress)
 {
-    uintptr_t opCodeCount = endAddress - startAddress / 2;
+    uintptr_t opCodeCount = (endAddress - startAddress) / 2;
 
     uint16_t* data = new uint16_t[opCodeCount];
     game->read(startAddress, opCodeCount * sizeof(uint16_t), (uint8_t*)(data));

@@ -244,7 +244,7 @@ void RandomizeShops::generateRandomizedShops()
             }
         }
 
-        uint32_t finalPrice = Utilities::clampTo<uint32_t>(materia.price * priceDist(rng));
+        uint32_t finalPrice = Utilities::clampTo<uint32_t>(materiaPrice * priceDist(rng));
         finalPrice = (finalPrice / 10) * 10;
         if (finalPrice < 1) finalPrice = 1;
 

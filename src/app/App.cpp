@@ -116,6 +116,12 @@ void App::disconnect()
     AudioManager::pauseMusic();
 }
 
+void App::reconnect()
+{
+    stopGameManager();
+    managerThread = new std::thread(&App::runGameManager, this);
+}
+
 void App::runGameManager()
 {
     // Prepare game manager
@@ -198,9 +204,12 @@ void App::stopGameManager()
 {
     tracker.reset();
     managerRunning = false;
-    managerThread->join();
-    delete managerThread;
-    managerThread = nullptr;
+    if (managerThread != nullptr)
+    {
+        managerThread->join();
+        delete managerThread;
+        managerThread = nullptr;
+    }
     previousState = GameManager::GameState::BootScreen;
 }
 

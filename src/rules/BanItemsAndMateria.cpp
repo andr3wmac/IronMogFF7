@@ -347,6 +347,7 @@ void BanItemsAndMateria::setup()
 
     if (noMagic)
     {
+        Restrictions::banMateria(19); // W-Magic
         Restrictions::banMateria(49); // Fire
         Restrictions::banMateria(50); // Ice
         Restrictions::banMateria(51); // Earth

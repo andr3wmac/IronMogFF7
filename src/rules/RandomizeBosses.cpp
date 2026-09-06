@@ -35,7 +35,6 @@ void RandomizeBosses::setup()
 {
     BIND_EVENT(game->onStart, RandomizeBosses::onStart);
     BIND_EVENT(game->onBattleEnter, RandomizeBosses::onBattleEnter);
-    BIND_EVENT(game->onBattleEnter, RandomizeBosses::onBattleEnter);
     BIND_EVENT_ONE_ARG(game->onBattleTransition, RandomizeBosses::onBattleTransition);
     BIND_EVENT_ONE_ARG(game->onDifficultyScaleChanged, RandomizeBosses::onDifficultyScaleChanged);
 }
@@ -266,23 +265,25 @@ void RandomizeBosses::generateBossStatMultipliers()
         ? 1.0f + (maxStatMultiplier - 1.0f) * difficultyScale
         : maxStatMultiplier;
 
-    std::uniform_real_distribution<float> dist(scaledMin, scaledMax);
-
     for (const Boss& boss : GameData::bosses)
     {
+        // Roll based on the seed, the boss, and the current difficulty scale. 
+        std::mt19937_64 bossRng(Utilities::makeSeed64(game->getSeed(), boss.id));
+        std::uniform_real_distribution<float> dist(scaledMin, scaledMax);
+
         StatMultiplierSet enemySet;
 
-        enemySet.currentHP  = dist(rng);
+        enemySet.currentHP  = dist(bossRng);
         enemySet.maxHP      = enemySet.currentHP;
-        enemySet.currentMP  = dist(rng);
+        enemySet.currentMP  = dist(bossRng);
         enemySet.maxMP      = enemySet.currentMP;
-        enemySet.strength   = dist(rng);
-        enemySet.magic      = dist(rng);
-        enemySet.evade      = dist(rng);
-        enemySet.speed      = dist(rng);
-        enemySet.luck       = dist(rng);
-        enemySet.defense    = dist(rng);
-        enemySet.mDefense   = dist(rng);
+        enemySet.strength   = dist(bossRng);
+        enemySet.magic      = dist(bossRng);
+        enemySet.evade      = dist(bossRng);
+        enemySet.speed      = dist(bossRng);
+        enemySet.luck       = dist(bossRng);
+        enemySet.defense    = dist(bossRng);
+        enemySet.mDefense   = dist(bossRng);
 
         bossStatMultipliers[boss.id] = enemySet;
     }
