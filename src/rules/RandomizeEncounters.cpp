@@ -232,7 +232,8 @@ std::vector<std::string> RandomizeEncounters::describe(RuleDescripionType descTy
                 ? 1.0f + (maxStatMultiplier - 1.0f) * difficultyScale
                 : maxStatMultiplier;
 
-            return { Utilities::formatFloat(scaledMin) + "-" + Utilities::formatFloat(scaledMax) + "x Enemy Stats" };
+            const auto [rangeMin, rangeMax] = Utilities::orderedRange(scaledMin, scaledMax);
+            return { Utilities::formatFloat(rangeMin) + "-" + Utilities::formatFloat(rangeMax) + "x Enemy Stats" };
         }
     }
 
@@ -568,11 +569,13 @@ void RandomizeEncounters::generateEnemyStatMultipliers()
         ? 1.0f + (maxStatMultiplier - 1.0f) * difficultyScale
         : maxStatMultiplier;
 
+    const auto [rangeMin, rangeMax] = Utilities::orderedRange(scaledMin, scaledMax);
+
     for (uint16_t enemyID : enemyIDs)
     {
-        // Roll based on the seed, the enemy, and the current difficulty scale. 
+        // Roll based on the seed, the enemy, and the current difficulty scale.
         std::mt19937_64 enemyRng(Utilities::makeSeed64(game->getSeed(), enemyID));
-        std::uniform_real_distribution<float> dist(scaledMin, scaledMax);
+        std::uniform_real_distribution<float> dist(rangeMin, rangeMax);
 
         StatMultiplierSet enemySet;
 

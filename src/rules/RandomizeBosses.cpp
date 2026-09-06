@@ -213,7 +213,8 @@ std::vector<std::string> RandomizeBosses::describe(RuleDescripionType descType)
                 ? 1.0f + (maxStatMultiplier - 1.0f) * difficultyScale
                 : maxStatMultiplier;
 
-            return { Utilities::formatFloat(scaledMin) + "-" + Utilities::formatFloat(scaledMax) + "x Boss Stats" };
+            const auto [rangeMin, rangeMax] = Utilities::orderedRange(scaledMin, scaledMax);
+            return { Utilities::formatFloat(rangeMin) + "-" + Utilities::formatFloat(rangeMax) + "x Boss Stats" };
         }
     }
 
@@ -265,11 +266,13 @@ void RandomizeBosses::generateBossStatMultipliers()
         ? 1.0f + (maxStatMultiplier - 1.0f) * difficultyScale
         : maxStatMultiplier;
 
+    const auto [rangeMin, rangeMax] = Utilities::orderedRange(scaledMin, scaledMax);
+
     for (const Boss& boss : GameData::bosses)
     {
-        // Roll based on the seed, the boss, and the current difficulty scale. 
+        // Roll based on the seed, the boss, and the current difficulty scale.
         std::mt19937_64 bossRng(Utilities::makeSeed64(game->getSeed(), boss.id));
-        std::uniform_real_distribution<float> dist(scaledMin, scaledMax);
+        std::uniform_real_distribution<float> dist(rangeMin, rangeMax);
 
         StatMultiplierSet enemySet;
 

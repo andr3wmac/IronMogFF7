@@ -198,7 +198,8 @@ void RandomizeShops::generateRandomizedShops()
     // prevents infinite money glitches from being possible.
 
     rng.seed(game->getSeed());
-    std::uniform_real_distribution<float> priceDist(minPriceMultiplier, maxPriceMultiplier);
+    const auto [priceMin, priceMax] = Utilities::orderedRange(minPriceMultiplier, maxPriceMultiplier);
+    std::uniform_real_distribution<float> priceDist(priceMin, priceMax);
 
     for (const auto& [id, item] : GameData::items)
     {
