@@ -10,8 +10,49 @@ REGISTER_RULE(DifficultyProgression, "Difficulty Progression", "Progressively sc
 
 static const char* progressSource[] { "Game Progress", "Highest Level", "In-Game Time"};
 
-static const char* progressEnds[] { "Cloud Named", "After 7th Heaven", "Exit Midgar", "End of Disc 1", "End of Disc 2", "Final Descent" };
-static uint16_t progressGameMoments[]{ 7, 105, 341, 677, 1620, 1997 };
+// End points for Game Progress mode, listed in the order they occur in the story.
+// Note: progressionEnd is saved to settings as an index into this table, so append new
+// entries rather than inserting them, otherwise existing settings shift to another moment.
+struct ProgressionEndPoint
+{
+    uint16_t gameMoment;
+    const char* name;
+};
+
+static const ProgressionEndPoint progressEnds[]
+{
+    // Midgar
+    { 7,    "Cloud named" },
+    { 105,  "Returned to 7th Heaven" },
+    { 140,  "Defeated Air Buster" },
+    { 188,  "Arrived at Wall Market" },
+    { 236,  "Sector 7 plate fell" },
+    { 260,  "Broke into Shinra HQ" },
+    { 341,  "Left Midgar" },
+
+    // Disc 1
+    { 385,  "Finished Kalm flashback" },
+    { 469,  "Acquired the buggy" },
+    { 523,  "Red XIII rejoined" },
+    { 556,  "Received Tiny Bronco" },
+    { 604,  "Entered Temple of the Ancients" },
+    { 677,  "End of Disc 1" },
+
+    // Disc 2
+    { 999,  "Cloud gave Sephiroth the Black Materia" },
+    { 1025, "Acquired the Highwind" },
+    { 1100, "Found Cloud at Mideel" },
+    { 1199, "Cloud returned" },
+    { 1299, "Finished submarine minigame" },
+    { 1318, "Rocket failed to destroy Meteor" },
+    { 1400, "Learned Aerith summoned Holy" },
+    { 1570, "Defeated Diamond Weapon" },
+    { 1600, "Landed in Midgar" },
+    { 1620, "End of Disc 2" },
+
+    // Disc 3
+    { 1997, "Final descent" },
+};
 
 void DifficultyProgression::setup()
 {
@@ -27,7 +68,7 @@ bool DifficultyProgression::onSettingsGUI()
 
     ImGui::Spacing();
     ImGui::Text("Source:");
-    ImGui::SetItemTooltip("How progress is determined.\nGame Progress: as you advance the story difficulty increases.\nHighest Level: difficulty increases with max level of your party.");
+    ImGui::SetItemTooltip("How progress is determined.\nGame Progress: as you advance the story difficulty increases.\nHighest Level: difficulty increases with max level of your party.\nIn-Game Time: difficulty increases as time passes.");
     ImGui::SameLine(DPI(120.0f));
     ImGui::SetNextItemWidth(DPI(200.0f));
 
@@ -59,9 +100,11 @@ bool DifficultyProgression::onSettingsGUI()
         ImGui::Text("End Moment:");
         ImGui::SetItemTooltip("The point in the game where difficulty has fully progressed.");
         ImGui::SameLine(DPI(120.0f));
-        ImGui::SetNextItemWidth(DPI(200.0f));
 
-        changed = ImGui::Combo("##DifficultyProgression_progressionEnd", &progressionEnd, progressEnds, IM_ARRAYSIZE(progressEnds));
+        changed = GUI::comboFixedWidth("##DifficultyProgression_progressionEnd", &progressionEnd,
+            IM_ARRAYSIZE(progressEnds),
+            [](int idx) { return progressEnds[idx].name; },
+            DPI(200.0f));
     }
 
     // Highest Level
@@ -119,6 +162,7 @@ void DifficultyProgression::loadSettings(const ConfigFile& cfg)
     progressionSource   = (ProgressionSource)cfg.get<int>("progressionSource", (int)progressionSource);
     progressionStart    = cfg.get<float>("progressionStart", progressionStart);
     progressionEnd      = cfg.get<int>("progressionEnd", progressionEnd);
+    progressionEnd      = Utilities::clamp(progressionEnd, 0, IM_ARRAYSIZE(progressEnds) - 1);
     progressionEndLevel = cfg.get<int>("progressionEndLevel", progressionEndLevel);
     progressionEndTime  = cfg.get<uint32_t>("progressionEndTime", progressionEndTime);
 }
@@ -140,7 +184,7 @@ std::vector<std::string> DifficultyProgression::describe(RuleDescripionType desc
 
         if (progressionSource == ProgressionSource::GameProgress)
         {
-            progressionString += progressEnds[progressionEnd];
+            progressionString += progressEnds[progressionEnd].name;
         }
         
         if (progressionSource == ProgressionSource::HighestLevel)
@@ -197,7 +241,7 @@ void DifficultyProgression::updateDifficulty()
     if (progressionSource == ProgressionSource::GameProgress)
     {
         uint16_t gameMoment = game->getGameMoment();
-        uint16_t endMoment = progressGameMoments[progressionEnd];
+        uint16_t endMoment = progressEnds[progressionEnd].gameMoment;
 
         float progress = Utilities::clamp((float)gameMoment / endMoment, 0.0f, 1.0f);
 

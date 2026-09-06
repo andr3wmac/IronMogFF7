@@ -54,6 +54,10 @@ public:
     static void drawColorGrid(const std::string& name, std::vector<Utilities::Color>& colors, std::function<void(int, Utilities::Color)> onClickCallback = {}, float boxSize = 16.0f, float spacing = 2.0f, int colorsPerRow = 24);
     static void wrappedTooltip(const std::string& text, float maxWidth = 400.0f);
     static void textCentered(const std::string& text, int width);
+
+    // Combo box whose popup keeps a fixed size rather than growing as longer items scroll into view. 
+    static bool comboFixedWidth(const char* id, int* currentItem, int itemCount, std::function<const char*(int)> getItemName, float width, int visibleItems = 8);
+    static bool comboFixedWidth(const char* id, int* currentItem, const char* const items[], int itemCount, float width, int visibleItems = 8);
     
     static void* imGuiSettingsReadOpen(ImGuiContext*, ImGuiSettingsHandler* handler, const char* name);
     static void imGuiSettingsReadLine(ImGuiContext*, ImGuiSettingsHandler* handler, void* entry, const char* line);
