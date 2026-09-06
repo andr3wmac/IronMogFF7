@@ -118,6 +118,9 @@ void App::disconnect()
 
 void App::reconnect()
 {
+    connectionState = ConnectionState::Connecting;
+    connectionStatus = "Reconnecting to Emulator..";
+
     stopGameManager();
     managerThread = new std::thread(&App::runGameManager, this);
 }

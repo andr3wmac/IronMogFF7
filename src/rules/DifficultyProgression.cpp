@@ -149,7 +149,13 @@ bool DifficultyProgression::onSettingsGUI()
 
         if (timeChanged)
         {
-            progressionEndTime = Utilities::toTotalSeconds(endH, endM, endS);
+            // Negative entries wrap when converted to seconds, and a zero end time divides
+            // by zero when progress is calculated, so keep the total at one second or more.
+            endH = std::max(0, endH);
+            endM = std::max(0, endM);
+            endS = std::max(0, endS);
+
+            progressionEndTime = std::max<uint32_t>(1, Utilities::toTotalSeconds(endH, endM, endS));
             changed = true;
         }
     }
@@ -165,6 +171,7 @@ void DifficultyProgression::loadSettings(const ConfigFile& cfg)
     progressionEnd      = Utilities::clamp(progressionEnd, 0, IM_ARRAYSIZE(progressEnds) - 1);
     progressionEndLevel = cfg.get<int>("progressionEndLevel", progressionEndLevel);
     progressionEndTime  = cfg.get<uint32_t>("progressionEndTime", progressionEndTime);
+    progressionEndTime  = std::max<uint32_t>(1, progressionEndTime);
 }
 
 void DifficultyProgression::saveSettings(ConfigFile& cfg)
@@ -194,8 +201,7 @@ std::vector<std::string> DifficultyProgression::describe(RuleDescripionType desc
 
         if (progressionSource == ProgressionSource::InGameTime)
         {
-            
-            progressionString += "at " + Utilities::formatTime(progressionEndTime);
+            progressionString += Utilities::formatTime(progressionEndTime);
         }
         
         return { progressionString };
