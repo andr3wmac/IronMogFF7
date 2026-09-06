@@ -35,7 +35,6 @@ void RandomizeBosses::setup()
 {
     BIND_EVENT(game->onStart, RandomizeBosses::onStart);
     BIND_EVENT(game->onBattleEnter, RandomizeBosses::onBattleEnter);
-    BIND_EVENT(game->onBattleEnter, RandomizeBosses::onBattleEnter);
     BIND_EVENT_ONE_ARG(game->onBattleTransition, RandomizeBosses::onBattleTransition);
     BIND_EVENT_ONE_ARG(game->onDifficultyScaleChanged, RandomizeBosses::onDifficultyScaleChanged);
 }
