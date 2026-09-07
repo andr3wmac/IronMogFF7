@@ -31,8 +31,10 @@ jobs:
       - name: Stage release package
         shell: pwsh
         run: |
-          $name = "IronMog FF7 $env:VERSION"
-          $stage = Join-Path $env:RUNNER_TEMP $name
+          # Stage into dist/<versioned folder>. upload-artifact roots the archive at
+          # the least common ancestor of the uploaded paths, so pointing it at "dist"
+          # keeps the "IronMog FF7 vX" folder inside the zip (matching prior releases).
+          $stage = "dist\IronMog FF7 $env:VERSION"
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
 
           # Locate the built exe (platform folder can vary between premake actions).
@@ -51,22 +53,11 @@ jobs:
           Copy-Item 'settings\Shop Prices.ini' -Destination $settings
 
           Write-Host "Staged contents:"
-          Get-ChildItem -Recurse $stage | ForEach-Object { $_.FullName.Substring($stage.Length) }
-
-          "STAGE_DIR=$stage" | Out-File -FilePath $env:GITHUB_ENV -Append
-          "PKG_NAME=$name"   | Out-File -FilePath $env:GITHUB_ENV -Append
-
-      - name: Zip release package
-        shell: pwsh
-        run: |
-          $zip = Join-Path $env:RUNNER_TEMP "$env:PKG_NAME.zip"
-          # Compress the top-level folder so the zip mirrors the existing releases.
-          Compress-Archive -Path $env:STAGE_DIR -DestinationPath $zip -Force
-          "ZIP_PATH=$zip" | Out-File -FilePath $env:GITHUB_ENV -Append
+          Get-ChildItem -Recurse $stage | ForEach-Object { $_.FullName.Substring((Resolve-Path 'dist').Path.Length) }
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: IronMog FF7 ${{ env.VERSION }}
-          path: ${{ env.ZIP_PATH }}
+          path: dist
           if-no-files-found: error
