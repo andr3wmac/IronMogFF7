@@ -1,0 +1,72 @@
+name: Build Release Package
+
+# Manually triggered. Produces the release zip as a downloadable build artifact.
+# Posting the actual GitHub Release is done by hand: download the artifact, then create the release and attach the zip.
+on:
+  workflow_dispatch:
+
+env:
+  # Bump this when you bump APP_VERSION_STRING in src/app/App.h. Keep the leading "v" to match the existing release naming.
+  VERSION: v0.8.3
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout (with LFS)
+        uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - name: Add MSBuild to PATH
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Generate Visual Studio project files
+        run: .\tools\build\premake5.exe --file=premake5.lua vs2022
+
+      - name: Build (Release x64)
+        run: msbuild IronMogFF7.sln /p:Configuration=Release /p:Platform=x64 /m /nologo
+
+      - name: Stage release package
+        shell: pwsh
+        run: |
+          $name = "IronMog FF7 $env:VERSION"
+          $stage = Join-Path $env:RUNNER_TEMP $name
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+
+          # Locate the built exe (platform folder can vary between premake actions).
+          $exe = Get-ChildItem -Path build -Recurse -Filter IronMogFF7.exe |
+                 Where-Object { $_.FullName -match 'Release' } |
+                 Select-Object -First 1
+          if (-not $exe) { throw "IronMogFF7.exe not found under build\" }
+          Copy-Item $exe.FullName -Destination $stage
+
+          # Full resources folder.
+          Copy-Item -Recurse resources (Join-Path $stage 'resources')
+
+          # Only the two settings files that ship with releases.
+          $settings = New-Item -ItemType Directory -Force -Path (Join-Path $stage 'settings')
+          Copy-Item 'settings\Default.cfg'     -Destination $settings
+          Copy-Item 'settings\Shop Prices.ini' -Destination $settings
+
+          Write-Host "Staged contents:"
+          Get-ChildItem -Recurse $stage | ForEach-Object { $_.FullName.Substring($stage.Length) }
+
+          "STAGE_DIR=$stage" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "PKG_NAME=$name"   | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Zip release package
+        shell: pwsh
+        run: |
+          $zip = Join-Path $env:RUNNER_TEMP "$env:PKG_NAME.zip"
+          # Compress the top-level folder so the zip mirrors the existing releases.
+          Compress-Archive -Path $env:STAGE_DIR -DestinationPath $zip -Force
+          "ZIP_PATH=$zip" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: IronMog FF7 ${{ env.VERSION }}
+          path: ${{ env.ZIP_PATH }}
+          if-no-files-found: error
