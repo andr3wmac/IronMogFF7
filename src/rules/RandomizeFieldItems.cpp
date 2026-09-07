@@ -244,7 +244,7 @@ void RandomizeFieldItems::apply()
             std::mt19937_64 rng64(Utilities::makeSeed64(game->getSeed(), fieldData.id, i));
             newItem.id = GameData::getRandomItem(newItem.id, rng64, keepItemType);
 
-            if (newItem.id == newItem.id)
+            if (newItem.id == oldItem.id)
             {
                 LOG("Did not roll new item on field %d: %s (%d)", fieldData.id, oldItemName.c_str(), oldItem.quantity);
             }

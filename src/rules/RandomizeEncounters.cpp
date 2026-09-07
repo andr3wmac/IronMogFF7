@@ -232,7 +232,8 @@ std::vector<std::string> RandomizeEncounters::describe(RuleDescripionType descTy
                 ? 1.0f + (maxStatMultiplier - 1.0f) * difficultyScale
                 : maxStatMultiplier;
 
-            return { Utilities::formatFloat(scaledMin) + "-" + Utilities::formatFloat(scaledMax) + "x Enemy Stats" };
+            const auto [rangeMin, rangeMax] = Utilities::orderedRange(scaledMin, scaledMax);
+            return { Utilities::formatFloat(rangeMin) + "-" + Utilities::formatFloat(rangeMax) + "x Enemy Stats" };
         }
     }
 
@@ -568,23 +569,27 @@ void RandomizeEncounters::generateEnemyStatMultipliers()
         ? 1.0f + (maxStatMultiplier - 1.0f) * difficultyScale
         : maxStatMultiplier;
 
-    std::uniform_real_distribution<float> dist(scaledMin, scaledMax);
+    const auto [rangeMin, rangeMax] = Utilities::orderedRange(scaledMin, scaledMax);
 
     for (uint16_t enemyID : enemyIDs)
     {
+        // Roll based on the seed, the enemy, and the current difficulty scale.
+        std::mt19937_64 enemyRng(Utilities::makeSeed64(game->getSeed(), enemyID));
+        std::uniform_real_distribution<float> dist(rangeMin, rangeMax);
+
         StatMultiplierSet enemySet;
 
-        enemySet.currentHP  = dist(rng);
+        enemySet.currentHP  = dist(enemyRng);
         enemySet.maxHP      = enemySet.currentHP;
-        enemySet.currentMP  = dist(rng);
+        enemySet.currentMP  = dist(enemyRng);
         enemySet.maxMP      = enemySet.currentMP;
-        enemySet.strength   = dist(rng);
-        enemySet.magic      = dist(rng);
-        enemySet.evade      = dist(rng);
-        enemySet.speed      = dist(rng);
-        enemySet.luck       = dist(rng);
-        enemySet.defense    = dist(rng);
-        enemySet.mDefense   = dist(rng);
+        enemySet.strength   = dist(enemyRng);
+        enemySet.magic      = dist(enemyRng);
+        enemySet.evade      = dist(enemyRng);
+        enemySet.speed      = dist(enemyRng);
+        enemySet.luck       = dist(enemyRng);
+        enemySet.defense    = dist(enemyRng);
+        enemySet.mDefense   = dist(enemyRng);
 
         enemyStatMultipliers[enemyID] = enemySet;
     }

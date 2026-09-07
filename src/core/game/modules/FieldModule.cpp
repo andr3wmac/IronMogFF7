@@ -337,6 +337,12 @@ int FieldModule::findPickUpMessage(std::string itemName, uint8_t group, uint8_t 
         }
     }
 
+    // HACK: "Four Slots" is "Four Slot" in Shinra HQ Floor 63
+    if (bestIndex == -1 && itemName == "Four Slots")
+    {
+        return findPickUpMessage("Four Slot", group, script, offset);
+    }
+
     // HACK: "Counter Attack" is sometimes shortened to "Counter" in field pick up messages.
     if (bestIndex == -1 && itemName == "Counter Attack")
     {

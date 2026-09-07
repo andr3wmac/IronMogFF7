@@ -65,6 +65,10 @@ T ConfigFile::get(const std::string& key, T defaultValue) const
     {
         return std::stof(value);
     }
+    else if constexpr (std::is_same_v<T, uint32_t>)
+    {
+        return std::stoul(value);
+    }
     else if constexpr (std::is_same_v<T, uint64_t>)
     {
         return std::stoull(value);
@@ -110,12 +114,14 @@ void ConfigFile::set(const std::string& key, T value)
 
 template int ConfigFile::get(const std::string& key, int defaultValue) const;
 template float ConfigFile::get(const std::string& key, float defaultValue) const;
+template uint32_t ConfigFile::get(const std::string& key, uint32_t defaultValue) const;
 template uint64_t ConfigFile::get(const std::string& key, uint64_t defaultValue) const;
 template bool ConfigFile::get(const std::string& key, bool defaultValue) const;
 template std::string ConfigFile::get(const std::string& key, std::string defaultValue) const;
 
 template void ConfigFile::set(const std::string& key, int value);
 template void ConfigFile::set(const std::string& key, float value);
+template void ConfigFile::set(const std::string& key, uint32_t value);
 template void ConfigFile::set(const std::string& key, uint64_t value);
 template void ConfigFile::set(const std::string& key, bool value);
 template void ConfigFile::set(const std::string& key, std::string value);

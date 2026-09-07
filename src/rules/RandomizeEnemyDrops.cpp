@@ -162,15 +162,18 @@ std::vector<std::string> RandomizeEnemyDrops::describe(RuleDescripionType descTy
 
         if (minAPMultiplier != 1.0f || maxAPMultiplier != 1.0f)
         {
-            results.push_back(Utilities::formatFloat(minAPMultiplier) + "-" + Utilities::formatFloat(maxAPMultiplier) + "x AP");
+            const auto [apMin, apMax] = Utilities::orderedRange(minAPMultiplier, maxAPMultiplier);
+            results.push_back(Utilities::formatFloat(apMin) + "-" + Utilities::formatFloat(apMax) + "x AP");
         }
         if (minExpMultiplier != 1.0f || maxExpMultiplier != 1.0f)
         {
-            results.push_back(Utilities::formatFloat(minExpMultiplier) + "-" + Utilities::formatFloat(maxExpMultiplier) + "x Exp");
+            const auto [expMin, expMax] = Utilities::orderedRange(minExpMultiplier, maxExpMultiplier);
+            results.push_back(Utilities::formatFloat(expMin) + "-" + Utilities::formatFloat(expMax) + "x Exp");
         }
         if (minGilMultiplier != 1.0f || maxGilMultiplier != 1.0f)
         {
-            results.push_back(Utilities::formatFloat(minGilMultiplier) + "-" + Utilities::formatFloat(maxGilMultiplier) + "x Gil");
+            const auto [gilMin, gilMax] = Utilities::orderedRange(minGilMultiplier, maxGilMultiplier);
+            results.push_back(Utilities::formatFloat(gilMin) + "-" + Utilities::formatFloat(gilMax) + "x Gil");
         }
 
         return results;
@@ -208,7 +211,8 @@ void RandomizeEnemyDrops::onBattleEnter()
         }
 
         // Apply Exp Multipliers
-        std::uniform_real_distribution<float> expDist(minExpMultiplier, maxExpMultiplier);
+        const auto [expMin, expMax] = Utilities::orderedRange(minExpMultiplier, maxExpMultiplier);
+        std::uniform_real_distribution<float> expDist(expMin, expMax);
         float expMultiplier = expDist(rng);
 
         uint32_t exp = game->read<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::Exp);
@@ -216,7 +220,8 @@ void RandomizeEnemyDrops::onBattleEnter()
         game->write<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::Exp, newExp);
 
         // Apply Gil Multiplier
-        std::uniform_real_distribution<float> gilDist(minGilMultiplier, maxGilMultiplier);
+        const auto [gilMin, gilMax] = Utilities::orderedRange(minGilMultiplier, maxGilMultiplier);
+        std::uniform_real_distribution<float> gilDist(gilMin, gilMax);
         float gilMultiplier = gilDist(rng);
 
         uint32_t gil = game->read<uint32_t>(BattleOffsets::Enemies[i] + BattleOffsets::Gil);
@@ -227,7 +232,8 @@ void RandomizeEnemyDrops::onBattleEnter()
     for (int idx : activeEnemyIndexes)
     {
         // Apply AP multiplier
-        std::uniform_real_distribution<float> apDist(minAPMultiplier, maxAPMultiplier);
+        const auto [apMin, apMax] = Utilities::orderedRange(minAPMultiplier, maxAPMultiplier);
+        std::uniform_real_distribution<float> apDist(apMin, apMax);
         float apMultiplier = apDist(rng);
 
         uint32_t ap = game->read<uint16_t>(BattleSceneOffsets::Enemies[idx] + BattleSceneOffsets::AP);

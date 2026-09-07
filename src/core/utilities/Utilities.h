@@ -7,6 +7,7 @@
 #include <sstream>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include <filesystem>
@@ -187,6 +188,18 @@ public:
         return oss.str();
     }
 
+    static void splitTime(uint32_t totalSeconds, int& hours, int& minutes, int& seconds)
+    {
+        hours = totalSeconds / 3600;
+        minutes = (totalSeconds % 3600) / 60;
+        seconds = totalSeconds % 60;
+    }
+
+    static uint32_t toTotalSeconds(int hours, int minutes, int seconds)
+    {
+        return (hours * 3600) + (minutes * 60) + seconds;
+    }
+
     // Strips extraneous digits from the end to return the most concise number.
     // Example: 3.500001 returns "3.5" and 1.00001 returns "1"
     static std::string formatFloat(float value, int precision = 3) 
@@ -300,6 +313,15 @@ public:
     static constexpr T lerp(const T& a, const T& b, const U& t)
     {
         return a + t * (b - a);
+    }
+
+    // Ensures min and max are in the correct order. 
+    // Prevents undefined behaviour in things like uniform_real_distribution.
+    template<class T>
+    static constexpr std::pair<T, T> orderedRange(const T& minValue, const T& maxValue)
+    {
+        return (maxValue < minValue) ? std::pair<T, T>{ maxValue, minValue }
+                                     : std::pair<T, T>{ minValue, maxValue };
     }
 
     template <typename Target, typename Source>

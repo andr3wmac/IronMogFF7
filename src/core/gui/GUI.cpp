@@ -572,6 +572,41 @@ void GUI::textCentered(const std::string& text, int width)
     ImGui::Text(text.c_str());
 }
 
+bool GUI::comboFixedWidth(const char* id, int* currentItem, int itemCount, std::function<const char*(int)> getItemName, float width, int visibleItems)
+{
+    // ImGui::Combo() clips items that are scrolled out of view, so its popup only auto-sizes to the widest entry 
+    // it has measured so far and grows as you scroll. Measure every entry up front and pin the popup size instead. 
+    // Supplying our own size constraint bypasses ImGui's default height cap, so that is reproduced here as well.
+    const ImGuiStyle& style = ImGui::GetStyle();
+
+    float widestEntry = 0.0f;
+    for (int i = 0; i < itemCount; ++i)
+    {
+        const char* itemName = getItemName(i);
+        if (itemName != nullptr)
+        {
+            widestEntry = std::max(widestEntry, ImGui::CalcTextSize(itemName).x);
+        }
+    }
+
+    const float popupWidth = std::max(width, widestEntry + (style.WindowPadding.x * 2.0f) + style.ScrollbarSize);
+    const float popupHeight = (visibleItems > 0)
+        ? ((ImGui::GetFontSize() + style.ItemSpacing.y) * visibleItems) - style.ItemSpacing.y + (style.WindowPadding.y * 2.0f)
+        : FLT_MAX;
+
+    ImGui::SetNextWindowSizeConstraints(ImVec2(popupWidth, 0.0f), ImVec2(popupWidth, popupHeight));
+    ImGui::SetNextItemWidth(width);
+
+    return ImGui::Combo(id, currentItem,
+        [](void* data, int idx) { return (*(std::function<const char*(int)>*)data)(idx); },
+        &getItemName, itemCount);
+}
+
+bool GUI::comboFixedWidth(const char* id, int* currentItem, const char* const items[], int itemCount, float width, int visibleItems)
+{
+    return comboFixedWidth(id, currentItem, itemCount, [items](int idx) { return items[idx]; }, width, visibleItems);
+}
+
 void* GUI::imGuiSettingsReadOpen(ImGuiContext*, ImGuiSettingsHandler* handler, const char* name)
 {
     auto* cfg = static_cast<SettingsHandler*>(handler->UserData);
