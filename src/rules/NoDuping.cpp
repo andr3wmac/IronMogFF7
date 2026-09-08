@@ -243,7 +243,7 @@ void NoDuping::checkWItemDuping()
                     {
                         // Previous quantity is zero so write an empty slot.
                         uint8_t inventoryEntry[] = { 0xFF, 0xFF, 0x00, 0x00, 11, 0x00 };
-                        game->write(BattleOffsets::Inventory + (i * 6), inventoryEntry, 6);
+                        game->write(BattleOffsets::Inventory + (itemIndex * 6), inventoryEntry, 6);
                         LOG("Item duplication prevented (zero quantity): %d", itemID);
                     }
                 }
