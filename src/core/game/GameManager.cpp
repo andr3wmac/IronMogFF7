@@ -575,6 +575,19 @@ std::array<uint8_t, 3> GameManager::getPartyIDs()
     return results;
 }
 
+bool GameManager::inParty(uint8_t characterID)
+{
+    std::array<uint8_t, 3> partyIDs = getPartyIDs();
+    for (uint8_t id : partyIDs)
+    {
+        if (id == characterID)
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
 std::array<uint16_t, 320> GameManager::getPartyInventory()
 {
     std::array<uint16_t, 320> results;

@@ -26,6 +26,7 @@ struct GameOffsets
     CONST_PTR GameMoment        = 0x9D288;  // uint16_t
     CONST_PTR MenuLockingMask   = 0x9D2A6;  // uint16_t bitmask of options disabled in the menu. 
     CONST_PTR DiscNumber        = 0x9D588;  // uint8_t with disc number 1, 2, or 3.
+    CONST_PTR PHSLockMask       = 0x9D788;  // uint16_t bitmask of characters locked from PHS swapping
     CONST_PTR PHSVisibilityMask = 0x9D78A;  // uint16_t bitmask of which characters are on PHS
     CONST_PTR WindowText        = 0xE4944;  // Array of window text entries, each window gets 256 characters, terminated by 0xFF.
     CONST_PTR WorldScreenFade   = 0x10B488; // uint8_t, 0 - 255 how much screen is faded for loading world map
@@ -114,6 +115,19 @@ inline uint16_t getJumpAddress(uintptr_t memAddress)
     return (uint16_t)(jumpStart / 2);
 }
 
+struct CharacterID
+{
+    CONST_U8 Cloud    = 0;
+    CONST_U8 Barret   = 1;
+    CONST_U8 Tifa     = 2;
+    CONST_U8 Aerith   = 3;
+    CONST_U8 RedXIII  = 4;
+    CONST_U8 Yuffie   = 5;
+    CONST_U8 CaitSith = 6;
+    CONST_U8 Vincent  = 7;
+    CONST_U8 Cid      = 8;
+};
+
 // Character data exists for each of the cast of playabale characters and these stats are all saved onto memory card.
 // When you enter a battle, relevant fields from this are copied into Battle Allies, etc
 // Therefore, changing Current HP on character data while in a battle has no effect.
@@ -130,7 +144,6 @@ struct CharacterDataOffsets
     CONST_PTR Cid       = 0x9CB58;
 
     CONST_PTR Characters[] = { Cloud, Barret, Tifa, Aerith, RedXIII, Yuffie, CaitSith, Vincent, Cid };
-    CONST_U8 CharacterIDs[] = { 0, 1, 2, 3, 4, 5, 6, 7, 8 };
 
     CONST_PTR ID                = 0x00;
     CONST_PTR Level             = 0x01;

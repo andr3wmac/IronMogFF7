@@ -265,8 +265,6 @@ void DifficultyProgression::updateDifficulty()
 
         for (int i = 0; i < 9; ++i)
         {
-            uint8_t characterID = CharacterDataOffsets::CharacterIDs[i];
-
             // Note: Cloud is always included
             if (i == 0 || Utilities::isBitSet(phsVisMask, i))
             {
