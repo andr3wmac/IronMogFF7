@@ -46,16 +46,14 @@ void Tracker::update()
         Permadeath* permadeathRule = (Permadeath*)RuleManager::getRule("Permadeath");
         uint16_t phsVisMask = game->read<uint16_t>(GameOffsets::PHSVisibilityMask);
 
-        for (int i = 0; i < 9; ++i)
+        for (uint8_t i = 0; i < 9; ++i)
         {
-            uint8_t characterID = CharacterDataOffsets::CharacterIDs[i];
-
             characters[i].isActive = Utilities::isBitSet(phsVisMask, i);
             characters[i].isPermadead = false;
 
             if (permadeathRule != nullptr)
             {
-                if (permadeathRule->isCharacterDead(characterID))
+                if (permadeathRule->isCharacterDead(i))
                 {
                     characters[i].isPermadead = true;
                 }

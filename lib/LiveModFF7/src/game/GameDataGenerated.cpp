@@ -701,6 +701,7 @@ void GameData::loadGameData(GameVersion gameVersion, uint8_t gameDisc)
     addField(0x00F5, "blin63_1");
     addFieldScriptMessage(0x00F5, 15, 1, 0, 0x177A, 0x32A4, 24);
     addFieldScriptItem(0x00F5, 15, 1, 0x177D, 298, 1);
+    addFieldScriptMessage(0x00F5, 15, 1, 0, 0x17A7, 0x32EB, 21);
     addFieldScriptItem(0x00F5, 15, 1, 0x17AA, 277, 1);
     addFieldScriptMessage(0x00F5, 15, 1, 0, 0x17D4, 0x32D3, 23);
     addFieldScriptMateria(0x00F5, 15, 1, 0x17D7, 23);
@@ -2097,6 +2098,7 @@ void GameData::loadGameData(GameVersion gameVersion, uint8_t gameDisc)
     addFieldScriptMessage(0x025C, 30, 1, 0, 0x11FD, 0x1809, 19);
     addFieldScriptItem(0x025C, 30, 1, 0x1200, 203, 1);
     addFieldScriptMateria(0x025C, 31, 1, 0x123F, 4);
+    addFieldScriptMessage(0x025C, 31, 1, 0, 0x127D, 0x177C, 30);
     addFieldScriptItem(0x025C, 32, 1, 0x12C7, 4, 1);
     addFieldScriptMessage(0x025C, 32, 1, 0, 0x12DA, 0x179B, 23);
     addFieldScriptItem(0x025C, 33, 1, 0x132A, 74, 1);
@@ -5256,6 +5258,7 @@ void GameData::loadGameData(GameVersion gameVersion, uint8_t gameDisc)
         addFieldScriptMessage(0x025C, 30, 1, 0, 0x11FF, 0x17F1, 19);
         addFieldScriptItem(0x025C, 30, 1, 0x1202, 203, 1);
         addFieldScriptMateria(0x025C, 31, 1, 0x1241, 4);
+        addFieldScriptMessage(0x025C, 31, 1, 0, 0x127F, 0x1764, 30);
         addFieldScriptItem(0x025C, 32, 1, 0x12C9, 4, 1);
         addFieldScriptMessage(0x025C, 32, 1, 0, 0x12DC, 0x1783, 23);
         addFieldScriptItem(0x025C, 33, 1, 0x132C, 74, 1);

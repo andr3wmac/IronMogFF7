@@ -332,8 +332,6 @@ void App::drawTrackerPanel()
 
             for (int i = 0; i < 9; ++i)
             {
-                uint8_t characterID = CharacterDataOffsets::CharacterIDs[i];
-
                 float iconAlpha = 0.25f;
                 if (tracker.characters[i].isActive)
                 {

@@ -21,8 +21,12 @@ public:
 
 private:
     void onStart();
+    void onFieldChanged(uint16_t fieldID);
+    void onFrame(uint32_t frameNumber);
     void applyMasamuneMode();
+    void applyAerithSurvives(uint16_t fieldID);
 
     std::mt19937_64 rng;
     MasamuneMode masamuneMode = MasamuneMode::Disabled;
+    bool aerithSurvives = false;
 };

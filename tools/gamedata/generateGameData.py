@@ -274,6 +274,12 @@ def outputFields(gen, discPath, version):
 
                 # Handles cases where we miss the message because they named it wrong.
                 hack_match = False
+                if "Four Slot" in string:
+                    hack_match = True
+                if "Counter" in string:
+                    hack_match = True
+                if "Lucky Plus" in string:
+                    hack_match = True
                 if "Last Elixir" in string:
                     hack_match = True
                 if "Cursed Ring" in string:

@@ -7,6 +7,7 @@
 #include <sstream>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include <filesystem>
@@ -312,6 +313,15 @@ public:
     static constexpr T lerp(const T& a, const T& b, const U& t)
     {
         return a + t * (b - a);
+    }
+
+    // Ensures min and max are in the correct order. 
+    // Prevents undefined behaviour in things like uniform_real_distribution.
+    template<class T>
+    static constexpr std::pair<T, T> orderedRange(const T& minValue, const T& maxValue)
+    {
+        return (maxValue < minValue) ? std::pair<T, T>{ maxValue, minValue }
+                                     : std::pair<T, T>{ minValue, maxValue };
     }
 
     template <typename Target, typename Source>

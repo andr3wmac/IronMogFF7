@@ -51,6 +51,9 @@ public:
     // Returns a list of the character IDs that are currently in the party. 0xFF is the slot is empty.
     std::array<uint8_t, 3> getPartyIDs();
 
+    // Returns true if character is in party.
+    bool inParty(uint8_t characterID);
+
     // Returns a list of item IDs currently in the party's possession.
     std::array<uint16_t, 320> getPartyInventory();
     void setInventorySlot(uint32_t slotIndex, uint16_t itemID, uint8_t quantity);

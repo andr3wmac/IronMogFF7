@@ -63,11 +63,14 @@ bool RandomizeShops::onSettingsGUI()
 
 void RandomizeShops::loadSettings(const ConfigFile& cfg)
 {
-    disableShops     = cfg.get<bool>("disableShops", disableShops);
-    keepShopPrices   = cfg.get<bool>("keepShopPrices", keepShopPrices);
-    keepItemType     = cfg.get<bool>("keepItemType", keepItemType);
-    excludeRareItems = cfg.get<bool>("excludeRareItems", excludeRareItems);
-    excludeSources   = cfg.get<bool>("excludeSources", excludeSources);
+    disableShops        = cfg.get<bool>("disableShops", disableShops);
+    keepShopPrices      = cfg.get<bool>("keepShopPrices", keepShopPrices);
+    keepItemType        = cfg.get<bool>("keepItemType", keepItemType);
+    excludeRareItems    = cfg.get<bool>("excludeRareItems", excludeRareItems);
+    excludeSources      = cfg.get<bool>("excludeSources", excludeSources);
+    useBalancedPrices   = cfg.get<bool>("useBalancedPrices", useBalancedPrices);
+    minPriceMultiplier  = cfg.get<float>("minPriceMultiplier", minPriceMultiplier);
+    maxPriceMultiplier  = cfg.get<float>("maxPriceMultiplier", maxPriceMultiplier);
 }
 
 void RandomizeShops::saveSettings(ConfigFile& cfg)
@@ -77,6 +80,9 @@ void RandomizeShops::saveSettings(ConfigFile& cfg)
     cfg.set<bool>("keepItemType", keepItemType);
     cfg.set<bool>("excludeRareItems", excludeRareItems);
     cfg.set<bool>("excludeSources", excludeSources);
+    cfg.set<bool>("useBalancedPrices", useBalancedPrices);
+    cfg.set<float>("minPriceMultiplier", minPriceMultiplier);
+    cfg.set<float>("maxPriceMultiplier", maxPriceMultiplier);
 }
 
 void RandomizeShops::onDebugGUI()
@@ -198,7 +204,8 @@ void RandomizeShops::generateRandomizedShops()
     // prevents infinite money glitches from being possible.
 
     rng.seed(game->getSeed());
-    std::uniform_real_distribution<float> priceDist(minPriceMultiplier, maxPriceMultiplier);
+    const auto [priceMin, priceMax] = Utilities::orderedRange(minPriceMultiplier, maxPriceMultiplier);
+    std::uniform_real_distribution<float> priceDist(priceMin, priceMax);
 
     for (const auto& [id, item] : GameData::items)
     {
@@ -244,7 +251,7 @@ void RandomizeShops::generateRandomizedShops()
             }
         }
 
-        uint32_t finalPrice = Utilities::clampTo<uint32_t>(materia.price * priceDist(rng));
+        uint32_t finalPrice = Utilities::clampTo<uint32_t>(materiaPrice * priceDist(rng));
         finalPrice = (finalPrice / 10) * 10;
         if (finalPrice < 1) finalPrice = 1;
 

@@ -131,6 +131,9 @@ void App::disconnect()
 
 void App::reconnect()
 {
+    connectionState = ConnectionState::Connecting;
+    connectionStatus = "Reconnecting to Emulator..";
+
     stopGameManager();
     managerThread = new std::thread(&App::runGameManager, this);
 }
@@ -201,10 +204,10 @@ void App::runGameManager()
     // Enforce item/materia bans by deleting anything banned that a randomizer (or
     // nothing) left in place. Bound after the rules so these listeners run last
     // on each event, ensuring we only remove what wasn't already replaced.
-    game->onBattleEnter.addListener([this]() { Restrictions::enforceBattleBans(game); });
-    game->onBattleTransition.addListener([this](uint16_t) { Restrictions::enforceBattleBans(game); });
-    game->onFieldChanged.addListener([this](uint16_t fieldID) { Restrictions::enforceFieldBans(game, fieldID); });
-    game->onShopMenuChanged.addListener([this](uint8_t menuIndex) { Restrictions::enforceShopBans(game, menuIndex); });
+    game->onBattleEnter.addListener(this, "Restrictions::enforceBattleBans", [this]() { Restrictions::enforceBattleBans(game); });
+    game->onBattleTransition.addListener(this, "Restrictions::enforceBattleBans", [this](uint16_t) { Restrictions::enforceBattleBans(game); });
+    game->onFieldChanged.addListener(this, "Restrictions::enforceFieldBans", [this](uint16_t fieldID) { Restrictions::enforceFieldBans(game, fieldID); });
+    game->onShopMenuChanged.addListener(this, "Restrictions::enforceShopBans", [this](uint8_t menuIndex) { Restrictions::enforceShopBans(game, menuIndex); });
 
     managerRunning = true;
     while (managerRunning.load())
