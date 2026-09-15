@@ -12,12 +12,14 @@
 REGISTER_RULE(GameplayMods, "Gameplay Mods", "Modify aspects of how the game works.")
 
 static const char* masamuneModes[] { "No One", "Cloud", "Everyone", "Random Character" };
+static const char* aerithModes[] { "Never", "Always", "Item" };
 
 void GameplayMods::setup()
 {
     BIND_EVENT(game->onStart, GameplayMods::onStart);
     BIND_EVENT_ONE_ARG(game->onFieldChanged, GameplayMods::onFieldChanged);
     BIND_EVENT_ONE_ARG(game->onFrame, GameplayMods::onFrame);
+    BIND_EVENT_ONE_ARG(game->onCustomItemUsed, GameplayMods::onCustomItemUsed);
 }
 
 bool GameplayMods::onSettingsGUI()
@@ -38,8 +40,25 @@ bool GameplayMods::onSettingsGUI()
     }
 
     ImGui::Spacing();
-    changed |= ImGui::Checkbox("Aerith Survives", &aerithSurvives);
-    ImGui::SetItemTooltip("Aerith survives the end of disc 1 and rejoins the party via PHS.");
+    ImGui::Text("Aerith Survives:");
+    ImGui::SetItemTooltip("Never: Aerith dies as in vanilla.\nAlways: Aerith survives and rejoins via PHS.\nItem: Aerith dies, but a findable item can revive her.");
+    ImGui::SameLine(DPI(200.0f));
+    ImGui::SetNextItemWidth(DPI(200.0f));
+
+    int aerithModeIndex = (int)aerithMode;
+    if (ImGui::Combo("##GameplayMods_aerithMode", &aerithModeIndex, aerithModes, IM_ARRAYSIZE(aerithModes)))
+    {
+        aerithMode = (AerithMode)aerithModeIndex;
+        changed = true;
+    }
+
+    if (aerithMode == AerithMode::Item)
+    {
+        ImGui::Text("Item Drop Odds:");
+        ImGui::SameLine(DPI(200.0f));
+        ImGui::SetNextItemWidth(DPI(200.0f));
+        changed |= ImGui::SliderFloat("##GameplayMods_aerithItemOdds", &aerithItemOdds, 0.0f, 1.0f, "%.2f");
+    }
 
     return changed;
 }
@@ -47,19 +66,69 @@ bool GameplayMods::onSettingsGUI()
 void GameplayMods::loadSettings(const ConfigFile& cfg)
 {
     masamuneMode = (MasamuneMode)cfg.get<int>("musamuneMode", (int)masamuneMode);
-    aerithSurvives = cfg.get<bool>("aerithSurvives", aerithSurvives);
+    aerithMode = (AerithMode)cfg.get<int>("aerithMode", (int)aerithMode);
+    aerithItemOdds = cfg.get<float>("aerithItemOdds", aerithItemOdds);
+
+    // Migrate the old boolean "Aerith Survives" setting to the mode dropdown.
+    if (cfg.get<bool>("aerithSurvives", false))
+    {
+        aerithMode = AerithMode::Always;
+    }
 }
 
 void GameplayMods::saveSettings(ConfigFile& cfg)
 {
     cfg.set<int>("musamuneMode", (int)masamuneMode);
-    cfg.set<bool>("aerithSurvives", aerithSurvives);
+    cfg.set<int>("aerithMode", (int)aerithMode);
+    cfg.set<float>("aerithItemOdds", aerithItemOdds);
 }
 
 void GameplayMods::onStart()
 {
     rng.seed(game->getSeed());
     applyMasamuneMode();
+
+    // Note: revival state is runtime-only for now, so a mid-run reload won't re-arm the field-script
+    // softlock patches for an item-revived Aerith (her PHS availability is saved and persists, though).
+    aerithRevived = false;
+    aerithItemId = 0xFFFF;
+    if (aerithMode == AerithMode::Item)
+    {
+        CustomItem item;
+        item.name = "Aerith's Ribbon";
+        item.targetsCharacter = false;
+        item.spawnChance = aerithItemOdds;
+        item.maxEverSpawned = 1;
+        aerithItemId = game->registerCustomItem(item);
+        LOG("Registered Aerith's Ribbon as item ID: %d", aerithItemId);
+    }
+}
+
+void GameplayMods::onCustomItemUsed(CustomItemUse use)
+{
+    if (aerithMode != AerithMode::Item || use.itemId != aerithItemId)
+    {
+        return;
+    }
+
+    aerithRevived = true;
+    game->showMenuPopup("Aerith has been revived!");
+    addAerithToPHS();
+    LOG("Aerith Revive: revive item used; Aerith enabled on the PHS.");
+}
+
+void GameplayMods::addAerithToPHS()
+{
+    // Make Aerith appear on the PHS and clear her lock bit so she can be swapped into the party.
+    uint16_t phsVisMask = game->read<uint16_t>(GameOffsets::PHSVisibilityMask);
+    phsVisMask |= (1 << CharacterID::Aerith);
+    game->write<uint16_t>(GameOffsets::PHSVisibilityMask, phsVisMask);
+
+    uint16_t phsLockMask = game->read<uint16_t>(GameOffsets::PHSLockMask);
+    phsLockMask &= ~(1 << CharacterID::Aerith);
+    game->write<uint16_t>(GameOffsets::PHSLockMask, phsLockMask);
+
+    LOG("Aerith Survives: enabled Aerith on the PHS.");
 }
 
 void GameplayMods::applyMasamuneMode()
@@ -92,7 +161,7 @@ void GameplayMods::applyMasamuneMode()
 
 void GameplayMods::onFieldChanged(uint16_t fieldID)
 {
-    if (aerithSurvives)
+    if (aerithActive())
     {
         applyAerithSurvives(fieldID);
     }
@@ -100,7 +169,7 @@ void GameplayMods::onFieldChanged(uint16_t fieldID)
 
 void GameplayMods::onFrame(uint32_t frameNumber)
 {
-    if (aerithSurvives)
+    if (aerithActive())
     {
         // Northern Crater party split (las0_8). The player picks who goes left/right to form the descent party 
         // but with Aerith absent she can't be chosen, so a "send only one person left" choice leaves a two-member party.
@@ -130,19 +199,10 @@ void GameplayMods::onFrame(uint32_t frameNumber)
 
 void GameplayMods::applyAerithSurvives(uint16_t fieldID)
 {
-    // Re-enable Aerith on the PHS when we Disc 2 starts.
+    // Re-enable Aerith on the PHS when Disc 2 starts.
     if (fieldID == 634 && game->getGameMoment() == 677)
     {
-        // Make Aerith appear on the PHS and clear her lock bit so she can be swapped into the party.
-        uint16_t phsVisMask = game->read<uint16_t>(GameOffsets::PHSVisibilityMask);
-        phsVisMask |= (1 << CharacterID::Aerith);
-        game->write<uint16_t>(GameOffsets::PHSVisibilityMask, phsVisMask);
-
-        uint16_t phsLockMask = game->read<uint16_t>(GameOffsets::PHSLockMask);
-        phsLockMask &= ~(1 << CharacterID::Aerith);
-        game->write<uint16_t>(GameOffsets::PHSLockMask, phsLockMask);
-
-        LOG("Aerith Survives: enabled Aerith on the PHS.");
+        addAerithToPHS();
     }
 
     // No need to patch if shes not in the party.

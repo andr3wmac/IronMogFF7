@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/emulators/Emulator.h"
+#include "core/game/CustomItem.h"
 #include "core/game/GameData.h"
 #include "core/game/modules/BattleModule.h"
 #include "core/game/modules/FieldModule.h"
@@ -67,6 +68,14 @@ public:
     std::array<uint16_t, 320> getPartyInventory();
     void setInventorySlot(uint32_t slotIndex, uint16_t itemID, uint8_t quantity);
 
+    // Custom items: registers an item in one of FF7's unused slots and returns its assigned id.
+    // Register during a listener's onStart handler; the registry is rebuilt each game start.
+    uint16_t registerCustomItem(const CustomItem& item);
+
+    // Shows the field-menu character-response popup with arbitrary text. Only renders while a menu is
+    // open (World/Field module). color 7 = white; other values give other colors.
+    void showMenuPopup(const std::string& text, uint8_t frames = 90, uint8_t color = 7);
+
     // Returns a list of materia IDs currently in the party's possession.
     std::array<uint32_t, 200> getPartyMateria();
 
@@ -111,6 +120,7 @@ public:
     Event<std::string> onNameEntryOpened;
     Event<> onWorldMapEnter;
     Event<float> onDifficultyScaleChanged;  // Triggers when the difficulty scaling changes, intended to trigger rules to update.
+    Event<CustomItemUse> onCustomItemUsed;   // Triggers when a registered custom item is used from the menu.
 
     // Read/Write RAM Functions
     template <typename T>
@@ -141,6 +151,11 @@ public:
     size_t writeString(uintptr_t offset, uint32_t length, const std::string& string, bool centerAlign = false);
 
 private:
+    // Rebuilds the custom item registry, fires onStart, then injects registered items into the kernel.
+    void onGameStart();
+    void injectCustomItems();
+    void updateCustomItemUse();
+
     Emulator* emulator;
     GameVersion gameVersion = GameVersion::PlayStationUS;
     uint8_t gameDisc = 1;
@@ -158,6 +173,11 @@ private:
     bool waitingForGameOver = false;
     float difficultyScale = 1.0f;
 
-    // A set of pointers to the last line of field script executed within each group. 
+    // A set of pointers to the last line of field script executed within each group.
     uint16_t fieldScriptExecutionTable[64];
+
+    // Custom item registry (rebuilt each game start) and the previous target-select state, used to
+    // fire only on the rising edge into target-select.
+    std::vector<CustomItem> customItems;
+    uint8_t lastItemTargetActive = 0;
 };

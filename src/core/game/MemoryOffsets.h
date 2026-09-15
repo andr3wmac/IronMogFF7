@@ -412,6 +412,46 @@ struct StatusFlags
     CONST_U16 Sadness    = (1 << 4);
 };
 
+// Field/main-menu item list control (the blinking highlight row). FF7 never stores the selected
+// item as an id or an absolute inventory slot anywhere in RAM; it resolves it live from the visible
+// list position as: inventorySlot = ItemListScroll + ItemListCursor, then reads
+// GameOffsets::Inventory[inventorySlot]. Verified across dumps at multiple scroll positions.
+// NOTE: this control block is shared by the on-screen list widget, so callers must also confirm the
+// player is actually in the item-use flow before trusting it (see App::getSelectedMenuItemID).
+struct MenuOffsets
+{
+    CONST_PTR ItemListScroll = 0x1D3DF0; // uint8_t rows scrolled from the top of the item list
+    CONST_PTR ItemListCursor = 0x1D3DF9; // uint8_t highlighted row within the visible window
+
+    // Item screen focus/depth. 1 = browsing the item list, 2 = a character target is being chosen
+    // for the highlighted item. Writing 1 pops back out of the target prompt (a programmatic cancel).
+    // Verified: every "choose target" dump read 2; the post-cancel dump read 1.
+    CONST_PTR ItemTargetActive = 0x1D3E48; // uint8_t
+
+    // Character-response text box shown when using an item on a party member (e.g. a limit item's
+    // "I'm not sure but..."). Three FF-encoded, 0xFF-terminated line slots at a 0x22 (34-byte) stride.
+    // When no popup is up these are blank. Writing text here appears to be what makes the box render.
+    CONST_PTR ItemPopupText   = 0x1D3E60;
+    CONST_PTR ItemPopupStride = 0x22;
+
+    // Popup control block (found by bisecting a full-RAM restore down to 3 bytes). Writing these while
+    // in the menu summons the character-response box, which draws the text at ItemPopupText:
+    //   PopupPhaseA/PopupPhaseB: open-state flags, set to 2 while the box is up (1 = opening frame).
+    //   PopupTimer: frames remaining; the game decrements it 1/frame and closes the box when it hits 0.
+    CONST_PTR PopupPhaseA = 0x62DDB; // uint8_t
+    CONST_PTR PopupTimer  = 0x62DE0; // uint8_t
+    CONST_PTR PopupPhaseB = 0x62DE5; // uint8_t
+
+    // uint32 PS1 pointer to the popup's text. The game sets this to (ItemPopupText | 0x80000000) the
+    // first time a popup opens; it's 0 before that, so a summoned popup renders empty until we write it.
+    CONST_PTR PopupTextPtr = 0x62EB8;
+
+    // uint8 text color/style, also lazily initialized (2 on fresh boot = renders red; 7 = white). Set
+    // this or a summoned popup's text shows in the wrong color. Other values may give other colors.
+    CONST_PTR PopupTextColor = 0x62DDC;
+    static constexpr uint8_t PopupColorWhite = 7;
+};
+
 struct ShopOffsets
 {
     CONST_PTR ShopStart  = 0x1D4714;
@@ -426,6 +466,38 @@ struct ShopOffsets
 
     // All materia prices are stored in uint32_t
     CONST_PTR MateriaPricesStart = 0x1D6E54;
+};
+
+// KERNEL.BIN data loaded into PS1 RAM (US NTSC). Located by pattern-matching the extracted
+// KERNEL.BIN sections against a captured memory dump.
+struct KernelOffsets
+{
+    // Section 5: Item data. 128 records, 28-byte stride. Slots 105-127 are unused/blank.
+    CONST_PTR ItemDataStart  = 0x722CC;
+    CONST_PTR ItemDataStride = 28;
+
+    // Within-record field offsets (add to ItemDataStart + id * ItemDataStride).
+    // RestrictionMask is a uint16 bitmask where a SET bit RESTRICTS the action (verified against a
+    // memory dump: Potion=0xFFF8 sell/battle/menu, Save Crystal=0xFFFB menu-only). The ffrtt wiki
+    // describes the polarity backwards.
+    //   bit 0 (0x01): 0 = can be sold
+    //   bit 1 (0x02): 0 = can be used in battle
+    //   bit 2 (0x04): 0 = can be used in menu out of battle
+    // TargetFlags is a uint8 where bit 0 (0x01) enables the target-selection cursor; 0x00 = no target.
+    CONST_PTR ItemRestrictionMask = 0x0A;
+    CONST_PTR ItemTargetFlags     = 0x0C;
+
+    // Restriction mask for a menu-only, non-battle, non-sellable item (matches Save Crystal).
+    static constexpr uint16_t ItemMaskMenuOnly = 0xFFFB;
+
+    // Section 20: Item names. A table of 128 uint16 offsets (relative to ItemNamesStart),
+    // each pointing to an FF-text string. Name address = ItemNamesStart + read_u16(ItemNamesStart + id * 2).
+    CONST_PTR ItemNamesStart = 0x672AC;
+
+    // Scratch/padding immediately after the resident kernel text block (~1KB of 0x00), reachable as a
+    // uint16 offset from ItemNamesStart. Use it to park custom name strings instead of overwriting an
+    // existing entry's text.
+    CONST_PTR NameScratch = 0x69086;
 };
 
 struct SavemapOffsets

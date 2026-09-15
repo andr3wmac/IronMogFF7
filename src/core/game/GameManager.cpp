@@ -417,7 +417,7 @@ bool GameManager::update()
         if (lastGameState != GameState::InGame && state == GameState::InGame)
         {
             loadSaveData();
-            onStart.invoke();
+            onGameStart();
             updatesSinceFrame = 0;
             lastGameMoment = 0;
             justEnteredGame = true;
@@ -520,6 +520,9 @@ bool GameManager::update()
     bool justConnected = field.getFieldID() == 0 || framesSinceReload == 0;
     onUpdate.invoke(justConnected);
 
+    // Watch for a registered custom item being used from the menu.
+    updateCustomItemUse();
+
     uint32_t newFrameNumber = read<uint32_t>(GameOffsets::FrameNumber);
 
     // A jump in frame number likely indicates a load game or load save state.
@@ -529,7 +532,7 @@ bool GameManager::update()
     {
         LOG("Load detected, reloading rules %d - %d = %d", newFrameNumber, frameNumber, frameDifference);
         loadSaveData();
-        onStart.invoke();
+        onGameStart();
         framesSinceReload = 0;
     }
 
@@ -562,6 +565,136 @@ void GameManager::setDifficultyScale(float newScale)
 
     difficultyScale = Utilities::clamp(newScale, 0.0f, 1.0f);
     onDifficultyScaleChanged.invoke(difficultyScale);
+}
+
+void GameManager::onGameStart()
+{
+    // Rebuild the registry so re-entering the game (or loading) doesn't stack duplicates, let listeners
+    // register their items during onStart, then write them all into the kernel item tables.
+    customItems.clear();
+    lastItemTargetActive = 0;
+    onStart.invoke();
+    injectCustomItems();
+}
+
+uint16_t GameManager::registerCustomItem(const CustomItem& item)
+{
+    CustomItem stored = item;
+    stored.id = (uint16_t)(105 + customItems.size()); // reserved unused-slot block 105-127
+    if (stored.id > 127)
+    {
+        LOG("registerCustomItem: out of reserved item slots (105-127).");
+        return 0xFFFF;
+    }
+    customItems.push_back(stored);
+    return stored.id;
+}
+
+void GameManager::injectCustomItems()
+{
+    if (customItems.empty())
+    {
+        return;
+    }
+
+    const uintptr_t nameBase = KernelOffsets::ItemNamesStart;
+    uint16_t scratchOffset = (uint16_t)(KernelOffsets::NameScratch - nameBase);
+
+    // Template: the inert "1/35 Soldier" (id 95) record, patched to a menu-only, non-targeting item.
+    uintptr_t srcData = KernelOffsets::ItemDataStart + (95 * KernelOffsets::ItemDataStride);
+    uint8_t record[KernelOffsets::ItemDataStride];
+    read(srcData, KernelOffsets::ItemDataStride, record);
+
+    for (const CustomItem& item : customItems)
+    {
+        if (item.id > 127)
+        {
+            continue;
+        }
+
+        uintptr_t dstData = KernelOffsets::ItemDataStart + (item.id * KernelOffsets::ItemDataStride);
+        write(dstData, record, KernelOffsets::ItemDataStride);
+        write<uint16_t>(dstData + KernelOffsets::ItemRestrictionMask, KernelOffsets::ItemMaskMenuOnly);
+        write<uint8_t>(dstData + KernelOffsets::ItemTargetFlags, 0x00);
+
+        // Park the name in the scratch area and point the slot's name entry at it.
+        std::vector<uint8_t> encoded = GameData::encodeString(item.name);
+        encoded.push_back(0xFF);
+        for (size_t b = 0; b < encoded.size(); ++b)
+        {
+            write<uint8_t>(nameBase + scratchOffset + b, encoded[b]);
+        }
+        write<uint16_t>(nameBase + (item.id * 2), scratchOffset);
+        scratchOffset += (uint16_t)encoded.size();
+    }
+}
+
+void GameManager::showMenuPopup(const std::string& text, uint8_t frames, uint8_t color)
+{
+    std::vector<uint8_t> msg = GameData::encodeString(text);
+    msg.push_back(0xFF);
+    for (size_t b = 0; b < msg.size(); ++b)
+    {
+        write<uint8_t>(MenuOffsets::ItemPopupText + b, msg[b]);
+    }
+
+    // Blank the other two response line slots so stale text doesn't show.
+    write<uint8_t>(MenuOffsets::ItemPopupText + MenuOffsets::ItemPopupStride, 0xFF);
+    write<uint8_t>(MenuOffsets::ItemPopupText + (MenuOffsets::ItemPopupStride * 2), 0xFF);
+
+    // The game lazily initializes the text pointer/color on the first real popup so we set them explicltly
+    // so its always correct even on a fresh menu open.
+    write<uint32_t>(MenuOffsets::PopupTextPtr, 0x80000000 | MenuOffsets::ItemPopupText);
+    write<uint8_t>(MenuOffsets::PopupTextColor, color);
+    write<uint8_t>(MenuOffsets::PopupPhaseA, 2);
+    write<uint8_t>(MenuOffsets::PopupTimer, frames);
+    write<uint8_t>(MenuOffsets::PopupPhaseB, 2);
+}
+
+void GameManager::updateCustomItemUse()
+{
+    // The item list state only means anything while a field menu is open (an overlay on World/Field).
+    if (customItems.empty() || (gameModule != GameModule::World && gameModule != GameModule::Field))
+    {
+        lastItemTargetActive = 0;
+        return;
+    }
+
+    uint8_t targetActive = read<uint8_t>(MenuOffsets::ItemTargetActive);
+    uint8_t previousTargetActive = lastItemTargetActive;
+    lastItemTargetActive = targetActive;
+
+    // Fire only on the rising edge into target-select (2), so a stale value left in this menu RAM
+    // while walking around can't trigger a use.
+    if (targetActive != 2 || previousTargetActive == 2)
+    {
+        return;
+    }
+
+    uint8_t scroll = read<uint8_t>(MenuOffsets::ItemListScroll);
+    uint8_t cursor = read<uint8_t>(MenuOffsets::ItemListCursor);
+    uint16_t slot = (uint16_t)scroll + (uint16_t)cursor;
+    uint16_t entry = read<uint16_t>(GameOffsets::Inventory + (slot * 2));
+    uint16_t itemID = entry & 0x01FF;
+
+    for (const CustomItem& item : customItems)
+    {
+        if (item.id != itemID)
+        {
+            continue;
+        }
+
+        // Remove one from the stack (empty the slot if it was the last), then cancel the target prompt
+        // back to the item list. Targeting items are not handled yet.
+        uint8_t qty = (uint8_t)(entry >> 9);
+        if (qty > 0) qty--;
+        uint16_t newEntry = (qty == 0) ? 0xFFFF : (uint16_t)((qty << 9) | (itemID & 0x01FF));
+        write<uint16_t>(GameOffsets::Inventory + (slot * 2), newEntry);
+        write<uint8_t>(MenuOffsets::ItemTargetActive, 1);
+
+        onCustomItemUsed.invoke({ itemID, 0xFF });
+        break;
+    }
 }
 
 std::array<uint8_t, 3> GameManager::getPartyIDs()
