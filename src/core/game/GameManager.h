@@ -70,7 +70,7 @@ public:
     void setInventorySlot(uint32_t slotIndex, uint16_t itemID, uint8_t quantity);
 
     // Custom items: registers an item in one of FF7's unused slots and returns its assigned id.
-    // Register during a listener's onStart handler; the registry is rebuilt each game start.
+    // Register during a rule's setup; the registry is rebuilt each time the game is connected.
     uint16_t registerCustomItem(const CustomItem& item);
 
     // True if any custom items are registered for the current game.
@@ -79,11 +79,8 @@ public:
     // Returns the registered custom item with the given id, or nullptr if it isn't a custom item.
     const CustomItem* findCustomItem(uint16_t itemID);
 
-    // Whether a unique custom item has already been obtained this playthrough (persisted in the savemap).
-    bool isCustomItemFound(uint16_t itemID);
-
-    // Marks a custom item as found and writes the updated flags back to the savemap.
-    void markCustomItemFound(uint16_t itemID);
+    // Returns all custom items registered for the current game.
+    const std::vector<CustomItem>& getCustomItems() { return customItems; }
 
     // Returns a list of materia IDs currently in the party's possession.
     std::array<uint32_t, 200> getPartyMateria();
@@ -186,7 +183,4 @@ private:
 
     // Custom item registry, rebuilt each game start. Menu-use detection lives in MenuModule.
     std::vector<CustomItem> customItems;
-
-    // Persistent "found" flags for unique custom items, bit index = id - 105
-    Flags<uint32_t> customItemsFound;
 };

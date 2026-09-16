@@ -20,6 +20,17 @@ void GameplayMods::setup()
     BIND_EVENT_ONE_ARG(game->onFieldChanged, GameplayMods::onFieldChanged);
     BIND_EVENT_ONE_ARG(game->onFrame, GameplayMods::onFrame);
     BIND_EVENT_ONE_ARG(game->onCustomItemUsed, GameplayMods::onCustomItemUsed);
+
+    aerithItemId = 0xFFFF;
+    if (aerithMode == AerithMode::Item)
+    {
+        CustomItem item;
+        item.name = "Aerith's Ribbon";
+        item.targetsCharacter = false;
+        item.spawnCount = aerithItemCount;
+        aerithItemId = game->registerCustomItem(item);
+        LOG("Registered Aerith's Ribbon as item ID: %d", aerithItemId);
+    }
 }
 
 bool GameplayMods::onSettingsGUI()
@@ -54,10 +65,11 @@ bool GameplayMods::onSettingsGUI()
 
     if (aerithMode == AerithMode::Item)
     {
-        ImGui::Text("Item Drop Odds:");
+        ImGui::Text("Number in World:");
+        ImGui::SetItemTooltip("How many copies of the revive item are hidden among the field pickups.");
         ImGui::SameLine(DPI(200.0f));
         ImGui::SetNextItemWidth(DPI(200.0f));
-        changed |= ImGui::SliderFloat("##GameplayMods_aerithItemOdds", &aerithItemOdds, 0.0f, 1.0f, "%.2f");
+        changed |= ImGui::SliderInt("##GameplayMods_aerithItemCount", &aerithItemCount, 1, 10);
     }
 
     return changed;
@@ -67,7 +79,7 @@ void GameplayMods::loadSettings(const ConfigFile& cfg)
 {
     masamuneMode = (MasamuneMode)cfg.get<int>("musamuneMode", (int)masamuneMode);
     aerithMode = (AerithMode)cfg.get<int>("aerithMode", (int)aerithMode);
-    aerithItemOdds = cfg.get<float>("aerithItemOdds", aerithItemOdds);
+    aerithItemCount = cfg.get<int>("aerithItemCount", aerithItemCount);
 
     // Migrate the old boolean "Aerith Survives" setting to the mode dropdown.
     if (cfg.get<bool>("aerithSurvives", false))
@@ -80,7 +92,7 @@ void GameplayMods::saveSettings(ConfigFile& cfg)
 {
     cfg.set<int>("musamuneMode", (int)masamuneMode);
     cfg.set<int>("aerithMode", (int)aerithMode);
-    cfg.set<float>("aerithItemOdds", aerithItemOdds);
+    cfg.set<int>("aerithItemCount", aerithItemCount);
 }
 
 void GameplayMods::onStart()
@@ -91,17 +103,6 @@ void GameplayMods::onStart()
     // Note: revival state is runtime-only for now, so a mid-run reload won't re-arm the field-script
     // softlock patches for an item-revived Aerith (her PHS availability is saved and persists, though).
     aerithRevived = false;
-    aerithItemId = 0xFFFF;
-    if (aerithMode == AerithMode::Item)
-    {
-        CustomItem item;
-        item.name = "Aerith's Ribbon";
-        item.targetsCharacter = false;
-        item.spawnChance = aerithItemOdds;
-        item.isUnique = true;
-        aerithItemId = game->registerCustomItem(item);
-        LOG("Registered Aerith's Ribbon as item ID: %d", aerithItemId);
-    }
 }
 
 void GameplayMods::onCustomItemUsed(CustomItemUse use)

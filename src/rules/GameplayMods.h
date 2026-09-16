@@ -42,7 +42,7 @@ private:
     MasamuneMode masamuneMode = MasamuneMode::Disabled;
 
     AerithMode aerithMode = AerithMode::Never;
-    float aerithItemOdds = 0.05f;
+    int aerithItemCount = 3;
     uint16_t aerithItemId = 0xFFFF;
     bool aerithRevived = false;
 };

@@ -38,4 +38,7 @@ private:
     // Generated randomization mapping
     std::unordered_map<uint32_t, FieldScriptItem> randomizedItems;
     std::unordered_map<uint32_t, FieldScriptItem> randomizedMateria;
+
+    // Field item slots chosen to hold a custom item, mapped to that item's id.
+    std::unordered_map<uint32_t, uint16_t> customItemLocations;
 };

@@ -192,6 +192,50 @@ void RandomizeFieldItems::generateRandomizedItems()
         const FieldScriptItem& randomMateria = shuffledMateria[i].first;
         randomizedMateria[makeKey(newLoc.fieldID, (uint8_t)newLoc.index)] = randomMateria;
     }
+
+    // Choose fixed field slots to hold each registered custom item. 
+    // The selection is driven purely by the seed so it lands in the same places every load.
+    customItemLocations.clear();
+    if (game->hasCustomItems())
+    {
+        struct CandidateSlot
+        {
+            uint32_t key;
+            uint16_t fieldID;
+            std::string fieldName;
+        };
+
+        std::vector<CandidateSlot> candidates;
+        for (const auto& entry : allItems)
+        {
+            const SourceLoc& loc = entry.second;
+
+            // Battery in Wall Market is never randomized so it can't host a custom item.
+            if (loc.fieldID == 196 && entry.first.id == 85)
+            {
+                continue;
+            }
+
+            candidates.push_back({ makeKey((uint16_t)loc.fieldID, (uint8_t)loc.index), (uint16_t)loc.fieldID, GameData::fieldData[loc.fieldID].name });
+        }
+
+        // Draw from a separate stream so custom placement doesn't shift with the item shuffle.
+        std::mt19937_64 placementRng(Utilities::makeSeed64(game->getSeed(), 0xC0570001));
+        std::shuffle(candidates.begin(), candidates.end(), placementRng);
+
+        // Log every placement up front so it reads like a spoiler list of where each custom item hides.
+        size_t next = 0;
+        for (const CustomItem& custom : game->getCustomItems())
+        {
+            for (int n = 0; n < custom.spawnCount && next < candidates.size(); ++n)
+            {
+                const CandidateSlot& slot = candidates[next];
+                customItemLocations[slot.key] = custom.id;
+                LOG("Placed custom item %s on field %s (%d)", custom.name.c_str(), slot.fieldName.c_str(), slot.fieldID);
+                ++next;
+            }
+        }
+    }
 }
 
 void RandomizeFieldItems::apply()
@@ -225,13 +269,34 @@ void RandomizeFieldItems::apply()
         }
 
         uint32_t randomKey = makeKey(fieldData.id, i);
+        std::string oldItemName = GameData::getItemName(oldItem.id);
+
+        // Slots chosen to hold a custom item are stamped directly and skip the normal randomization.
+        auto customIt = customItemLocations.find(randomKey);
+        if (customIt != customItemLocations.end())
+        {
+            const CustomItem* custom = game->findCustomItem(customIt->second);
+            if (custom != nullptr)
+            {
+                game->write<uint16_t>(itemIDOffset, custom->id);
+                game->write<uint8_t>(itemQuantityOffset, 1);
+
+                int msgIndex = game->field.findPickUpMessage(oldItemName, oldItem.group, oldItem.script, oldItem.offset);
+                if (msgIndex >= 0)
+                {
+                    game->field.overwriteMessage(msgIndex, custom->name);
+                }
+            }
+
+            continue;
+        }
+
         if (randomizedItems.count(randomKey) == 0)
         {
             continue;
         }
 
         FieldScriptItem newItem = oldItem;
-        std::string oldItemName = GameData::getItemName(oldItem.id);
 
         if (randomMode == RandomMode::Shuffle)
         {

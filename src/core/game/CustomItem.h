@@ -11,12 +11,8 @@ struct CustomItem
     std::string name;
     bool targetsCharacter = false;
 
-    // Per-eligible-pickup chance that a field item is replaced by this custom item.
-    float spawnChance = 0.0f;
-
-    // If true, only one can ever be obtained across the run (tracked via a saved "found" bit). 
-    // If false, there is no hard cap and spawnChance is the only thing limiting how many appear.
-    bool isUnique = true;
+    // How many field pickups are replaced by this custom item across the run.
+    int spawnCount = 0;
 };
 
 struct CustomItemUse

@@ -485,7 +485,6 @@ struct SavemapOffsets
     CONST_PTR IronMogVersion     = Start + 0x0B5E;  // A save data format version number, uint8_t
     CONST_PTR IronMogSeed        = Start + 0x0B5F;  // uint32_t seed used in current playthrough
     CONST_PTR IronMogPermadeath  = Start + 0x0B63;  // uint16_t used by permadeath to track dead characters
-    CONST_PTR IronMogCustomFound = Start + 0x0B65;  // 3 bytes (24 bits): custom item "found" flags, bit index = id - 105.
 
     CONST_PTR BuggyHighwindPosition = Start + 0x0F74;
 };

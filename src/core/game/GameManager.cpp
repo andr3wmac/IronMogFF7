@@ -307,6 +307,9 @@ void GameManager::setup(GameVersion version, uint32_t inputSeed)
     menu.setup(this);
     world.setup(this);
 
+    // Rebuild the custom item registry from scratch so rules can register their items during setup.
+    customItems.clear();
+
     for (Rule* rule : Rule::getList())
     {
         if (!rule->enabled)
@@ -340,11 +343,6 @@ void GameManager::loadSaveData()
         // Load existing save data.
         seed = read<uint32_t>(SavemapOffsets::IronMogSeed);
 
-        // Custom item "found" flags are stored as 3 bytes so we read them into the low 24 bits.
-        uint32_t found = 0;
-        read(SavemapOffsets::IronMogCustomFound, 3, (uint8_t*)&found);
-        customItemsFound = found;
-
         std::string seedString = Utilities::seedToHexString(seed);
         LOG("Loaded seed from save file: %s", seedString.c_str());
     }
@@ -358,9 +356,6 @@ void GameManager::loadSaveData()
 
         // Write seed
         write<uint32_t>(SavemapOffsets::IronMogSeed, seed);
-
-        // clearSaveData already zeroed the flags region so keep the in-memory copy in sync.
-        customItemsFound = 0;
     }
 }
 
@@ -574,9 +569,7 @@ void GameManager::setDifficultyScale(float newScale)
 
 void GameManager::onGameStart()
 {
-    // Rebuild the registry so re-entering the game (or loading) doesn't stack duplicates, let listeners
-    // register their items during onStart, then write them all into the kernel item tables.
-    customItems.clear();
+    // Registered items live in the kernel tables which reset with the game, so re-inject them on every start.
     onStart.invoke();
     injectCustomItems();
 }
@@ -644,28 +637,6 @@ const CustomItem* GameManager::findCustomItem(uint16_t itemID)
     }
 
     return nullptr;
-}
-
-bool GameManager::isCustomItemFound(uint16_t itemID)
-{
-    if (itemID < 105)
-    {
-        return false;
-    }
-
-    return customItemsFound.isBitSet(itemID - 105);
-}
-
-void GameManager::markCustomItemFound(uint16_t itemID)
-{
-    if (itemID < 105)
-    {
-        return;
-    }
-
-    customItemsFound.setBit(itemID - 105, true);
-    uint32_t found = customItemsFound.value();
-    write(SavemapOffsets::IronMogCustomFound, (uint8_t*)&found, 3);
 }
 
 std::array<uint8_t, 3> GameManager::getPartyIDs()
