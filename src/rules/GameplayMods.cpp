@@ -80,12 +80,6 @@ void GameplayMods::loadSettings(const ConfigFile& cfg)
     masamuneMode = (MasamuneMode)cfg.get<int>("musamuneMode", (int)masamuneMode);
     aerithMode = (AerithMode)cfg.get<int>("aerithMode", (int)aerithMode);
     aerithItemCount = cfg.get<int>("aerithItemCount", aerithItemCount);
-
-    // Migrate the old boolean "Aerith Survives" setting to the mode dropdown.
-    if (cfg.get<bool>("aerithSurvives", false))
-    {
-        aerithMode = AerithMode::Always;
-    }
 }
 
 void GameplayMods::saveSettings(ConfigFile& cfg)
@@ -99,10 +93,6 @@ void GameplayMods::onStart()
 {
     rng.seed(game->getSeed());
     applyMasamuneMode();
-
-    // Note: revival state is runtime-only for now, so a mid-run reload won't re-arm the field-script
-    // softlock patches for an item-revived Aerith (her PHS availability is saved and persists, though).
-    aerithRevived = false;
 }
 
 void GameplayMods::onCustomItemUsed(CustomItemUse use)
@@ -112,7 +102,6 @@ void GameplayMods::onCustomItemUsed(CustomItemUse use)
         return;
     }
 
-    aerithRevived = true;
     game->menu.showPopup("Aerith has been revived!");
     addAerithToPHS();
     LOG("Aerith Revive: revive item used; Aerith enabled on the PHS.");
@@ -162,19 +151,25 @@ void GameplayMods::applyMasamuneMode()
 
 void GameplayMods::onFieldChanged(uint16_t fieldID)
 {
-    if (aerithActive())
+    // Enable Aerith on the PHS when Disc 2 starts, but only when she's meant to be alive this run.
+    if ((aerithMode == AerithMode::Always) && fieldID == 634 && game->getGameMoment() == 677)
     {
-        applyAerithSurvives(fieldID);
+        addAerithToPHS();
     }
+
+    patchAerithSoftlocks(fieldID);
 }
 
 void GameplayMods::onFrame(uint32_t frameNumber)
 {
-    if (aerithActive())
+    // Northern Crater party split (las0_8). The player picks who goes left/right to form the descent party 
+    // but with Aerith absent she can't be chosen, so a "send only one person left" choice leaves a two-member party.
+    if (aerithMode != AerithMode::Never && game->getFieldID() == 751)
     {
-        // Northern Crater party split (las0_8). The player picks who goes left/right to form the descent party 
-        // but with Aerith absent she can't be chosen, so a "send only one person left" choice leaves a two-member party.
-        if (game->getFieldID() == 751 && !game->inParty(CharacterID::Aerith))
+        uint16_t phsVisMask = game->read<uint16_t>(GameOffsets::PHSVisibilityMask);
+        bool aerithActive = (phsVisMask & (1 << CharacterID::Aerith)) != 0;
+       
+        if (aerithActive && !game->inParty(CharacterID::Aerith))
         {
             // Act only while Cloud's "This will be the end of it!" confirmation window is showing. By this point the 
             // descent party has been assembled from whoever the player sent left, and the window is waiting on the
@@ -198,15 +193,9 @@ void GameplayMods::onFrame(uint32_t frameNumber)
     }
 }
 
-void GameplayMods::applyAerithSurvives(uint16_t fieldID)
+void GameplayMods::patchAerithSoftlocks(uint16_t fieldID)
 {
-    // Re-enable Aerith on the PHS when Disc 2 starts.
-    if (fieldID == 634 && game->getGameMoment() == 677)
-    {
-        addAerithToPHS();
-    }
-
-    // No need to patch if shes not in the party.
+    // These scripts only stall when Aerith is actually travelling with the party, so that's all we gate on.
     if (!game->inParty(CharacterID::Aerith))
     {
         return;

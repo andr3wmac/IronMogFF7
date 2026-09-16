@@ -32,10 +32,10 @@ private:
     void onFrame(uint32_t frameNumber);
     void onCustomItemUsed(CustomItemUse use);
     void applyMasamuneMode();
-    void applyAerithSurvives(uint16_t fieldID);
 
-    // Aerith's survival is active in Always mode, or in Item mode once the revive item has been used.
-    bool aerithActive() { return aerithMode == AerithMode::Always || (aerithMode == AerithMode::Item && aerithRevived); }
+    // Re-arms the field-script patches that keep Aerith-present cutscenes from softlocking. Only depends on
+    // Aerith being in the party, so it applies regardless of how she got there and survives a reload.
+    void patchAerithSoftlocks(uint16_t fieldID);
     void addAerithToPHS();
 
     std::mt19937_64 rng;
@@ -44,5 +44,4 @@ private:
     AerithMode aerithMode = AerithMode::Never;
     int aerithItemCount = 3;
     uint16_t aerithItemId = 0xFFFF;
-    bool aerithRevived = false;
 };
