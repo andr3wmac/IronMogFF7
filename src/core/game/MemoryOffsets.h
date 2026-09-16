@@ -447,35 +447,31 @@ struct ShopOffsets
     CONST_PTR MateriaPricesStart = 0x1D6E54;
 };
 
-// KERNEL.BIN data loaded into PS1 RAM (US NTSC). Located by pattern-matching the extracted
-// KERNEL.BIN sections against a captured memory dump.
+// KERNEL.BIN data loaded into PS1 RAM
 struct KernelOffsets
 {
-    // Section 5: Item data. 128 records, 28-byte stride. Slots 105-127 are unused/blank.
+    // Section 5: Item data. 128 records, 28-byte stride.
     CONST_PTR ItemDataStart  = 0x722CC;
     CONST_PTR ItemDataStride = 28;
 
     // Within-record field offsets (add to ItemDataStart + id * ItemDataStride).
     // RestrictionMask is a uint16 bitmask where a SET bit RESTRICTS the action (verified against a
-    // memory dump: Potion=0xFFF8 sell/battle/menu, Save Crystal=0xFFFB menu-only). The ffrtt wiki
-    // describes the polarity backwards.
+    // memory dump: Potion=0xFFF8 sell/battle/menu, Save Crystal=0xFFFB menu-only). 
+    // Note: The ffrtt wiki describes the polarity backwards.
     //   bit 0 (0x01): 0 = can be sold
     //   bit 1 (0x02): 0 = can be used in battle
     //   bit 2 (0x04): 0 = can be used in menu out of battle
-    // TargetFlags is a uint8 where bit 0 (0x01) enables the target-selection cursor; 0x00 = no target.
     CONST_PTR ItemRestrictionMask = 0x0A;
-    CONST_PTR ItemTargetFlags     = 0x0C;
 
-    // Restriction mask for a menu-only, non-battle, non-sellable item (matches Save Crystal).
-    static constexpr uint16_t ItemMaskMenuOnly = 0xFFFB;
+    CONST_PTR ItemTargetFlags   = 0x0C; // uint8 where bit 0 (0x01) enables the target-selection cursor and 0x00 = no target.
+    CONST_U16 ItemMaskMenuOnly  = 0xFFFB; // Restriction mask for a menu-only, non-battle, non-sellable item (matches Save Crystal).
 
-    // Section 20: Item names. A table of 128 uint16 offsets (relative to ItemNamesStart),
-    // each pointing to an FF-text string. Name address = ItemNamesStart + read_u16(ItemNamesStart + id * 2).
+    // Section 20: Item names. A table of 128 uint16 offsets (relative to ItemNamesStart), each pointing to an FF-text string.
+    // Name address = ItemNamesStart + read<uint16_t>(ItemNamesStart + id * 2)
     CONST_PTR ItemNamesStart = 0x672AC;
 
-    // Scratch/padding immediately after the resident kernel text block (~1KB of 0x00), reachable as a
-    // uint16 offset from ItemNamesStart. Use it to park custom name strings instead of overwriting an
-    // existing entry's text.
+    // Scratch/padding immediately after the resident kernel text block (~1KB of 0x00), reachable as a uint16 offset from ItemNamesStart.
+    // Use it to park custom name strings instead of overwriting an existing entry's text.
     CONST_PTR NameScratch = 0x69086;
 };
 
@@ -485,10 +481,10 @@ struct SavemapOffsets
 
     // These are IronMog specific values we store and fetch from an unused spot in the save map.
     // This area from 0x0B5C to 0x0B7C is 32 bytes of unused data.
-    CONST_PTR IronMogSave       = Start + 0x0B5C;   // 2 Bytes for the ASCII letters IM to know we've been here.
-    CONST_PTR IronMogVersion    = Start + 0x0B5E;   // A save data format version number, uint8_t
-    CONST_PTR IronMogSeed       = Start + 0x0B5F;   // uint32_t seed used in current playthrough
-    CONST_PTR IronMogPermadeath = Start + 0x0B63;   // uint16_t used by permadeath to track dead characters
+    CONST_PTR IronMogSave        = Start + 0x0B5C;  // 2 Bytes for the ASCII letters IM to know we've been here.
+    CONST_PTR IronMogVersion     = Start + 0x0B5E;  // A save data format version number, uint8_t
+    CONST_PTR IronMogSeed        = Start + 0x0B5F;  // uint32_t seed used in current playthrough
+    CONST_PTR IronMogPermadeath  = Start + 0x0B63;  // uint16_t used by permadeath to track dead characters
     CONST_PTR IronMogCustomFound = Start + 0x0B65;  // 3 bytes (24 bits): custom item "found" flags, bit index = id - 105.
 
     CONST_PTR BuggyHighwindPosition = Start + 0x0F74;
