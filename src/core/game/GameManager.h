@@ -65,6 +65,9 @@ public:
     // Returns true if character is in party.
     bool inParty(uint8_t characterID);
 
+    // Returns true if character is currently available on PHS.
+    bool isPHSVisible(uint8_t characterID);
+
     // Returns a list of item IDs currently in the party's possession.
     std::array<uint16_t, 320> getPartyInventory();
     void setInventorySlot(uint32_t slotIndex, uint16_t itemID, uint8_t quantity);

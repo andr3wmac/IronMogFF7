@@ -663,6 +663,12 @@ bool GameManager::inParty(uint8_t characterID)
     return false;
 }
 
+bool GameManager::isPHSVisible(uint8_t characterID)
+{
+    uint16_t phsVisMask = read<uint16_t>(GameOffsets::PHSVisibilityMask);
+    return Utilities::isBitSet(phsVisMask, characterID);
+}
+
 std::array<uint16_t, 320> GameManager::getPartyInventory()
 {
     std::array<uint16_t, 320> results;

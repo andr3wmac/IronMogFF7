@@ -166,10 +166,7 @@ void GameplayMods::onFrame(uint32_t frameNumber)
     // but with Aerith absent she can't be chosen, so a "send only one person left" choice leaves a two-member party.
     if (aerithMode != AerithMode::Never && game->getFieldID() == 751)
     {
-        uint16_t phsVisMask = game->read<uint16_t>(GameOffsets::PHSVisibilityMask);
-        bool aerithActive = (phsVisMask & (1 << CharacterID::Aerith)) != 0;
-       
-        if (aerithActive && !game->inParty(CharacterID::Aerith))
+        if (game->isPHSVisible(CharacterID::Aerith) && !game->inParty(CharacterID::Aerith))
         {
             // Act only while Cloud's "This will be the end of it!" confirmation window is showing. By this point the 
             // descent party has been assembled from whoever the player sent left, and the window is waiting on the
