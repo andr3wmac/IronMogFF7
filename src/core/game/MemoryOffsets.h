@@ -412,44 +412,23 @@ struct StatusFlags
     CONST_U16 Sadness    = (1 << 4);
 };
 
-// Field/main-menu item list control (the blinking highlight row). FF7 never stores the selected
-// item as an id or an absolute inventory slot anywhere in RAM; it resolves it live from the visible
-// list position as: inventorySlot = ItemListScroll + ItemListCursor, then reads
-// GameOffsets::Inventory[inventorySlot]. Verified across dumps at multiple scroll positions.
-// NOTE: this control block is shared by the on-screen list widget, so callers must also confirm the
-// player is actually in the item-use flow before trusting it (see App::getSelectedMenuItemID).
 struct MenuOffsets
 {
-    CONST_PTR ItemListScroll = 0x1D3DF0; // uint8_t rows scrolled from the top of the item list
-    CONST_PTR ItemListCursor = 0x1D3DF9; // uint8_t highlighted row within the visible window
+    CONST_PTR MenuOpenFlag      = 0x62FC0;  // int32_t reads 0xFFFFFFFF while no menu is up and 0x00000001 while one is.
+    CONST_PTR ItemListScroll    = 0x1D3DF0; // uint8_t rows scrolled from the top of the item list
+    CONST_PTR ItemListCursor    = 0x1D3DF9; // uint8_t highlighted row within the visible window
+    CONST_PTR ItemTargetActive  = 0x1D3E48; // uint8_t item screen focus/depth. 1 = browsing the item list, 2 = a character target is being chosen for the highlighted item.
 
-    // Item screen focus/depth. 1 = browsing the item list, 2 = a character target is being chosen
-    // for the highlighted item. Writing 1 pops back out of the target prompt (a programmatic cancel).
-    // Verified: every "choose target" dump read 2; the post-cancel dump read 1.
-    CONST_PTR ItemTargetActive = 0x1D3E48; // uint8_t
-
-    // Character-response text box shown when using an item on a party member (e.g. a limit item's
-    // "I'm not sure but..."). Three FF-encoded, 0xFF-terminated line slots at a 0x22 (34-byte) stride.
-    // When no popup is up these are blank. Writing text here appears to be what makes the box render.
-    CONST_PTR ItemPopupText   = 0x1D3E60;
+    // Red popup box in menu. 
+    CONST_PTR ItemPopupText   = 0x1D3E60; // Three FF-encoded, 0xFF-terminated line slots at a 0x22 (34-byte) stride.
     CONST_PTR ItemPopupStride = 0x22;
-
-    // Popup control block (found by bisecting a full-RAM restore down to 3 bytes). Writing these while
-    // in the menu summons the character-response box, which draws the text at ItemPopupText:
-    //   PopupPhaseA/PopupPhaseB: open-state flags, set to 2 while the box is up (1 = opening frame).
-    //   PopupTimer: frames remaining; the game decrements it 1/frame and closes the box when it hits 0.
-    CONST_PTR PopupPhaseA = 0x62DDB; // uint8_t
-    CONST_PTR PopupTimer  = 0x62DE0; // uint8_t
-    CONST_PTR PopupPhaseB = 0x62DE5; // uint8_t
-
-    // uint32 PS1 pointer to the popup's text. The game sets this to (ItemPopupText | 0x80000000) the
-    // first time a popup opens; it's 0 before that, so a summoned popup renders empty until we write it.
-    CONST_PTR PopupTextPtr = 0x62EB8;
-
-    // uint8 text color/style, also lazily initialized (2 on fresh boot = renders red; 7 = white). Set
-    // this or a summoned popup's text shows in the wrong color. Other values may give other colors.
-    CONST_PTR PopupTextColor = 0x62DDC;
-    static constexpr uint8_t PopupColorWhite = 7;
+    CONST_PTR PopupPhaseA     = 0x62DDB; // uint8_t open-state flag, set to 2 while the box is up (1 = opening frame).
+    CONST_PTR PopupTimer      = 0x62DE0; // uint8_t open-state flag, set to 2 while the box is up (1 = opening frame).
+    CONST_PTR PopupPhaseB     = 0x62DE5; // uint8_t frames remaining. the game decrements it 1/frame and closes the box when it hits 0.
+    CONST_PTR PopupTextPtr    = 0x62EB8; // uint32_t PS1 pointer to the popup's text. Needs to be set on first popup usage.
+    CONST_PTR PopupTextColor  = 0x62DDC; //uint8 text color / style, also lazily initialized(2 on fresh boot = renders red; 7 = white).
+    
+    CONST_U8 PopupColorWhite = 7;
 };
 
 struct ShopOffsets
@@ -506,10 +485,11 @@ struct SavemapOffsets
 
     // These are IronMog specific values we store and fetch from an unused spot in the save map.
     // This area from 0x0B5C to 0x0B7C is 32 bytes of unused data.
-    CONST_PTR IronMogSave       = Start + 0x0B5C;  // 2 Bytes for the ASCII letters IM to know we've been here.
-    CONST_PTR IronMogVersion    = Start + 0x0B5E;  // A save data format version number, uint8_t
-    CONST_PTR IronMogSeed       = Start + 0x0B5F;  // uint32_t seed used in current playthrough
-    CONST_PTR IronMogPermadeath = Start + 0x0B63;  // uint16_t used by permadeath to track dead characters
+    CONST_PTR IronMogSave       = Start + 0x0B5C;   // 2 Bytes for the ASCII letters IM to know we've been here.
+    CONST_PTR IronMogVersion    = Start + 0x0B5E;   // A save data format version number, uint8_t
+    CONST_PTR IronMogSeed       = Start + 0x0B5F;   // uint32_t seed used in current playthrough
+    CONST_PTR IronMogPermadeath = Start + 0x0B63;   // uint16_t used by permadeath to track dead characters
+    CONST_PTR IronMogCustomFound = Start + 0x0B65;  // 3 bytes (24 bits): custom item "found" flags, bit index = id - 105.
 
     CONST_PTR BuggyHighwindPosition = Start + 0x0F74;
 };

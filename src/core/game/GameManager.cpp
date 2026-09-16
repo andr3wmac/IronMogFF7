@@ -340,10 +340,15 @@ void GameManager::loadSaveData()
         // Load existing save data.
         seed = read<uint32_t>(SavemapOffsets::IronMogSeed);
 
+        // Custom item "found" flags are stored as 3 bytes so we read them into the low 24 bits.
+        uint32_t found = 0;
+        read(SavemapOffsets::IronMogCustomFound, 3, (uint8_t*)&found);
+        customItemsFound = found;
+
         std::string seedString = Utilities::seedToHexString(seed);
         LOG("Loaded seed from save file: %s", seedString.c_str());
     }
-    else 
+    else
     {
         clearSaveData();
 
@@ -353,6 +358,9 @@ void GameManager::loadSaveData()
 
         // Write seed
         write<uint32_t>(SavemapOffsets::IronMogSeed, seed);
+
+        // clearSaveData already zeroed the flags region so keep the in-memory copy in sync.
+        customItemsFound = 0;
     }
 }
 
@@ -520,9 +528,6 @@ bool GameManager::update()
     bool justConnected = field.getFieldID() == 0 || framesSinceReload == 0;
     onUpdate.invoke(justConnected);
 
-    // Watch for a registered custom item being used from the menu.
-    updateCustomItemUse();
-
     uint32_t newFrameNumber = read<uint32_t>(GameOffsets::FrameNumber);
 
     // A jump in frame number likely indicates a load game or load save state.
@@ -572,7 +577,6 @@ void GameManager::onGameStart()
     // Rebuild the registry so re-entering the game (or loading) doesn't stack duplicates, let listeners
     // register their items during onStart, then write them all into the kernel item tables.
     customItems.clear();
-    lastItemTargetActive = 0;
     onStart.invoke();
     injectCustomItems();
 }
@@ -629,72 +633,39 @@ void GameManager::injectCustomItems()
     }
 }
 
-void GameManager::showMenuPopup(const std::string& text, uint8_t frames, uint8_t color)
+const CustomItem* GameManager::findCustomItem(uint16_t itemID)
 {
-    std::vector<uint8_t> msg = GameData::encodeString(text);
-    msg.push_back(0xFF);
-    for (size_t b = 0; b < msg.size(); ++b)
-    {
-        write<uint8_t>(MenuOffsets::ItemPopupText + b, msg[b]);
-    }
-
-    // Blank the other two response line slots so stale text doesn't show.
-    write<uint8_t>(MenuOffsets::ItemPopupText + MenuOffsets::ItemPopupStride, 0xFF);
-    write<uint8_t>(MenuOffsets::ItemPopupText + (MenuOffsets::ItemPopupStride * 2), 0xFF);
-
-    // The game lazily initializes the text pointer/color on the first real popup so we set them explicltly
-    // so its always correct even on a fresh menu open.
-    write<uint32_t>(MenuOffsets::PopupTextPtr, 0x80000000 | MenuOffsets::ItemPopupText);
-    write<uint8_t>(MenuOffsets::PopupTextColor, color);
-    write<uint8_t>(MenuOffsets::PopupPhaseA, 2);
-    write<uint8_t>(MenuOffsets::PopupTimer, frames);
-    write<uint8_t>(MenuOffsets::PopupPhaseB, 2);
-}
-
-void GameManager::updateCustomItemUse()
-{
-    // The item list state only means anything while a field menu is open (an overlay on World/Field).
-    if (customItems.empty() || (gameModule != GameModule::World && gameModule != GameModule::Field))
-    {
-        lastItemTargetActive = 0;
-        return;
-    }
-
-    uint8_t targetActive = read<uint8_t>(MenuOffsets::ItemTargetActive);
-    uint8_t previousTargetActive = lastItemTargetActive;
-    lastItemTargetActive = targetActive;
-
-    // Fire only on the rising edge into target-select (2), so a stale value left in this menu RAM
-    // while walking around can't trigger a use.
-    if (targetActive != 2 || previousTargetActive == 2)
-    {
-        return;
-    }
-
-    uint8_t scroll = read<uint8_t>(MenuOffsets::ItemListScroll);
-    uint8_t cursor = read<uint8_t>(MenuOffsets::ItemListCursor);
-    uint16_t slot = (uint16_t)scroll + (uint16_t)cursor;
-    uint16_t entry = read<uint16_t>(GameOffsets::Inventory + (slot * 2));
-    uint16_t itemID = entry & 0x01FF;
-
     for (const CustomItem& item : customItems)
     {
-        if (item.id != itemID)
+        if (item.id == itemID)
         {
-            continue;
+            return &item;
         }
-
-        // Remove one from the stack (empty the slot if it was the last), then cancel the target prompt
-        // back to the item list. Targeting items are not handled yet.
-        uint8_t qty = (uint8_t)(entry >> 9);
-        if (qty > 0) qty--;
-        uint16_t newEntry = (qty == 0) ? 0xFFFF : (uint16_t)((qty << 9) | (itemID & 0x01FF));
-        write<uint16_t>(GameOffsets::Inventory + (slot * 2), newEntry);
-        write<uint8_t>(MenuOffsets::ItemTargetActive, 1);
-
-        onCustomItemUsed.invoke({ itemID, 0xFF });
-        break;
     }
+
+    return nullptr;
+}
+
+bool GameManager::isCustomItemFound(uint16_t itemID)
+{
+    if (itemID < 105)
+    {
+        return false;
+    }
+
+    return customItemsFound.isBitSet(itemID - 105);
+}
+
+void GameManager::markCustomItemFound(uint16_t itemID)
+{
+    if (itemID < 105)
+    {
+        return;
+    }
+
+    customItemsFound.setBit(itemID - 105, true);
+    uint32_t found = customItemsFound.value();
+    write(SavemapOffsets::IronMogCustomFound, (uint8_t*)&found, 3);
 }
 
 std::array<uint8_t, 3> GameManager::getPartyIDs()
@@ -753,7 +724,7 @@ uint16_t GameManager::getGameMoment()
 
 bool GameManager::inMenu()
 {
-    return gameModule == GameModule::Menu;
+    return menu.isOpen();
 }
 
 std::string GameManager::getWindowText(uint8_t index)

@@ -1,8 +1,11 @@
 #include "MenuModule.h"
+#include "core/game/CustomItem.h"
+#include "core/game/GameData.h"
 #include "core/game/GameManager.h"
 #include "core/game/MemoryOffsets.h"
 #include "core/utilities/Logging.h"
 #include "rules/Restrictions.h"
+#include <vector>
 
 std::string CharacterNames[] = { "Cloud", "Barret", "Tifa", "Aeris", "Red XIII", "Yuffie", "Cait Sith", "Vincent", "Cid" };
 
@@ -75,6 +78,113 @@ void MenuModule::onUpdate(bool justConnected)
             }
         }
     }
+
+    // On the world map opening the menu stays in World module.
+    if (gameModule == GameModule::Menu || gameModule == GameModule::World)
+    {
+        updateCustomItemUse();
+    }
+}
+
+bool MenuModule::isOpen()
+{
+    uint8_t module = game->getGameModule();
+
+    // The flag's RAM is reused by battle/minigames, so only trust it where a menu can actually be up.
+    if (module != GameModule::Menu && module != GameModule::World && module != GameModule::Field)
+    {
+        return false;
+    }
+
+    return game->read<int32_t>(MenuOffsets::MenuOpenFlag) != -1;
+}
+
+void MenuModule::showPopup(const std::string& text, uint8_t frames, uint8_t color)
+{
+    std::vector<uint8_t> msg = GameData::encodeString(text);
+    msg.push_back(0xFF);
+    for (size_t b = 0; b < msg.size(); ++b)
+    {
+        game->write<uint8_t>(MenuOffsets::ItemPopupText + b, msg[b]);
+    }
+
+    // Blank the other two response line slots so stale text doesn't show.
+    game->write<uint8_t>(MenuOffsets::ItemPopupText + MenuOffsets::ItemPopupStride, 0xFF);
+    game->write<uint8_t>(MenuOffsets::ItemPopupText + (MenuOffsets::ItemPopupStride * 2), 0xFF);
+
+    // The game lazily initializes the text pointer/color on the first real popup so we set them
+    // explicitly so it's always correct even on a fresh menu open.
+    game->write<uint32_t>(MenuOffsets::PopupTextPtr, 0x80000000 | MenuOffsets::ItemPopupText);
+    game->write<uint8_t>(MenuOffsets::PopupTextColor, color);
+    game->write<uint8_t>(MenuOffsets::PopupPhaseA, 2);
+    game->write<uint8_t>(MenuOffsets::PopupTimer, frames);
+    game->write<uint8_t>(MenuOffsets::PopupPhaseB, 2);
+}
+
+uint16_t MenuModule::getSelectedItemID(uint16_t* outSlot)
+{
+    uint8_t scroll = game->read<uint8_t>(MenuOffsets::ItemListScroll);
+    uint8_t cursor = game->read<uint8_t>(MenuOffsets::ItemListCursor);
+    uint16_t slot = (uint16_t)scroll + (uint16_t)cursor;
+
+    if (outSlot != nullptr)
+    {
+        *outSlot = slot;
+    }
+
+    uint16_t entry = game->read<uint16_t>(GameOffsets::Inventory + (slot * 2));
+    return entry & 0x01FF;
+}
+
+void MenuModule::cancelItemTargetPrompt()
+{
+    game->write<uint8_t>(MenuOffsets::ItemTargetActive, 1);
+}
+
+void MenuModule::updateCustomItemUse()
+{
+    // Nothing to watch for unless a menu is actually open and there are registered custom items.
+    // Reset the edge tracker whenever we bail so a stale value can't fire a use later.
+    if (!game->hasCustomItems() || !isOpen())
+    {
+        lastItemTargetActive = 0;
+        return;
+    }
+
+    uint8_t targetActive = game->read<uint8_t>(MenuOffsets::ItemTargetActive);
+    uint8_t previousTargetActive = lastItemTargetActive;
+    lastItemTargetActive = targetActive;
+
+    // Fire only on the rising edge into target-select (2), so a stale value left in this menu RAM
+    // while walking around can't trigger a use.
+    if (targetActive != 2 || previousTargetActive == 2)
+    {
+        return;
+    }
+
+    uint16_t slot = 0;
+    uint16_t itemID = getSelectedItemID(&slot);
+
+    const CustomItem* item = game->findCustomItem(itemID);
+    if (item == nullptr)
+    {
+        return;
+    }
+
+    // Remove one from the stack (empty the slot if it was the last), then cancel the target prompt
+    // back to the item list. Targeting items are not handled yet.
+    uint16_t entry = game->read<uint16_t>(GameOffsets::Inventory + (slot * 2));
+    uint8_t qty = (uint8_t)(entry >> 9);
+    if (qty > 0)
+    {
+        qty--;
+    }
+
+    uint16_t newEntry = (qty == 0) ? 0xFFFF : (uint16_t)((qty << 9) | (itemID & 0x01FF));
+    game->write<uint16_t>(GameOffsets::Inventory + (slot * 2), newEntry);
+    cancelItemTargetPrompt();
+
+    game->onCustomItemUsed.invoke({ itemID, 0xFF });
 }
 
 void MenuModule::onFrame(int frameNumber)

@@ -98,7 +98,7 @@ void GameplayMods::onStart()
         item.name = "Aerith's Ribbon";
         item.targetsCharacter = false;
         item.spawnChance = aerithItemOdds;
-        item.maxEverSpawned = 1;
+        item.isUnique = true;
         aerithItemId = game->registerCustomItem(item);
         LOG("Registered Aerith's Ribbon as item ID: %d", aerithItemId);
     }
@@ -112,7 +112,7 @@ void GameplayMods::onCustomItemUsed(CustomItemUse use)
     }
 
     aerithRevived = true;
-    game->showMenuPopup("Aerith has been revived!");
+    game->menu.showPopup("Aerith has been revived!");
     addAerithToPHS();
     LOG("Aerith Revive: revive item used; Aerith enabled on the PHS.");
 }

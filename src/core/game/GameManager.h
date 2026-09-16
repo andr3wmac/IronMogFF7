@@ -8,6 +8,7 @@
 #include "core/game/modules/MenuModule.h"
 #include "core/game/modules/WorldModule.h"
 #include "core/utilities/Event.h"
+#include "core/utilities/Flags.h"
 #include <string>
 #include <array>
 
@@ -72,9 +73,17 @@ public:
     // Register during a listener's onStart handler; the registry is rebuilt each game start.
     uint16_t registerCustomItem(const CustomItem& item);
 
-    // Shows the field-menu character-response popup with arbitrary text. Only renders while a menu is
-    // open (World/Field module). color 7 = white; other values give other colors.
-    void showMenuPopup(const std::string& text, uint8_t frames = 90, uint8_t color = 7);
+    // True if any custom items are registered for the current game.
+    bool hasCustomItems() { return !customItems.empty(); }
+
+    // Returns the registered custom item with the given id, or nullptr if it isn't a custom item.
+    const CustomItem* findCustomItem(uint16_t itemID);
+
+    // Whether a unique custom item has already been obtained this playthrough (persisted in the savemap).
+    bool isCustomItemFound(uint16_t itemID);
+
+    // Marks a custom item as found and writes the updated flags back to the savemap.
+    void markCustomItemFound(uint16_t itemID);
 
     // Returns a list of materia IDs currently in the party's possession.
     std::array<uint32_t, 200> getPartyMateria();
@@ -154,7 +163,6 @@ private:
     // Rebuilds the custom item registry, fires onStart, then injects registered items into the kernel.
     void onGameStart();
     void injectCustomItems();
-    void updateCustomItemUse();
 
     Emulator* emulator;
     GameVersion gameVersion = GameVersion::PlayStationUS;
@@ -176,8 +184,9 @@ private:
     // A set of pointers to the last line of field script executed within each group.
     uint16_t fieldScriptExecutionTable[64];
 
-    // Custom item registry (rebuilt each game start) and the previous target-select state, used to
-    // fire only on the rising edge into target-select.
+    // Custom item registry, rebuilt each game start. Menu-use detection lives in MenuModule.
     std::vector<CustomItem> customItems;
-    uint8_t lastItemTargetActive = 0;
+
+    // Persistent "found" flags for unique custom items, bit index = id - 105
+    Flags<uint32_t> customItemsFound;
 };
