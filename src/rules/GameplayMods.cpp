@@ -25,11 +25,11 @@ void GameplayMods::setup()
     if (aerithMode == AerithMode::Item)
     {
         CustomItem item;
-        item.name = "Aerith's Ribbon";
+        item.name = "Resurrect Aerith";
         item.targetsCharacter = false;
         item.spawnCount = aerithItemCount;
         aerithItemId = game->registerCustomItem(item);
-        LOG("Registered Aerith's Ribbon as item ID: %d", aerithItemId);
+        LOG("Registered %s as item ID: %d", item.name.c_str(), aerithItemId);
     }
 }
 
