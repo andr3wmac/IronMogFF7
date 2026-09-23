@@ -23,25 +23,25 @@ jobs:
         uses: microsoft/setup-msbuild@v2
 
       - name: Generate Visual Studio project files
-        run: .\tools\build\premake5.exe --file=premake5.lua vs2022
+        run: .\tools\premake5.exe --file=premake5.lua vs2022
 
       - name: Build (Release x64)
-        run: msbuild IronMogFF7.sln /p:Configuration=Release /p:Platform=x64 /m /nologo
+        run: msbuild LiveModFF7.sln /p:Configuration=Release /p:Platform=x64 /m /nologo
 
       - name: Stage release package
         shell: pwsh
         run: |
           # Stage into dist/<versioned folder>. upload-artifact roots the archive at
           # the least common ancestor of the uploaded paths, so pointing it at "dist"
-          # keeps the "IronMog FF7 vX" folder inside the zip (matching prior releases).
-          $stage = "dist\IronMog FF7 $env:VERSION"
+          # keeps the "LiveMod FF7 vX" folder inside the zip.
+          $stage = "dist\LiveMod FF7 $env:VERSION"
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
 
           # Locate the built exe (platform folder can vary between premake actions).
-          $exe = Get-ChildItem -Path build -Recurse -Filter IronMogFF7.exe |
+          $exe = Get-ChildItem -Path build -Recurse -Filter LiveModFF7.exe |
                  Where-Object { $_.FullName -match 'Release' } |
                  Select-Object -First 1
-          if (-not $exe) { throw "IronMogFF7.exe not found under build\" }
+          if (-not $exe) { throw "LiveModFF7.exe not found under build" }
           Copy-Item $exe.FullName -Destination $stage
 
           # Full resources folder.
@@ -58,6 +58,6 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: IronMog FF7 ${{ env.VERSION }}
+          name: LiveMod FF7 ${{ env.VERSION }}
           path: dist
           if-no-files-found: error

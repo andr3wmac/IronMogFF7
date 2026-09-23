@@ -1,14 +1,13 @@
 local ROOT_DIR = "./"
-local LIB_DIR = "./lib/"
 local APPFRAME_DIR = "./lib/AppFrame/"
-local LIVEMOD_DIR = "./lib/LiveModFF7/"
+local LIVEMOD_DIR = "./lib/LiveModFF7Core/"
 
 -- References to other projects premake5.lua scripts.
 includeexternal(APPFRAME_DIR)
 includeexternal(LIVEMOD_DIR)
 
-solution "IronMogFF7"
-    startproject "IronMogFF7"
+solution "LiveModFF7"
+    startproject "LiveModFF7"
 
     configurations { "Release", "Debug" }
     platforms { "x64" }
@@ -28,7 +27,7 @@ solution "IronMogFF7"
 
     filter {}
 
-project "IronMogFF7"
+project "LiveModFF7"
     kind "WindowedApp"
     language "C++"
     cppdialect "C++17"
@@ -48,7 +47,7 @@ project "IronMogFF7"
 
     includedirs {
         path.join(ROOT_DIR, "src/"),
-        path.join(LIB_DIR, "LiveModFF7/include/"),
+        path.join(LIVEMOD_DIR, "include/"),
         path.join(APPFRAME_DIR, "include/"),
     }
 
@@ -68,7 +67,7 @@ project "IronMogFF7"
 
     links { 
         "AppFrame",
-        "LiveModFF7",
+        "LiveModFF7Core",
     }
     appFrameLinks(APPFRAME_DIR)
 
@@ -80,6 +79,6 @@ project "AppFrame"
     appFrameProject(APPFRAME_DIR)
     location ("build/" .. _ACTION .. "/lib")
 
-project "LiveModFF7"
+project "LiveModFF7Core"
     liveModProject(LIVEMOD_DIR)
     location ("build/" .. _ACTION .. "/lib")

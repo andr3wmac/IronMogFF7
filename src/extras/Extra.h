@@ -1,6 +1,6 @@
 #pragma once
 
-#include "LiveModFF7/game/GameManager.h"
+#include "LiveModFF7Core/game/GameManager.h"
 #include "utilities/ConfigFile.h"
 
 enum class ExtraDescripionType : uint8_t

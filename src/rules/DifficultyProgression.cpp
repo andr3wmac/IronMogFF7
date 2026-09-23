@@ -1,8 +1,8 @@
 #include "DifficultyProgression.h"
 #include "app/gui/GUI.h"
 #include "AppFrame/AppFrame.h"
-#include "LiveModFF7/game/MemoryOffsets.h"
-#include "LiveModFF7/utilities/Logging.h"
+#include "LiveModFF7Core/game/MemoryOffsets.h"
+#include "LiveModFF7Core/utilities/Logging.h"
 #include "rules/Restrictions.h"
 
 REGISTER_RULE(DifficultyProgression, "Difficulty Progression", "Progressively scales into your randomizer settings.")

@@ -1,9 +1,9 @@
 #include "RandomizeFieldItems.h"
 #include "AppFrame/AppFrame.h"
-#include "LiveModFF7/game/GameData.h"
-#include "LiveModFF7/game/MemoryOffsets.h"
-#include "LiveModFF7/utilities/Logging.h"
-#include "LiveModFF7/utilities/Utilities.h"
+#include "LiveModFF7Core/game/GameData.h"
+#include "LiveModFF7Core/game/MemoryOffsets.h"
+#include "LiveModFF7Core/utilities/Logging.h"
+#include "LiveModFF7Core/utilities/Utilities.h"
 #include "rules/Restrictions.h"
 #include "utilities/Randomizer.h"
 

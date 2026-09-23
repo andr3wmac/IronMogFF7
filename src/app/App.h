@@ -2,7 +2,7 @@
 
 #include "app/Tracker.h"
 #include "AppFrame/Application.h"
-#include "LiveModFF7/game/GameManager.h"
+#include "LiveModFF7Core/game/GameManager.h"
 #include "utilities/StringList.h"
 
 #include <atomic>

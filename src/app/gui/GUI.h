@@ -1,7 +1,7 @@
 #pragma once
 
 #include "AppFrame/GUI.h"
-#include "LiveModFF7/utilities/Utilities.h"
+#include "LiveModFF7Core/utilities/Utilities.h"
 
 using GUI = AppFrame::GUI;
 using GUIImage = AppFrame::GUIImage;

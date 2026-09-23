@@ -2,14 +2,14 @@
 #include "app/audio/AudioManager.h"
 #include "app/gui/GUI.h"
 #include "AppFrame/AppFrame.h"
-#include "LiveModFF7/game/GameData.h"
-#include "LiveModFF7/game/MemoryOffsets.h"
-#include "LiveModFF7/utilities/Logging.h"
-#include "LiveModFF7/tools/MemorySearch.h"
-#include "LiveModFF7/tools/ModelEditor.h"
-#include "LiveModFF7/utilities/Utilities.h"
+#include "LiveModFF7Core/game/GameData.h"
+#include "LiveModFF7Core/game/MemoryOffsets.h"
+#include "LiveModFF7Core/utilities/Logging.h"
+#include "LiveModFF7Core/tools/MemorySearch.h"
+#include "LiveModFF7Core/tools/ModelEditor.h"
+#include "LiveModFF7Core/utilities/Utilities.h"
 
-REGISTER_EXTRA(RandomizeColors, "Randomize Colors", "Playable characters’ clothing colors are randomized.")
+REGISTER_EXTRA(RandomizeColors, "Randomize Colors", "Playable charactersï¿½ clothing colors are randomized.")
 
 // Give each model 16 colors each to future proof against later changes
 #define COLORS_PER_MODEL 16

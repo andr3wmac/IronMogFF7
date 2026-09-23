@@ -1,6 +1,6 @@
-﻿#include "AudioManager.h"
+#include "AudioManager.h"
 #include "miniaudio.h"
-#include "LiveModFF7/utilities/Logging.h"
+#include "LiveModFF7Core/utilities/Logging.h"
 
 ma_engine gAudioEngine;
 ma_sound gMusicA;

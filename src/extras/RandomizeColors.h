@@ -1,7 +1,7 @@
 #pragma once
 #include "extras/Extra.h"
-#include "LiveModFF7/tools/ModelEditor.h"
-#include "LiveModFF7/utilities/Utilities.h"
+#include "LiveModFF7Core/tools/ModelEditor.h"
+#include "LiveModFF7Core/utilities/Utilities.h"
 #include <cstdint>
 #include <unordered_map>
 

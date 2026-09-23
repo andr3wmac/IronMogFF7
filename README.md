@@ -24,7 +24,7 @@ Fast Forward and Rewind are known to cause issues and should be avoided, but Sav
 - **Download**: Get the latest version of IronMog FF7 from the [Releases](https://github.com/andr3wmac/IronMogFF7/releases) page.
 - **Launch Game**: Open your emulator (DuckStation or BizHawk) and load Final Fantasy VII.
 - **Prepare**: Wait until the game reaches the Main Menu.
-- **Run Mod**: Open IronMogFF7.exe.
+- **Run Mod**: Open LiveModFF7.exe.
 - **Connect**: Select your game version and emulator type, adjust your settings, and then click Connect.
 - **Start**: Once the status light turns green, you are ready to start a New Game.
 
@@ -41,7 +41,7 @@ You can find the instructions for this script [here](https://github.com/andr3wma
 Currently only Windows platforms are supported and Microsoft Visual Studio 2022 is recommended.
 - Clone the repository
 - Run `GenerateProjectFiles.bat`
-- Open the generated `IronMogFF7.sln`
+- Open the generated `LiveModFF7.sln`
 - Build
 
 # Contributors

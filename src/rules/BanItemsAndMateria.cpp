@@ -1,8 +1,8 @@
 #include "BanItemsAndMateria.h"
 #include "AppFrame/AppFrame.h"
-#include "LiveModFF7/game/GameData.h"
-#include "LiveModFF7/game/MemoryOffsets.h"
-#include "LiveModFF7/utilities/Logging.h"
+#include "LiveModFF7Core/game/GameData.h"
+#include "LiveModFF7Core/game/MemoryOffsets.h"
+#include "LiveModFF7Core/utilities/Logging.h"
 #include "rules/Restrictions.h"
 
 REGISTER_RULE(BanItemsAndMateria, "Ban Items & Materia", "Restricts the types of items and materia that can be found, purchased, or dropped.")

@@ -1,5 +1,5 @@
 #include "ConfigFile.h"
-#include "LiveModFF7/utilities/Utilities.h"
+#include "LiveModFF7Core/utilities/Utilities.h"
 #include <fstream>
 
 bool ConfigFile::load(const std::string& filePath)

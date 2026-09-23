@@ -1,6 +1,6 @@
 #include "Tracker.h"
-#include "LiveModFF7/game/MemoryOffsets.h"
-#include "LiveModFF7/utilities/Utilities.h"
+#include "LiveModFF7Core/game/MemoryOffsets.h"
+#include "LiveModFF7Core/utilities/Utilities.h"
 #include "app/RuleManager.h"
 #include "extras/RandomizeMusic.h"
 #include "rules/Permadeath.h"

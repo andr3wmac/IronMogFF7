@@ -1,7 +1,7 @@
 #include "Restrictions.h"
-#include "LiveModFF7/game/GameData.h"
-#include "LiveModFF7/game/MemoryOffsets.h"
-#include "LiveModFF7/utilities/Logging.h"
+#include "LiveModFF7Core/game/GameData.h"
+#include "LiveModFF7Core/game/MemoryOffsets.h"
+#include "LiveModFF7Core/utilities/Logging.h"
 
 #include <set>
 

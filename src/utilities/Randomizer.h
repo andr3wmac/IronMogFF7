@@ -1,6 +1,6 @@
 #pragma once
 
-#include "LiveModFF7/game/GameData.h"
+#include "LiveModFF7Core/game/GameData.h"
 
 #include <cstdint>
 #include <functional>

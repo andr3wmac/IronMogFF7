@@ -1,5 +1,5 @@
 #include "Randomizer.h"
-#include "LiveModFF7/utilities/Logging.h"
+#include "LiveModFF7Core/utilities/Logging.h"
 
 namespace
 {
