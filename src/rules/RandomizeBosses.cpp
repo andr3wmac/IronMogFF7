@@ -196,7 +196,7 @@ std::vector<std::string> RandomizeBosses::describe(RuleDescripionType descType)
 {
     if (descType == RuleDescripionType::Randomized)
     {
-        return { "Bosses" };
+        return { "Boss Attributes" };
     }
 
     if (descType == RuleDescripionType::Multiplier)
