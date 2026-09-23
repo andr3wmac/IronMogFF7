@@ -23,6 +23,8 @@ private:
     void onModuleChanged(uint8_t gameModule);
     void onFrame(uint32_t frameNumber);
     void applyColors();
+    void generateColorTable();
+    void rerollColors(int offsetChange);
 
     ModelEditor modelEditor;
     std::unordered_map<std::string, std::vector<Utilities::Color>> randomModelColors;

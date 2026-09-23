@@ -35,7 +35,7 @@ public:
 
 private:
     void onStart();
-    void onShopPricesRead(const char* section, const char* line);
+    void loadCustomPrices(const std::string& filePath);
     void generateRandomizedShops();
     void onFieldChanged(uint16_t fieldID);
     void onShopOpened();

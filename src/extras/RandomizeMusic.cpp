@@ -76,21 +76,28 @@ bool RandomizeMusic::onSettingsGUI()
         previousVolume = currentVolume;
     }
 
-    // Rescan
+    // Rescan. While a game manager exists the music state belongs to its thread, so hand the work over.
     if (ImGui::Button("Rescan Music Folder", ImVec2(DPI(150.0f), 0.0f)))
     {
-        scanMusicFolder();
+        if (game != nullptr)
+        {
+            game->queueAction([this]() { scanMusicFolder(); });
+        }
+        else
+        {
+            scanMusicFolder();
+        }
     }
 
     ImGui::SameLine();
-    std::string trackCountText = "Tracks: " + std::to_string(trackCount);
+    std::string trackCountText = "Tracks: " + std::to_string(trackCount.load());
     ImGui::Text(trackCountText.c_str());
 
     // Reroll
     ImGui::BeginDisabled(game == nullptr);
     if (ImGui::Button("Reroll Music", ImVec2(DPI(150.0f), 0.0f)))
     {
-        randomizeMusic(previousMusicID);
+        game->queueAction([this]() { randomizeMusic(previousMusicID); });
     }
     ImGui::EndDisabled();
 
@@ -160,6 +167,7 @@ std::string RandomizeMusic::getCurrentlyPlaying()
         return "";
     }
 
+    std::lock_guard<std::mutex> lock(currentSongMutex);
     return currentSong;
 }
 
@@ -274,7 +282,7 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
         // 0 and 1 are nothing so if thats switched to we need to pause any running tracks.
         if (musicID == 0 || musicID == 1)
         {
-            currentSong = "";
+            setCurrentSong("");
             AudioManager::pauseMusic();
             return;
         }
@@ -329,7 +337,7 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
         else
         {
             // No tracks available for this music ID, stop overriding and let the game take over.
-            currentSong = "";
+            setCurrentSong("");
             overrideMusic = false;
             game->write<uint16_t>(GameOffsets::MusicVolume, FullVolume);
             AudioManager::pauseMusic();
@@ -517,9 +525,15 @@ bool RandomizeMusic::randomizeMusic(uint16_t musicID)
 void RandomizeMusic::play(const Track& track)
 {
     std::filesystem::path p(track.path);
-    currentSong = p.stem().string();
+    setCurrentSong(p.stem().string());
 
     overrideMusic = true;
     AudioManager::playMusic(track.path, track.start, track.loopStart, track.loopEnd, track.playOnce, track.noFade);
     LOG("Playing: %s", track.path.c_str());
+}
+
+void RandomizeMusic::setCurrentSong(const std::string& song)
+{
+    std::lock_guard<std::mutex> lock(currentSongMutex);
+    currentSong = song;
 }

@@ -1,7 +1,9 @@
 #pragma once
 
 #include <algorithm>
+#include <cctype>
 #include <chrono>
+#include <cstdlib>
 #include <fstream>
 #include <iomanip>
 #include <sstream>
@@ -21,17 +23,28 @@ public:
         uint8_t r, g, b;
     };
 
-    // Parses memory address hex string into numeric form
-    static uintptr_t parseAddress(const std::string& addressText)
+    // Parses a memory address hex string (optionally prefixed with 0x) into numeric form.
+    // Returns false for empty, malformed, or out of range input instead of throwing.
+    static bool tryParseAddress(const std::string& addressText, uintptr_t& addressOut)
     {
-        std::string str = addressText;
+        std::string str = trim(addressText);
 
         // Remove "0x" or "0X" prefix if present
         if (str.rfind("0x", 0) == 0 || str.rfind("0X", 0) == 0)
             str = str.substr(2);
 
-        // Parse as base-16 (hex)
-        return static_cast<uintptr_t>(std::stoull(str, nullptr, 16));
+        // Up to 16 hex digits, nothing else. strtoull alone would accept signs and trailing junk.
+        if (str.empty() || str.size() > 16)
+            return false;
+
+        for (unsigned char c : str)
+        {
+            if (!std::isxdigit(c))
+                return false;
+        }
+
+        addressOut = static_cast<uintptr_t>(std::strtoull(str.c_str(), nullptr, 16));
+        return true;
     }
 
     // Case insensitive string search

@@ -1,6 +1,8 @@
 #pragma once
 #include "extras/Extra.h"
+#include <atomic>
 #include <cstdint>
+#include <mutex>
 #include <unordered_map>
 
 // Represents a song found in the 'music' folder
@@ -46,11 +48,15 @@ private:
     void addUniqueTrack(const Track& newTrack);
     bool randomizeMusic(uint16_t musicID);
     void play(const Track& track);
+    void setCurrentSong(const std::string& song);
 
     bool useCuratedMusic = true;
-    bool disabled = false;
     bool overrideMusic = false;
-    int trackCount = 0;
+
+    // Read by the GUI thread while the game manager thread updates them.
+    std::atomic<bool> disabled = false;
+    std::atomic<int> trackCount = 0;
+    std::mutex currentSongMutex;
     std::string currentSong = "";
     float currentVolume = 1.0f;
     float previousVolume = 1.0f;

@@ -2,10 +2,15 @@
 #include "miniaudio.h"
 #include "core/utilities/Logging.h"
 
+#include <mutex>
+
 ma_engine gAudioEngine;
 ma_sound gMusicA;
 ma_sound gMusicB;
 ma_sound* pActiveMusic = nullptr;
+
+// Music can be controlled from both the GUI and game manager threads.
+std::mutex gMusicMutex;
 
 bool AudioManager::initialize()
 {
@@ -30,6 +35,8 @@ bool AudioManager::playMusic(std::string path)
 
 bool AudioManager::playMusic(std::string path, uint64_t start, uint64_t loopStart, uint64_t loopEnd, bool playOnce, bool noFade)
 {
+    std::lock_guard<std::mutex> lock(gMusicMutex);
+
     // Determine which slot to use for the new song
     ma_sound* pOldMusic = pActiveMusic;
     ma_sound* pNewMusic = (pActiveMusic == &gMusicA) ? &gMusicB : &gMusicA;
@@ -78,15 +85,18 @@ bool AudioManager::playMusic(std::string path, uint64_t start, uint64_t loopStar
 
 void AudioManager::setMusicVolume(float volume)
 {
+    std::lock_guard<std::mutex> lock(gMusicMutex);
     ma_engine_set_volume(&gAudioEngine, volume);
 }
 
 void AudioManager::pauseMusic()
 {
+    std::lock_guard<std::mutex> lock(gMusicMutex);
     ma_sound_stop(pActiveMusic);
 }
 
 void AudioManager::resumeMusic()
 {
+    std::lock_guard<std::mutex> lock(gMusicMutex);
     ma_sound_start(pActiveMusic);
 }

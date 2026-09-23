@@ -1,5 +1,6 @@
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -38,6 +39,7 @@ protected:
     void* processHandle      = nullptr;
     uintptr_t ps1BaseAddress = 0;
     void* ps1MappedView      = nullptr;
-    int readErrorCount       = 0;
-    int writeErrorCount      = 0;
+    // Memory can be accessed from both the GUI and game manager threads.
+    std::atomic<int> readErrorCount  = 0;
+    std::atomic<int> writeErrorCount = 0;
 };

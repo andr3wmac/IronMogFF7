@@ -64,6 +64,13 @@ constexpr SYSTEM_INFORMATION_CLASS SystemHandleInformation = (SYSTEM_INFORMATION
 #define STATUS_INFO_LENGTH_MISMATCH ((NTSTATUS)0xC0000004L)
 #define ViewUnmapped 1
 
+// Looks up an exported ntdll function, returns nullptr if unavailable.
+static FARPROC getNtdllFunction(const char* name)
+{
+    HMODULE ntdll = GetModuleHandleA("ntdll.dll");
+    return (ntdll != nullptr) ? GetProcAddress(ntdll, name) : nullptr;
+}
+
 void Platform::initialize()
 {
     // Increases the precision of timing events on Windows. This is used for sleep()
@@ -87,25 +94,12 @@ void Platform::closeProcess(void* processHandle)
 
 bool Platform::read(void* processHandle, uintptr_t address, void* memOut, size_t sizeInBytes)
 {
-    static NtReadVirtualMemory_t NtReadVirtualMemoryFn = nullptr;
-
-    // Load the function once
+    // Load the function once. Static initialization is thread-safe, this is called from multiple threads.
+    static const NtReadVirtualMemory_t NtReadVirtualMemoryFn = (NtReadVirtualMemory_t)getNtdllFunction("NtReadVirtualMemory");
     if (!NtReadVirtualMemoryFn)
     {
-        HMODULE ntdll = GetModuleHandleA("ntdll.dll");
-        if (ntdll == 0)
-        {
-            LOG("Platform::read failed to get ntdll.dll");
-            return false;
-        }
-
-        NtReadVirtualMemoryFn = (NtReadVirtualMemory_t)GetProcAddress(ntdll, "NtReadVirtualMemory");
-
-        if (!NtReadVirtualMemoryFn)
-        {
-            LOG("Platform::read failed to get NtReadVirtualMemory");
-            return false;
-        }
+        LOG("Platform::read failed to get NtReadVirtualMemory");
+        return false;
     }
 
     PVOID target = (PVOID)address;
@@ -133,25 +127,12 @@ bool Platform::read(void* processHandle, uintptr_t address, void* memOut, size_t
 // bypass the safety checks and call NtWriteVirtualMemory directly.
 bool Platform::write(void* processHandle, uintptr_t address, void* memIn, size_t sizeInBytes)
 {
-    static NtWriteVirtualMemory_t NtWriteVirtualMemoryFn = nullptr;
-
-    // Load the function once
+    // Load the function once. Static initialization is thread-safe, this is called from multiple threads.
+    static const NtWriteVirtualMemory_t NtWriteVirtualMemoryFn = (NtWriteVirtualMemory_t)getNtdllFunction("NtWriteVirtualMemory");
     if (!NtWriteVirtualMemoryFn)
     {
-        HMODULE ntdll = GetModuleHandleA("ntdll.dll");
-        if (ntdll == 0)
-        {
-            LOG("Platform::write failed to get ntdll.dll");
-            return false;
-        }
-
-        NtWriteVirtualMemoryFn = (NtWriteVirtualMemory_t)GetProcAddress(ntdll, "NtWriteVirtualMemory");
-
-        if (!NtWriteVirtualMemoryFn)
-        {
-            LOG("Platform::write failed to get NtWriteVirtualMemory");
-            return false;
-        }
+        LOG("Platform::write failed to get NtWriteVirtualMemory");
+        return false;
     }
 
     PVOID target = (PVOID)address;
@@ -351,21 +332,13 @@ void Platform::sleep(double sleepTimeMS)
 
 void* Platform::mapSharedSection(void* processHandle, size_t minSize, std::function<bool(void*, size_t)> validator)
 {
-    static NtQuerySystemInformation_t NtQuerySystemInformationFn = nullptr;
-    static NtMapViewOfSection_t NtMapViewOfSectionFn = nullptr;
-    static NtUnmapViewOfSection_t NtUnmapViewOfSectionFn = nullptr;
+    static const NtQuerySystemInformation_t NtQuerySystemInformationFn = (NtQuerySystemInformation_t)getNtdllFunction("NtQuerySystemInformation");
+    static const NtMapViewOfSection_t NtMapViewOfSectionFn             = (NtMapViewOfSection_t)getNtdllFunction("NtMapViewOfSection");
+    static const NtUnmapViewOfSection_t NtUnmapViewOfSectionFn         = (NtUnmapViewOfSection_t)getNtdllFunction("NtUnmapViewOfSection");
 
     if (!NtQuerySystemInformationFn || !NtMapViewOfSectionFn || !NtUnmapViewOfSectionFn)
     {
-        HMODULE ntdll = GetModuleHandleA("ntdll.dll");
-        if (!ntdll)
-        {
-            return nullptr;
-        }
-
-        NtQuerySystemInformationFn = (NtQuerySystemInformation_t)GetProcAddress(ntdll, "NtQuerySystemInformation");
-        NtMapViewOfSectionFn       = (NtMapViewOfSection_t)GetProcAddress(ntdll, "NtMapViewOfSection");
-        NtUnmapViewOfSectionFn     = (NtUnmapViewOfSection_t)GetProcAddress(ntdll, "NtUnmapViewOfSection");
+        return nullptr;
     }
 
     DWORD targetPid = GetProcessId(processHandle);
@@ -460,17 +433,10 @@ void* Platform::mapSharedSection(void* processHandle, size_t minSize, std::funct
 
 void Platform::unmapSharedSection(void* view)
 {
-    static NtUnmapViewOfSection_t NtUnmapViewOfSectionFn = nullptr;
-
+    static const NtUnmapViewOfSection_t NtUnmapViewOfSectionFn = (NtUnmapViewOfSection_t)getNtdllFunction("NtUnmapViewOfSection");
     if (!NtUnmapViewOfSectionFn)
     {
-        HMODULE ntdll = GetModuleHandleA("ntdll.dll");
-        if (!ntdll)
-        {
-            return;
-        }
-
-        NtUnmapViewOfSectionFn = (NtUnmapViewOfSection_t)GetProcAddress(ntdll, "NtUnmapViewOfSection");
+        return;
     }
 
     NtUnmapViewOfSectionFn(GetCurrentProcess(), view);

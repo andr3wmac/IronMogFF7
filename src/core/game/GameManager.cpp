@@ -19,6 +19,23 @@ GameManager::GameManager()
 
 GameManager::~GameManager()
 {
+    // Rules and extras outlive this manager, so make sure none of them keep a dangling pointer to it.
+    for (Rule* rule : Rule::getList())
+    {
+        if (rule->getManager() == this)
+        {
+            rule->setManager(nullptr);
+        }
+    }
+
+    for (Extra* extra : Extra::getList())
+    {
+        if (extra->getManager() == this)
+        {
+            extra->setManager(nullptr);
+        }
+    }
+
     if (emulator != nullptr)
     {
         delete emulator;
@@ -33,7 +50,13 @@ bool GameManager::connectToEmulator(std::string processName)
         return false;
     }
 
-    return emulator->connect(processName);
+    if (!emulator->connect(processName))
+    {
+        return false;
+    }
+
+    connected.store(true, std::memory_order_release);
+    return true;
 }
 
 bool GameManager::connectToEmulator(std::string processName, uintptr_t memoryAddress)
@@ -44,14 +67,40 @@ bool GameManager::connectToEmulator(std::string processName, uintptr_t memoryAdd
         return false;
     }
 
-    return emulator->connect(processName);
+    if (!emulator->connect(processName))
+    {
+        return false;
+    }
+
+    connected.store(true, std::memory_order_release);
+    return true;
+}
+
+void GameManager::queueAction(std::function<void()> action)
+{
+    std::lock_guard<std::mutex> lock(queuedActionsMutex);
+    queuedActions.push_back(std::move(action));
+}
+
+void GameManager::runQueuedActions()
+{
+    std::vector<std::function<void()>> actions;
+    {
+        std::lock_guard<std::mutex> lock(queuedActionsMutex);
+        actions.swap(queuedActions);
+    }
+
+    for (const std::function<void()>& action : actions)
+    {
+        action();
+    }
 }
 
 std::string GameManager::readString(uintptr_t offset, uint32_t length)
 {
     std::vector<uint8_t> strData;
     strData.resize(length);
-    emulator->read(offset, strData.data(), length);
+    read(offset, length, strData.data());
     return GameData::decodeString(strData);
 }
 
@@ -70,7 +119,7 @@ size_t GameManager::writeString(uintptr_t offset, uint32_t length, const std::st
         finalStrData[padding + i] = strData[i];
     }
 
-    emulator->write(offset, finalStrData.data(), length);
+    write(offset, finalStrData.data(), length);
     return strLen;
 }
 
@@ -310,24 +359,24 @@ void GameManager::setup(GameVersion version, uint32_t inputSeed)
     // Rebuild the custom item registry from scratch so rules can register their items during setup.
     customItems.clear();
 
+    // Every rule and extra gets the manager, not just the enabled ones, so one that is switched on after
+    // connecting can still safely reference it (e.g. describe() for the tracker summary).
     for (Rule* rule : Rule::getList())
     {
-        if (!rule->enabled)
-        {
-            continue;
-        }
         rule->setManager(this);
-        rule->setup();
+        if (rule->enabled)
+        {
+            rule->setup();
+        }
     }
 
     for (Extra* extra : Extra::getList())
     {
-        if (!extra->enabled)
-        {
-            continue;
-        }
         extra->setManager(this);
-        extra->setup();
+        if (extra->enabled)
+        {
+            extra->setup();
+        }
     }
 }
 
@@ -407,6 +456,8 @@ bool GameManager::update()
     {
         return false;
     }
+
+    runQueuedActions();
 
     GameState state = getState();
     {
@@ -564,7 +615,7 @@ void GameManager::setDifficultyScale(float newScale)
     }
 
     difficultyScale = Utilities::clamp(newScale, 0.0f, 1.0f);
-    onDifficultyScaleChanged.invoke(difficultyScale);
+    onDifficultyScaleChanged.invoke(difficultyScale.load());
 }
 
 void GameManager::onGameStart()
@@ -672,7 +723,8 @@ bool GameManager::isPHSVisible(uint8_t characterID)
 std::array<uint16_t, 320> GameManager::getPartyInventory()
 {
     std::array<uint16_t, 320> results;
-    emulator->read(GameOffsets::Inventory, results.data(), sizeof(uint16_t) * 320);
+    results.fill(0xFFFF);
+    read(GameOffsets::Inventory, sizeof(uint16_t) * 320, (uint8_t*)results.data());
     return results;
 }
 
@@ -684,13 +736,14 @@ void GameManager::setInventorySlot(uint32_t slotIndex, uint16_t itemID, uint8_t 
     }
 
     uint16_t data = (quantity << 9) | (itemID & 0x1FF);
-    emulator->write(GameOffsets::Inventory + (sizeof(uint16_t) * slotIndex), &data, sizeof(uint16_t));
+    write<uint16_t>(GameOffsets::Inventory + (sizeof(uint16_t) * slotIndex), data);
 }
 
 std::array<uint32_t, 200> GameManager::getPartyMateria()
 {
     std::array<uint32_t, 200> results;
-    emulator->read(GameOffsets::MateriaInventory, results.data(), sizeof(uint32_t) * 200);
+    results.fill(0xFFFFFFFF);
+    read(GameOffsets::MateriaInventory, sizeof(uint32_t) * 200, (uint8_t*)results.data());
     return results;
 }
 

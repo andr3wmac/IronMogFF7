@@ -119,33 +119,20 @@ void Permadeath::saveSettings(ConfigFile& cfg)
 void Permadeath::onDebugGUI()
 {
     std::string deadCharText = "Dead Characters: ";
+    uint16_t deadMask = getDeadCharacterMask();
     for (int i = 0; i < 9; ++i)
     {
-        if (deadCharacters.isBitSet(i))
+        if (Utilities::isBitSet(deadMask, i))
         {
             deadCharText += std::to_string(i) + " ";
         }
     }
     ImGui::Text(deadCharText.c_str());
 
+    // These mutate rule state, so they run on the game manager thread.
     if (ImGui::Button("Clear Dead Characters"))
     {
-        deadCharacters = 0;
-        cloudDeathCount = 0;
-        savePermadeathState();
-
-        std::array<uint8_t, 3> partyIDs = game->getPartyIDs();
-        for (int i = 0; i < 3; ++i)
-        {
-            uint8_t id = partyIDs[i];
-            if (id == 0xFF)
-            {
-                continue;
-            }
-
-            uintptr_t characterOffset = getCharacterDataOffset(id);
-            game->write<uint16_t>(characterOffset + CharacterDataOffsets::CurrentHP, 1);
-        }
+        game->queueAction([this]() { clearDeadCharacters(); });
     }
 
     static char debugKillCharacterIndex[5];
@@ -154,10 +141,30 @@ void Permadeath::onDebugGUI()
     if (ImGui::Button("Kill"))
     {
         uint8_t charID = atoi(debugKillCharacterIndex);
-        if (charID >= 0 && charID <= 9)
+        if (charID <= 9)
         {
-            killCharacter(charID);
+            game->queueAction([this, charID]() { killCharacter(charID); });
         }
+    }
+}
+
+void Permadeath::clearDeadCharacters()
+{
+    deadCharacters = 0;
+    cloudDeathCount = 0;
+    savePermadeathState();
+
+    std::array<uint8_t, 3> partyIDs = game->getPartyIDs();
+    for (int i = 0; i < 3; ++i)
+    {
+        uint8_t id = partyIDs[i];
+        if (id == 0xFF)
+        {
+            continue;
+        }
+
+        uintptr_t characterOffset = getCharacterDataOffset(id);
+        game->write<uint16_t>(characterOffset + CharacterDataOffsets::CurrentHP, 1);
     }
 }
 
@@ -432,12 +439,14 @@ void Permadeath::loadPermadeathState()
     uint16_t raw = game->read<uint16_t>(SavemapOffsets::IronMogPermadeath);
     deadCharacters = raw & 0x3FFF;
     cloudDeathCount = (uint8_t)((raw >> 14) & 0x3);
+    publishedDeadCharacters = deadCharacters.value();
 }
 
 void Permadeath::savePermadeathState()
 {
     uint16_t raw = (uint16_t)(deadCharacters.value() & 0x3FFF) | (uint16_t)((cloudDeathCount & 0x3) << 14);
     game->write<uint16_t>(SavemapOffsets::IronMogPermadeath, raw);
+    publishedDeadCharacters = deadCharacters.value();
 }
 
 void Permadeath::killCharacter(uint8_t id)

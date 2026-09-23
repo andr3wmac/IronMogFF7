@@ -451,32 +451,6 @@ bool GUIImage::loadFromFile(const char* file_name)
     return ret;
 }
 
-void GUI::readIni(const char* filePath, const char* name, std::function<void(const char*, const char*)> onReadLine)
-{
-    auto entry = std::make_unique<SettingsHandler>();
-    entry->typeName = name;
-    entry->readLineFn = onReadLine;
-    entry->writeAllFn = nullptr;
-
-    ImGuiSettingsHandler imgui_handler;
-    imgui_handler.TypeName = entry->typeName.c_str();
-    imgui_handler.TypeHash = ImHashStr(imgui_handler.TypeName);
-    imgui_handler.UserData = entry.get();
-    imgui_handler.ReadOpenFn = GUI::imGuiSettingsReadOpen;
-    imgui_handler.ReadLineFn = GUI::imGuiSettingsReadLine;
-    imgui_handler.WriteAllFn = GUI::imGuiSettingsWriteAll;
-
-    ImGui::GetCurrentContext()->SettingsHandlers.push_back(imgui_handler);
-    settingsHandlers.push_back(std::move(entry));
-
-    // Load the settings
-    ImGui::LoadIniSettingsFromDisk(filePath);
-
-    // Remove the handler
-    ImGui::GetCurrentContext()->SettingsHandlers.pop_back();
-    settingsHandlers.pop_back();
-}
-
 void GUI::registerSettingsHandler(const char* name, std::function<void(const char*, const char*)> onReadLine, std::function<void(ImGuiTextBuffer*)> onWrite)
 {
     auto entry = std::make_unique<SettingsHandler>();

@@ -6,6 +6,8 @@
 #include "core/utilities/StringList.h"
 
 #include <atomic>
+#include <mutex>
+#include <string>
 #include <thread>
 
 #define APP_WINDOW_WIDTH 497
@@ -49,10 +51,25 @@ public:
     void connect();
     void disconnect();
     void reconnect();
-    void runGameManager();
     void stopGameManager();
 
 protected:
+    // Everything the manager thread needs to connect, resolved on the GUI thread before it starts.
+    struct ConnectionTarget
+    {
+        EmulatorType emulatorType = EmulatorType::DuckStation;
+        std::string processName;
+        uintptr_t memoryAddress = 0;
+    };
+
+    // Creates and sets up the GameManager on the GUI thread, then starts the manager thread to connect
+    // and run it. Returns false (and reports an error status) if the connection settings are invalid.
+    bool startGameManager();
+    void runGameManager(ConnectionTarget target);
+
+    void setConnectionStatus(ConnectionState state, const std::string& status);
+    std::string getConnectionStatus();
+
     GUI gui;
     GUIImage logo;
     Tracker tracker;
@@ -61,9 +78,12 @@ protected:
     bool showDebugTab = false;
 
     // Setup
+    // The GameManager is created, set up, and deleted on the GUI thread only. The manager thread
+    // connects and runs updates in between.
     GameManager* game = nullptr;
     std::thread* managerThread = nullptr;
     std::atomic<bool> managerRunning = false;
+    std::atomic<bool> stopRequested = false;
     GameManager::GameState previousState = GameManager::GameState::BootScreen;
 
     GameVersion selectedGameVersion = GameVersion::PlayStationUS;
@@ -77,8 +97,14 @@ protected:
     char processMemoryOffset[20];
     char seedValue[9];
 
-    ConnectionState connectionState = ConnectionState::NotConnected;
+    // Written by both threads. connectionStatus is guarded by connectionStatusMutex.
+    std::atomic<ConnectionState> connectionState = ConnectionState::NotConnected;
+    std::mutex connectionStatusMutex;
     std::string connectionStatus = "Not Connected";
+
+    // The seed can change on the manager thread (loaded from a save), it's handed to the GUI through these.
+    std::atomic<uint32_t> pendingSeed = 0;
+    std::atomic<bool> seedPending = false;
 
     void onKeyPress(int key, int mods);
     void onResize(int width, int height);

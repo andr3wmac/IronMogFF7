@@ -69,9 +69,12 @@ void App::drawSetupPanel()
 {
     GUI::drawImage(logo, DPI(logo.width / 2), DPI(logo.height / 2));
 
+    // The manager thread can change this at any time, so work from a single snapshot per frame.
+    const ConnectionState currentConnection = connectionState.load();
+
     // We lock settings if we're both connected and in game.
-    bool lockSettings = connectionState > ConnectionState::NotConnected && connectionState < ConnectionState::Error;
-    if (lockSettings && connectionState == ConnectionState::Connected)
+    bool lockSettings = currentConnection > ConnectionState::NotConnected && currentConnection < ConnectionState::Error;
+    if (lockSettings && currentConnection == ConnectionState::Connected && game != nullptr)
     {
         GameManager::GameState state = game->getState();
         lockSettings &= (state == GameManager::GameState::InGame);
@@ -121,6 +124,7 @@ void App::drawSetupPanel()
                 if (selectedEmulatorType == EmulatorType::Custom)
                 {
                     runningProcesses = Platform::getRunningProcesses();
+                    selectedProcessIdx = 0;
                 }
             }
 
@@ -277,20 +281,20 @@ void App::drawSetupPanel()
         const ImVec2 p = ImGui::GetCursorScreenPos();
         ImDrawList* drawList = ImGui::GetWindowDrawList();
 
-        if (connectionState == ConnectionState::NotConnected || connectionState == ConnectionState::Error)
+        if (currentConnection == ConnectionState::NotConnected || currentConnection == ConnectionState::Error)
         {
             drawList->AddCircleFilled(ImVec2(p.x + DPI(135.0f), p.y + DPI(10.0f)), DPI(5.0f), dotRed);
         }
-        if (connectionState == ConnectionState::Connecting)
+        if (currentConnection == ConnectionState::Connecting)
         {
             drawList->AddCircleFilled(ImVec2(p.x + DPI(135.0f), p.y + DPI(10.0f)), DPI(5.0f), dotYellow);
         }
-        if (connectionState == ConnectionState::Connected)
+        if (currentConnection == ConnectionState::Connected)
         {
             drawList->AddCircleFilled(ImVec2(p.x + DPI(135.0f), p.y + DPI(10.0f)), DPI(5.0f), dotGreen);
         }
 
-        if (connectionState == ConnectionState::NotConnected || connectionState == ConnectionState::Error)
+        if (currentConnection == ConnectionState::NotConnected || currentConnection == ConnectionState::Error)
         {
             if (ImGui::Button("Connect", ImVec2(DPI(120.0f), 0.0f)))
             {
@@ -299,7 +303,7 @@ void App::drawSetupPanel()
         }
         else
         {
-            ImGui::BeginDisabled(connectionState == ConnectionState::Connecting);
+            ImGui::BeginDisabled(currentConnection == ConnectionState::Connecting);
             if (ImGui::Button("Disconnect", ImVec2(DPI(120.0f), 0.0f)))
             {
                 disconnect();
@@ -309,7 +313,7 @@ void App::drawSetupPanel()
 
         ImGui::SameLine();
         ImGui::Indent(DPI(150.0f));
-        ImGui::Text(connectionStatus.c_str());
+        ImGui::TextUnformatted(getConnectionStatus().c_str());
         ImGui::Unindent(DPI(150.0f));
     }
 }
@@ -385,12 +389,12 @@ void App::drawTrackerPanel()
         // Attempts/Game Overs
         if (tracker.showAttempts())
         {
-            std::string attemptsText = "Attempt #" + std::to_string(tracker.attemptCounter);
+            std::string attemptsText = "Attempt #" + std::to_string(tracker.attemptCounter.load());
             ImGui::Text(attemptsText.c_str());
         }
         if (tracker.showGameOvers())
         {
-            std::string gameOversText = "Game Overs: " + std::to_string(tracker.gameOverCounter);
+            std::string gameOversText = "Game Overs: " + std::to_string(tracker.gameOverCounter.load());
             ImGui::Text(gameOversText.c_str());
         }
         
@@ -435,11 +439,20 @@ void App::drawAppSettingsPanel()
         {
             ImGui::Text("Attempts:");
             ImGui::SameLine(DPI(160.0f));
-            ImGui::InputInt("##AppSettings_Attempts", &tracker.attemptCounter, 0, 0);
+            // The counters are also incremented on the manager thread, so edit a copy.
+            int attempts = tracker.attemptCounter;
+            if (ImGui::InputInt("##AppSettings_Attempts", &attempts, 0, 0))
+            {
+                tracker.attemptCounter = attempts;
+            }
 
             ImGui::Text("Game Overs:");
             ImGui::SameLine(DPI(160.0f));
-            ImGui::InputInt("##AppSettings_GameOvers", &tracker.gameOverCounter, 0, 0);
+            int gameOvers = tracker.gameOverCounter;
+            if (ImGui::InputInt("##AppSettings_GameOvers", &gameOvers, 0, 0))
+            {
+                tracker.gameOverCounter = gameOvers;
+            }
         }
         ImGui::EndDisabled();
     }
@@ -447,10 +460,10 @@ void App::drawAppSettingsPanel()
 
 void App::drawDebugPanel()
 {
-    std::string connectionText = "Connection: " + connectionStatus;
-    ImGui::Text(connectionText.c_str());
+    std::string connectionText = "Connection: " + getConnectionStatus();
+    ImGui::TextUnformatted(connectionText.c_str());
     
-    if (connectionState != ConnectionState::Connected)
+    if (connectionState != ConnectionState::Connected || game == nullptr)
     {
         return;
     }

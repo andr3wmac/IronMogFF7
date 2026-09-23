@@ -46,15 +46,19 @@ void RandomizeColors::onDebugGUI()
 
     if (ImGui::Button("Force Update", ImVec2(120, 0)))
     {
-        if (game->getGameModule() == GameModule::Battle)
+        // Model editing belongs to the game manager thread.
+        game->queueAction([this]()
         {
-            waitingForBattle = true;
-        }
-        else 
-        {
-            modelEditor.openFieldModels();
-            applyColors();
-        }
+            if (game->getGameModule() == GameModule::Battle)
+            {
+                waitingForBattle = true;
+            }
+            else 
+            {
+                modelEditor.openFieldModels();
+                applyColors();
+            }
+        });
     }
 
     if (ImGui::CollapsingHeader("Current Models"))
@@ -169,48 +173,33 @@ Utilities::Color getRandomColor(std::mt19937& rng)
 
 bool RandomizeColors::onSettingsGUI()
 {
-    bool didRerollColors = false;
-
+    // Rerolling rebuilds the color table and edits models, which belongs to the game manager thread.
     ImGui::BeginDisabled(game == nullptr);
     if (ImGui::Button("Previous Colors", ImVec2(DPI(120.0f), 0.0f)))
     {
-        rerollOffset--;
-        didRerollColors = true;
+        game->queueAction([this]() { rerollColors(-1); });
     }
     ImGui::SameLine();
     if (ImGui::Button("Next Colors", ImVec2(DPI(120.0f), 0.0f)))
     {
-        rerollOffset++;
-        didRerollColors = true;
+        game->queueAction([this]() { rerollColors(1); });
     }
     ImGui::EndDisabled();
-
-    if (didRerollColors)
-    {
-        std::mt19937 rng(game->getSeed() + rerollOffset);
-        randomModelColors.clear();
-
-        // Generate table of random colors
-        for (Model& model : GameData::models)
-        {
-            std::string& modelName = model.name;
-            for (int i = 0; i < COLORS_PER_MODEL; ++i)
-            {
-                randomModelColors[modelName].push_back(getRandomColor(rng));
-            }
-        }
-
-        applyColors();
-    }
 
     return false;
 }
 
-void RandomizeColors::onStart()
+void RandomizeColors::rerollColors(int offsetChange)
+{
+    rerollOffset += offsetChange;
+    generateColorTable();
+    applyColors();
+}
+
+void RandomizeColors::generateColorTable()
 {
     std::mt19937 rng(game->getSeed() + rerollOffset);
 
-    // Generate table of random colors
     randomModelColors.clear();
     for (Model& model : GameData::models)
     {
@@ -220,7 +209,11 @@ void RandomizeColors::onStart()
             randomModelColors[modelName].push_back(getRandomColor(rng));
         }
     }
+}
 
+void RandomizeColors::onStart()
+{
+    generateColorTable();
     modelEditor.clear();
 }
 

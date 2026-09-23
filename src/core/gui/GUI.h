@@ -47,7 +47,6 @@ private:
     void onKeyCallback(int key, int scancode, int action, int mods);
 
 public:
-    static void readIni(const char* filePath, const char* name, std::function<void(const char*, const char*)> onReadLine);
     static void registerSettingsHandler(const char* name, std::function<void(const char*, const char*)> onReadLine, std::function<void(ImGuiTextBuffer*)> onWrite);
 
     static void drawImage(GUIImage& image, int width, int height, float alpha = 1.0f);

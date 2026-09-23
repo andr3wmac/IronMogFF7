@@ -1,5 +1,6 @@
 #pragma once
 #include "Rule.h"
+#include <atomic>
 #include <cstdint>
 #include <set>
 #include "core/utilities/Flags.h"
@@ -36,6 +37,12 @@ public:
         return deadCharacters.isBitSet(characterID);
     }
 
+    // Thread-safe copy of the dead character mask for display on the GUI thread.
+    uint16_t getDeadCharacterMask() const
+    {
+        return publishedDeadCharacters.load();
+    }
+
 private:
     void onStart();
     void onFrame(uint32_t frameNumber);
@@ -44,6 +51,7 @@ private:
     void onCustomItemUsed(CustomItemUse use);
 
     void killCharacter(uint8_t id);
+    void clearDeadCharacters();
     void reviveCharacter(uint8_t id);
     void loadPermadeathState();
     void savePermadeathState();
@@ -61,6 +69,7 @@ private:
 
     std::vector<PermadeathExemption> exemptions;
     Flags<uint16_t> deadCharacters;
+    std::atomic<uint16_t> publishedDeadCharacters = 0;
     uint8_t cloudDeathCount = 0;
     std::set<uint8_t> justDiedCharacters;
 

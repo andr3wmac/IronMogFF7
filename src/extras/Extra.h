@@ -30,6 +30,11 @@ public:
         game = gameManager;
     }
 
+    GameManager* getManager() const
+    {
+        return game;
+    }
+
 protected:
     GameManager* game = nullptr;
 

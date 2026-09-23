@@ -9,8 +9,12 @@
 #include "core/game/modules/WorldModule.h"
 #include "core/utilities/Event.h"
 #include "core/utilities/Flags.h"
-#include <string>
 #include <array>
+#include <atomic>
+#include <functional>
+#include <mutex>
+#include <string>
+#include <vector>
 
 class Extra;
 class Rule;
@@ -33,6 +37,13 @@ public:
     bool connectToEmulator(std::string processName, uintptr_t memoryAddress);
     bool isPaused() { return emulatorPaused; }
 
+    // True once the emulator connection has succeeded. Memory access is a no-op before then.
+    bool isConnected() const { return connected.load(std::memory_order_acquire); }
+
+    // Queues an action to run on the game manager thread at the start of the next update. Use this from the
+    // GUI thread for anything that mutates game, rule, or extra state. Safe to call from any thread.
+    void queueAction(std::function<void()> action);
+
     bool isRuleEnabled(std::string ruleName);
     Rule* getRule(std::string ruleName);
     bool isExtraEnabled(std::string extraName);
@@ -46,7 +57,7 @@ public:
     GameState getState();
     bool update();
 
-    float getDifficultyScale() { return difficultyScale; }
+    float getDifficultyScale() { return difficultyScale.load(); }
     void setDifficultyScale(float newScale);
 
     // Returns how long the last update() took in ms.
@@ -136,24 +147,33 @@ public:
     T read(uintptr_t offset)
     {
         T value{};
-        emulator->read(offset, &value, sizeof(value));
+        if (isConnected())
+        {
+            emulator->read(offset, &value, sizeof(value));
+        }
         return value;
     }
 
     bool read(uintptr_t offset, uintptr_t size, uint8_t* dataOut)
     {
-        return emulator->read(offset, dataOut, size);
+        return isConnected() && emulator->read(offset, dataOut, size);
     }
 
     template <typename T>
     void write(uintptr_t offset, T value)
     {
-        emulator->write(offset, &value, sizeof(value));
+        if (isConnected())
+        {
+            emulator->write(offset, &value, sizeof(value));
+        }
     }
 
     void write(uintptr_t offset, uint8_t* dataIn, uintptr_t size)
     {
-        emulator->write(offset, dataIn, size);
+        if (isConnected())
+        {
+            emulator->write(offset, dataIn, size);
+        }
     }
 
     std::string readString(uintptr_t offset, uint32_t length);
@@ -163,8 +183,10 @@ private:
     // Rebuilds the custom item registry, fires onStart, then injects registered items into the kernel.
     void onGameStart();
     void injectCustomItems();
+    void runQueuedActions();
 
     Emulator* emulator;
+    std::atomic<bool> connected = false;
     GameVersion gameVersion = GameVersion::PlayStationUS;
     uint8_t gameDisc = 1;
 
@@ -179,11 +201,15 @@ private:
     int framesSinceReload = 0;
     bool justEnteredGame = false;
     bool waitingForGameOver = false;
-    float difficultyScale = 1.0f;
+    std::atomic<float> difficultyScale = 1.0f;
 
     // A set of pointers to the last line of field script executed within each group.
     uint16_t fieldScriptExecutionTable[64];
 
     // Custom item registry, rebuilt each game start. Menu-use detection lives in MenuModule.
     std::vector<CustomItem> customItems;
+
+    // Actions queued from other threads, drained by update().
+    std::mutex queuedActionsMutex;
+    std::vector<std::function<void()>> queuedActions;
 };
