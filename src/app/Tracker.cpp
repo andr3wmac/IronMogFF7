@@ -1,9 +1,9 @@
 #include "Tracker.h"
 #include "LiveModFF7Core/game/MemoryOffsets.h"
 #include "LiveModFF7Core/utilities/Utilities.h"
-#include "app/RuleManager.h"
-#include "extras/RandomizeMusic.h"
-#include "rules/Permadeath.h"
+#include "app/ModManager.h"
+#include "mods/RandomizeMusic.h"
+#include "mods/Permadeath.h"
 
 Tracker::Tracker()
 {
@@ -31,7 +31,7 @@ void Tracker::reset()
 
     inGameTime = "Not connected.";
     currentSong = "";
-    rulesSummary = "";
+    modsSummary = "";
 }
 
 void Tracker::update()
@@ -43,7 +43,7 @@ void Tracker::update()
 
     // Permadeath Character Portraits
     {
-        Permadeath* permadeathRule = (Permadeath*)RuleManager::getRule("Permadeath");
+        Permadeath* permadeathMod = (Permadeath*)ModManager::getMod("Permadeath");
         uint16_t phsVisMask = game->read<uint16_t>(GameOffsets::PHSVisibilityMask);
 
         for (uint8_t i = 0; i < 9; ++i)
@@ -51,9 +51,9 @@ void Tracker::update()
             characters[i].isActive = Utilities::isBitSet(phsVisMask, i);
             characters[i].isPermadead = false;
 
-            if (permadeathRule != nullptr)
+            if (permadeathMod != nullptr)
             {
-                if (permadeathRule->isCharacterDead(i))
+                if (permadeathMod->isCharacterDead(i))
                 {
                     characters[i].isPermadead = true;
                 }
@@ -66,9 +66,8 @@ void Tracker::update()
     inGameTime = Utilities::formatTime(igt);
 
     // Current Song
-    if (RuleManager::isExtraEnabled("Randomize Music"))
+    if (RandomizeMusic* musicRando = (RandomizeMusic*)ModManager::getMod("Randomize Music"))
     {
-        RandomizeMusic* musicRando = (RandomizeMusic*)RuleManager::getExtra("Randomize Music");
         if (musicRando->isPlaying())
         {
             currentSong = musicRando->getCurrentlyPlaying();
@@ -79,8 +78,8 @@ void Tracker::update()
         }
     }
 
-    // Rules summary
-    rulesSummary = RuleManager::getSettingsSummary();
+    // Mod summary
+    modsSummary = ModManager::getSettingsSummary();
 }
 
 bool Tracker::showAttempts()
@@ -93,7 +92,7 @@ bool Tracker::showAttempts()
         }
 
         // If No Saving is on then we show attempts.
-        return RuleManager::isRuleEnabled("No Saving");
+        return ModManager::isModEnabled("No Saving");
     }
     else if (attemptsDisplayMode == AttemptsDisplayMode::Attempts)
     {
@@ -113,7 +112,7 @@ bool Tracker::showGameOvers()
         }
 
         // If No Saving is on then we show attempts.
-        return !RuleManager::isRuleEnabled("No Saving");
+        return !ModManager::isModEnabled("No Saving");
     }
     else if (attemptsDisplayMode == AttemptsDisplayMode::GameOvers)
     {

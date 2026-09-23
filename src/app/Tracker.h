@@ -30,7 +30,7 @@ public:
     bool showSeed = true;
     bool showTime = true;
     bool showSong = true;
-    bool showRuleSummary = true;
+    bool showModSummary = true;
     AttemptsDisplayMode attemptsDisplayMode = AttemptsDisplayMode::Automatic;
 
     // Display elements
@@ -39,7 +39,7 @@ public:
     std::string currentSong = "";
     int attemptCounter = 0;
     int gameOverCounter = 0;
-    std::string rulesSummary = "";
+    std::string modsSummary = "";
 
 private:
     void onNewGame();

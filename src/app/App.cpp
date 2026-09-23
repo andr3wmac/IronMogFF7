@@ -1,7 +1,6 @@
 #include "App.h"
 #include "app/audio/AudioManager.h"
-#include "app/RuleManager.h"
-#include "extras/Extra.h"
+#include "app/ModManager.h"
 #include "LiveModFF7Core/game/MemoryOffsets.h"
 #include "LiveModFF7Core/utilities/Logging.h"
 #include "LiveModFF7Core/tools/MemoryMonitor.h"
@@ -10,8 +9,8 @@
 #include "LiveModFF7Core/utilities/Platform.h"
 #include "LiveModFF7Core/tools/ScriptUtilities.h"
 #include "LiveModFF7Core/utilities/Utilities.h"
-#include "rules/Restrictions.h"
-#include "rules/Rule.h"
+#include "mods/Restrictions.h"
+#include "mods/Mod.h"
 #include "utilities/ConfigFile.h"
 #include "utilities/Randomizer.h"
 
@@ -210,7 +209,7 @@ void App::runGameManager()
         return;
     }
 
-    // Reset any global restrictions as we might be using a different set of rules on this run.
+    // Reset global restrictions before applying the selected mods.
     Restrictions::reset();
 
     // Teach the Randomizer utility how to recognize a banned id. The utility has no concept of
@@ -221,12 +220,12 @@ void App::runGameManager()
     tracker.setup(game);
     game->setup(selectedGameVersion, Utilities::hexStringToSeed(seedValue));
 
-    // Set up the rules/extras after the engine so the seed is ready and their event
+    // Set up the mods after the engine so the seed is ready and their event
     // listeners are bound before the ban-enforcement listeners below.
-    RuleManager::setup(game);
+    ModManager::setup(game);
 
     // Enforce item/materia bans by deleting anything banned that a randomizer (or
-    // nothing) left in place. Bound after the rules so these listeners run last
+    // nothing) left in place. Bound after the mods so these listeners run last
     // on each event, ensuring we only remove what wasn't already replaced.
     game->onBattleEnter.addListener(this, "Restrictions::enforceBattleBans", [this]() { Restrictions::enforceBattleBans(game); });
     game->onBattleTransition.addListener(this, "Restrictions::enforceBattleBans", [this](uint16_t) { Restrictions::enforceBattleBans(game); });
@@ -318,19 +317,11 @@ void App::loadSettings(const std::string& filePath)
         std::string seedStr = cfg.get<std::string>("seed", seedValue);
         snprintf(seedValue, sizeof(seedValue), "%s", seedStr.c_str());
 
-        for (auto& rule : Rule::getList())
+        for (auto& mod : Mod::getList())
         {
-            cfg.keyPrefix = Utilities::sanitizeName(rule->name) + ".";
-            rule->loadSettings(cfg);
-            rule->enabled = cfg.get<bool>("enabled", rule->enabled);
-            cfg.keyPrefix = "";
-
-        }
-        for (auto& extra : Extra::getList())
-        {
-            cfg.keyPrefix = Utilities::sanitizeName(extra->name) + ".";
-            extra->loadSettings(cfg);
-            extra->enabled = cfg.get<bool>("enabled", extra->enabled);
+            cfg.keyPrefix = Utilities::sanitizeName(mod->name) + ".";
+            mod->loadSettings(cfg);
+            mod->enabled = cfg.get<bool>("enabled", mod->enabled);
             cfg.keyPrefix = "";
         }
     }
@@ -346,20 +337,12 @@ void App::saveSettings(const std::string& filePath, bool saveSeed)
         cfg.set<std::string>("seed", seedStr);
     }
 
-    for (auto& rule : Rule::getList())
+    for (auto& mod : Mod::getList())
     {
-        std::string name = Utilities::sanitizeName(rule->name);
-        cfg.set<bool>(name + ".enabled", rule->enabled);
+        std::string name = Utilities::sanitizeName(mod->name);
+        cfg.set<bool>(name + ".enabled", mod->enabled);
         cfg.keyPrefix = name + ".";
-        rule->saveSettings(cfg);
-        cfg.keyPrefix = "";
-    }
-    for (auto& extra : Extra::getList())
-    {
-        std::string name = Utilities::sanitizeName(extra->name);
-        cfg.set<bool>(name + ".enabled", extra->enabled);
-        cfg.keyPrefix = name + ".";
-        extra->saveSettings(cfg);
+        mod->saveSettings(cfg);
         cfg.keyPrefix = "";
     }
 
@@ -434,7 +417,8 @@ void App::guiSettingsRead(const char* section, const char* line)
         if (readBool("ShowSeed", &tracker.showSeed)) return;
         if (readBool("ShowTime", &tracker.showTime)) return;
         if (readBool("ShowSong", &tracker.showSong)) return;
-        if (readBool("ShowRuleSummary", &tracker.showRuleSummary)) return;
+        if (readBool("ShowModSummary", &tracker.showModSummary)) return;
+        if (readBool("ShowRuleSummary", &tracker.showModSummary)) return;
 
         int attemptsDisplayMode = 0;
         if (readInt("AttemptsDisplayMode", &attemptsDisplayMode))
@@ -454,7 +438,7 @@ void App::guiSettingsWrite(ImGuiTextBuffer* buf)
     buf->appendf("ShowSeed=%d\n", tracker.showSeed ? 1 : 0);
     buf->appendf("ShowTime=%d\n", tracker.showTime ? 1 : 0);
     buf->appendf("ShowSong=%d\n", tracker.showSong ? 1 : 0);
-    buf->appendf("ShowRuleSummary=%d\n", tracker.showRuleSummary ? 1 : 0);
+    buf->appendf("ShowModSummary=%d\n", tracker.showModSummary ? 1 : 0);
     buf->appendf("AttemptsDisplayMode=%d\n", (int)tracker.attemptsDisplayMode);
     buf->appendf("Attempts=%d\n", tracker.attemptCounter);
     buf->appendf("GameOvers=%d\n", tracker.gameOverCounter);

@@ -1,0 +1,32 @@
+#pragma once
+#include "Mod.h"
+#include <cstdint>
+#include <random>
+#include <set>
+
+class RandomizeWorldMap : public Mod
+{
+public:
+    void setup() override;
+    bool hasDebugGUI() override { return true; }
+    void onDebugGUI() override;
+    std::vector<std::string> describe(ModDescriptionType descType) override;
+
+private:
+    void onStart();
+    void onFrame(uint32_t frameNumber);
+    void onWorldMapEnter();
+    void onFieldChanged(uint16_t fieldID);
+    void onModuleChanged(uint8_t newModule);
+    void onUpdate();
+
+    uint16_t getRandomEntrance(uint16_t entranceIndex);
+
+    int lastClosestIndex = -1;
+    uint16_t lastGameMoment = 0;
+    uint32_t lastLoggedSeed = 0;
+    bool enteringWorld = false;
+
+    std::vector<std::set<uint16_t>> entranceGroups;
+    std::unordered_map<int, int> randomizedEntrances;
+};

@@ -1,0 +1,47 @@
+#pragma once
+#include "mods/Mod.h"
+#include "LiveModFF7Core/tools/ModelEditor.h"
+#include "LiveModFF7Core/utilities/Utilities.h"
+#include <cstdint>
+#include <unordered_map>
+
+class RandomizeColors : public Mod
+{
+public:
+    void setup() override;
+    bool hasDebugGUI() override { return true; }
+    void onDebugGUI() override;
+    bool hasSettings() override { return true; }
+    bool onSettingsGUI() override;
+    std::vector<std::string> describe(ModDescriptionType descType) override;
+
+private:
+    void onStart();
+    void onFieldChanged(uint16_t fieldID);
+    void onBattleEnter();
+    void onWorldMapEnter();
+    void onModuleChanged(uint8_t gameModule);
+    void onFrame(uint32_t frameNumber);
+    void applyColors();
+
+    ModelEditor modelEditor;
+    std::unordered_map<std::string, std::vector<Utilities::Color>> randomModelColors;
+    int rerollOffset = 0;
+
+    bool waitingForBattle = false;
+    bool appliedHackFix = false;
+
+    uint8_t lastMotorbikeLoadValue = 0;
+    bool waitingForMotorbike = false;
+
+    uint8_t lastChocoboRacingValue = 0;
+    bool waitingForChocoboRace = false;
+
+    uint16_t lastSnowboardLoadValue = 0;
+    bool waitingForSnowboarding = false;
+
+    // Debug variables
+    char debugStartNum[20];
+    char debugCount[20];
+    std::vector<uintptr_t> debugAddresses;
+};

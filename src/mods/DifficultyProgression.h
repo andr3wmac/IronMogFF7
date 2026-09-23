@@ -1,0 +1,39 @@
+#pragma once
+#include "Mod.h"
+#include <cstdint>
+
+class DifficultyProgression : public Mod
+{
+public:
+    enum class ProgressionSource : uint8_t
+    {
+        GameProgress = 0,
+        HighestLevel = 1,
+        InGameTime = 2
+    };
+
+    void setup() override;
+    bool hasSettings() override { return true; }
+    bool onSettingsGUI() override;
+    void loadSettings(const ConfigFile& cfg) override;
+    void saveSettings(ConfigFile& cfg) override;
+    std::vector<std::string> describe(ModDescriptionType descType) override;
+
+private:
+    void onStart();
+    void onGameMomentChanged(uint16_t gameMoment);
+    void onBattleExit();
+    void onFrame(int frameNumber);
+
+    void updateDifficulty();
+
+    ProgressionSource progressionSource = ProgressionSource::GameProgress;
+    float progressionStart = 0.0f;
+    int progressionEnd = 0;
+    int progressionEndLevel = 30;
+    uint32_t progressionEndTime = 36000; // 10 hours.
+
+    int lastMaxLevel = 0;
+    uint32_t lastUpdateIGT = 0;
+    uint32_t lastLogIGT = 0;
+};

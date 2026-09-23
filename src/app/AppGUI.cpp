@@ -7,8 +7,7 @@
 #include "LiveModFF7Core/utilities/Logging.h"
 #include "LiveModFF7Core/utilities/Platform.h"
 #include "LiveModFF7Core/utilities/Utilities.h"
-#include "extras/Extra.h"
-#include "rules/Rule.h"
+#include "mods/Mod.h"
 
 static const char* gameVersions[]{ "PlayStation | US (Original)", "PlayStation | US (CSR v0.13.0)"};
 static const char* emulators[]{ "DuckStation", "BizHawk", "Custom" };
@@ -214,7 +213,7 @@ void App::drawSetupPanel()
 
     ImGui::Spacing();
 
-    // Left column: list of categories, rules and extras.
+    // Left column: general settings and mods.
     ImGui::BeginChild("##SetupList", ImVec2(DPI(300.0f), 0), ImGuiChildFlags_Borders);
     {
         if (ImGui::Selectable(ICON_FA_GAMEPAD "  General", selectedSetupPage == SetupPage::General))
@@ -223,32 +222,16 @@ void App::drawSetupPanel()
         }
         ImGui::Spacing();
 
-        ImGui::SeparatorText("Rules");
-        std::vector<Rule*>& rules = Rule::getList();
-        for (int i = 0; i < (int)rules.size(); ++i)
+        ImGui::SeparatorText("Mods");
+        std::vector<Mod*>& mods = Mod::getList();
+        for (int i = 0; i < (int)mods.size(); ++i)
         {
             bool clicked = false;
-            bool selected = selectedSetupPage == SetupPage::Rule && selectedSetupIndex == i;
-            changed |= drawSetupListEntry(rules[i], selected, lockSettings, clicked);
+            bool selected = selectedSetupPage == SetupPage::Mod && selectedSetupIndex == i;
+            changed |= drawSetupListEntry(mods[i], selected, lockSettings, clicked);
             if (clicked)
             {
-                selectedSetupPage = SetupPage::Rule;
-                selectedSetupIndex = i;
-            }
-        }
-        ImGui::Spacing();
-
-        // Note: extras can be changed during gameplay
-        ImGui::SeparatorText("Extras");
-        std::vector<Extra*>& extras = Extra::getList();
-        for (int i = 0; i < (int)extras.size(); ++i)
-        {
-            bool clicked = false;
-            bool selected = selectedSetupPage == SetupPage::Extra && selectedSetupIndex == i;
-            changed |= drawSetupListEntry(extras[i], selected, false, clicked);
-            if (clicked)
-            {
-                selectedSetupPage = SetupPage::Extra;
+                selectedSetupPage = SetupPage::Mod;
                 selectedSetupIndex = i;
             }
         }
@@ -260,13 +243,9 @@ void App::drawSetupPanel()
     // Right column: details for the selected entry.
     ImGui::BeginChild("##SetupDetails", ImVec2(0, 0), ImGuiChildFlags_Borders);
     {
-        if (selectedSetupPage == SetupPage::Rule && selectedSetupIndex < (int)Rule::getList().size())
+        if (selectedSetupPage == SetupPage::Mod && selectedSetupIndex < (int)Mod::getList().size())
         {
-            changed |= drawSetupDetails(Rule::getList()[selectedSetupIndex], lockSettings);
-        }
-        else if (selectedSetupPage == SetupPage::Extra && selectedSetupIndex < (int)Extra::getList().size())
-        {
-            changed |= drawSetupDetails(Extra::getList()[selectedSetupIndex], false);
+            changed |= drawSetupDetails(Mod::getList()[selectedSetupIndex], lockSettings);
         }
         else
         {
@@ -511,11 +490,11 @@ void App::drawTrackerPanel()
             ImGui::Text(gameOversText.c_str());
         }
         
-        // Rule summary
-        if (tracker.showRuleSummary)
+        // Mod summary
+        if (tracker.showModSummary)
         {
             ImGui::Spacing();
-            ImGui::TextWrapped(tracker.rulesSummary.c_str());
+            ImGui::TextWrapped(tracker.modsSummary.c_str());
         }
 
         ImGui::Unindent(DPI(10.0f));
@@ -534,7 +513,7 @@ void App::drawAppSettingsPanel()
         ImGui::Checkbox("Show Seed", &tracker.showSeed);
         ImGui::Checkbox("Show Time", &tracker.showTime);
         ImGui::Checkbox("Show Song", &tracker.showSong);
-        ImGui::Checkbox("Show Rule Summary", &tracker.showRuleSummary);
+        ImGui::Checkbox("Show Mod Summary", &tracker.showModSummary);
 
         ImGui::Spacing();
         ImGui::Text("Attempt Counter Mode:");
@@ -935,32 +914,17 @@ void App::drawDebugPanel()
         ImGui::Unindent(25.0f);
     }
 
-    for (auto& rule : Rule::getList())
+    for (auto& mod : Mod::getList())
     {
-        if (!rule->hasDebugGUI() || !rule->enabled)
+        if (!mod->hasDebugGUI() || !mod->enabled)
         {
             continue;
         }
 
-        if (ImGui::CollapsingHeader(rule->name.c_str()))
+        if (ImGui::CollapsingHeader(mod->name.c_str()))
         {
             ImGui::Indent(25.0f);
-            rule->onDebugGUI();
-            ImGui::Unindent(25.0f);
-        }
-    }
-
-    for (auto& extra : Extra::getList())
-    {
-        if (!extra->hasDebugGUI() || !extra->enabled)
-        {
-            continue;
-        }
-
-        if (ImGui::CollapsingHeader(extra->name.c_str()))
-        {
-            ImGui::Indent(25.0f);
-            extra->onDebugGUI();
+            mod->onDebugGUI();
             ImGui::Unindent(25.0f);
         }
     }

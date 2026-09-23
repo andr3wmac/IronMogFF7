@@ -32,8 +32,7 @@ public:
     enum class SetupPage : uint8_t
     {
         General = 0,
-        Rule    = 1,
-        Extra   = 2
+        Mod     = 1
     };
 
     enum class ConnectionState : uint8_t

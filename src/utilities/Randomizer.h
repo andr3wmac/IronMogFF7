@@ -8,14 +8,14 @@
 #include <set>
 #include <vector>
 
-// Random item/materia selection helpers shared by randomizer rules and extras. This lives in
-// utilities (rather than rules) so both rules and extras can use it. It draws from the engine's
+// Random item/materia selection helpers shared by mods. This lives in utilities so mods can use
+// it without adding application behavior to the engine. It draws from the engine's
 // GameData tables, but the engine itself has no concept of randomization or bans.
 namespace Randomizer
 {
     // Host-supplied ban predicates. When set, the excludeBanned argument below consults these to
     // drop banned ids from the candidate pool. They are injected (rather than calling a concrete
-    // ban registry directly) so this utility stays free of any rules/ dependency. Return true to
+    // ban registry directly) so this utility stays free of any mods/ dependency. Return true to
     // exclude the given id.
     void setItemBanFilter(const std::function<bool(uint16_t)>& filter);
     void setMateriaBanFilter(const std::function<bool(uint16_t)>& filter);
