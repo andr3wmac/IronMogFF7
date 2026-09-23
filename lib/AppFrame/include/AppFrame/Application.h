@@ -11,6 +11,8 @@ namespace AppFrame
     {
         int windowWidth = 800;
         int windowHeight = 600;
+        int minWindowWidth = 0;     // 0 = no minimum
+        int minWindowHeight = 0;    // 0 = no minimum
         std::string windowTitle = "AppFrame";
         std::string iniFilename = "settings/app.ini";
         std::string windowIconPath;

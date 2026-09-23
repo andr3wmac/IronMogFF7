@@ -26,7 +26,6 @@ public:
     bool showGameOvers();
 
     // Settings
-    bool showLogo = true;
     bool showCharacters = true;
     bool showSeed = true;
     bool showTime = true;

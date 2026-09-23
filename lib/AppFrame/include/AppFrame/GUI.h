@@ -59,6 +59,7 @@ namespace AppFrame
         void endFrame();
 
         bool wasWindowClosed();
+        void requestClose();
 
         void pushFont(const std::string& fontName);
         void popFont();

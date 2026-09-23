@@ -26,8 +26,11 @@ void App::draw()
     showDebugTab = true;
 #endif
 
-    ImGui::Begin("IronMogFF7", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize);
+    ImGui::Begin("LiveModFF7", nullptr, ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoBringToFrontOnFocus | ImGuiWindowFlags_MenuBar);
     {
+        drawMenuBar();
+        drawHeader();
+
         if (ImGui::BeginTabBar("##tabBar"))
         {
             if (ImGui::BeginTabItem("Setup"))
@@ -47,7 +50,7 @@ void App::draw()
             }
             if (showDebugTab)
             {
-                if (ImGui::BeginTabItem("Debug"))
+                if (ImGui::BeginTabItem("Debug", &showDebugTab))
                 {
                     drawDebugPanel();
                     ImGui::EndTabItem();
@@ -55,14 +58,135 @@ void App::draw()
             }
             ImGui::EndTabBar();
         }
+
+        drawAboutPopup();
     }
     ImGui::End();
 }
 
+void App::drawMenuBar()
+{
+    if (!ImGui::BeginMenuBar())
+    {
+        return;
+    }
+
+    if (ImGui::BeginMenu("File"))
+    {
+        // Loading settings is blocked while in game, same as on the Setup panel.
+        bool lockSettings = connectionState == ConnectionState::Connected && game->getState() == GameManager::GameState::InGame;
+
+        if (ImGui::MenuItem(ICON_FA_FOLDER_OPEN "  Open Settings...", nullptr, false, !lockSettings))
+        {
+            openSettingsFile();
+        }
+        if (ImGui::MenuItem(ICON_FA_SAVE "  Save Settings As..."))
+        {
+            saveSettingsFileAs();
+        }
+        ImGui::Separator();
+        if (ImGui::MenuItem("Exit"))
+        {
+            gui.requestClose();
+        }
+        ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Tools"))
+    {
+        ImGui::MenuItem("Debug Panel", "Ctrl+D", &showDebugTab);
+        ImGui::EndMenu();
+    }
+
+    if (ImGui::BeginMenu("Help"))
+    {
+        if (ImGui::MenuItem("About " APP_NAME))
+        {
+            openAboutPopup = true;
+        }
+        ImGui::EndMenu();
+    }
+
+    ImGui::EndMenuBar();
+}
+
+void App::drawAboutPopup()
+{
+    // OpenPopup must be called from the same ID stack as BeginPopupModal, not from inside the menu.
+    if (openAboutPopup)
+    {
+        ImGui::OpenPopup("About " APP_NAME);
+        openAboutPopup = false;
+    }
+
+    ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
+    if (ImGui::BeginPopupModal("About " APP_NAME, nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove))
+    {
+        GUI::drawImage(logo, DPI(logo.width / 2), DPI(logo.height / 2));
+        ImGui::Spacing();
+        ImGui::Text(APP_NAME " " APP_VERSION_STRING);
+        ImGui::Text("Live modding for Final Fantasy VII on PlayStation.");
+        ImGui::Spacing();
+        ImGui::TextLinkOpenURL("github.com/andr3wmac/IronMogFF7", "https://github.com/andr3wmac/IronMogFF7");
+        ImGui::Spacing();
+
+        if (ImGui::Button("Close", ImVec2(DPI(120.0f), 0.0f)) || ImGui::IsKeyPressed(ImGuiKey_Escape))
+        {
+            ImGui::CloseCurrentPopup();
+        }
+        ImGui::EndPopup();
+    }
+}
+
+// Draws one row of the setup list: an enable checkbox followed by a selectable name.
+// Returns true if the enabled state was changed.
+template<typename T>
+static bool drawSetupListEntry(T* item, bool selected, bool lockEnable, bool& clicked)
+{
+    bool changed = false;
+    ImGui::PushID(item);
+
+    ImGui::BeginDisabled(lockEnable);
+    changed = ImGui::Checkbox("##Enabled", &item->enabled);
+    ImGui::EndDisabled();
+
+    ImGui::SameLine();
+    clicked = ImGui::Selectable(item->name.c_str(), selected);
+
+    ImGui::PopID();
+    return changed;
+}
+
+// Draws the details page for a rule or extra: name, enable toggle, full description and its settings.
+// Returns true if anything was changed.
+template<typename T>
+static bool drawSetupDetails(T* item, bool lockSettings)
+{
+    bool changed = false;
+
+    ImGui::SeparatorText(item->name.c_str());
+
+    ImGui::BeginDisabled(lockSettings);
+    changed |= ImGui::Checkbox("Enabled", &item->enabled);
+    ImGui::EndDisabled();
+
+    ImGui::Spacing();
+    ImGui::TextWrapped("%s", item->description.c_str());
+    ImGui::Spacing();
+
+    if (item->hasSettings())
+    {
+        ImGui::SeparatorText("Settings");
+        ImGui::BeginDisabled(lockSettings);
+        changed |= item->onSettingsGUI();
+        ImGui::EndDisabled();
+    }
+
+    return changed;
+}
+
 void App::drawSetupPanel()
 {
-    GUI::drawImage(logo, DPI(logo.width / 2), DPI(logo.height / 2));
-
     // We lock settings if we're both connected and in game.
     bool lockSettings = connectionState > ConnectionState::NotConnected && connectionState < ConnectionState::Error;
     if (lockSettings && connectionState == ConnectionState::Connected)
@@ -79,214 +203,222 @@ void App::drawSetupPanel()
             {
                 saveSettings("settings/Last Settings.cfg", true);
             }
-            
+
             LOG("Detected game start, reconnecting GameManager..");
             reconnect();
         }
         previousState = state;
     }
 
+    bool changed = false;
+
     ImGui::Spacing();
-    ImGui::BeginChild("##ScrollBox", ImVec2(0, (float)(gui.windowHeight - DPI(235))));
-    ImGui::BeginDisabled(lockSettings);
+
+    // Left column: list of categories, rules and extras.
+    ImGui::BeginChild("##SetupList", ImVec2(DPI(300.0f), 0), ImGuiChildFlags_Borders);
     {
-        ImGui::SeparatorText("Game");
+        if (ImGui::Selectable(ICON_FA_GAMEPAD "  General", selectedSetupPage == SetupPage::General))
         {
-            // Game Version
-            ImGui::Text("Version:");
-            ImGui::SameLine(DPI(70.0f));
-            ImGui::SetNextItemWidth(DPI(393.0f));
-            int versionIndex = (int)selectedGameVersion;
-            if (ImGui::Combo("##VersionList", &versionIndex, gameVersions, IM_ARRAYSIZE(gameVersions)))
-            {
-                selectedGameVersion = (GameVersion)versionIndex;
-            }
-
-            // Emulator Type
-            ImGui::Text("Emulator:");
-            ImGui::SameLine(DPI(70.0f));
-            ImGui::SetNextItemWidth(DPI(393.0f));
-            int emulatorIndex = (int)selectedEmulatorType;
-            if (ImGui::Combo("##EmulatorList", &emulatorIndex, emulators, IM_ARRAYSIZE(emulators)))
-            {
-                selectedEmulatorType = (EmulatorType)emulatorIndex;
-
-                // Update list of processes if Custom is selected.
-                if (selectedEmulatorType == EmulatorType::Custom)
-                {
-                    runningProcesses = Platform::getRunningProcesses();
-                }
-            }
-
-            if (selectedEmulatorType == EmulatorType::Custom)
-            {
-                ImGui::Text("Process:");
-                ImGui::SameLine();
-                ImGui::Combo("##ProcessList", &selectedProcessIdx, runningProcesses.data(), (int)runningProcesses.size());
-                ImGui::Text("Memory Offset:");
-                ImGui::SameLine();
-                ImGui::InputText("##MemoryOffset", processMemoryOffset, 20);
-            }
-        }
-        ImGui::Spacing();
-
-        ImGui::SeparatorText("Settings");
-        {
-            ImGui::SetNextItemWidth(DPI(410.0f));
-            if (ImGui::Combo("##SettingsList", &selectedSettingsIdx, availableSettings.data(), (int)availableSettings.size()))
-            {
-                loadSettings(APP_SETTINGS_FOLDER"/" + availableSettings[selectedSettingsIdx] + ".cfg");
-            }
-
-            ImGui::SameLine();
-            ImGui::PushID("OPEN_SETTINGS_FILE");
-            if (ImGui::Button(ICON_FA_FOLDER_OPEN))
-            {
-                std::string openPath = gui.openFileDialog();
-                if (openPath != "")
-                {
-                    loadSettings(openPath);
-                    selectedSettingsIdx = 0;
-                }
-            }
-            ImGui::PopID();
-
-            ImGui::SameLine();
-            ImGui::PushID("SAVE_SETTINGS_FILE");
-            if (ImGui::Button(ICON_FA_SAVE))
-            {
-                std::string savePath = gui.saveFileDialog();
-                if (savePath != "")
-                {
-                    saveSettings(savePath);
-
-                    if (Utilities::isFileInFolder(APP_SETTINGS_FOLDER, savePath))
-                    {
-                        std::string saveFileName = fs::path(savePath).stem().string();
-                        scanSettings(APP_SETTINGS_FOLDER, saveFileName);
-                    }
-                }
-            }
-            ImGui::PopID();
-        }
-        ImGui::Spacing();
-
-        ImGui::SeparatorText("Seed");
-        {
-            ImGui::SetNextItemWidth(DPI(378.0f));
-            ImGui::InputText("##Seed", seedValue, 9);
-            ImGui::SameLine();
-            if (ImGui::Button("Regenerate"))
-            {
-                generateSeed();
-            }
+            selectedSetupPage = SetupPage::General;
         }
         ImGui::Spacing();
 
         ImGui::SeparatorText("Rules");
+        std::vector<Rule*>& rules = Rule::getList();
+        for (int i = 0; i < (int)rules.size(); ++i)
         {
-            bool changed = false;
-            int ruleIndex = 0;
-            for (auto& rule : Rule::getList())
+            bool clicked = false;
+            bool selected = selectedSetupPage == SetupPage::Rule && selectedSetupIndex == i;
+            changed |= drawSetupListEntry(rules[i], selected, lockSettings, clicked);
+            if (clicked)
             {
-                changed |= ImGui::Checkbox(rule->name.c_str(), &rule->enabled);
-                GUI::wrappedTooltip(rule->description.c_str());
-
-                if (rule->hasSettings())
-                {
-                    ImGui::SameLine();
-
-                    std::string ruleID = "RuleSettings" + std::to_string(ruleIndex);
-                    ImGui::PushID(ruleID.c_str());
-                    if (ImGui::Button(ICON_FA_COG))
-                    {
-                        rule->settingsVisible = !rule->settingsVisible;
-                    }
-                    ImGui::PopID();
-                    ruleIndex++;
-
-                    if (rule->settingsVisible)
-                    {
-                        ImGui::Indent(DPI(25.0f));
-                        changed |= rule->onSettingsGUI();
-                        ImGui::Unindent(DPI(25.0f));
-                    }
-                }
-            }
-
-            if (changed)
-            {
-                // Reset to custom.
-                selectedSettingsIdx = 0;
+                selectedSetupPage = SetupPage::Rule;
+                selectedSetupIndex = i;
             }
         }
         ImGui::Spacing();
-    }
-    ImGui::EndDisabled();
 
-    // Note: extras can be changed during gameplay
-    ImGui::SeparatorText("Extras");
-    {
-        bool changed = false;
-        int extraIndex = 0;
-        for (auto& extra : Extra::getList())
+        // Note: extras can be changed during gameplay
+        ImGui::SeparatorText("Extras");
+        std::vector<Extra*>& extras = Extra::getList();
+        for (int i = 0; i < (int)extras.size(); ++i)
         {
-            changed |= ImGui::Checkbox(extra->name.c_str(), &extra->enabled);
-            GUI::wrappedTooltip(extra->description.c_str());
-
-            if (extra->hasSettings())
+            bool clicked = false;
+            bool selected = selectedSetupPage == SetupPage::Extra && selectedSetupIndex == i;
+            changed |= drawSetupListEntry(extras[i], selected, false, clicked);
+            if (clicked)
             {
-                ImGui::SameLine();
+                selectedSetupPage = SetupPage::Extra;
+                selectedSetupIndex = i;
+            }
+        }
+    }
+    ImGui::EndChild();
 
-                std::string extraID = "ExtraSettings" + std::to_string(extraIndex);
-                ImGui::PushID(extraID.c_str());
-                if (ImGui::Button(ICON_FA_COG))
-                {
-                    extra->settingsVisible = !extra->settingsVisible;
-                }
-                ImGui::PopID();
-                extraIndex++;
+    ImGui::SameLine();
 
-                if (extra->settingsVisible)
-                {
-                    ImGui::Indent(DPI(25.0f));
-                    changed |= extra->onSettingsGUI();
-                    ImGui::Unindent(DPI(25.0f));
-                }
+    // Right column: details for the selected entry.
+    ImGui::BeginChild("##SetupDetails", ImVec2(0, 0), ImGuiChildFlags_Borders);
+    {
+        if (selectedSetupPage == SetupPage::Rule && selectedSetupIndex < (int)Rule::getList().size())
+        {
+            changed |= drawSetupDetails(Rule::getList()[selectedSetupIndex], lockSettings);
+        }
+        else if (selectedSetupPage == SetupPage::Extra && selectedSetupIndex < (int)Extra::getList().size())
+        {
+            changed |= drawSetupDetails(Extra::getList()[selectedSetupIndex], false);
+        }
+        else
+        {
+            drawSetupGeneral(lockSettings);
+        }
+    }
+    ImGui::EndChild();
+
+    if (changed)
+    {
+        // Reset to custom.
+        selectedSettingsIdx = 0;
+    }
+}
+
+void App::drawSetupGeneral(bool lockSettings)
+{
+    const ImGuiStyle& style = ImGui::GetStyle();
+    const float labelWidth = DPI(80.0f);
+    const float maxItemWidth = DPI(420.0f);
+
+    ImGui::BeginDisabled(lockSettings);
+
+    ImGui::SeparatorText("Game");
+    {
+        float itemWidth = std::min(ImGui::GetContentRegionAvail().x - labelWidth, maxItemWidth);
+
+        // Game Version
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Version:");
+        ImGui::SameLine(labelWidth);
+        ImGui::SetNextItemWidth(itemWidth);
+        int versionIndex = (int)selectedGameVersion;
+        if (ImGui::Combo("##VersionList", &versionIndex, gameVersions, IM_ARRAYSIZE(gameVersions)))
+        {
+            selectedGameVersion = (GameVersion)versionIndex;
+        }
+
+        // Emulator Type
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Emulator:");
+        ImGui::SameLine(labelWidth);
+        ImGui::SetNextItemWidth(itemWidth);
+        int emulatorIndex = (int)selectedEmulatorType;
+        if (ImGui::Combo("##EmulatorList", &emulatorIndex, emulators, IM_ARRAYSIZE(emulators)))
+        {
+            selectedEmulatorType = (EmulatorType)emulatorIndex;
+
+            // Update list of processes if Custom is selected.
+            if (selectedEmulatorType == EmulatorType::Custom)
+            {
+                runningProcesses = Platform::getRunningProcesses();
             }
         }
 
-        if (changed)
+        if (selectedEmulatorType == EmulatorType::Custom)
         {
-            // Reset to custom.
-            selectedSettingsIdx = 0;
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Process:");
+            ImGui::SameLine(labelWidth);
+            ImGui::SetNextItemWidth(itemWidth);
+            ImGui::Combo("##ProcessList", &selectedProcessIdx, runningProcesses.data(), (int)runningProcesses.size());
+
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Offset:");
+            ImGui::SetItemTooltip("Memory offset of the PS1 RAM within the emulator process.");
+            ImGui::SameLine(labelWidth);
+            ImGui::SetNextItemWidth(itemWidth);
+            ImGui::InputText("##MemoryOffset", processMemoryOffset, 20);
+        }
+    }
+    ImGui::Spacing();
+
+    ImGui::SeparatorText("Settings");
+    {
+        float buttonsWidth = ImGui::CalcTextSize(ICON_FA_FOLDER_OPEN).x + ImGui::CalcTextSize(ICON_FA_SAVE).x + (style.FramePadding.x * 4.0f) + (style.ItemSpacing.x * 2.0f);
+        ImGui::SetNextItemWidth(std::min(ImGui::GetContentRegionAvail().x - buttonsWidth, maxItemWidth + labelWidth - buttonsWidth));
+        if (ImGui::Combo("##SettingsList", &selectedSettingsIdx, availableSettings.data(), (int)availableSettings.size()))
+        {
+            loadSettings(APP_SETTINGS_FOLDER"/" + availableSettings[selectedSettingsIdx] + ".cfg");
+        }
+
+        ImGui::SameLine();
+        ImGui::PushID("OPEN_SETTINGS_FILE");
+        if (ImGui::Button(ICON_FA_FOLDER_OPEN))
+        {
+            openSettingsFile();
+        }
+        ImGui::PopID();
+        ImGui::SetItemTooltip("Open Settings...");
+
+        ImGui::SameLine();
+        ImGui::PushID("SAVE_SETTINGS_FILE");
+        if (ImGui::Button(ICON_FA_SAVE))
+        {
+            saveSettingsFileAs();
+        }
+        ImGui::PopID();
+        ImGui::SetItemTooltip("Save Settings As...");
+    }
+    ImGui::Spacing();
+
+    ImGui::SeparatorText("Seed");
+    {
+        float buttonWidth = ImGui::CalcTextSize("Regenerate").x + (style.FramePadding.x * 2.0f) + style.ItemSpacing.x;
+        ImGui::SetNextItemWidth(std::min(ImGui::GetContentRegionAvail().x - buttonWidth, maxItemWidth + labelWidth - buttonWidth));
+        ImGui::InputText("##Seed", seedValue, 9);
+        ImGui::SameLine();
+        if (ImGui::Button("Regenerate"))
+        {
+            generateSeed();
         }
     }
 
-    ImGui::EndChild();
-    ImGui::Spacing();
+    ImGui::EndDisabled();
+}
 
-    // Draw bottom panel
+void App::drawHeader()
+{
+    const ImGuiStyle& style = ImGui::GetStyle();
+    const float logoHeight = (float)DPI(logo.height / 2);
+
+    // Logo on the left.
+    const ImVec2 start = ImGui::GetCursorPos();
+    const float availableWidth = ImGui::GetContentRegionAvail().x;
+    GUI::drawImage(logo, DPI(logo.width / 2), DPI(logo.height / 2));
+    const ImVec2 end = ImGui::GetCursorPos();
+
+    // Connection controls on the right, vertically centered on the logo: [dot] [status] [button]
+    const float dotRadius = DPI(5.0f);
+    const float buttonWidth = DPI(120.0f);
+    const float statusWidth = ImGui::CalcTextSize(connectionStatus.c_str()).x;
+    const float totalWidth = (dotRadius * 2.0f) + style.ItemSpacing.x + statusWidth + style.ItemSpacing.x + buttonWidth;
+
+    ImGui::SetCursorPos(ImVec2(start.x + availableWidth - totalWidth, start.y + (logoHeight - ImGui::GetFrameHeight()) * 0.5f));
     {
+        ImColor dotColor = dotRed;
+        if (connectionState == ConnectionState::Connecting) dotColor = dotYellow;
+        if (connectionState == ConnectionState::Connected) dotColor = dotGreen;
+
         const ImVec2 p = ImGui::GetCursorScreenPos();
-        ImDrawList* drawList = ImGui::GetWindowDrawList();
+        ImGui::GetWindowDrawList()->AddCircleFilled(ImVec2(p.x + dotRadius, p.y + ImGui::GetFrameHeight() * 0.5f), dotRadius, dotColor);
+        ImGui::Dummy(ImVec2(dotRadius * 2.0f, ImGui::GetFrameHeight()));
 
+        ImGui::SameLine();
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text(connectionStatus.c_str());
+
+        ImGui::SameLine();
         if (connectionState == ConnectionState::NotConnected || connectionState == ConnectionState::Error)
         {
-            drawList->AddCircleFilled(ImVec2(p.x + DPI(135.0f), p.y + DPI(10.0f)), DPI(5.0f), dotRed);
-        }
-        if (connectionState == ConnectionState::Connecting)
-        {
-            drawList->AddCircleFilled(ImVec2(p.x + DPI(135.0f), p.y + DPI(10.0f)), DPI(5.0f), dotYellow);
-        }
-        if (connectionState == ConnectionState::Connected)
-        {
-            drawList->AddCircleFilled(ImVec2(p.x + DPI(135.0f), p.y + DPI(10.0f)), DPI(5.0f), dotGreen);
-        }
-
-        if (connectionState == ConnectionState::NotConnected || connectionState == ConnectionState::Error)
-        {
-            if (ImGui::Button("Connect", ImVec2(DPI(120.0f), 0.0f)))
+            if (ImGui::Button("Connect", ImVec2(buttonWidth, 0.0f)))
             {
                 connect();
             }
@@ -294,35 +426,26 @@ void App::drawSetupPanel()
         else
         {
             ImGui::BeginDisabled(connectionState == ConnectionState::Connecting);
-            if (ImGui::Button("Disconnect", ImVec2(DPI(120.0f), 0.0f)))
+            if (ImGui::Button("Disconnect", ImVec2(buttonWidth, 0.0f)))
             {
                 disconnect();
             }
             ImGui::EndDisabled();
         }
-
-        ImGui::SameLine();
-        ImGui::Indent(DPI(150.0f));
-        ImGui::Text(connectionStatus.c_str());
-        ImGui::Unindent(DPI(150.0f));
     }
+
+    // Continue layout below the logo.
+    ImGui::SetCursorPos(end);
 }
 
 void App::drawTrackerPanel()
 {
     tracker.update();
 
-    int headerHeight = 53;
-    if (tracker.showLogo)
-    {
-        GUI::drawImage(logo, DPI(logo.width / 2), DPI(logo.height / 2));
-        headerHeight = 212;
-    }
-
     gui.pushFont("Reactor7");
 
     ImGui::Spacing();
-    ImGui::BeginChild("##ScrollBox", ImVec2(0, (float)(gui.windowHeight - DPI(headerHeight))));
+    ImGui::BeginChild("##ScrollBox", ImVec2(0, 0));
     {
         // Permadeath Character Portraits
         if (tracker.showCharacters)
@@ -407,7 +530,6 @@ void App::drawAppSettingsPanel()
 {
     ImGui::SeparatorText("Tracker");
     {
-        ImGui::Checkbox("Show Logo", &tracker.showLogo);
         ImGui::Checkbox("Show Characters", &tracker.showCharacters);
         ImGui::Checkbox("Show Seed", &tracker.showSeed);
         ImGui::Checkbox("Show Time", &tracker.showTime);
@@ -459,9 +581,9 @@ void App::drawDebugPanel()
         ImGui::Text(gameStateText.c_str());
     }
 
-    // IronMog Frame Update Time
+    // Game Manager Frame Update Time
     double updateDuration = game->getLastUpdateDuration();
-    std::string updateDurationText = "IronMog Update Time: " + std::to_string(updateDuration) + "ms";
+    std::string updateDurationText = "Update Time: " + std::to_string(updateDuration) + "ms";
     ImGui::Text(updateDurationText.c_str());
 
     // Frame Number

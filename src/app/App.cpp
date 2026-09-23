@@ -28,10 +28,11 @@ AppFrame::AppConfig App::configure() const
     AppFrame::AppConfig config;
     config.windowWidth = APP_WINDOW_WIDTH;
     config.windowHeight = APP_WINDOW_HEIGHT;
-    config.windowTitle = "IronMog FF7 " APP_VERSION_STRING;
+    config.minWindowWidth = APP_WINDOW_MIN_WIDTH;
+    config.minWindowHeight = APP_WINDOW_MIN_HEIGHT;
+    config.windowTitle = APP_NAME " " APP_VERSION_STRING;
     config.iniFilename = "settings/app.ini";
     config.windowIconPath = "resources/icon.png";
-    config.lockHorizontalResize = true;
     config.fonts.push_back({ "Inter", "resources/Inter_18pt-Regular.ttf", 18.0f });
     config.fonts.push_back({ "Reactor7", "resources/Reactor7.ttf", 18.0f });
     config.iconFontPath = "resources/fa-solid-900.ttf";
@@ -40,11 +41,12 @@ AppFrame::AppConfig App::configure() const
 
 bool App::onInitialize()
 {
-    LOG("IronMog FF7 %s", APP_VERSION_STRING);
+    LOG(APP_NAME " %s", APP_VERSION_STRING);
 
     processMemoryOffset[0] = '\0';
 
     // We embed the app settings in the same app.ini that ImGui uses.
+    // Note: the section keeps its original name so existing app.ini files still load.
     GUI::registerSettingsHandler("IronMogFF7",
         [this](const char* section, const char* line) { this->guiSettingsRead(section, line); },
         [this](ImGuiTextBuffer* buf) { this->guiSettingsWrite(buf); }
@@ -343,6 +345,31 @@ void App::saveSettings(const std::string& filePath, bool saveSeed)
     LOG("Saved settings to: %s", filePath.c_str());
 }
 
+void App::openSettingsFile()
+{
+    std::string openPath = gui.openFileDialog();
+    if (openPath != "")
+    {
+        loadSettings(openPath);
+        selectedSettingsIdx = 0;
+    }
+}
+
+void App::saveSettingsFileAs()
+{
+    std::string savePath = gui.saveFileDialog();
+    if (savePath != "")
+    {
+        saveSettings(savePath);
+
+        if (Utilities::isFileInFolder(APP_SETTINGS_FOLDER, savePath))
+        {
+            std::string saveFileName = fs::path(savePath).stem().string();
+            scanSettings(APP_SETTINGS_FOLDER, saveFileName);
+        }
+    }
+}
+
 void App::onKeyPress(int key, int mods)
 {
     // Ctrl + D
@@ -354,8 +381,7 @@ void App::onKeyPress(int key, int mods)
 
 void App::onResize(int width, int height)
 {
-    // This makes the UI redraw as we're resizing so it looks nice and smooth.
-    draw();
+    // AppFrame redraws during resize (redrawOnResize), so nothing to do here.
 }
 
 void App::onStart()
@@ -382,7 +408,6 @@ void App::guiSettingsRead(const char* section, const char* line)
 
     if (strcmp(section, "Tracker") == 0)
     {
-        if (readBool("ShowLogo", &tracker.showLogo)) return;
         if (readBool("ShowCharacters", &tracker.showCharacters)) return;
         if (readBool("ShowSeed", &tracker.showSeed)) return;
         if (readBool("ShowTime", &tracker.showTime)) return;
@@ -403,7 +428,6 @@ void App::guiSettingsRead(const char* section, const char* line)
 void App::guiSettingsWrite(ImGuiTextBuffer* buf)
 {
     buf->appendf("[%s][%s]\n", "IronMogFF7", "Tracker");
-    buf->appendf("ShowLogo=%d\n", tracker.showLogo ? 1 : 0);
     buf->appendf("ShowCharacters=%d\n", tracker.showCharacters ? 1 : 0);
     buf->appendf("ShowSeed=%d\n", tracker.showSeed ? 1 : 0);
     buf->appendf("ShowTime=%d\n", tracker.showTime ? 1 : 0);

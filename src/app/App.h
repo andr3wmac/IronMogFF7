@@ -8,8 +8,11 @@
 #include <atomic>
 #include <thread>
 
-#define APP_WINDOW_WIDTH 497
-#define APP_WINDOW_HEIGHT 665
+#define APP_NAME "LiveMod FF7"
+#define APP_WINDOW_WIDTH 1000
+#define APP_WINDOW_HEIGHT 640
+#define APP_WINDOW_MIN_WIDTH 820
+#define APP_WINDOW_MIN_HEIGHT 480
 #define APP_VERSION_MAJOR 0
 #define APP_VERSION_MINOR 8
 #define APP_VERSION_PATCH 3
@@ -26,6 +29,13 @@ public:
         Custom      = 2
     };
 
+    enum class SetupPage : uint8_t
+    {
+        General = 0,
+        Rule    = 1,
+        Extra   = 2
+    };
+
     enum class ConnectionState : uint8_t
     {
         NotConnected = 0,
@@ -38,9 +48,15 @@ public:
     void scanSettings(std::string settingsFolder, std::string loadIfAvailable = "Default");
     void loadSettings(const std::string& filePath);
     void saveSettings(const std::string& filePath, bool saveSeed = false);
+    void openSettingsFile();
+    void saveSettingsFileAs();
 
     void draw();
+    void drawMenuBar();
+    void drawHeader();
+    void drawAboutPopup();
     void drawSetupPanel();
+    void drawSetupGeneral(bool lockSettings);
     void drawTrackerPanel();
     void drawAppSettingsPanel();
     void drawDebugPanel();
@@ -57,6 +73,9 @@ protected:
     std::vector<AppFrame::GUIImage> characterPortraits;
     AppFrame::GUIImage deadIcon;
     bool showDebugTab = false;
+    bool openAboutPopup = false;
+    SetupPage selectedSetupPage = SetupPage::General;
+    int selectedSetupIndex = 0;
 
     // Setup
     GameManager* game = nullptr;

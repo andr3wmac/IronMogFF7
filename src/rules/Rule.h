@@ -19,7 +19,6 @@ public:
     bool enabled = true;
     std::string name = "";
     std::string description = "";
-    bool settingsVisible = false;
     bool debugVisible = false;
 
     virtual void setup() {}

@@ -167,6 +167,13 @@ bool GUI::initialize(const AppConfig& config)
         return false;
     }
 
+    if (config.minWindowWidth > 0 || config.minWindowHeight > 0)
+    {
+        int minWidth = config.minWindowWidth > 0 ? DPI(config.minWindowWidth) : GLFW_DONT_CARE;
+        int minHeight = config.minWindowHeight > 0 ? DPI(config.minWindowHeight) : GLFW_DONT_CARE;
+        glfwSetWindowSizeLimits(window, minWidth, minHeight, GLFW_DONT_CARE, GLFW_DONT_CARE);
+    }
+
 #ifdef _WIN32
     if (config.lockHorizontalResize)
     {
@@ -333,6 +340,11 @@ void GUI::endFrame()
 bool GUI::wasWindowClosed()
 {
     return glfwWindowShouldClose(window);
+}
+
+void GUI::requestClose()
+{
+    glfwSetWindowShouldClose(window, GLFW_TRUE);
 }
 
 void GUI::onResizeCallback(GLFWwindow* window, int width, int height)
