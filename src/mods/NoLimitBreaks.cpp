@@ -1,7 +1,12 @@
 #include "NoLimitBreaks.h"
 #include "LiveModFF7Core/game/MemoryOffsets.h"
 
-REGISTER_MOD(NoLimitBreaks, "No Limit Breaks", "Limit breaks are disabled.")
+REGISTER_MOD(NoLimitBreaks, "No Limit Breaks", "Restrictions")
+
+std::string NoLimitBreaks::getDescription() const
+{
+    return "Disables limit breaks during battle.\n\nUse this to play without limit break attacks or abilities.";
+}
 
 void NoLimitBreaks::setup()
 {

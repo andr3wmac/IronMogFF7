@@ -3,7 +3,12 @@
 #include "LiveModFF7Core/utilities/Logging.h"
 #include "utilities/Flags.h"
 
-REGISTER_MOD(NoSaving, "No Saving", "Saving your game is prohibited.")
+REGISTER_MOD(NoSaving, "No Saving", "Restrictions")
+
+std::string NoSaving::getDescription() const
+{
+    return "Prevents saving the game during a run.\n\nThis restriction is useful for attempts where progress must be made without creating new saves.";
+}
 
 void NoSaving::setup()
 {

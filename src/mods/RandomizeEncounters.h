@@ -7,6 +7,8 @@
 class RandomizeEncounters : public Mod
 {
 public:
+    std::string getDescription() const override;
+
     void setup() override;
     bool hasSettings() override { return true; }
     bool onSettingsGUI() override;

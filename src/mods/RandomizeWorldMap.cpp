@@ -8,7 +8,12 @@
 
 #include <random>
 
-REGISTER_MOD(RandomizeWorldMap, "Randomize World Map", "World map entrances are shuffled so entering Kalm might take you to Midgar.")
+REGISTER_MOD(RandomizeWorldMap, "Randomize World Map", "Randomizers")
+
+std::string RandomizeWorldMap::getDescription() const
+{
+    return "Shuffles world map entrances, so entering one location may lead somewhere else.\n\nThe destination mapping is chosen for the run.";
+}
 
 void RandomizeWorldMap::setup()
 {

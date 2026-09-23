@@ -8,7 +8,12 @@
 
 #include <random>
 
-REGISTER_MOD(RandomizeBosses, "Randomize Bosses", "Does not actually randomize which boss you encounter but instead modifies the boss fights themselves.")
+REGISTER_MOD(RandomizeBosses, "Randomize Bosses", "Randomizers")
+
+std::string RandomizeBosses::getDescription() const
+{
+    return "Changes boss fights without replacing the boss you encounter.\n\nSettings can vary boss stats and elemental properties, including multipliers for individual attributes.";
+}
 
 RandomizeBosses::RandomizeBosses()
 {

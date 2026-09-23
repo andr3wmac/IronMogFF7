@@ -11,7 +11,12 @@
 #include <cmath>
 #include <random>
 
-REGISTER_MOD(RandomizeEncounters, "Randomize Encounters", "Field, world map, and/or scripted encounters are randomized to any enemy formation within set specifications.")
+REGISTER_MOD(RandomizeEncounters, "Randomize Encounters", "Randomizers")
+
+std::string RandomizeEncounters::getDescription() const
+{
+    return "Replaces field, world map, and optionally scripted encounters with other enemy formations.\n\nSettings control the allowed level range and can also vary enemy stats.";
+}
 
 void RandomizeEncounters::setup()
 {

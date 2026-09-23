@@ -9,7 +9,12 @@
 #include "LiveModFF7Core/tools/ModelEditor.h"
 #include "LiveModFF7Core/utilities/Utilities.h"
 
-REGISTER_MOD(RandomizeColors, "Randomize Colors", "Playable characters� clothing colors are randomized.")
+REGISTER_MOD(RandomizeColors, "Randomize Colors", "Randomizers")
+
+std::string RandomizeColors::getDescription() const
+{
+    return "Randomizes the clothing colors of playable character models.\n\nColors are applied to characters as their models appear in the game.";
+}
 
 // Give each model 16 colors each to future proof against later changes
 #define COLORS_PER_MODEL 16

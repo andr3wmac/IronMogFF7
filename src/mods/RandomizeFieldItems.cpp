@@ -10,7 +10,12 @@
 #include <algorithm>
 #include <random>
 
-REGISTER_MOD(RandomizeFieldItems, "Randomize Field Items", "Any items obtained from the field (such as from boxes or chests) are randomized.")
+REGISTER_MOD(RandomizeFieldItems, "Randomize Field Items", "Randomizers")
+
+std::string RandomizeFieldItems::getDescription() const
+{
+    return "Randomizes items picked up in the field, including boxes and chests.\n\nSettings control the replacement pool and whether the original item type is preserved.";
+}
 
 void RandomizeFieldItems::setup()
 {

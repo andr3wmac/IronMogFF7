@@ -5,6 +5,8 @@
 class NoEscapes : public Mod
 {
 public:
+    std::string getDescription() const override;
+
     void setup() override;
     std::vector<std::string> describe(ModDescriptionType descType) override;
 

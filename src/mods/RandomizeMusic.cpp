@@ -30,7 +30,12 @@ const std::vector<std::string> MusicList = {
     "fin", "heart", "roll"
 };
 
-REGISTER_MOD(RandomizeMusic, "Randomize Music", "Music tracks are randomized and can include music from other games.")
+REGISTER_MOD(RandomizeMusic, "Randomize Music", "Randomizers")
+
+std::string RandomizeMusic::getDescription() const
+{
+    return "Replaces in-game music with tracks from the music folder, including tracks from other games.\n\nThe curated music option limits replacements to tracks chosen for the original song.";
+}
 
 RandomizeMusic::RandomizeMusic()
 {

@@ -7,7 +7,12 @@
 
 #include <random>
 
-REGISTER_MOD(Permadeath, "Permadeath", "If a character dies, they cannot be revived and will remain dead for the rest of the playthrough.")
+REGISTER_MOD(Permadeath, "Permadeath", "Restrictions")
+
+std::string Permadeath::getDescription() const
+{
+    return "A character who dies cannot be revived for the rest of the run.\n\nSettings can also remove that character's equipped items when they die.";
+}
 
 #define RUFUS_FIELD_ID 268
 #define DYNE_FIELD_ID 480

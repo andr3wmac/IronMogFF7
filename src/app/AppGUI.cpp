@@ -9,6 +9,8 @@
 #include "LiveModFF7Core/utilities/Utilities.h"
 #include "mods/Mod.h"
 
+#include <map>
+
 static const char* gameVersions[]{ "PlayStation | US (Original)", "PlayStation | US (CSR v0.13.0)"};
 static const char* emulators[]{ "DuckStation", "BizHawk", "Custom" };
 static const char* attemptsDisplayModes[]{ "Automatic", "Attempts", "Game Overs", "Disabled"};
@@ -139,8 +141,7 @@ void App::drawAboutPopup()
 
 // Draws one row of the setup list: an enable checkbox followed by a selectable name.
 // Returns true if the enabled state was changed.
-template<typename T>
-static bool drawSetupListEntry(T* item, bool selected, bool lockEnable, bool& clicked)
+static bool drawSetupListEntry(Mod* item, bool selected, bool lockEnable, bool& clicked)
 {
     bool changed = false;
     ImGui::PushID(item);
@@ -156,10 +157,9 @@ static bool drawSetupListEntry(T* item, bool selected, bool lockEnable, bool& cl
     return changed;
 }
 
-// Draws the details page for a rule or extra: name, enable toggle, full description and its settings.
+// Draws a mod's details: name, enable toggle, description and settings.
 // Returns true if anything was changed.
-template<typename T>
-static bool drawSetupDetails(T* item, bool lockSettings)
+static bool drawSetupDetails(Mod* item, bool lockSettings)
 {
     bool changed = false;
 
@@ -170,7 +170,8 @@ static bool drawSetupDetails(T* item, bool lockSettings)
     ImGui::EndDisabled();
 
     ImGui::Spacing();
-    ImGui::TextWrapped("%s", item->description.c_str());
+    std::string description = item->getDescription();
+    ImGui::TextWrapped("%s", description.c_str());
     ImGui::Spacing();
 
     if (item->hasSettings())
@@ -222,18 +223,28 @@ void App::drawSetupPanel()
         }
         ImGui::Spacing();
 
-        ImGui::SeparatorText("Mods");
         std::vector<Mod*>& mods = Mod::getList();
+        std::map<std::string, std::vector<int>> categories;
         for (int i = 0; i < (int)mods.size(); ++i)
         {
-            bool clicked = false;
-            bool selected = selectedSetupPage == SetupPage::Mod && selectedSetupIndex == i;
-            changed |= drawSetupListEntry(mods[i], selected, lockSettings, clicked);
-            if (clicked)
+            categories[mods[i]->category.empty() ? "Other" : mods[i]->category].push_back(i);
+        }
+
+        for (const auto& [category, indices] : categories)
+        {
+            ImGui::SeparatorText(category.c_str());
+            for (int i : indices)
             {
-                selectedSetupPage = SetupPage::Mod;
-                selectedSetupIndex = i;
+                bool clicked = false;
+                bool selected = selectedSetupPage == SetupPage::Mod && selectedSetupIndex == i;
+                changed |= drawSetupListEntry(mods[i], selected, lockSettings, clicked);
+                if (clicked)
+                {
+                    selectedSetupPage = SetupPage::Mod;
+                    selectedSetupIndex = i;
+                }
             }
+            ImGui::Spacing();
         }
     }
     ImGui::EndChild();

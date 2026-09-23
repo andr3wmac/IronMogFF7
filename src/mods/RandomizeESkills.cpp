@@ -8,7 +8,12 @@
 #include <set>
 #include <unordered_set>
 
-REGISTER_MOD(RandomizeESkills, "Randomize E.Skills", "When you learn an Enemy Skill from an enemy, the skill you actually gain is randomized.")
+REGISTER_MOD(RandomizeESkills, "Randomize E.Skills", "Randomizers")
+
+std::string RandomizeESkills::getDescription() const
+{
+    return "Changes which Enemy Skill is learned when a character acquires one in battle.\n\nThe learned skill is replaced using a randomized mapping for the run.";
+}
 
 // The concept here is when we enter battle we find any enemy skill materia on any characters
 // and track its value. When we exit the fight we look for any newly flipped bits, meaning a 

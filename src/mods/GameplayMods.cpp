@@ -6,7 +6,12 @@
 #include "mods/Restrictions.h"
 #include "utilities/Flags.h"
 
-REGISTER_MOD(GameplayMods, "Gameplay Mods", "Modify aspects of how the game works.")
+REGISTER_MOD(GameplayMods, "Gameplay Mods", "Gameplay")
+
+std::string GameplayMods::getDescription() const
+{
+    return "Changes individual parts of the game without randomizing them.\n\nChoose who can equip the Masamune and whether Aerith survives and rejoins the party.";
+}
 
 static const char* masamuneModes[] { "No One", "Cloud", "Everyone", "Random Character" };
 

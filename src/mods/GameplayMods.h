@@ -5,6 +5,8 @@
 class GameplayMods : public Mod
 {
 public:
+    std::string getDescription() const override;
+
     enum class MasamuneMode : uint8_t
     {
         Disabled        = 0,

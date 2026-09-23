@@ -7,6 +7,8 @@
 class RandomizeBosses : public Mod
 {
 public:
+    std::string getDescription() const override;
+
     RandomizeBosses();
 
     void setup() override;

@@ -10,7 +10,12 @@
 #include <random>
 #include <set>
 
-REGISTER_MOD(RandomizeEnemyDrops, "Randomize Enemy Drops", "Enemy drops and steals are randomized.")
+REGISTER_MOD(RandomizeEnemyDrops, "Randomize Enemy Drops", "Randomizers")
+
+std::string RandomizeEnemyDrops::getDescription() const
+{
+    return "Randomizes enemy drops and steals.\n\nSettings can preserve item types and adjust the AP, experience, and gil earned from enemies.";
+}
 
 void RandomizeEnemyDrops::setup()
 {

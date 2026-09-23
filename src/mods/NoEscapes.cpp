@@ -2,7 +2,12 @@
 #include "LiveModFF7Core/game/MemoryOffsets.h"
 #include "mods/Restrictions.h"
 
-REGISTER_MOD(NoEscapes, "No Escapes", "Escaping from battles is prohibited, including the use of Exit materia.")
+REGISTER_MOD(NoEscapes, "No Escapes", "Restrictions")
+
+std::string NoEscapes::getDescription() const
+{
+    return "Prevents escaping from battles, including escapes attempted with Exit materia.\n\nEvery encounter must be resolved without fleeing.";
+}
 
 void NoEscapes::setup()
 {

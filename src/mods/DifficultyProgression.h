@@ -5,6 +5,8 @@
 class DifficultyProgression : public Mod
 {
 public:
+    std::string getDescription() const override;
+
     enum class ProgressionSource : uint8_t
     {
         GameProgress = 0,

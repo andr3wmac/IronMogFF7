@@ -8,6 +8,8 @@
 class RandomizeESkills : public Mod
 {
 public:
+    std::string getDescription() const override;
+
     void setup() override;
     bool hasDebugGUI() override { return true; }
     void onDebugGUI() override;

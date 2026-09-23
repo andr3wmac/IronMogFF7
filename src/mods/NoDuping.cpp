@@ -7,7 +7,12 @@
 #include <bitset>
 #include <sstream>
 
-REGISTER_MOD(NoDuping, "No Duping", "Prevents duping with W-Item and field item dupes.")
+REGISTER_MOD(NoDuping, "No Duping", "Restrictions")
+
+std::string NoDuping::getDescription() const
+{
+    return "Prevents item duplication through W-Item and field item exploits.\n\nEnable this when duplicated items should be excluded from a run.";
+}
 
 void NoDuping::setup()
 {

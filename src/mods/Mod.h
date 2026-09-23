@@ -19,9 +19,10 @@ public:
     virtual ~Mod() = default;
     bool enabled = true;
     std::string name = "";
-    std::string description = "";
+    std::string category = "";
     bool debugVisible = false;
 
+    virtual std::string getDescription() const { return ""; }
     virtual void setup() {}
     virtual bool hasSettings() { return false; }
     virtual bool onSettingsGUI() { return false; }
@@ -52,13 +53,13 @@ public:
     }
 };
 
-#define REGISTER_MOD(ClassName, NameStr, DescStr) \
+#define REGISTER_MOD(ClassName, NameStr, CategoryStr) \
     namespace { \
         struct ClassName##AutoRegister { \
             ClassName##AutoRegister() { \
                 ClassName* tmp = new ClassName(); \
                 tmp->name = NameStr; \
-                tmp->description = DescStr; \
+                tmp->category = CategoryStr; \
                 Mod::registerMod(tmp); \
             } \
         }; \

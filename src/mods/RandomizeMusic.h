@@ -20,6 +20,8 @@ struct Track
 class RandomizeMusic : public Mod
 {
 public:
+    std::string getDescription() const override;
+
     RandomizeMusic();
 
     void setup() override;

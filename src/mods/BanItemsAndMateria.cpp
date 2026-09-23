@@ -5,7 +5,12 @@
 #include "LiveModFF7Core/utilities/Logging.h"
 #include "mods/Restrictions.h"
 
-REGISTER_MOD(BanItemsAndMateria, "Ban Items & Materia", "Restricts the types of items and materia that can be found, purchased, or dropped.")
+REGISTER_MOD(BanItemsAndMateria, "Ban Items & Materia", "Restrictions")
+
+std::string BanItemsAndMateria::getDescription() const
+{
+    return "Restricts which items and materia can be found, bought, or dropped.\n\nChoose the banned types in Settings; the mod removes banned rewards during play.";
+}
 
 void BanItemsAndMateria::setup()
 {

@@ -5,7 +5,12 @@
 #include "LiveModFF7Core/utilities/Logging.h"
 #include "mods/Restrictions.h"
 
-REGISTER_MOD(DifficultyProgression, "Difficulty Progression", "Progressively scales into your randomizer settings.")
+REGISTER_MOD(DifficultyProgression, "Difficulty Progression", "Gameplay")
+
+std::string DifficultyProgression::getDescription() const
+{
+    return "Gradually scales your randomizer settings as a run progresses.\n\nProgress can follow the story, the highest party level, or in-game time. Set the starting point and where progression finishes below.";
+}
 
 static const char* progressSource[] { "Game Progress", "Highest Level", "In-Game Time"};
 

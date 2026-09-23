@@ -8,7 +8,12 @@
 #include "mods/Restrictions.h"
 #include "utilities/Randomizer.h"
 
-REGISTER_MOD(RandomizeShops, "Randomize Shops", "Shop inventories are randomized.")
+REGISTER_MOD(RandomizeShops, "Randomize Shops", "Randomizers")
+
+std::string RandomizeShops::getDescription() const
+{
+    return "Randomizes the items and materia sold in shops.\n\nSettings control shop availability, replacement items, and how prices are calculated.";
+}
 
 void RandomizeShops::setup()
 {
