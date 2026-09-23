@@ -33,10 +33,32 @@ AppFrame::AppConfig App::configure() const
     config.windowTitle = APP_NAME " " APP_VERSION_STRING;
     config.iniFilename = "settings/app.ini";
     config.windowIconPath = "resources/icon.png";
-    config.fonts.push_back({ "Inter", "resources/Inter_18pt-Regular.ttf", 18.0f });
+    config.defaultFont = { "Inter", "resources/Inter_18pt-Regular.ttf", 15.0f };
     config.fonts.push_back({ "Reactor7", "resources/Reactor7.ttf", 18.0f });
     config.iconFontPath = "resources/fa-solid-900.ttf";
     return config;
+}
+
+void App::applyStyle()
+{
+    // Roomier spacing and soft rounding to suit the Inter font. Values are pre-DPI, AppFrame scales them afterwards.
+    ImGuiStyle& style = ImGui::GetStyle();
+    style.WindowPadding     = ImVec2(12.0f, 12.0f);
+    style.FramePadding      = ImVec2(10.0f, 6.0f);
+    style.ItemSpacing       = ImVec2(10.0f, 8.0f);
+    style.ItemInnerSpacing  = ImVec2(8.0f, 6.0f);
+    style.CellPadding       = ImVec2(8.0f, 4.0f);
+    style.IndentSpacing     = 20.0f;
+    style.ScrollbarSize     = 12.0f;
+    style.GrabMinSize       = 10.0f;
+
+    style.WindowRounding    = 6.0f;
+    style.ChildRounding     = 6.0f;
+    style.FrameRounding     = 4.0f;
+    style.PopupRounding     = 6.0f;
+    style.ScrollbarRounding = 6.0f;
+    style.GrabRounding      = 4.0f;
+    style.TabRounding       = 4.0f;
 }
 
 bool App::onInitialize()

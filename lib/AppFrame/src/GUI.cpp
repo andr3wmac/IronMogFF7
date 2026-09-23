@@ -220,12 +220,33 @@ bool GUI::initialize(const AppConfig& config)
 
     fonts.clear();
 
-    // Default font + optional icon font
-    io.Fonts->AddFontDefault();
+    // Default font + optional icon font merged into it
+    ImFont* defaultFont = nullptr;
+    if (!config.defaultFont.path.empty())
+    {
+        defaultFont = io.Fonts->AddFontFromFileTTF(config.defaultFont.path.c_str(), config.defaultFont.size);
+        if (defaultFont == nullptr)
+        {
+            fprintf(stderr, "Failed to load default font: %s\n", config.defaultFont.path.c_str());
+        }
+    }
+    if (defaultFont == nullptr)
+    {
+        defaultFont = io.Fonts->AddFontDefault();
+    }
+    if (!config.defaultFont.name.empty())
+    {
+        fonts[config.defaultFont.name] = defaultFont;
+    }
+
+    // Base size used by all text unless a PushFont() overrides it.
+    ImGui::GetStyle().FontSizeBase = config.defaultFont.path.empty() ? 13.0f : config.defaultFont.size;
+
     if (config.enableIconFont && !config.iconFontPath.empty())
     {
-        float baseFontSize = 16.0f;
-        float iconFontSize = baseFontSize * 2.0f / 3.0f;
+        // Merged font size is treated as a ratio of the target font's size.
+        float baseFontSize = ImGui::GetStyle().FontSizeBase;
+        float iconFontSize = baseFontSize * 0.82f;
         static const ImWchar icons_ranges[] = { ICON_MIN_FA, ICON_MAX_16_FA, 0 };
         ImFontConfig icons_config;
         icons_config.MergeMode = true;

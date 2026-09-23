@@ -22,6 +22,7 @@ namespace AppFrame
         bool redrawOnResize = true;
         bool lockHorizontalResize = false;
         std::string iconFontPath = "lib/AppFrame/resources/fa-solid-900.ttf";
+        FontSpec defaultFont = { "", "", 13.0f }; // Empty path = ImGui's built-in ProggyClean
         std::vector<FontSpec> fonts;
         std::function<void()> styleCallback;
     };

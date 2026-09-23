@@ -104,6 +104,7 @@ protected:
     void onAfterFrame() override;
     void onKeyPress(int key, int mods) override;
     void onResize(int width, int height) override;
+    void applyStyle() override;
     void onStart();
 
     void guiSettingsRead(const char* section, const char* line);
