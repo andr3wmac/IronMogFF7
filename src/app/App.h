@@ -52,6 +52,7 @@ public:
 
     void draw();
     void drawMenuBar();
+    void drawLogo();
     void drawHeader();
     void drawAboutPopup();
     void drawSetupPanel();
@@ -71,6 +72,7 @@ protected:
     Tracker tracker;
     std::vector<AppFrame::GUIImage> characterPortraits;
     AppFrame::GUIImage deadIcon;
+    float accentColor[3] = { 80.0f / 255.0f, 1.0f, 140.0f / 255.0f };
     bool showDebugTab = false;
     bool openAboutPopup = false;
     SetupPage selectedSetupPage = SetupPage::General;
@@ -104,6 +106,7 @@ protected:
     void onKeyPress(int key, int mods) override;
     void onResize(int width, int height) override;
     void applyStyle() override;
+    void updateAccentColors();
     void onStart();
 
     void guiSettingsRead(const char* section, const char* line);

@@ -82,6 +82,9 @@ namespace AppFrame
         static void registerSettingsHandler(const char* name, std::function<void(const char*, const char*)> onReadLine, std::function<void(ImGuiTextBuffer*)> onWrite);
 
         static void drawImage(GUIImage& image, int width, int height, float alpha = 1.0f);
+        // Draws a tinted UV region at screen coordinates; the caller reserves layout space.
+        static void drawImageRegion(const GUIImage& image, const ImVec2& min, const ImVec2& max,
+            const ImVec2& uvMin, const ImVec2& uvMax, const ImVec4& tint);
         static void drawColorGrid(const std::string& name, std::vector<Color>& colors, std::function<void(int, Color)> onClickCallback = {}, float boxSize = 16.0f, float spacing = 2.0f, int colorsPerRow = 24);
         template<typename TColor>
         static void drawColorGrid(const std::string& name, std::vector<TColor>& colors, float boxSize = 16.0f, float spacing = 2.0f, int colorsPerRow = 24);

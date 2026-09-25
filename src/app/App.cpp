@@ -58,6 +58,39 @@ void App::applyStyle()
     style.ScrollbarRounding = 6.0f;
     style.GrabRounding      = 4.0f;
     style.TabRounding       = 4.0f;
+
+    updateAccentColors();
+}
+
+void App::updateAccentColors()
+{
+    ImVec4* colors = ImGui::GetStyle().Colors;
+    const ImVec4 accent(accentColor[0], accentColor[1], accentColor[2], 1.0f);
+    auto shade = [this](float brightness, float alpha = 1.0f)
+    {
+        return ImVec4(accentColor[0] * brightness, accentColor[1] * brightness, accentColor[2] * brightness, alpha);
+    };
+
+    colors[ImGuiCol_FrameBgHovered]      = shade(1.00f, 0.30f);
+    colors[ImGuiCol_FrameBgActive]       = shade(0.47f);
+    colors[ImGuiCol_TitleBgActive]       = shade(0.31f);
+    colors[ImGuiCol_CheckMark]           = accent;
+    colors[ImGuiCol_SliderGrab]          = shade(0.78f, 0.70f);
+    colors[ImGuiCol_SliderGrabActive]    = accent;
+    colors[ImGuiCol_ButtonHovered]       = shade(1.00f, 0.25f);
+    colors[ImGuiCol_ButtonActive]        = shade(0.47f);
+    colors[ImGuiCol_Header]              = shade(0.38f, 0.55f);
+    colors[ImGuiCol_HeaderHovered]       = shade(0.53f, 0.70f);
+    colors[ImGuiCol_HeaderActive]        = shade(0.47f, 0.85f);
+    colors[ImGuiCol_SeparatorHovered]    = shade(0.78f, 0.78f);
+    colors[ImGuiCol_SeparatorActive]     = accent;
+    colors[ImGuiCol_TabHovered]          = shade(0.53f, 0.75f);
+    colors[ImGuiCol_Tab]                 = shade(0.25f, 0.85f);
+    colors[ImGuiCol_TabSelected]         = shade(0.44f);
+    colors[ImGuiCol_TabSelectedOverline] = accent;
+    colors[ImGuiCol_TabDimmedSelected]   = shade(0.30f);
+    colors[ImGuiCol_TextLink]            = accent;
+    colors[ImGuiCol_NavCursor]           = accent;
 }
 
 bool App::onInitialize()
@@ -397,6 +430,19 @@ void App::onStart()
 
 void App::guiSettingsRead(const char* section, const char* line)
 {
+    if (strcmp(section, "Appearance") == 0 && strlen(line) == 19)
+    {
+        unsigned int red, green, blue;
+        if (sscanf(line, "AccentColor=#%2x%2x%2x", &red, &green, &blue) == 3)
+        {
+            accentColor[0] = red / 255.0f;
+            accentColor[1] = green / 255.0f;
+            accentColor[2] = blue / 255.0f;
+            updateAccentColors();
+        }
+        return;
+    }
+
     auto readInt = [&](const char* key, int* out) -> bool 
     {
         char fmt[64];
@@ -443,4 +489,10 @@ void App::guiSettingsWrite(ImGuiTextBuffer* buf)
     buf->appendf("Attempts=%d\n", tracker.attemptCounter);
     buf->appendf("GameOvers=%d\n", tracker.gameOverCounter);
     buf->append("\n");
+
+    buf->append("[IronMogFF7][Appearance]\n");
+    buf->appendf("AccentColor=#%02X%02X%02X\n\n",
+        (int)(accentColor[0] * 255.0f + 0.5f),
+        (int)(accentColor[1] * 255.0f + 0.5f),
+        (int)(accentColor[2] * 255.0f + 0.5f));
 }

@@ -1,5 +1,6 @@
 #include "AppFrame/GUI.h"
 #include "AppFrame/Application.h"
+#include "PlatformWindows.h"
 
 #define IMGUI_IMPLEMENTATION
 #include "misc/single_file/imgui_single_file.h"
@@ -30,47 +31,10 @@
 #pragma comment(lib, "legacy_stdio_definitions")
 #endif
 
-#ifdef _WIN32
-#define GLFW_EXPOSE_NATIVE_WIN32
-#include <GLFW/glfw3native.h>
-#include <commctrl.h>
-#pragma comment(lib, "comctl32.lib")
-#endif
-
 namespace AppFrame
 {
 // Fonts loaded during GUI initialization.
 static std::unordered_map<std::string, ImFont*> fonts;
-
-#ifdef _WIN32
-static LRESULT CALLBACK HorizontalResizeLockWindowProc(HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam, UINT_PTR, DWORD_PTR refData)
-{
-    switch (message)
-    {
-        case WM_GETMINMAXINFO:
-        {
-            MINMAXINFO* minMaxInfo = reinterpret_cast<MINMAXINFO*>(lParam);
-            long lockedOuterWidth = static_cast<long>(refData);
-            minMaxInfo->ptMinTrackSize.x = lockedOuterWidth;
-            minMaxInfo->ptMaxTrackSize.x = lockedOuterWidth;
-            return 0;
-        }
-
-        case WM_SETCURSOR:
-        {
-            WORD hitTest = LOWORD(lParam);
-            if (hitTest == HTLEFT || hitTest == HTRIGHT)
-            {
-                SetCursor(LoadCursor(nullptr, IDC_ARROW));
-                return TRUE;
-            }
-            break;
-        }
-    }
-
-    return DefSubclassProc(hwnd, message, wParam, lParam);
-}
-#endif
 
 static void glfw_error_callback(int error, const char* description)
 {
@@ -177,10 +141,7 @@ bool GUI::initialize(const AppConfig& config)
 #ifdef _WIN32
     if (config.lockHorizontalResize)
     {
-        HWND hwnd = glfwGetWin32Window(window);
-        RECT rect;
-        GetWindowRect(hwnd, &rect);
-        SetWindowSubclass(hwnd, HorizontalResizeLockWindowProc, 1, rect.right - rect.left);
+        lockHorizontalResizeOnWindows(window);
     }
 #endif
 
@@ -567,6 +528,13 @@ void GUI::drawImage(GUIImage& image, int width, int height, float alpha)
     {
         ImGui::Image((ImTextureID)image.textureID, ImVec2((float)width, (float)height));
     }
+}
+
+void GUI::drawImageRegion(const GUIImage& image, const ImVec2& min, const ImVec2& max,
+    const ImVec2& uvMin, const ImVec2& uvMax, const ImVec4& tint)
+{
+    ImGui::GetWindowDrawList()->AddImage((ImTextureID)image.textureID, min, max, uvMin, uvMax,
+        ImGui::ColorConvertFloat4ToU32(tint));
 }
 
 void GUI::drawColorGrid(const std::string& name, std::vector<Color>& colors, std::function<void(int, Color)> onClickCallback, float boxSize, float spacing, int colorsPerRow)

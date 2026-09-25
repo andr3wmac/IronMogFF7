@@ -123,7 +123,7 @@ void App::drawAboutPopup()
     ImGui::SetNextWindowPos(ImGui::GetMainViewport()->GetCenter(), ImGuiCond_Appearing, ImVec2(0.5f, 0.5f));
     if (ImGui::BeginPopupModal("About " APP_NAME, nullptr, ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoMove))
     {
-        GUI::drawImage(logo, DPI(logo.width / 2), DPI(logo.height / 2));
+        drawLogo();
         ImGui::Spacing();
         ImGui::Text(APP_NAME " " APP_VERSION_STRING);
         ImGui::Text("Live modding for Final Fantasy VII on PlayStation.");
@@ -374,6 +374,38 @@ void App::drawSetupGeneral(bool lockSettings)
     ImGui::EndDisabled();
 }
 
+void App::drawLogo()
+{
+    if (!logo.textureID)
+    {
+        return;
+    }
+
+    const ImVec2 size((float)DPI(logo.width / 2), (float)DPI(logo.height / 2));
+    ImGui::Dummy(size);
+    const ImVec2 origin = ImGui::GetItemRectMin();
+    const ImVec4 accent(accentColor[0], accentColor[1], accentColor[2], 1.0f);
+    const ImVec4 neutral(1.0f, 1.0f, 1.0f, 1.0f);
+
+    auto drawSpan = [&](int left, int right, const ImVec4& tint)
+    {
+        const float u0 = (float)left / logo.width;
+        const float u1 = (float)right / logo.width;
+        GUI::drawImageRegion(logo,
+            ImVec2(origin.x + size.x * u0, origin.y), ImVec2(origin.x + size.x * u1, origin.y + size.y),
+            ImVec2(u0, 0.0f), ImVec2(u1, 1.0f), tint);
+    };
+
+    // Source-pixel boundaries for the LIVE plate and divider in resources/logo.png.
+    constexpr int liveEndX = 232;
+    constexpr int dividerStartX = 476;
+    constexpr int dividerEndX = 480;
+    drawSpan(0, liveEndX, accent);
+    drawSpan(liveEndX, dividerStartX, neutral);
+    drawSpan(dividerStartX, dividerEndX, accent);
+    drawSpan(dividerEndX, logo.width, neutral);
+}
+
 void App::drawHeader()
 {
     const ImGuiStyle& style = ImGui::GetStyle();
@@ -382,7 +414,7 @@ void App::drawHeader()
     // Logo on the left.
     const ImVec2 start = ImGui::GetCursorPos();
     const float availableWidth = ImGui::GetContentRegionAvail().x;
-    GUI::drawImage(logo, DPI(logo.width / 2), DPI(logo.height / 2));
+    drawLogo();
     const ImVec2 end = ImGui::GetCursorPos();
 
     // Connection controls on the right, vertically centered on the logo: [dot] [status] [button]
@@ -518,6 +550,27 @@ void App::drawTrackerPanel()
 
 void App::drawAppSettingsPanel()
 {
+    ImGui::SeparatorText("Appearance");
+    ImGui::SetNextItemWidth(DPI(200.0f));
+    if (ImGui::ColorEdit3("Accent Color", accentColor))
+    {
+        updateAccentColors();
+    }
+    bool saveAppearance = ImGui::IsItemDeactivatedAfterEdit();
+    if (ImGui::Button("Reset to Logo Green"))
+    {
+        accentColor[0] = 80.0f / 255.0f;
+        accentColor[1] = 1.0f;
+        accentColor[2] = 140.0f / 255.0f;
+        updateAccentColors();
+        saveAppearance = true;
+    }
+    if (saveAppearance && ImGui::GetIO().IniFilename)
+    {
+        ImGui::SaveIniSettingsToDisk(ImGui::GetIO().IniFilename);
+    }
+
+    ImGui::Spacing();
     ImGui::SeparatorText("Tracker");
     {
         ImGui::Checkbox("Show Characters", &tracker.showCharacters);
