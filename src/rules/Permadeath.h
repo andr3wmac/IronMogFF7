@@ -71,6 +71,7 @@ private:
     Flags<uint16_t> deadCharacters;
     std::atomic<uint16_t> publishedDeadCharacters = 0;
     uint8_t cloudDeathCount = 0;
+    bool newCloudDeath = false;
     std::set<uint8_t> justDiedCharacters;
 
     bool appliedRufusRandom = false;

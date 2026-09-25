@@ -193,6 +193,10 @@ void RandomizeEnemyDrops::onBattleEnter()
     uint16_t formationID = game->read<uint16_t>(BattleOffsets::FormationID);
 
     const auto& [scene, formation] = game->getBattleFormation();
+    if (scene == nullptr || formation == nullptr)
+    {
+        return;
+    }
 
     std::set<int> activeEnemyIndexes;
     for (int i = 0; i < 6; ++i)

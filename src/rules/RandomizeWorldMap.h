@@ -21,6 +21,7 @@ private:
     void onUpdate();
 
     uint16_t getRandomEntrance(uint16_t entranceIndex);
+    void restoreEntranceScript(int entranceIndex);
 
     int lastClosestIndex = -1;
     uint16_t lastGameMoment = 0;

@@ -457,6 +457,12 @@ bool GameManager::update()
         return false;
     }
 
+    if (!emulator->isProcessAlive())
+    {
+        LOG("Emulator process has exited.");
+        return false;
+    }
+
     runQueuedActions();
 
     GameState state = getState();

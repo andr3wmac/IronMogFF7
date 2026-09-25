@@ -92,6 +92,12 @@ void Platform::closeProcess(void* processHandle)
     CloseHandle(processHandle);
 }
 
+bool Platform::isProcessRunning(void* processHandle)
+{
+    // The process handle becomes signaled when the process exits.
+    return WaitForSingleObject(processHandle, 0) == WAIT_TIMEOUT;
+}
+
 bool Platform::read(void* processHandle, uintptr_t address, void* memOut, size_t sizeInBytes)
 {
     // Load the function once. Static initialization is thread-safe, this is called from multiple threads.
@@ -106,16 +112,16 @@ bool Platform::read(void* processHandle, uintptr_t address, void* memOut, size_t
     SIZE_T bytesRead = 0;
     NTSTATUS status = NtReadVirtualMemoryFn(processHandle, target, memOut, sizeInBytes, &bytesRead);
 
-    if (status < 0)
+    // NT_SUCCESS
+    if (status >= 0)
     {
-        // In the event of a read failure we fall back to the slower less error prone approach.
-        status = ReadProcessMemory(processHandle, (LPCVOID)address, memOut, sizeInBytes, nullptr);
+        return true;
     }
 
-    // NT_SUCCESS
-    if (status < 0)
+    // In the event of a read failure we fall back to the slower less error prone approach.
+    if (!ReadProcessMemory(processHandle, (LPCVOID)address, memOut, sizeInBytes, nullptr))
     {
-        LOG("Platform::read NtReadVirtualMemory failed: offset=%llu status=0x%08X", (unsigned long long)address, status);
+        LOG("Platform::read failed: offset=%llu status=0x%08X error=%lu", (unsigned long long)address, status, GetLastError());
         return false;
     }
 
@@ -145,7 +151,14 @@ bool Platform::write(void* processHandle, uintptr_t address, void* memIn, size_t
     {
         // In the event of a partial copy we fall back to the slower less error prone approach.
         LOG("Platform::write NtWriteVirtualMemory returned partial copy, retrying..");
-        status = WriteProcessMemory(processHandle, target, memIn, sizeInBytes, &bytesWritten);
+
+        if (!WriteProcessMemory(processHandle, target, memIn, sizeInBytes, &bytesWritten))
+        {
+            LOG("Platform::write failed: offset=%llu error=%lu", (unsigned long long)address, GetLastError());
+            return false;
+        }
+
+        return true;
     }
 
     // NT_SUCCESS

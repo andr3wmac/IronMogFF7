@@ -165,6 +165,11 @@ bool Emulator::verifyPS1MemoryOffset(uintptr_t address)
     return (discCheckPassed && checksPassed == Emulator::ps1MemoryChecks.size());
 }
 
+bool Emulator::isProcessAlive()
+{
+    return processHandle != nullptr && Platform::isProcessRunning(processHandle);
+}
+
 bool Emulator::pollErrors(int errorThreshold)
 {
     bool result = readErrorCount > errorThreshold || writeErrorCount > errorThreshold;

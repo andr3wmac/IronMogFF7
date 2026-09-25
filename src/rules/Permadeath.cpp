@@ -16,6 +16,7 @@ REGISTER_RULE(Permadeath, "Permadeath", "If a character dies, they cannot be rev
 #define BARRET_ID 1
 #define CLOUD_LIFESTREAM_FIELD_ID 73
 #define CLOUD_LIFESTREAM_GAME_MOMENT 1197
+#define MAX_CLOUD_DEATHS 3
 
 static const char* cloudDeathModes[] { "Permanent", "Revive After Lifestream", "Sacrifice Your Friends", "Item" };
 
@@ -181,6 +182,7 @@ std::vector<std::string> Permadeath::describe(RuleDescripionType descType)
 void Permadeath::onStart()
 {
     loadPermadeathState();
+    newCloudDeath = false;
     appliedRufusRandom = false;
     waitingOnBattleExit = false;
 }
@@ -345,7 +347,7 @@ void Permadeath::onCustomItemUsed(CustomItemUse use)
 
     reviveCharacter(CLOUD_ID);
     game->menu.showPopup("Cloud has been revived!");
-    LOG("Cloud Permadeath: revive item used; Cloud revived.");
+    LOG("Cloud Permadeath: revive item used.");
 }
 
 void Permadeath::reviveCloudAfterLifestream(uint16_t fieldID)
@@ -361,38 +363,52 @@ void Permadeath::reviveCloudAfterLifestream(uint16_t fieldID)
     }
 
     reviveCharacter(CLOUD_ID);
-    game->menu.showPopup("Cloud has returned from the Lifestream!");
     LOG("Cloud Permadeath: revived Cloud after the Lifestream sequence.");
 }
 
+// Cloud's deaths are counted in killCharacter. Any death that hasn't been paid for yet (Cloud dead with fewer
+// than 3 deaths) is resolved here, so the sacrifice survives a reload between the death and the battle exit.
 void Permadeath::sacrificeFriendForCloud()
 {
     if (cloudDeathMode != CloudDeathMode::SacrificeYourFriends || !isCharacterDead(CLOUD_ID))
     {
+        newCloudDeath = false;
         return;
     }
 
-    // Each of Cloud's deaths costs more: 
+    // Each of Cloud's deaths costs more:
     // 1 friend the first time, 2 the second, and on the 3rd death he's permanently gone.
-    cloudDeathCount++;
-
-    if (cloudDeathCount >= 3)
+    if (cloudDeathCount >= MAX_CLOUD_DEATHS)
     {
-        savePermadeathState();
-        game->menu.showPopup("Cloud has fallen for the last time.");
-        LOG("Cloud Permadeath: Cloud died a third time and is now permanently dead.");
+        if (newCloudDeath)
+        {
+            LOG("Cloud Permadeath: Cloud died a third time and is now permanently dead.");
+        }
+        newCloudDeath = false;
         return;
+    }
+
+    // Cloud died without the death being counted (e.g. while another death mode was active), count it now.
+    if (cloudDeathCount == 0)
+    {
+        cloudDeathCount = 1;
+        savePermadeathState();
     }
 
     // Cloud is already dead so getLivingCharacters excludes him, these are the sacrifice candidates.
     std::vector<uint8_t> livingCharacters = getLivingCharacters();
     if ((int)livingCharacters.size() < cloudDeathCount)
     {
-        // Not enough friends left to pay the toll, so Cloud's death stands.
-        savePermadeathState();
-        LOG("Cloud Permadeath: not enough living characters to sacrifice; Cloud remains dead.");
+        // Not enough friends to pay the toll, so Cloud stays dead. The toll is retried on later battle exits
+        // in case more characters are recruited, without counting it as another death.
+        if (newCloudDeath)
+        {
+            LOG("Cloud Permadeath: not enough living characters to sacrifice; Cloud remains dead.");
+        }
+        newCloudDeath = false;
         return;
     }
+    newCloudDeath = false;
 
     // Shuffle deterministically from the seed so the chosen victims are stable across reloads.
     uint64_t rngSeed = Utilities::makeSeed64(game->getSeed(), game->getFieldID());
@@ -414,7 +430,6 @@ void Permadeath::sacrificeFriendForCloud()
         sacrificedNames += getCharacterName(victim);
     }
 
-    game->menu.showPopup(sacrificedNames + " sacrificed to revive Cloud!");
     LOG("Cloud Permadeath: sacrificed %s to revive Cloud (death #%d).", sacrificedNames.c_str(), cloudDeathCount);
 }
 
@@ -438,7 +453,7 @@ void Permadeath::loadPermadeathState()
 {
     uint16_t raw = game->read<uint16_t>(SavemapOffsets::IronMogPermadeath);
     deadCharacters = raw & 0x3FFF;
-    cloudDeathCount = (uint8_t)((raw >> 14) & 0x3);
+    cloudDeathCount = std::min<uint8_t>((uint8_t)((raw >> 14) & 0x3), MAX_CLOUD_DEATHS);
     publishedDeadCharacters = deadCharacters.value();
 }
 
@@ -451,6 +466,13 @@ void Permadeath::savePermadeathState()
 
 void Permadeath::killCharacter(uint8_t id)
 {
+    // Count each of Cloud's deaths once, capped so it can't wrap the 2 bits it's saved in.
+    if (id == CLOUD_ID && !isCharacterDead(CLOUD_ID) && cloudDeathMode == CloudDeathMode::SacrificeYourFriends)
+    {
+        cloudDeathCount = std::min<uint8_t>(cloudDeathCount + 1, MAX_CLOUD_DEATHS);
+        newCloudDeath = true;
+    }
+
     deadCharacters.setBit(id, true);
     savePermadeathState();
     justDiedCharacters.insert(id);

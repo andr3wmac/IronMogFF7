@@ -35,6 +35,7 @@ public:
 
     static void* openProcess(uint32_t pid);
     static void closeProcess(void* processHandle);
+    static bool isProcessRunning(void* processHandle);
     static bool read(void* processHandle, uintptr_t address, void* memOut, size_t sizeInBytes);
     static bool write(void* processHandle, uintptr_t address, void* memIn, size_t sizeInBytes);
 

@@ -35,6 +35,10 @@ public:
     // Error counts are reset to 0 when this function returns true.
     bool pollErrors(int errorThreshold = 5);
 
+    // Returns false once the emulator process has exited. The shared section mapping outlives the
+    // process, so reads through it keep succeeding on stale memory and this is the only way to tell.
+    bool isProcessAlive();
+
 protected:
     void* processHandle      = nullptr;
     uintptr_t ps1BaseAddress = 0;

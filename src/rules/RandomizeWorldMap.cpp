@@ -102,23 +102,7 @@ void RandomizeWorldMap::onStart()
     {
         for (int i = 0; i < GameData::worldMapEntrances.size(); ++i)
         {
-            WorldMapEntrance& entrance = GameData::worldMapEntrances[i];
-            uintptr_t entScriptStart = WorldOffsets::ScriptStart + entrance.offset;
-
-            game->write<uint16_t>(entScriptStart, 0x0100);
-
-            if (lastClosestIndex == 29)
-            {
-                game->write<uint16_t>(entScriptStart + 2, 0x0114);
-            }
-            else if (lastClosestIndex == 30)
-            {
-                game->write<uint16_t>(entScriptStart + 2, 0x011c);
-            }
-            else
-            {
-                game->write<uint16_t>(entScriptStart + 2, 0x011b);
-            }
+            restoreEntranceScript(i);
         }
     }
 
@@ -245,23 +229,7 @@ void RandomizeWorldMap::onFrame(uint32_t frameNumber)
             // Undo the randomization to the previous entrance so we can't get caught in a loop.
             if (lastClosestIndex >= 0)
             {
-                WorldMapEntrance& oldEntrance = GameData::worldMapEntrances[lastClosestIndex];
-                uintptr_t oldEntScriptStart = WorldOffsets::ScriptStart + oldEntrance.offset;
-                game->write<uint16_t>(oldEntScriptStart, 0x0100);
-                
-                // 29 and 30 are the only entrance scripts with different first two commands.
-                if (lastClosestIndex == 29)
-                {
-                    game->write<uint16_t>(oldEntScriptStart + 2, 0x0114);
-                }
-                else if (lastClosestIndex == 30)
-                {
-                    game->write<uint16_t>(oldEntScriptStart + 2, 0x011c);
-                }
-                else
-                {
-                    game->write<uint16_t>(oldEntScriptStart + 2, 0x011b);
-                }
+                restoreEntranceScript(lastClosestIndex);
             }
 
             // Only overwrite the script if we actually got a random index, otherwise it'll spinlock.
@@ -396,6 +364,28 @@ void RandomizeWorldMap::onFieldChanged(uint16_t fieldID)
 
             LOG("Randomized field exit from %d to %d", exit.fieldID, randEntrance.fieldID);
         }
+    }
+}
+
+// Writes the original first two commands back into an entrance script, undoing any randomization.
+void RandomizeWorldMap::restoreEntranceScript(int entranceIndex)
+{
+    WorldMapEntrance& entrance = GameData::worldMapEntrances[entranceIndex];
+    uintptr_t entScriptStart = WorldOffsets::ScriptStart + entrance.offset;
+    game->write<uint16_t>(entScriptStart, 0x0100);
+
+    // 29 and 30 are the only entrance scripts with different first two commands.
+    if (entranceIndex == 29)
+    {
+        game->write<uint16_t>(entScriptStart + 2, 0x0114);
+    }
+    else if (entranceIndex == 30)
+    {
+        game->write<uint16_t>(entScriptStart + 2, 0x011c);
+    }
+    else
+    {
+        game->write<uint16_t>(entScriptStart + 2, 0x011b);
     }
 }
 
