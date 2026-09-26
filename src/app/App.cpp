@@ -74,6 +74,9 @@ void App::run()
             snprintf(seedValue, sizeof(seedValue), "%08X", pendingSeed.load());
         }
 
+        // Done outside of draw() so it happens regardless of which tab is visible.
+        checkForGameStart();
+
         draw();
 
         // Check to see if the game manager thread exited from an error and clean up.
@@ -86,6 +89,9 @@ void App::run()
         // Run the GUI at 60fps
         Platform::sleep(16.67);
     }
+
+    // Stop the manager thread before anything it uses is torn down (GUI, statics, audio).
+    stopGameManager();
 
     gui.destroy();
     Platform::shutdown();
@@ -239,7 +245,37 @@ void App::stopGameManager()
     delete game;
     game = nullptr;
 
-    previousState = GameManager::GameState::BootScreen;
+    previousState.reset();
+}
+
+void App::checkForGameStart()
+{
+    if (connectionState != ConnectionState::Connected || game == nullptr)
+    {
+        return;
+    }
+
+    GameManager::GameState state = game->getState();
+
+    // The first state seen after connecting is only a baseline. Connecting while already in game has
+    // just applied the current settings, so there's nothing to pick up and reconnecting could land mid-battle.
+    if (previousState.has_value() && previousState != GameManager::GameState::InGame && state == GameManager::GameState::InGame)
+    {
+        // Save the current configuration in case of a crash, etc
+        // We do not overwrite Last Settings if we're currently on Default. It's too common to press
+        // Connect without thinking about it and then lose Last Settings in the process.
+        if (availableSettings[selectedSettingsIdx] != "Default")
+        {
+            saveSettings("settings/Last Settings.cfg", true);
+        }
+
+        // Reconnect so any settings changed on the main menu are applied to this run.
+        LOG("Detected game start, reconnecting GameManager..");
+        reconnect();
+        return;
+    }
+
+    previousState = state;
 }
 
 void App::setConnectionStatus(ConnectionState state, const std::string& status)

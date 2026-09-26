@@ -13,6 +13,7 @@ void NoDuping::setup()
 {
     BIND_EVENT(game->onStart, NoDuping::onStart);
     BIND_EVENT(game->onBattleEnter, NoDuping::onBattleEnter);
+    BIND_EVENT(game->onBattleResumed, NoDuping::onBattleEnter);
     BIND_EVENT_ONE_ARG(game->onFrame, NoDuping::onFrame);
 }
 

@@ -11,5 +11,7 @@ int WINAPI wWinMain(HINSTANCE, HINSTANCE, PWSTR, int)
     App app;
     app.run();
 
+    AudioManager::shutdown();
+
     return 0;
 }

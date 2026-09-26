@@ -24,6 +24,7 @@ void RandomizeESkills::setup()
 {
     BIND_EVENT(game->onStart, RandomizeESkills::onStart);
     BIND_EVENT(game->onBattleEnter, RandomizeESkills::onBattleEnter);
+    BIND_EVENT(game->onBattleResumed, RandomizeESkills::onBattleEnter);
     BIND_EVENT(game->onBattleExit, RandomizeESkills::onBattleExit);
     BIND_EVENT_ONE_ARG(game->onFrame, RandomizeESkills::onFrame);
 }

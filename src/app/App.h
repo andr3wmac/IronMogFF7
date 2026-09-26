@@ -7,6 +7,7 @@
 
 #include <atomic>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <thread>
 
@@ -67,6 +68,9 @@ protected:
     bool startGameManager();
     void runGameManager(ConnectionTarget target);
 
+    // Reconnects when the game goes from the main menu to in game, so settings changed on the main menu apply.
+    void checkForGameStart();
+
     void setConnectionStatus(ConnectionState state, const std::string& status);
     std::string getConnectionStatus();
 
@@ -84,7 +88,8 @@ protected:
     std::thread* managerThread = nullptr;
     std::atomic<bool> managerRunning = false;
     std::atomic<bool> stopRequested = false;
-    GameManager::GameState previousState = GameManager::GameState::BootScreen;
+    // Last game state seen by checkForGameStart, empty until the first one after connecting.
+    std::optional<GameManager::GameState> previousState;
 
     GameVersion selectedGameVersion = GameVersion::PlayStationUS;
     EmulatorType selectedEmulatorType = EmulatorType::DuckStation;

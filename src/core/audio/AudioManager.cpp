@@ -8,6 +8,7 @@ ma_engine gAudioEngine;
 ma_sound gMusicA;
 ma_sound gMusicB;
 ma_sound* pActiveMusic = nullptr;
+bool gAudioEngineInitialized = false;
 
 // Music can be controlled from both the GUI and game manager threads.
 std::mutex gMusicMutex;
@@ -25,7 +26,30 @@ bool AudioManager::initialize()
         return false;
     }
 
+    gAudioEngineInitialized = true;
     return true;
+}
+
+void AudioManager::shutdown()
+{
+    std::lock_guard<std::mutex> lock(gMusicMutex);
+
+    // Sounds are only initialized once a song has been loaded into them.
+    for (ma_sound* music : { &gMusicA, &gMusicB })
+    {
+        if (music->pDataSource != NULL)
+        {
+            ma_sound_stop(music);
+            ma_sound_uninit(music);
+        }
+    }
+    pActiveMusic = nullptr;
+
+    if (gAudioEngineInitialized)
+    {
+        ma_engine_uninit(&gAudioEngine);
+        gAudioEngineInitialized = false;
+    }
 }
 
 bool AudioManager::playMusic(std::string path)

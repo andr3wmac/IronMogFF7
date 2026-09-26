@@ -76,23 +76,7 @@ void App::drawSetupPanel()
     bool lockSettings = currentConnection > ConnectionState::NotConnected && currentConnection < ConnectionState::Error;
     if (lockSettings && currentConnection == ConnectionState::Connected && game != nullptr)
     {
-        GameManager::GameState state = game->getState();
-        lockSettings &= (state == GameManager::GameState::InGame);
-
-        // Save the current configuration in case of a crash, etc
-        if (previousState != GameManager::GameState::InGame && state == GameManager::GameState::InGame)
-        {
-            // We do not overwrite Last Settings if we're currently on Default. It's too common to press
-            // Connect without thinking about it and then lose Last Settings in the process.
-            if (availableSettings[selectedSettingsIdx] != "Default")
-            {
-                saveSettings("settings/Last Settings.cfg", true);
-            }
-            
-            LOG("Detected game start, reconnecting GameManager..");
-            reconnect();
-        }
-        previousState = state;
+        lockSettings &= (game->getState() == GameManager::GameState::InGame);
     }
 
     ImGui::Spacing();

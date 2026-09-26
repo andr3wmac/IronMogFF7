@@ -131,7 +131,8 @@ public:
     Event<int> onFrame;                     // Triggers when the game's frame number advances.
     Event<uint8_t> onModuleChanged;
     Event<uint16_t> onGameMomentChanged;
-    Event<> onBattleEnter; 
+    Event<> onBattleEnter;
+    Event<> onBattleResumed;                // Triggers instead of onBattleEnter when connecting mid-battle. Only for per-battle bookkeeping, never modify the battle here.
     Event<uint16_t> onBattleTransition;     // Triggers when a battle transitions from one formation to another. Like a multi-phase boss.
     Event<> onBattleExit;
     Event<uint16_t> onFieldChanged;

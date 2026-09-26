@@ -22,6 +22,7 @@ private:
 
     GameManager* game = nullptr;
     uint8_t gameModule = 0;
+    bool seenFirstModule = false;
 
     uint16_t lastBattleFormation = 0;
     bool waitingForBattleData = false;

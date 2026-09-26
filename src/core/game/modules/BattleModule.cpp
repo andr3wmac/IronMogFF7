@@ -15,8 +15,20 @@ void BattleModule::setup(GameManager* game)
 
 void BattleModule::onModuleChanged(uint8_t newGameModule)
 {
+    // Connected mid-battle (the first module seen is Battle). Either a previous connection already modified
+    // this battle, or it started while we weren't connected. Firing onBattleEnter again would compound the
+    // multipliers on an already modified battle, so we treat the battle as entered and leave it alone.
+    bool firstModule = !seenFirstModule;
+    seenFirstModule = true;
+
+    if (firstModule && newGameModule == GameModule::Battle)
+    {
+        lastBattleFormation = game->read<uint16_t>(BattleOffsets::ActiveFormationID);
+        LOG("Connected mid-battle in formation %d, skipping battle modifications.", lastBattleFormation);
+        game->onBattleResumed.invoke();
+    }
     // Entered battle
-    if (gameModule != GameModule::Battle && newGameModule == GameModule::Battle)
+    else if (gameModule != GameModule::Battle && newGameModule == GameModule::Battle)
     {
         waitingForBattleData = true;
     }
