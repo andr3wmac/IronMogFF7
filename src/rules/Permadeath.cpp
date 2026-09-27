@@ -325,6 +325,12 @@ void Permadeath::sacrificeFriendForCloud()
 
     // Each of Cloud's deaths costs more: 
     // 1 friend the first time, 2 the second, and on the 3rd death he's permanently gone.
+    // Stop at 3 so later battle exits cannot wrap the two-bit saved count.
+    if (cloudDeathCount >= 3)
+    {
+        return;
+    }
+
     cloudDeathCount++;
 
     if (cloudDeathCount >= 3)
@@ -380,10 +386,9 @@ void Permadeath::reviveCharacter(uint8_t id)
     savePermadeathState();
     justDiedCharacters.erase(id);
 
-    // Restore to full HP so the onFrame loop stops forcing the character down and they're properly alive again.
+    // Restore to 1 HP so the onFrame loop stops forcing the character down and they're properly alive again.
     uintptr_t characterOffset = getCharacterDataOffset(id);
-    uint16_t maxHP = game->read<uint16_t>(characterOffset + CharacterDataOffsets::MaxHP);
-    game->write<uint16_t>(characterOffset + CharacterDataOffsets::CurrentHP, maxHP);
+    game->write<uint16_t>(characterOffset + CharacterDataOffsets::CurrentHP, 1);
 
     LOG("Character has been revived: %d", id);
 }
