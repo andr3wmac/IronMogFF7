@@ -67,7 +67,7 @@ bool Permadeath::onSettingsGUI()
 
     ImGui::Spacing();
     ImGui::Text("Cloud Permadeath:");
-    ImGui::SetItemTooltip("Permanent: Cloud remains permanently dead.\nRevive After Lifestream: Cloud returns after the Lifestream sequence.\nSacrifice Your Friends: Another character dies in Cloud's place.");
+    ImGui::SetItemTooltip("Permanent: Cloud remains permanently dead.\nRevive After Lifestream: Cloud returns after the Lifestream sequence.\nSacrifice Your Friends: Other characters die in Cloud's place, including unrecruited characters.");
     ImGui::SameLine(DPI(200.0f));
     ImGui::SetNextItemWidth(DPI(200.0f));
 
@@ -334,8 +334,15 @@ void Permadeath::sacrificeFriendForCloud()
         return;
     }
 
-    // Cloud is already dead so getLivingCharacters excludes him, these are the sacrifice candidates.
-    std::vector<uint8_t> livingCharacters = getLivingCharacters();
+    // Sacrifices can come from the entire roster, even characters not yet recruited or visible in PHS.
+    std::vector<uint8_t> livingCharacters;
+    for (uint8_t id = 0; id < 9; ++id)
+    {
+        if (id != CLOUD_ID && !isCharacterDead(id))
+        {
+            livingCharacters.push_back(id);
+        }
+    }
     if ((int)livingCharacters.size() < cloudDeathCount)
     {
         // Not enough friends left to pay the toll, so Cloud's death stands.
