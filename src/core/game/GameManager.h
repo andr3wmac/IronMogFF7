@@ -141,7 +141,7 @@ public:
     Event<std::string> onNameEntryOpened;
     Event<> onWorldMapEnter;
     Event<float> onDifficultyScaleChanged;  // Triggers when the difficulty scaling changes, intended to trigger rules to update.
-    Event<CustomItemUse> onCustomItemUsed;   // Triggers when a registered custom item is used from the menu.
+    Event<CustomItemUse> onCustomItemUsed;  // Triggers when a registered custom item is used from the menu.
 
     // Read/Write RAM Functions
     template <typename T>

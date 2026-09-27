@@ -171,6 +171,18 @@ void MenuModule::updateCustomItemUse()
         return;
     }
 
+    if (item->getBlockedMessage)
+    {
+        std::string blockedMessage = item->getBlockedMessage();
+        if (!blockedMessage.empty())
+        {
+            // Back out of the target prompt without consuming the item.
+            cancelItemTargetPrompt();
+            showPopup(blockedMessage);
+            return;
+        }
+    }
+
     // Remove one from the stack (empty the slot if it was the last), then cancel the target prompt
     // back to the item list. Targeting items are not handled yet.
     uint16_t entry = game->read<uint16_t>(GameOffsets::Inventory + (slot * 2));

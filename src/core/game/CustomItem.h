@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <functional>
 #include <string>
 
 // A custom item fabricated in one of FF7's unused item slots (ids 105-127). 
@@ -13,6 +14,10 @@ struct CustomItem
 
     // How many field pickups are replaced by this custom item across the run.
     int spawnCount = 0;
+
+    // Optional check run before the item is consumed. Returning a non-empty message blocks the use,
+    // the item stays in the inventory and the message is shown as a popup instead.
+    std::function<std::string()> getBlockedMessage;
 };
 
 struct CustomItemUse

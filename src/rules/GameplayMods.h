@@ -44,4 +44,6 @@ private:
     AerithMode aerithMode = AerithMode::Never;
     int aerithItemCount = 3;
     uint16_t aerithItemId = 0xFFFF;
+
+    bool skipKalmFlashback = false;
 };

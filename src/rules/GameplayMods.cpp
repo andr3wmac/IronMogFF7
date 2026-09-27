@@ -28,6 +28,11 @@ void GameplayMods::setup()
         item.name = "Resurrect Aerith";
         item.targetsCharacter = false;
         item.spawnCount = aerithItemCount;
+        item.getBlockedMessage = [this]() -> std::string
+        {
+            // Aerith doesn't die until the end of Disc 1.
+            return game->getGameMoment() < 677 ? "She's not dead yet!" : "";
+        };
         aerithItemId = game->registerCustomItem(item);
         LOG("Registered %s as item ID: %d", item.name.c_str(), aerithItemId);
     }
@@ -72,6 +77,12 @@ bool GameplayMods::onSettingsGUI()
         changed |= ImGui::SliderInt("##GameplayMods_aerithItemCount", &aerithItemCount, 1, 10);
     }
 
+    ImGui::Spacing();
+    ImGui::Text("Skip Kalm Flashback:");
+    ImGui::SetItemTooltip("Skips the Kalm flashback when first entering the Kalm inn.");
+    ImGui::SameLine(DPI(200.0f));
+    changed |= ImGui::Checkbox("##GameplayMods_skipKalmFlashback", &skipKalmFlashback);
+
     return changed;
 }
 
@@ -80,6 +91,7 @@ void GameplayMods::loadSettings(const ConfigFile& cfg)
     masamuneMode = (MasamuneMode)cfg.get<int>("musamuneMode", (int)masamuneMode);
     aerithMode = (AerithMode)cfg.get<int>("aerithMode", (int)aerithMode);
     aerithItemCount = cfg.get<int>("aerithItemCount", aerithItemCount);
+    skipKalmFlashback = cfg.get<bool>("skipKalmFlashback", skipKalmFlashback);
 }
 
 void GameplayMods::saveSettings(ConfigFile& cfg)
@@ -87,6 +99,7 @@ void GameplayMods::saveSettings(ConfigFile& cfg)
     cfg.set<int>("musamuneMode", (int)masamuneMode);
     cfg.set<int>("aerithMode", (int)aerithMode);
     cfg.set<int>("aerithItemCount", aerithItemCount);
+    cfg.set<bool>("skipKalmFlashback", skipKalmFlashback);
 }
 
 void GameplayMods::onStart()
@@ -151,6 +164,16 @@ void GameplayMods::applyMasamuneMode()
 
 void GameplayMods::onFieldChanged(uint16_t fieldID)
 {
+    // Jump the game moment past the Kalm flashback so the inn plays out as if it's already been seen.
+    if (skipKalmFlashback && fieldID == 335 && game->getGameMoment() < 385)
+    {
+        // Var[3][128] bit 1 is set by the inn script once the flashback has been completed.
+        const uintptr_t kalmFlagsAddr = 0x9D408; // uint8_t
+        game->write<uint8_t>(kalmFlagsAddr, game->read<uint8_t>(kalmFlagsAddr) | 0x02);
+        game->write<uint16_t>(GameOffsets::GameMoment, 385);
+        LOG("Skip Kalm Flashback: set game moment to 385 and marked flashback completed.");
+    }
+
     // Enable Aerith on the PHS when Disc 2 starts, but only when she's meant to be alive this run.
     if ((aerithMode == AerithMode::Always) && fieldID == 634 && game->getGameMoment() == 677)
     {

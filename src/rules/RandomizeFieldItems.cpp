@@ -280,6 +280,7 @@ void RandomizeFieldItems::apply()
             {
                 game->write<uint16_t>(itemIDOffset, custom->id);
                 game->write<uint8_t>(itemQuantityOffset, 1);
+                LOG("Randomized item on field %d: %s (%d) changed to: %s (%d)", fieldData.id, oldItemName.c_str(), oldItem.quantity, custom->name.c_str(), 1);
 
                 int msgIndex = game->field.findPickUpMessage(oldItemName, oldItem.group, oldItem.script, oldItem.offset);
                 if (msgIndex >= 0)
