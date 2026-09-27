@@ -196,7 +196,6 @@ if find_loops:
 
 if populate_music:
     print("Populating music folder..")
-    # Song placements match music_new; FFX filenames use the archive titles.
     music = {}
     music["aseri"] = ['FF7 - Hurry!.mp3', 'FF8 - Only a Plank Between One and Perdition.mp3', 'FF9 - Ambush Attack.mp3', 'FFX - Hurry!!.mp3']
     music["aseri2"] = ['FF7 - Hurry, Faster!.mp3', 'FF8 - Never Look Back.mp3', 'FF9 - Run!.mp3', 'FFX - Assault.mp3']
@@ -216,7 +215,7 @@ if populate_music:
     music["cintro"] = []
     music["comical"] = []
     music["condor"] = ['FF7 - Fortress of the Condor.mp3', 'FFX - Inflexible Determination.mp3']
-    music["corel"] = ['FF6 - Gau.mp3', 'FF6 - Under Martial Law.mp3', 'FF7 - Mining Town.mp3']
+    music["corel"] = ['FF6 - Gau.mp3', 'FF6 - Under Martial Law.mp3', 'FF7 - Mining Town.mp3', 'FF8 - Unrest.mp3']
     music["corneo"] = ['FF6 - Gogo.mp3', 'FF6 - Mog.mp3', 'FF7 - Don of the Slums.mp3', 'FF8 - Residents.mp3', 'FF9 - Gargan Roo.mp3', "FFX - Mi'ihen Highroad.mp3"]
     music["costa"] = ['FF7 - Costa del Sol.mp3', 'FFX - The Sight of Spira.mp3']
     music["crlost"] = ['FF7 - Tango of Tears.mp3']
@@ -287,7 +286,7 @@ if populate_music:
     music["tb"] = ['FF6 - Searching for Friends.mp3', 'FF6 - Terra.mp3', 'FF7 - Main Theme of Final Fantasy VII.mp3', 'FF8 - Blue Fields.mp3', 'FF9 - Crossing Those Hills.mp3', 'FFX - Besaid Island.mp3']
     music["tender"] = ['FF6 - Relm.mp3', 'FF7 - Holding My Thoughts in My Heart.mp3', 'FF8 - Ami.mp3', 'FF8 - Tell Me.mp3', 'FFX - Daughter of the High Summoner.mp3']
     music["tifa"] = ["FF7 - Tifa's Theme.mp3"]
-    music["tm"] = ['FF7 - On That Day, 5 Years Ago.mp3', 'FF8 - Unrest.mp3']
+    music["tm"] = ['FF7 - On That Day, 5 Years Ago.mp3']
     music["utai"] = ['FF7 - Wutai.mp3', 'FFX - Temple Band.mp3']
     music["vincent"] = ["FF7 - The Nightmare's Beginning.mp3", 'FF9 - Kingdom of Burmecia.mp3', 'FFX - Path of Repentance.mp3']
     music["walz"] = ['FF7 - Waltz de Chocobo.mp3', 'FF9 - Ukulele de Chocobo.mp3']
