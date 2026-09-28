@@ -67,7 +67,7 @@ bool Permadeath::onSettingsGUI()
 
     ImGui::Spacing();
     ImGui::Text("Cloud Permadeath:");
-    ImGui::SetItemTooltip("Permanent: Cloud remains permanently dead.\nRevive After Lifestream: Cloud returns after the Lifestream sequence.\nSacrifice Your Friends: Other characters die in Cloud's place, including unrecruited characters.");
+    ImGui::SetItemTooltip("Permanent: Cloud remains permanently dead.\nRevive After Lifestream: Cloud returns after the Lifestream sequence.\nSacrifice Your Friends: Other characters die in Cloud's place.");
     ImGui::SameLine(DPI(200.0f));
     ImGui::SetNextItemWidth(DPI(200.0f));
 
