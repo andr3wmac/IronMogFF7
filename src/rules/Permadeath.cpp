@@ -3,6 +3,7 @@
 #include "core/utilities/Flags.h"
 #include "core/utilities/Logging.h"
 #include "core/utilities/Utilities.h"
+#include "core/gui/GUI.h"
 
 #include <imgui.h>
 #include <random>
@@ -13,6 +14,10 @@ REGISTER_RULE(Permadeath, "Permadeath", "If a character dies, they cannot be rev
 #define DYNE_FIELD_ID 480
 #define CLOUD_ID 0
 #define BARRET_ID 1
+#define CLOUD_LIFESTREAM_FIELD_ID 73
+#define CLOUD_LIFESTREAM_GAME_MOMENT 1197
+
+static const char* cloudDeathModes[] { "Permanent", "Revive After Lifestream", "Sacrifice Your Friends" };
 
 void Permadeath::setup()
 {
@@ -60,17 +65,32 @@ bool Permadeath::onSettingsGUI()
     changed |= ImGui::Checkbox("Delete Equipped", &deleteEquipped);
     ImGui::SetItemTooltip("Anything equipped at the time of death is deleted.");
 
+    ImGui::Spacing();
+    ImGui::Text("Cloud Permadeath:");
+    ImGui::SetItemTooltip("Permanent: Cloud remains permanently dead.\nRevive After Lifestream: Cloud returns after the Lifestream sequence.\nSacrifice Your Friends: Other characters die in Cloud's place, including unrecruited characters.");
+    ImGui::SameLine(DPI(200.0f));
+    ImGui::SetNextItemWidth(DPI(200.0f));
+
+    int cloudDeathModeIndex = (int)cloudDeathMode;
+    if (ImGui::Combo("##Permadeath_cloudDeathMode", &cloudDeathModeIndex, cloudDeathModes, IM_ARRAYSIZE(cloudDeathModes)))
+    {
+        cloudDeathMode = (CloudDeathMode)cloudDeathModeIndex;
+        changed = true;
+    }
+
     return changed;
 }
 
 void Permadeath::loadSettings(const ConfigFile& cfg)
 {
     deleteEquipped = cfg.get<bool>("deleteEquipped", deleteEquipped);
+    cloudDeathMode = (CloudDeathMode)cfg.get<int>("cloudDeathMode", (int)cloudDeathMode);
 }
 
 void Permadeath::saveSettings(ConfigFile& cfg)
 {
     cfg.set<bool>("deleteEquipped", deleteEquipped);
+    cfg.set<int>("cloudDeathMode", (int)cloudDeathMode);
 }
 
 void Permadeath::onDebugGUI()
@@ -88,7 +108,8 @@ void Permadeath::onDebugGUI()
     if (ImGui::Button("Clear Dead Characters"))
     {
         deadCharacters = 0;
-        game->write<uint16_t>(SavemapOffsets::IronMogPermadeath, deadCharacters.value());
+        cloudDeathCount = 0;
+        savePermadeathState();
 
         std::array<uint8_t, 3> partyIDs = game->getPartyIDs();
         for (int i = 0; i < 3; ++i)
@@ -129,7 +150,7 @@ std::vector<std::string> Permadeath::describe(RuleDescripionType descType)
 
 void Permadeath::onStart()
 {
-    deadCharacters = game->read<uint16_t>(SavemapOffsets::IronMogPermadeath);
+    loadPermadeathState();
     appliedRufusRandom = false;
     waitingOnBattleExit = false;
 }
@@ -190,8 +211,7 @@ void Permadeath::onFrame(uint32_t frameNumber)
 
             if (game->inBattle())
             {
-                // If the player just died we let the game drop the HP gauges 
-                // down naturally instead of us forcing them down instantly.
+                // If the player just died we let the game drop the HP gauges down naturally instead of us forcing them down instantly.
                 if (justDiedCharacters.count(id) > 0)
                 {
                     uint16_t currentHP = game->read<uint16_t>(PlayerOffsets::Players[i] + PlayerOffsets::CurrentHP);
@@ -214,6 +234,8 @@ void Permadeath::onFrame(uint32_t frameNumber)
 
 void Permadeath::onFieldChanged(uint16_t fieldID)
 {
+    reviveCloudAfterLifestream(fieldID);
+
     if (fieldID == RUFUS_FIELD_ID && isCharacterDead(CLOUD_ID))
     {
         if (game->getGameMoment() < 320)
@@ -255,8 +277,7 @@ void Permadeath::onFieldChanged(uint16_t fieldID)
             return;
         }
 
-        // Overwrite the command that swaps party before the dyne 
-        // fight to use a character other than Barret since hes dead.
+        // Overwrite the command that swaps party before the dyne fight to use a character other than Barret since hes dead.
         uintptr_t dynePartyCommand = FieldScriptOffsets::ScriptStart + 0x4FE;
         if (game->getGameVersion() == GameVersion::PlayStationUS_CSR)
         {
@@ -270,6 +291,8 @@ void Permadeath::onFieldChanged(uint16_t fieldID)
 
 void Permadeath::onBattleExit()
 {
+    sacrificeFriendForCloud();
+
     uint16_t fieldID = game->getFieldID();
     if (fieldID == RUFUS_FIELD_ID && appliedRufusRandom)
     {
@@ -277,10 +300,118 @@ void Permadeath::onBattleExit()
     }
 }
 
+void Permadeath::reviveCloudAfterLifestream(uint16_t fieldID)
+{
+    if (cloudDeathMode != CloudDeathMode::ReviveAfterLifestream || fieldID != CLOUD_LIFESTREAM_FIELD_ID || game->getGameMoment() != CLOUD_LIFESTREAM_GAME_MOMENT)
+    {
+        return;
+    }
+
+    if (!isCharacterDead(CLOUD_ID))
+    {
+        return;
+    }
+
+    reviveCharacter(CLOUD_ID);
+    LOG("Cloud Permadeath: revived Cloud after the Lifestream sequence.");
+}
+
+void Permadeath::sacrificeFriendForCloud()
+{
+    if (cloudDeathMode != CloudDeathMode::SacrificeYourFriends || !isCharacterDead(CLOUD_ID))
+    {
+        return;
+    }
+
+    // Each of Cloud's deaths costs more: 
+    // 1 friend the first time, 2 the second, and on the 3rd death he's permanently gone.
+    // Stop at 3 so later battle exits cannot wrap the two-bit saved count.
+    if (cloudDeathCount >= 3)
+    {
+        return;
+    }
+
+    cloudDeathCount++;
+
+    if (cloudDeathCount >= 3)
+    {
+        savePermadeathState();
+        LOG("Cloud Permadeath: Cloud died a third time and is now permanently dead.");
+        return;
+    }
+
+    // Sacrifices can come from the entire roster, even characters not yet recruited or visible in PHS.
+    std::vector<uint8_t> livingCharacters;
+    for (uint8_t id = 0; id < 9; ++id)
+    {
+        if (id != CLOUD_ID && !isCharacterDead(id))
+        {
+            livingCharacters.push_back(id);
+        }
+    }
+    if ((int)livingCharacters.size() < cloudDeathCount)
+    {
+        // Not enough friends left to pay the toll, so Cloud's death stands.
+        savePermadeathState();
+        LOG("Cloud Permadeath: not enough living characters to sacrifice; Cloud remains dead.");
+        return;
+    }
+
+    // Shuffle deterministically from the seed so the chosen victims are stable across reloads.
+    uint64_t rngSeed = Utilities::makeSeed64(game->getSeed(), game->getFieldID());
+    std::mt19937_64 rng(rngSeed);
+    std::shuffle(livingCharacters.begin(), livingCharacters.end(), rng);
+
+    reviveCharacter(CLOUD_ID);
+
+    std::string sacrificedNames;
+    for (int i = 0; i < cloudDeathCount; ++i)
+    {
+        uint8_t victim = livingCharacters[i];
+        killCharacter(victim);
+
+        if (!sacrificedNames.empty())
+        {
+            sacrificedNames += ", ";
+        }
+        sacrificedNames += getCharacterName(victim);
+    }
+
+    LOG("Cloud Permadeath: sacrificed %s to revive Cloud (death #%d).", sacrificedNames.c_str(), cloudDeathCount);
+}
+
+void Permadeath::reviveCharacter(uint8_t id)
+{
+    deadCharacters.setBit(id, false);
+    savePermadeathState();
+    justDiedCharacters.erase(id);
+
+    // Restore to 1 HP so the onFrame loop stops forcing the character down and they're properly alive again.
+    uintptr_t characterOffset = getCharacterDataOffset(id);
+    game->write<uint16_t>(characterOffset + CharacterDataOffsets::CurrentHP, 1);
+
+    LOG("Character has been revived: %d", id);
+}
+
+// The savemap word packs the dead-character mask in the low bits and Cloud's death count in the top two bits (14-15).
+// Splitting/combining is kept to these two functions so the bit layout lives in one place.
+void Permadeath::loadPermadeathState()
+{
+    uint16_t raw = game->read<uint16_t>(SavemapOffsets::IronMogPermadeath);
+    deadCharacters = raw & 0x3FFF;
+    cloudDeathCount = (uint8_t)((raw >> 14) & 0x3);
+}
+
+void Permadeath::savePermadeathState()
+{
+    uint16_t raw = (uint16_t)(deadCharacters.value() & 0x3FFF) | (uint16_t)((cloudDeathCount & 0x3) << 14);
+    game->write<uint16_t>(SavemapOffsets::IronMogPermadeath, raw);
+}
+
 void Permadeath::killCharacter(uint8_t id)
 {
     deadCharacters.setBit(id, true);
-    game->write<uint16_t>(SavemapOffsets::IronMogPermadeath, deadCharacters.value());
+    savePermadeathState();
     justDiedCharacters.insert(id);
     LOG("Character has died: %d", id);
 
@@ -405,8 +536,7 @@ void Permadeath::updateOverrideFights()
                 scriptAfterRufus = FieldScriptOffsets::ScriptStart + 0x46A;
             }
 
-            // Overwrite the command that comes after the Rufus fight trigger with this 
-            // command to switch to party back to Cloud.
+            // Overwrite the command that comes after the Rufus fight trigger with this command to switch to party back to Cloud.
             game->write<uint8_t>(scriptAfterRufus + 0, 0xCA);
             game->write<uint8_t>(scriptAfterRufus + 1, CLOUD_ID);
             game->write<uint8_t>(scriptAfterRufus + 2, 0xFE);
