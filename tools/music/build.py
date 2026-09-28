@@ -11,13 +11,13 @@ from urllib.parse import unquote
 
 from process_music import batch_normalize_folder, batch_loop_folder
 
-download_music   = False
+download_music   = True
 create_folders   = True
-unzip_sources    = False
-delete_unwanted  = False
-rename_files     = False
-normalize_volume = False
-find_loops       = False
+unzip_sources    = True
+delete_unwanted  = True
+rename_files     = True
+normalize_volume = True
+find_loops       = True
 populate_music   = True
 
 def deleteFile(path):
@@ -69,6 +69,10 @@ if download_music:
     if not downloadFile("https://fi.zophar.net/soundfiles/playstation-psf/final-fantasy-ix/iseszzgf/Final%20Fantasy%20IX%20%28MP3%29.zophar.zip"):
         print("Final Fantasy IX music already downloaded, skipping..")
 
+    print("Downloading Final Fantasy X music..")
+    if not downloadFile("https://fi.zophar.net/soundfiles/playstation2-psf2/final-fantasy-x/niauuswu/Final%20Fantasy%20X%20%28MP3%29.zophar.zip"):
+        print("Final Fantasy X music already downloaded, skipping..")
+
 if create_folders:
     deleteFolder("music")
 
@@ -86,7 +90,7 @@ if create_folders:
         "sid2", "sadsid", "iseki", "hen", "utai", "snow", "yufi2", "mekyu",
         "condor", "lb2", "gun", "weapon", "pj", "sea", "ld", "lb1",
         "sensui", "ro", "jyro", "nointro", "riku", "si", "mogu", "pre",
-        "fin", "heart", "roll"
+        "fin", "heart", "roll", "snowboard"
     ]
 
     # Create folders for all entries except 'none' and 'nothing'
@@ -117,6 +121,11 @@ if unzip_sources:
     os.makedirs("workspace/FF9/", exist_ok=True)
     with zipfile.ZipFile("workspace/Final Fantasy IX (MP3).zophar.zip", 'r') as zip_ref:
         zip_ref.extractall("workspace/FF9/")
+
+    deleteFolder("workspace/FFX/")
+    os.makedirs("workspace/FFX/", exist_ok=True)
+    with zipfile.ZipFile("workspace/Final Fantasy X (MP3).zophar.zip", 'r') as zip_ref:
+        zip_ref.extractall("workspace/FFX/")
 
 if delete_unwanted:
     print("Deleting unwanted files..")
@@ -167,6 +176,7 @@ if rename_files:
     renameToTitles("workspace/FF7/", "FF7")
     renameToTitles("workspace/FF8/", "FF8")
     renameToTitles("workspace/FF9/", "FF9")
+    renameToTitles("workspace/FFX/", "FFX")
 
 if normalize_volume:
     print("Normalizing Volume..")
@@ -174,6 +184,7 @@ if normalize_volume:
     batch_normalize_folder("workspace/FF7/", "workspace/FF7_Normalized/")
     batch_normalize_folder("workspace/FF8/", "workspace/FF8_Normalized/")
     batch_normalize_folder("workspace/FF9/", "workspace/FF9_Normalized/")
+    batch_normalize_folder("workspace/FFX/", "workspace/FFX_Normalized/")
 
 if find_loops:
     print("Finding loops..")
@@ -181,107 +192,114 @@ if find_loops:
     batch_loop_folder("workspace/FF7_Normalized/")
     batch_loop_folder("workspace/FF8_Normalized/")
     batch_loop_folder("workspace/FF9_Normalized/")
+    batch_loop_folder("workspace/FFX_Normalized/")
 
 if populate_music:
     print("Populating music folder..")
     music = {}
-    music["aseri"] = ['FF7 - Hurry!.mp3', "FF8 - Movin'.mp3", 'FF8 - Never Look Back.mp3', 'FF8 - The Mission.mp3', 'FF8 - The Stage is Set.mp3', 'FF9 - Ambush Attack.mp3', 'FF9 - Assault of the White Dragons.mp3', 'FF9 - Feel My Blade.mp3', "FF9 - Hunter's Chance.mp3", 'FF9 - Run!.mp3']
-    music["aseri2"] = ['FF7 - Hurry, Faster!.mp3', 'FF8 - Never Look Back.mp3', 'FF9 - Ambush Attack.mp3', 'FF9 - Assault of the White Dragons.mp3', 'FF9 - Run!.mp3']
-    music["ayasi"] = ['FF7 - Lurking in the Darkness.mp3', 'FF8 - Fear.mp3', 'FF8 - Intruders.mp3', 'FF8 - The Spy.mp3']
+    music["aseri"] = ['FF7 - Hurry!.mp3', 'FF8 - Only a Plank Between One and Perdition.mp3', 'FF9 - Ambush Attack.mp3', 'FFX - Hurry!!.mp3']
+    music["aseri2"] = ['FF7 - Hurry, Faster!.mp3', 'FF8 - Never Look Back.mp3', 'FF9 - Run!.mp3', 'FFX - Assault.mp3']
+    music["ayasi"] = ['FF7 - Lurking in the Darkness.mp3', 'FF8 - Fear.mp3', 'FF9 - Battle Strategy Conference.mp3', 'FFX - Brave Advancement.mp3']
     music["barret"] = ["FF7 - Barret's Theme.mp3"]
-    music["bat"] = ['FF6 - Battle Theme.mp3', 'FF7 - Fighting.mp3', "FF8 - Don't Be Afraid.mp3", 'FF8 - Force Your Way.mp3', 'FF8 - The Man With the Machine Gun.mp3', 'FF9 - Battle.mp3']
+    music["bat"] = ['FF6 - Battle Theme.mp3', 'FF7 - Fighting.mp3', "FF8 - Don't Be Afraid.mp3", 'FF8 - The Man With the Machine Gun.mp3', 'FF9 - Battle.mp3', 'FFX - Battle.mp3']
     music["bee"] = ['FF6 - The Magic House.mp3', 'FF7 - Honeybee Manor.mp3', "FF9 - Quina's Theme.mp3"]
-    music["bokujo"] = ['FF7 - Farm Boy.mp3']
-    music["boo"] = ['FF7 - Life Stream.mp3']
-    music["cannon"] = ['FF6 - Catastrophe.mp3', 'FF6 - Metamorphasis.mp3', 'FF7 - The Mako Cannon Fires!.mp3', 'FF8 - Dead End.mp3', 'FF8 - Retaliation.mp3', 'FF9 - Assault of the White Dragons.mp3']
-    music["canyon"] = ['FF6 - Cyan.mp3', 'FF6 - Shadow.mp3', 'FF7 - Cosmo Canyon.mp3', 'FF9 - Mountain Pass.mp3', 'FF9 - Oeilvert.mp3']
-    music["cephiros"] = ['FF7 - Those Chosen By the Planet.mp3', 'FF8 - Succession of Witches.mp3', 'FF9 - Iifa Tree.mp3']
+    music["bokujo"] = ['FF6 - Epitaph.mp3', 'FF6 - Shadow.mp3', 'FF7 - Farm Boy.mp3', "FFX - Jecht's Theme.mp3"]
+    music["boo"] = ['FF7 - Life Stream.mp3', 'FFX - Someday the Dream Will End.mp3']
+    music["cannon"] = ['FF6 - Catastrophe.mp3', 'FF7 - The Mako Cannon Fires!.mp3', 'FF8 - Retaliation.mp3', 'FFX - Launch.mp3']
+    music["canyon"] = ['FF6 - Cyan.mp3', 'FF6 - Wild West.mp3', 'FF7 - Cosmo Canyon.mp3', 'FF9 - Mountain Pass.mp3', 'FFX - People of the Far North.mp3']
+    music["cephiros"] = ['FF7 - Those Chosen By the Planet.mp3', 'FF8 - Succession of Witches.mp3', 'FF9 - Iifa Tree.mp3', "FFX - Seymour's Theme.mp3"]
     music["chase"] = ['FF7 - Crazy Motorcycle Chase.mp3']
-    music["chu"] = ['FF6 - The Decisive Battle.mp3', 'FF7 - Still More Fighting.mp3', 'FF8 - Force Your Way.mp3', 'FF9 - Boss Battle.mp3']
+    music["chu"] = ['FF6 - The Decisive Battle.mp3', 'FF7 - Still More Fighting.mp3', 'FF8 - Force Your Way.mp3', 'FF9 - Boss Battle.mp3', 'FFX - Enemy Attack.mp3']
     music["chu2"] = ['FF7 - J-E-N-O-V-A.mp3']
-    music["cinco"] = ['FF7 - Cinco de Chocobo.mp3']
-    music["cintro"] = ['FF6 - The Empire Gestahl.mp3', 'FF7 - Those Chosen By the Planet.mp3', 'FF8 - Fithos Lusec Wecos Vinosec.mp3', 'FF9 - Keeper of Time.mp3']
+    music["cinco"] = ['FF7 - Cinco de Chocobo.mp3', 'FFX - Brass de Chocobo.mp3']
+    music["cintro"] = []
     music["comical"] = []
-    music["condor"] = ['FF6 - Troops March on.mp3', 'FF7 - Fortress of the Condor.mp3']
-    music["corel"] = ['FF7 - Mining Town.mp3', 'FF9 - Ceremony for the Gods.mp3', 'FF9 - Ruins of Madain Sari.mp3']
-    music["corneo"] = ['FF6 - Gogo.mp3', 'FF6 - Slam Shuffle.mp3', 'FF7 - Don of the Slums.mp3', 'FF8 - Residents.mp3', 'FF8 - Silence and Motion.mp3', 'FF9 - Gargan Roo.mp3', 'FF9 - Jesters of the Moon.mp3', 'FF9 - The City that Never Sleeps.mp3', 'FF9 - The Four Medallions.mp3', 'FF9 - Theme of Tantalus.mp3']
-    music["costa"] = ['FF7 - Costa del Sol.mp3']
+    music["condor"] = ['FF7 - Fortress of the Condor.mp3', 'FFX - Inflexible Determination.mp3']
+    music["corel"] = ['FF6 - Gau.mp3', 'FF6 - Under Martial Law.mp3', 'FF7 - Mining Town.mp3', 'FF8 - Unrest.mp3']
+    music["corneo"] = ['FF6 - Gogo.mp3', 'FF6 - Mog.mp3', 'FF7 - Don of the Slums.mp3', 'FF8 - Residents.mp3', 'FF9 - Gargan Roo.mp3', "FFX - Mi'ihen Highroad.mp3"]
+    music["costa"] = ['FF7 - Costa del Sol.mp3', 'FFX - The Sight of Spira.mp3']
     music["crlost"] = ['FF7 - Tango of Tears.mp3']
     music["crwin"] = ['FF7 - A Great Success.mp3']
-    music["date"] = ['FF6 - Celes.mp3', 'FF6 - Relm.mp3', 'FF7 - Interrupted by Fireworks.mp3', 'FF8 - Ami.mp3', 'FF8 - Tell Me.mp3', 'FF8 - Where I Belong.mp3', 'FF9 - Memories Erased in the Storm.mp3', 'FF9 - Stolen Eyes.mp3', 'FF9 - The Heart of Melting Magic.mp3']    
-    music["dokubo"] = ['FF7 - Underneath the Rotting Pizza.mp3', 'FF8 - Galbadia Garden (No Intro).mp3', 'FF8 - Jailed.mp3', 'FF8 - Martial Law.mp3', 'FF8 - Under Her Control.mp3', 'FF9 - Lindblum.mp3', "FF9 - Vivi's Theme.mp3", 'FF9 - We Are Thieves!.mp3']
-    music["dun2"] = ['FF6 - Another World of Beasts.mp3', 'FF7 - Chasing the Black-Caped Man.mp3', 'FF8 - Compression of Time.mp3', 'FF8 - Junction.mp3', 'FF8 - Lunatic Pandora.mp3', 'FF9 - A Transient Past.mp3', 'FF9 - Black Waltz.mp3', "FF9 - Cleyra's Trunk.mp3", 'FF9 - Footsteps of Desire.mp3', 'FF9 - Memories of That Day.mp3', 'FF9 - The Chosen Summoner.mp3']
-    music["earis"] = ['FF6 - Aria de Mezzo Carattere.mp3', "FF7 - Aeris' Theme.mp3", 'FF8 - Fragments of Memories.mp3']
-    music["earislo"] = ['FF7 - Flowers Blooming in the Church.mp3']
+    music["date"] = ['FF6 - Celes.mp3', 'FF7 - Interrupted by Fireworks.mp3', 'FF8 - Fragments of Memories.mp3', 'FF8 - Love Grows.mp3', 'FF8 - Where I Belong.mp3', 'FF9 - Memories Erased in the Storm.mp3', 'FF9 - Stolen Eyes.mp3', 'FF9 - The Heart of Melting Magic.mp3', "FFX - Yuna's Determination.mp3"]
+    music["dokubo"] = ['FF7 - Underneath the Rotting Pizza.mp3', 'FF8 - Galbadia Garden (No Intro).mp3', 'FF8 - Jailed.mp3', 'FF9 - We Are Thieves!.mp3']
+    music["dun2"] = ['FF7 - Chasing the Black-Caped Man.mp3', 'FF8 - Junction.mp3', "FF9 - Cleyra's Trunk.mp3", 'FF9 - Memories of That Day.mp3', 'FF9 - The Chosen Summoner.mp3', 'FF9 - Wall of Sacred Beasts.mp3']
+    music["earis"] = ['FF6 - Aria de Mezzo Carattere.mp3', "FF7 - Aeris' Theme.mp3", 'FF8 - Fragments of Memories.mp3', "FF9 - Garnet's Theme.mp3", "FFX - Yuna's Theme.mp3"]
+    music["earislo"] = ['FF7 - Flowers Blooming in the Church.mp3', 'FFX - In Zanarkand.mp3']
     music["elec"] = ['FF6 - Techno de Chocobo.mp3', 'FF7 - Electric de Chocobo.mp3', 'FF8 - Mods de Chocobo.mp3']
-    music["fan2"] = ['FF6 - Fanfare.mp3', 'FF7 - Fanfare.mp3', 'FF8 - The Winner.mp3', 'FF9 - Fanfare.mp3']
-    music["fanfare"] = ['FF6 - Fanfare.mp3', 'FF7 - Fanfare.mp3', 'FF8 - The Winner.mp3', 'FF9 - Fanfare.mp3']
+    music["fan2"] = ['FF6 - Fanfare.mp3', 'FF7 - Fanfare.mp3', 'FF8 - The Winner.mp3', 'FF9 - Fanfare.mp3', 'FFX - Victory!.mp3']
+    music["fanfare"] = ['FF6 - Fanfare.mp3', 'FF7 - Fanfare.mp3', 'FF8 - The Winner.mp3', 'FF9 - Fanfare.mp3', 'FFX - Victory!.mp3']
     music["fiddle"] = ['FF7 - Fiddle de Chocobo.mp3']
     music["fin"] = ['FF7 - World Crisis.mp3']
-    music["geki"] = ['FF6 - Kefka.mp3', 'FF6 - Mog.mp3', 'FF6 - Spinach Rag.mp3', 'FF7 - Debut.mp3', 'FF8 - Slide Show Part 1.mp3', "FF9 - Moogle's Theme.mp3", 'FF9 - Slew of Love Letters.mp3', 'FF9 - The Sneaky Frog and the Scoundrel.mp3']
-    music["gold1"] = ['FF6 - Johnny C. Bad.mp3', 'FF7 - Gold Saucer.mp3', 'FF8 - Celebration (Irish Jig).mp3', 'FF8 - Shuffle or Boogie.mp3', "FF9 - Black Mage's Village.mp3", 'FF9 - Jesters of the Moon.mp3', 'FF9 - Prima Vista Band.mp3']
-    music["guitar2"] = ['FF6 - Coin Song.mp3', 'FF6 - Forever Rachel!.mp3', 'FF7 - On the Other Side of the Mountain.mp3', 'FF8 - Julia.mp3', 'FF8 - Roses and Wine.mp3', 'FF9 - Dissipating Sorrow.mp3', 'FF9 - Song of Memories.mp3']
-    music["gun"] = ['FF7 - Full-Scale Attack.mp3', 'FF8 - Never Look Back.mp3', 'FF8 - The Mission.mp3', 'FF8 - The Stage is Set.mp3', 'FF9 - Ambush Attack.mp3', 'FF9 - Assault of the White Dragons.mp3', "FF9 - Hunter's Chance.mp3"]
-    music["hen"] = ['FF6 - Another World of Beasts.mp3', 'FF7 - Who Am I.mp3', 'FF8 - Compression of Time.mp3', 'FF8 - Find Your Way.mp3', 'FF8 - Junction.mp3', 'FF8 - Lunatic Pandora.mp3', 'FF9 - A Transient Past.mp3', 'FF9 - Black Waltz.mp3', "FF9 - Cleyra's Trunk.mp3", 'FF9 - Extraction.mp3', 'FF9 - Footsteps of Desire.mp3', 'FF9 - The Chosen Summoner.mp3']
-    music["hiku"] = ['FF6 - Blackjack.mp3', 'FF6 - Searching for Friends.mp3', 'FF7 - The Highwind Takes to the Skies.mp3', 'FF8 - Ride On.mp3', 'FF9 - The Airship, Hilda Garde.mp3']
-    music["horror"] = ['FF7 - Trail of Blood.mp3', 'FF8 - Rivals.mp3']
-    music["iseki"] = ['FF7 - You Can Hear the Cry of the Planet.mp3', "FF9 - Ipsen's Castle.mp3", 'FF9 - Rebirth of the Evil Mist.mp3', 'FF9 - Terra.mp3', 'FF9 - Wall of Sacred Beasts.mp3']
-    music["jukai"] = ['FF6 - The Phantom Forest.mp3', 'FF7 - Forested Temple.mp3', 'FF9 - Awakening the Forest.mp3', 'FF9 - Place of Memory.mp3']
-    music["junon"] = ['FF6 - Another World of Beasts.mp3', 'FF7 - Off the Edge of Despair.mp3', 'FF8 - Compression of Time.mp3', 'FF8 - Junction.mp3', 'FF8 - Lunatic Pandora.mp3', 'FF9 - A Transient Past.mp3', 'FF9 - Battle Strategy Conference.mp3', "FF9 - Cleyra's Trunk.mp3", 'FF9 - Extraction.mp3', 'FF9 - Footsteps of Desire.mp3', 'FF9 - The Chosen Summoner.mp3']
-    music["jyro"] = ['FF6 - Setzer.mp3', 'FF7 - Steal the Tiny Bronco!.mp3', "FF9 - You're Not Alone!.mp3", "FF9 - Zidane's Theme.mp3"]
-    music["ketc"] = ["FF7 - Cait Sith's Theme.mp3"]
-    music["kita"] = ['FF6 - The Empire Gestahl.mp3', 'FF7 - The Great Northern Cave.mp3']
-    music["kurai"] = ['FF6 - Awakening.mp3', 'FF6 - Forever Rachel!.mp3', 'FF6 - The Mines of Narshe.mp3', 'FF7 - Anxious Heart.mp3', 'FF8 - Galbadia Garden (No Intro).mp3', 'FF9 - Soulless Village.mp3']
-    music["lb1"] = ['FF7 - The Birth of God.mp3', 'FF9 - Dark Messenger.mp3']
-    music["lb2"] = ['FF6 - Dancing Mad (Part1).mp3', 'FF7 - One-Winged Angel.mp3', "FF8 - Maybe I'm a Lion.mp3", 'FF9 - Final Battle.mp3']
-    music["ld"] = ['FF7 - Judgement Day.mp3', "FF9 - Cid's Theme.mp3", 'FF9 - Kingdom of Burmecia.mp3']
-    music["makoro"] = ['FF6 - Troops March on.mp3', 'FF7 - Mako Reactor.mp3', 'FF8 - Only a Plank Between One and Perdition.mp3']
-    music["mati"] = ['FF6 - Epitaph.mp3', 'FF6 - Gau.mp3', 'FF6 - Kids Run Through the City.mp3', 'FF7 - Ahead on Our Way.mp3', 'FF8 - Balamb Garden.mp3', 'FF8 - Breezy.mp3', "FF8 - Fisherman's Horizon.mp3", 'FF8 - Fragments of Memories.mp3', 'FF8 - Love Grows.mp3', 'FF9 - At the South Gate Border.mp3', 'FF9 - Frontier Village Dali.mp3', "FF9 - Garnet's Theme.mp3", 'FF9 - Secret Library Daguerreo.mp3']
-    music["mekyu"] = ['FF7 - Reunion.mp3']
+    music["geki"] = ['FF6 - Spinach Rag.mp3', 'FF7 - Debut.mp3', 'FF8 - Slide Show Part 1.mp3', "FF9 - Moogle's Theme.mp3", 'FF9 - Slew of Love Letters.mp3', 'FF9 - The City That Never Sleeps.mp3']
+    music["gold1"] = ['FF6 - Johnny C. Bad.mp3', 'FF7 - Gold Saucer.mp3', 'FF9 - Jesters of the Moon.mp3', 'FF9 - Prima Vista Band.mp3']
+    music["guitar2"] = ['FF6 - Forever Rachel!.mp3', 'FF7 - On the Other Side of the Mountain.mp3', 'FF8 - Julia.mp3', 'FF8 - Roses and Wine.mp3', 'FF9 - Dissipating Sorrow.mp3', 'FF9 - Song of Memories.mp3', "FFX - Tidus' Theme.mp3"]
+    music["gun"] = ['FF7 - Full-Scale Attack.mp3', 'FF8 - The Mission.mp3', 'FF8 - The Stage is Set.mp3', 'FF9 - Assault of the White Dragons.mp3', "FF9 - Hunter's Chance.mp3", 'FFX - Time of Judgement.mp3']
+    music["heart"] = []
+    music["hen"] = ['FF6 - Another World of Beasts.mp3', 'FF7 - Who Am I.mp3', 'FF8 - Compression of Time.mp3', 'FF8 - Find Your Way.mp3']
+    music["hiku"] = ['FF6 - Blackjack.mp3', 'FF7 - The Highwind Takes to the Skies.mp3', 'FF8 - Ride On.mp3', 'FF9 - The Airship, Hilda Garde.mp3']
+    music["horror"] = ['FF7 - Trail of Blood.mp3', 'FF8 - Rivals.mp3', 'FF9 - Queen of the Abyss.mp3', 'FFX - Permitted Passage.mp3']
+    music["iseki"] = ['FF7 - You Can Hear the Cry of the Planet.mp3', "FF9 - Ipsen's Castle.mp3", 'FF9 - Oeilvert.mp3', 'FF9 - Rebirth of the Evil Mist.mp3', 'FF9 - Terra.mp3', 'FFX - Guadosalam.mp3']
+    music["jukai"] = ['FF6 - The Phantom Forest.mp3', 'FF7 - Forested Temple.mp3', 'FF9 - Awakening the Forest.mp3', 'FF9 - Place of Memory.mp3', 'FFX - Cloister of Trials.mp3']
+    music["junon"] = ['FF7 - Off the Edge of Despair.mp3', 'FF8 - Drifting.mp3', "FFX - Lulu's Theme.mp3"]
+    music["jyro"] = ['FF6 - Setzer.mp3', 'FF7 - Steal the Tiny Bronco!.mp3', "FF9 - Zidane's Theme.mp3"]
+    music["ketc"] = ["FF7 - Cait Sith's Theme.mp3", 'FF8 - Intruders.mp3', "FF9 - Vivi's Theme.mp3"]
+    music["kita"] = ['FF7 - The Great Northern Cave.mp3', 'FFX - Ominous.mp3']
+    music["kurai"] = ['FF6 - Awakening.mp3', 'FF6 - The Mines of Narshe.mp3', 'FF7 - Anxious Heart.mp3', 'FF9 - Soulless Village.mp3', 'FFX - Truth Revealed.mp3']
+    music["lb1"] = ['FF6 - The Fierce Battle.mp3', 'FF7 - The Birth of God.mp3', 'FF9 - Dark Messenger.mp3', 'FFX - Seymour Battle.mp3']
+    music["lb2"] = ['FF6 - Dancing Mad (Part1).mp3', 'FF7 - One-Winged Angel.mp3', "FF8 - Maybe I'm a Lion.mp3", 'FF9 - Final Battle.mp3', 'FFX - Decisive Battle.mp3']
+    music["ld"] = ['FF7 - Judgement Day.mp3', 'FFX - Underground Activities.mp3']
+    music["makoro"] = ['FF6 - Troops March on.mp3', 'FF7 - Mako Reactor.mp3', "FF8 - Movin'.mp3", 'FFX - Confrontation.mp3']
+    music["mati"] = ['FF6 - Kids Run Through the City.mp3', 'FF7 - Ahead on Our Way.mp3', 'FF8 - Balamb Garden.mp3', 'FF8 - Breezy.mp3', "FF8 - Fisherman's Horizon.mp3", 'FF9 - At the South Gate Border.mp3', 'FF9 - Frontier Village Dali.mp3', 'FF9 - Secret Library Daguerreo.mp3', 'FFX - Silence Before the Storm.mp3', 'FFX - Oui Are Al Bhed.mp3']
+    music["mekyu"] = ['FF7 - Reunion.mp3', 'FF9 - Footsteps of Desire.mp3']
     music["mogu"] = ['FF7 - The Highwind Takes to the Skies.mp3', 'FF8 - Ride On.mp3', 'FF9 - The Airship, Hilda Garde.mp3']
-    music["mura1"] = ['FF7 - Parochial Town.mp3', 'FF8 - Galbadia Garden (No Intro).mp3', 'FF8 - Jailed.mp3', 'FF8 - Martial Law.mp3', 'FF8 - Under Her Control.mp3', 'FF9 - Lindblum.mp3', "FF9 - Vivi's Theme.mp3", 'FF9 - We Are Thieves!.mp3']
-    music["nointro"] = ['FF7 - Shinra Corporation.mp3']
+    music["mura1"] = ['FF6 - The Day After.mp3', 'FF7 - Parochial Town.mp3', 'FF8 - Martial Law.mp3', 'FFX - Ride ze Shoopuf.mp3']
+    music["nointro"] = ['FF7 - Those Chosen By the Planet (No Intro).mp3']
     music["oa"] = ['FF7 - Opening ~ Bombing Mission.mp3', 'FF8 - The Landing.mp3']
     music["ob"] = ['FF7 - Bombing Mission.mp3', 'FF8 - The Landing.mp3']
-    music["odds"] = ['FF7 - Cinco de Chocobo.mp3']
-    music["over2"] = ['FF6 - Rest in Peace.mp3', 'FF7 - Continue.mp3', 'FF8 - The Loser.mp3', 'FF9 - Game Over.mp3']
-    music["parade"] = ["FF7 - Rufus' Welcoming Ceremony.mp3", 'FF8 - Cactus Jack (Galbadian Anthem).mp3']
-    music["pj"] = ['FF6 - The Fierce Battle.mp3', 'FF6 - The Unforgiven.mp3', 'FF7 - Jenova Absolute.mp3', 'FF8 - Premonition.mp3', 'FF8 - The Legendary Beast.mp3']
-    music["pre"] = ['FF7 - The Prelude.mp3', 'FF9 - Prelude.mp3']
-    music["red"] = ['FF6 - The Day After.mp3', 'FF6 - Wild West.mp3', "FF7 - Red XIII's Theme.mp3", 'FF9 - Mountain Pass.mp3']
+    music["odds"] = ['FF7 - Cinco de Chocobo.mp3', 'FFX - Brass de Chocobo.mp3']
+    music["over2"] = ['FF6 - Rest in Peace.mp3', 'FF7 - Continue.mp3', 'FF8 - The Loser.mp3', 'FF9 - Game Over.mp3', 'FFX - Game Over.mp3']
+    music["parade"] = ["FF7 - Rufus' Welcoming Ceremony.mp3", 'FF8 - Cactus Jack (Galbadian Anthem).mp3', 'FFX - Welcoming of Maester Mika.mp3']
+    music["pj"] = ['FF6 - The Unforgiven.mp3', 'FF7 - Jenova Absolute.mp3', 'FF8 - Premonition.mp3', 'FF8 - The Legendary Beast.mp3', 'FFX - Aeon Battle.mp3']
+    music["pre"] = ['FF7 - The Prelude.mp3', 'FF9 - Prelude.mp3', 'FFX - The Prelude.mp3']
+    music["red"] = ["FF7 - Red XIII's Theme.mp3"]
     music["rhythm"] = ["FF7 - Turks' Theme.mp3", 'FF8 - The Spy.mp3', "FF9 - Amarant's Theme.mp3"]
-    music["riku"] = ['FF7 - Reunion.mp3']
+    music["riku"] = ['FF7 - Reunion.mp3', 'FF9 - Footsteps of Desire.mp3']
     music["ro"] = ['FF7 - The Countdown Begins.mp3', 'FF8 - Dead End.mp3', 'FF8 - Starting Up.mp3']
-    music["rocket"] = ['FF7 - Oppressed People.mp3', 'FF8 - Galbadia Garden (No Intro).mp3', 'FF8 - Jailed.mp3', 'FF8 - Martial Law.mp3', 'FF8 - Under Her Control.mp3', 'FF9 - Lindblum.mp3', "FF9 - Vivi's Theme.mp3", 'FF9 - We Are Thieves!.mp3']
+    music["rocket"] = ['FF7 - Oppressed People.mp3', 'FF8 - Under Her Control.mp3', 'FF9 - Lindblum.mp3', 'FF9 - Theme of Tantalus.mp3']
     music["roll"] = ['FF6 - Ending Theme (Part2).mp3', 'FF7 - Staff Roll.mp3', 'FF8 - Overture.mp3']
-    music["rukei"] = ['FF7 - Sandy Badlands.mp3', 'FF9 - Ceremony for the Gods.mp3', 'FF9 - Ruins of Madain Sari.mp3']
-    music["sadbar"] = ['FF7 - Mark of the Traitor.mp3', "FF9 - Amarant's Theme.mp3", 'FF9 - Ceremony for the Gods.mp3', 'FF9 - Ruins of Madain Sari.mp3']
+    music["rukei"] = ['FF7 - Sandy Badlands.mp3', 'FF9 - Ruins of Madain Sari.mp3', 'FFX - Scorching Desert.mp3']
+    music["sadbar"] = ['FF7 - Mark of the Traitor.mp3']
     music["sadsid"] = ['FF6 - Coin Song.mp3', 'FF7 - Sending a Dream into the Universe.mp3', 'FF8 - My Mind.mp3']
-    music["sea"] = ['FF6 - The Serpent Trench.mp3', 'FF7 - A Secret Sleeping in the Deep Sea.mp3']
-    music["seto"] = ['FF7 - Great Warrior.mp3', 'FF9 - Dissipating Sorrow.mp3', 'FF9 - Forgotten Face.mp3']
-    music["si"] = ['FF6 - Another World of Beasts.mp3', 'FF7 - Reunion.mp3', 'FF8 - Compression of Time.mp3', 'FF8 - Drifting.mp3', 'FF8 - Junction.mp3', 'FF8 - Lunatic Pandora.mp3', 'FF9 - A Transient Past.mp3', 'FF9 - Black Waltz.mp3', "FF9 - Cleyra's Trunk.mp3", 'FF9 - Extraction.mp3', 'FF9 - Footsteps of Desire.mp3', 'FF9 - Memories of That Day.mp3', 'FF9 - The Chosen Summoner.mp3']
+    music["sato"] = []
+    music["sea"] = ['FF6 - The Serpent Trench.mp3', 'FF7 - A Secret Sleeping in the Deep Sea.mp3', 'FFX - Underwater Ruins.mp3']
+    music["sensui"] = []
+    music["seto"] = ['FF7 - Great Warrior.mp3', 'FF9 - Forgotten Face.mp3']
+    music["si"] = ['FF7 - Reunion.mp3', 'FF9 - Footsteps of Desire.mp3']
     music["sid2"] = ["FF7 - Cid's Theme.mp3"]
-    music["sido"] = ["FF7 - It's Difficult to Stand on Both Feet, Isn't It.mp3", 'FF8 - Residents.mp3', 'FF9 - Gargan Roo.mp3', 'FF9 - Jesters of the Moon.mp3', 'FF9 - The Four Medallions.mp3', 'FF9 - Theme of Tantalus.mp3']
-    music["siera"] = ['FF7 - If You Open Your Heart....mp3', 'FF8 - Trust Me.mp3']
-    music["sinra"] = ['FF6 - The Empire Gestahl.mp3', 'FF7 - Shinra Corporation.mp3', 'FF8 - A Sacrifice.mp3', "FF9 - Kuja's Theme.mp3"]
-    music["sinraslo"] = ['FF6 - Under Martial Law.mp3', 'FF7 - Infiltrating Shinra Tower.mp3', 'FF8 - Only a Plank Between One and Perdition.mp3', 'FF9 - Kingdom of Burmecia.mp3']
-    music["snow"] = ['FF7 - Buried in the Snow.mp3', 'FF9 - Esto Gaza.mp3']
-    music["ta"] = ['FF6 - Searching for Friends.mp3', 'FF6 - Terra.mp3', 'FF7 - Main Theme of Final Fantasy VII.mp3', 'FF8 - Blue Fields.mp3', 'FF9 - Crossing Those Hills.mp3']
-    music["tb"] = ['FF7 - Main Theme of Final Fantasy VII.mp3']
-    music["tender"] = ['FF6 - Relm.mp3', 'FF7 - Holding My Thoughts in My Heart.mp3', 'FF8 - Ami.mp3', 'FF8 - Tell Me.mp3']
+    music["sido"] = ['FF6 - Slam Shuffle.mp3', "FF7 - It's Difficult to Stand on Both Feet, Isn't It.mp3", 'FF8 - Shuffle or Boogie.mp3', "FF9 - Black Mage's Village.mp3", 'FF9 - The Sneaky Frog and the Scoundrel.mp3']
+    music["siera"] = ['FF7 - If You Open Your Heart....mp3', 'FF8 - Trust Me.mp3', 'FFX - Macalania Forest.mp3']
+    music["sinra"] = ['FF6 - The Empire Gestahl.mp3', 'FF7 - Shinra Corporation.mp3', 'FF8 - A Sacrifice.mp3', "FF9 - Kuja's Theme.mp3", "FFX - Seymour's Ambition.mp3"]
+    music["sinraslo"] = ['FF7 - Infiltrating Shinra Tower.mp3', 'FF8 - The Mission.mp3', 'FFX - Hopeless Desire.mp3']
+    music["snow"] = ['FF7 - Buried in the Snow.mp3', 'FF9 - Esto Gaza.mp3', 'FFX - Phantoms.mp3']
+    music["snowboard"] = ['FFX - Blitz Off.mp3']
+    music["ta"] = ['FF6 - Searching for Friends.mp3', 'FF6 - Terra.mp3', 'FF7 - Main Theme of Final Fantasy VII.mp3', 'FF8 - Blue Fields.mp3', 'FF9 - Crossing Those Hills.mp3', 'FFX - Besaid Island.mp3']
+    music["tb"] = ['FF6 - Searching for Friends.mp3', 'FF6 - Terra.mp3', 'FF7 - Main Theme of Final Fantasy VII.mp3', 'FF8 - Blue Fields.mp3', 'FF9 - Crossing Those Hills.mp3', 'FFX - Besaid Island.mp3']
+    music["tender"] = ['FF6 - Relm.mp3', 'FF7 - Holding My Thoughts in My Heart.mp3', 'FF8 - Ami.mp3', 'FF8 - Tell Me.mp3', 'FFX - Daughter of the High Summoner.mp3']
     music["tifa"] = ["FF7 - Tifa's Theme.mp3"]
-    music["tm"] = ['FF7 - On That Day, 5 Years Ago.mp3', 'FF8 - Drifting.mp3', 'FF8 - Unrest.mp3', 'FF9 - Black Waltz.mp3', 'FF9 - Footsteps of Desire.mp3', 'FF9 - The Chosen Summoner.mp3']
-    music["utai"] = ['FF7 - Wutai.mp3', 'FF9 - Oeilvert.mp3']
-    music["vincent"] = ['FF6 - Another World of Beasts.mp3', "FF7 - The Nightmare's Beginning.mp3", 'FF8 - Lunatic Pandora.mp3', 'FF9 - Memories of That Day.mp3', 'FF9 - The Chosen Summoner.mp3']
+    music["tm"] = ['FF7 - On That Day, 5 Years Ago.mp3']
+    music["utai"] = ['FF7 - Wutai.mp3', 'FFX - Temple Band.mp3']
+    music["vincent"] = ["FF7 - The Nightmare's Beginning.mp3", 'FF9 - Kingdom of Burmecia.mp3', 'FFX - Path of Repentance.mp3']
     music["walz"] = ['FF7 - Waltz de Chocobo.mp3', 'FF9 - Ukulele de Chocobo.mp3']
-    music["weapon"] = ['FF7 - Weapon Raid.mp3', 'FF8 - Only a Plank Between One and Perdition.mp3', 'FF9 - Assault of the White Dragons.mp3']
+    music["weapon"] = ['FF6 - Metamorphasis.mp3', 'FF7 - Weapon Raid.mp3', 'FF8 - The Stage is Set.mp3', 'FFX - Launch.mp3']
+    music["wind"] = []
     music["yado"] = ['FF7 - Good Night, Until Tomorrow!.mp3', 'FF9 - Goodnight.mp3']
     music["yufi"] = ['FF7 - Descendant of Shinobi.mp3']
-    music["yufi2"] = ['FF7 - Stolen Materia.mp3', 'FF9 - Gargan Roo.mp3', 'FF9 - Jesters of the Moon.mp3', 'FF9 - The City that Never Sleeps.mp3', 'FF9 - The Four Medallions.mp3', 'FF9 - Theme of Tantalus.mp3']
-    music["yume"] = ['FF6 - Another World of Beasts.mp3', 'FF7 - Who Are You.mp3', 'FF8 - Drifting.mp3', 'FF8 - Lunatic Pandora.mp3', 'FF9 - A Transient Past.mp3', 'FF9 - Black Waltz.mp3', "FF9 - Cleyra's Trunk.mp3", 'FF9 - Footsteps of Desire.mp3', 'FF9 - Memories of That Day.mp3', 'FF9 - Queen of the Abyss.mp3', 'FF9 - The Chosen Summoner.mp3']
+    music["yufi2"] = ['FF6 - Kefka.mp3', 'FF7 - Stolen Materia.mp3', 'FF9 - The Four Medallions.mp3']
+    music["yume"] = ['FF7 - Who Are You.mp3', 'FF8 - Lunatic Pandora.mp3', 'FF9 - Black Waltz.mp3', 'FF9 - Extraction.mp3', "FFX - My Father's Murderer.mp3"]
 
     for folder in music:
         target_path = "music/" + folder + "/"
+        os.makedirs(target_path, exist_ok=True)
 
         for file in music[folder]:
             src = "workspace/" + file[:3] + "/" + file

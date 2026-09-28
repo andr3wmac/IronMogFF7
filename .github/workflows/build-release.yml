@@ -7,7 +7,7 @@ on:
 
 env:
   # Bump this when you bump APP_VERSION_STRING in src/app/App.h. Keep the leading "v" to match the existing release naming.
-  VERSION: v0.8.3
+  VERSION: v0.8.4
 
 jobs:
   build:
