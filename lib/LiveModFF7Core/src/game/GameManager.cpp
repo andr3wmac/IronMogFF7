@@ -29,7 +29,13 @@ bool GameManager::connectToEmulator(std::string processName)
         return false;
     }
 
-    return emulator->connect(processName);
+    if (!emulator->connect(processName))
+    {
+        return false;
+    }
+
+    connected.store(true, std::memory_order_release);
+    return true;
 }
 
 bool GameManager::connectToEmulator(std::string processName, uintptr_t memoryAddress)
@@ -40,14 +46,40 @@ bool GameManager::connectToEmulator(std::string processName, uintptr_t memoryAdd
         return false;
     }
 
-    return emulator->connect(processName);
+    if (!emulator->connect(processName))
+    {
+        return false;
+    }
+
+    connected.store(true, std::memory_order_release);
+    return true;
+}
+
+void GameManager::queueAction(std::function<void()> action)
+{
+    std::lock_guard<std::mutex> lock(queuedActionsMutex);
+    queuedActions.push_back(std::move(action));
+}
+
+void GameManager::runQueuedActions()
+{
+    std::vector<std::function<void()>> actions;
+    {
+        std::lock_guard<std::mutex> lock(queuedActionsMutex);
+        actions.swap(queuedActions);
+    }
+
+    for (const std::function<void()>& action : actions)
+    {
+        action();
+    }
 }
 
 std::string GameManager::readString(uintptr_t offset, uint32_t length)
 {
     std::vector<uint8_t> strData;
     strData.resize(length);
-    emulator->read(offset, strData.data(), length);
+    read(offset, length, strData.data());
     return GameData::decodeString(strData);
 }
 
@@ -66,7 +98,7 @@ size_t GameManager::writeString(uintptr_t offset, uint32_t length, const std::st
         finalStrData[padding + i] = strData[i];
     }
 
-    emulator->write(offset, finalStrData.data(), length);
+    write(offset, finalStrData.data(), length);
     return strLen;
 }
 
@@ -93,6 +125,9 @@ void GameManager::setup(GameVersion version, uint32_t inputSeed)
     field.setup(this);
     menu.setup(this);
     world.setup(this);
+
+    // Rebuild the custom item registry from scratch so mods can register their items during their setup.
+    customItems.clear();
 }
 
 void GameManager::loadSaveData()
@@ -110,7 +145,7 @@ void GameManager::loadSaveData()
         std::string seedString = Utilities::seedToHexString(seed);
         LOG("Loaded seed from save file: %s", seedString.c_str());
     }
-    else 
+    else
     {
         clearSaveData();
 
@@ -172,6 +207,14 @@ bool GameManager::update()
         return false;
     }
 
+    if (!emulator->isProcessAlive())
+    {
+        LOG("Emulator process has exited.");
+        return false;
+    }
+
+    runQueuedActions();
+
     GameState state = getState();
     {
         if (lastGameState == GameState::InGame && state != GameState::InGame)
@@ -184,7 +227,7 @@ bool GameManager::update()
         if (lastGameState != GameState::InGame && state == GameState::InGame)
         {
             loadSaveData();
-            onStart.invoke();
+            onGameStart();
             updatesSinceFrame = 0;
             lastGameMoment = 0;
             justEnteredGame = true;
@@ -296,7 +339,7 @@ bool GameManager::update()
     {
         LOG("Load detected, reloading rules %d - %d = %d", newFrameNumber, frameNumber, frameDifference);
         loadSaveData();
-        onStart.invoke();
+        onGameStart();
         framesSinceReload = 0;
     }
 
@@ -328,7 +371,79 @@ void GameManager::setDifficultyScale(float newScale)
     }
 
     difficultyScale = Utilities::clamp(newScale, 0.0f, 1.0f);
-    onDifficultyScaleChanged.invoke(difficultyScale);
+    onDifficultyScaleChanged.invoke(difficultyScale.load());
+}
+
+void GameManager::onGameStart()
+{
+    // Registered items live in the kernel tables which reset with the game, so re-inject them on every start.
+    onStart.invoke();
+    injectCustomItems();
+}
+
+uint16_t GameManager::registerCustomItem(const CustomItem& item)
+{
+    CustomItem stored = item;
+    stored.id = (uint16_t)(105 + customItems.size()); // reserved unused-slot block 105-127
+    if (stored.id > 127)
+    {
+        LOG("registerCustomItem: out of reserved item slots (105-127).");
+        return 0xFFFF;
+    }
+    customItems.push_back(stored);
+    return stored.id;
+}
+
+void GameManager::injectCustomItems()
+{
+    if (customItems.empty())
+    {
+        return;
+    }
+
+    const uintptr_t nameBase = KernelOffsets::ItemNamesStart;
+    uint16_t scratchOffset = (uint16_t)(KernelOffsets::NameScratch - nameBase);
+
+    // Template: the inert "1/35 Soldier" (id 95) record, patched to a menu-only, non-targeting item.
+    uintptr_t srcData = KernelOffsets::ItemDataStart + (95 * KernelOffsets::ItemDataStride);
+    uint8_t record[KernelOffsets::ItemDataStride];
+    read(srcData, KernelOffsets::ItemDataStride, record);
+
+    for (const CustomItem& item : customItems)
+    {
+        if (item.id > 127)
+        {
+            continue;
+        }
+
+        uintptr_t dstData = KernelOffsets::ItemDataStart + (item.id * KernelOffsets::ItemDataStride);
+        write(dstData, record, KernelOffsets::ItemDataStride);
+        write<uint16_t>(dstData + KernelOffsets::ItemRestrictionMask, KernelOffsets::ItemMaskMenuOnly);
+        write<uint8_t>(dstData + KernelOffsets::ItemTargetFlags, 0x00);
+
+        // Park the name in the scratch area and point the slot's name entry at it.
+        std::vector<uint8_t> encoded = GameData::encodeString(item.name);
+        encoded.push_back(0xFF);
+        for (size_t b = 0; b < encoded.size(); ++b)
+        {
+            write<uint8_t>(nameBase + scratchOffset + b, encoded[b]);
+        }
+        write<uint16_t>(nameBase + (item.id * 2), scratchOffset);
+        scratchOffset += (uint16_t)encoded.size();
+    }
+}
+
+const CustomItem* GameManager::findCustomItem(uint16_t itemID)
+{
+    for (const CustomItem& item : customItems)
+    {
+        if (item.id == itemID)
+        {
+            return &item;
+        }
+    }
+
+    return nullptr;
 }
 
 std::array<uint8_t, 3> GameManager::getPartyIDs()
@@ -355,10 +470,17 @@ bool GameManager::inParty(uint8_t characterID)
     return false;
 }
 
+bool GameManager::isPHSVisible(uint8_t characterID)
+{
+    uint16_t phsVisMask = read<uint16_t>(GameOffsets::PHSVisibilityMask);
+    return Utilities::isBitSet(phsVisMask, characterID);
+}
+
 std::array<uint16_t, 320> GameManager::getPartyInventory()
 {
     std::array<uint16_t, 320> results;
-    emulator->read(GameOffsets::Inventory, results.data(), sizeof(uint16_t) * 320);
+    results.fill(0xFFFF);
+    read(GameOffsets::Inventory, sizeof(uint16_t) * 320, (uint8_t*)results.data());
     return results;
 }
 
@@ -370,13 +492,14 @@ void GameManager::setInventorySlot(uint32_t slotIndex, uint16_t itemID, uint8_t 
     }
 
     uint16_t data = (quantity << 9) | (itemID & 0x1FF);
-    emulator->write(GameOffsets::Inventory + (sizeof(uint16_t) * slotIndex), &data, sizeof(uint16_t));
+    write<uint16_t>(GameOffsets::Inventory + (sizeof(uint16_t) * slotIndex), data);
 }
 
 std::array<uint32_t, 200> GameManager::getPartyMateria()
 {
     std::array<uint32_t, 200> results;
-    emulator->read(GameOffsets::MateriaInventory, results.data(), sizeof(uint32_t) * 200);
+    results.fill(0xFFFFFFFF);
+    read(GameOffsets::MateriaInventory, sizeof(uint32_t) * 200, (uint8_t*)results.data());
     return results;
 }
 
@@ -387,7 +510,7 @@ uint16_t GameManager::getGameMoment()
 
 bool GameManager::inMenu()
 {
-    return gameModule == GameModule::Menu;
+    return menu.isOpen();
 }
 
 std::string GameManager::getWindowText(uint8_t index)

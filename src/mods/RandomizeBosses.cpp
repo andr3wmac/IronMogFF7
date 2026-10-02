@@ -201,7 +201,7 @@ std::vector<std::string> RandomizeBosses::describe(ModDescriptionType descType)
 {
     if (descType == ModDescriptionType::Randomized)
     {
-        return { "Bosses" };
+        return { "Boss Attributes" };
     }
 
     if (descType == ModDescriptionType::Multiplier)

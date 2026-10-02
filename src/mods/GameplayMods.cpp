@@ -14,12 +14,30 @@ std::string GameplayMods::getDescription() const
 }
 
 static const char* masamuneModes[] { "No One", "Cloud", "Everyone", "Random Character" };
+static const char* aerithModes[] { "Never", "Always", "Item" };
 
 void GameplayMods::setup()
 {
     BIND_EVENT(game->onStart, GameplayMods::onStart);
     BIND_EVENT_ONE_ARG(game->onFieldChanged, GameplayMods::onFieldChanged);
     BIND_EVENT_ONE_ARG(game->onFrame, GameplayMods::onFrame);
+    BIND_EVENT_ONE_ARG(game->onCustomItemUsed, GameplayMods::onCustomItemUsed);
+
+    aerithItemId = 0xFFFF;
+    if (aerithMode == AerithMode::Item)
+    {
+        CustomItem item;
+        item.name = "Resurrect Aerith";
+        item.targetsCharacter = false;
+        item.spawnCount = aerithItemCount;
+        item.getBlockedMessage = [this]() -> std::string
+        {
+            // Aerith doesn't die until the end of Disc 1.
+            return game->getGameMoment() < 677 ? "She's not dead yet!" : "";
+        };
+        aerithItemId = game->registerCustomItem(item);
+        LOG("Registered %s as item ID: %d", item.name.c_str(), aerithItemId);
+    }
 }
 
 bool GameplayMods::onSettingsGUI()
@@ -40,8 +58,32 @@ bool GameplayMods::onSettingsGUI()
     }
 
     ImGui::Spacing();
-    changed |= ImGui::Checkbox("Aerith Survives", &aerithSurvives);
-    ImGui::SetItemTooltip("Aerith survives the end of disc 1 and rejoins the party via PHS.");
+    ImGui::Text("Aerith Survives:");
+    ImGui::SetItemTooltip("Never: Aerith dies as in vanilla.\nAlways: Aerith survives and rejoins via PHS.\nItem: Aerith dies, but a findable item can revive her.");
+    ImGui::SameLine(DPI(200.0f));
+    ImGui::SetNextItemWidth(DPI(200.0f));
+
+    int aerithModeIndex = (int)aerithMode;
+    if (ImGui::Combo("##GameplayMods_aerithMode", &aerithModeIndex, aerithModes, IM_ARRAYSIZE(aerithModes)))
+    {
+        aerithMode = (AerithMode)aerithModeIndex;
+        changed = true;
+    }
+
+    if (aerithMode == AerithMode::Item)
+    {
+        ImGui::Text("Number in World:");
+        ImGui::SetItemTooltip("How many copies of the revive item are hidden among the field pickups.");
+        ImGui::SameLine(DPI(200.0f));
+        ImGui::SetNextItemWidth(DPI(200.0f));
+        changed |= ImGui::SliderInt("##GameplayMods_aerithItemCount", &aerithItemCount, 1, 10);
+    }
+
+    ImGui::Spacing();
+    ImGui::Text("Skip Kalm Flashback:");
+    ImGui::SetItemTooltip("Skips the Kalm flashback when first entering the Kalm inn.");
+    ImGui::SameLine(DPI(200.0f));
+    changed |= ImGui::Checkbox("##GameplayMods_skipKalmFlashback", &skipKalmFlashback);
 
     return changed;
 }
@@ -49,19 +91,49 @@ bool GameplayMods::onSettingsGUI()
 void GameplayMods::loadSettings(const ConfigFile& cfg)
 {
     masamuneMode = (MasamuneMode)cfg.get<int>("musamuneMode", (int)masamuneMode);
-    aerithSurvives = cfg.get<bool>("aerithSurvives", aerithSurvives);
+    aerithMode = (AerithMode)cfg.get<int>("aerithMode", (int)aerithMode);
+    aerithItemCount = cfg.get<int>("aerithItemCount", aerithItemCount);
+    skipKalmFlashback = cfg.get<bool>("skipKalmFlashback", skipKalmFlashback);
 }
 
 void GameplayMods::saveSettings(ConfigFile& cfg)
 {
     cfg.set<int>("musamuneMode", (int)masamuneMode);
-    cfg.set<bool>("aerithSurvives", aerithSurvives);
+    cfg.set<int>("aerithMode", (int)aerithMode);
+    cfg.set<int>("aerithItemCount", aerithItemCount);
+    cfg.set<bool>("skipKalmFlashback", skipKalmFlashback);
 }
 
 void GameplayMods::onStart()
 {
     rng.seed(game->getSeed());
     applyMasamuneMode();
+}
+
+void GameplayMods::onCustomItemUsed(CustomItemUse use)
+{
+    if (aerithMode != AerithMode::Item || use.itemId != aerithItemId)
+    {
+        return;
+    }
+
+    game->menu.showPopup("Aerith has been revived!");
+    addAerithToPHS();
+    LOG("Aerith Revive: revive item used; Aerith enabled on the PHS.");
+}
+
+void GameplayMods::addAerithToPHS()
+{
+    // Make Aerith appear on the PHS and clear her lock bit so she can be swapped into the party.
+    uint16_t phsVisMask = game->read<uint16_t>(GameOffsets::PHSVisibilityMask);
+    phsVisMask |= (1 << CharacterID::Aerith);
+    game->write<uint16_t>(GameOffsets::PHSVisibilityMask, phsVisMask);
+
+    uint16_t phsLockMask = game->read<uint16_t>(GameOffsets::PHSLockMask);
+    phsLockMask &= ~(1 << CharacterID::Aerith);
+    game->write<uint16_t>(GameOffsets::PHSLockMask, phsLockMask);
+
+    LOG("Aerith Survives: enabled Aerith on the PHS.");
 }
 
 void GameplayMods::applyMasamuneMode()
@@ -94,19 +166,32 @@ void GameplayMods::applyMasamuneMode()
 
 void GameplayMods::onFieldChanged(uint16_t fieldID)
 {
-    if (aerithSurvives)
+    // Jump the game moment past the Kalm flashback so the inn plays out as if it's already been seen.
+    if (skipKalmFlashback && fieldID == 335 && game->getGameMoment() < 385)
     {
-        applyAerithSurvives(fieldID);
+        // Var[3][128] bit 1 is set by the inn script once the flashback has been completed.
+        const uintptr_t kalmFlagsAddr = 0x9D408; // uint8_t
+        game->write<uint8_t>(kalmFlagsAddr, game->read<uint8_t>(kalmFlagsAddr) | 0x02);
+        game->write<uint16_t>(GameOffsets::GameMoment, 385);
+        LOG("Skip Kalm Flashback: set game moment to 385 and marked flashback completed.");
     }
+
+    // Enable Aerith on the PHS when Disc 2 starts, but only when she's meant to be alive this run.
+    if ((aerithMode == AerithMode::Always) && fieldID == 634 && game->getGameMoment() == 677)
+    {
+        addAerithToPHS();
+    }
+
+    patchAerithSoftlocks(fieldID);
 }
 
 void GameplayMods::onFrame(uint32_t frameNumber)
 {
-    if (aerithSurvives)
+    // Northern Crater party split (las0_8). The player picks who goes left/right to form the descent party 
+    // but with Aerith absent she can't be chosen, so a "send only one person left" choice leaves a two-member party.
+    if (aerithMode != AerithMode::Never && game->getFieldID() == 751)
     {
-        // Northern Crater party split (las0_8). The player picks who goes left/right to form the descent party 
-        // but with Aerith absent she can't be chosen, so a "send only one person left" choice leaves a two-member party.
-        if (game->getFieldID() == 751 && !game->inParty(CharacterID::Aerith))
+        if (game->isPHSVisible(CharacterID::Aerith) && !game->inParty(CharacterID::Aerith))
         {
             // Act only while Cloud's "This will be the end of it!" confirmation window is showing. By this point the 
             // descent party has been assembled from whoever the player sent left, and the window is waiting on the
@@ -130,24 +215,9 @@ void GameplayMods::onFrame(uint32_t frameNumber)
     }
 }
 
-void GameplayMods::applyAerithSurvives(uint16_t fieldID)
+void GameplayMods::patchAerithSoftlocks(uint16_t fieldID)
 {
-    // Re-enable Aerith on the PHS when we Disc 2 starts.
-    if (fieldID == 634 && game->getGameMoment() == 677)
-    {
-        // Make Aerith appear on the PHS and clear her lock bit so she can be swapped into the party.
-        uint16_t phsVisMask = game->read<uint16_t>(GameOffsets::PHSVisibilityMask);
-        phsVisMask |= (1 << CharacterID::Aerith);
-        game->write<uint16_t>(GameOffsets::PHSVisibilityMask, phsVisMask);
-
-        uint16_t phsLockMask = game->read<uint16_t>(GameOffsets::PHSLockMask);
-        phsLockMask &= ~(1 << CharacterID::Aerith);
-        game->write<uint16_t>(GameOffsets::PHSLockMask, phsLockMask);
-
-        LOG("Aerith Survives: enabled Aerith on the PHS.");
-    }
-
-    // No need to patch if shes not in the party.
+    // These scripts only stall when Aerith is actually travelling with the party, so that's all we gate on.
     if (!game->inParty(CharacterID::Aerith))
     {
         return;

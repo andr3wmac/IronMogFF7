@@ -13,6 +13,12 @@ public:
 
     bool resolveMemory() override
     {
+        // Make sure the user supplied address actually points at FF7's PS1 memory.
+        if (!verifyPS1MemoryOffset(customMemoryAddress))
+        {
+            return false;
+        }
+
         ps1BaseAddress = customMemoryAddress;
         return true;
     }

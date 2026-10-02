@@ -1,14 +1,19 @@
 #pragma once
 
 #include "LiveModFF7Core/emulators/Emulator.h"
+#include "LiveModFF7Core/game/CustomItem.h"
 #include "LiveModFF7Core/game/GameData.h"
 #include "LiveModFF7Core/game/modules/BattleModule.h"
 #include "LiveModFF7Core/game/modules/FieldModule.h"
 #include "LiveModFF7Core/game/modules/MenuModule.h"
 #include "LiveModFF7Core/game/modules/WorldModule.h"
 #include "LiveModFF7Core/utilities/Event.h"
-#include <string>
 #include <array>
+#include <atomic>
+#include <functional>
+#include <mutex>
+#include <string>
+#include <vector>
 
 class GameManager
 {
@@ -28,6 +33,13 @@ public:
     bool connectToEmulator(std::string processName, uintptr_t memoryAddress);
     bool isPaused() { return emulatorPaused; }
 
+    // True once the emulator connection has succeeded. Memory access is a no-op before then.
+    bool isConnected() const { return connected.load(std::memory_order_acquire); }
+
+    // Queues an action to run on the game manager thread at the start of the next update. Use this from the
+    // GUI thread for anything that mutates game or mod state. Safe to call from any thread.
+    void queueAction(std::function<void()> action);
+
     void setup(GameVersion version, uint32_t inputSeed);
     void loadSaveData();
     void clearSaveData();
@@ -35,7 +47,7 @@ public:
     GameState getState();
     bool update();
 
-    float getDifficultyScale() { return difficultyScale; }
+    float getDifficultyScale() { return difficultyScale.load(); }
     void setDifficultyScale(float newScale);
 
     // Returns how long the last update() took in ms.
@@ -54,9 +66,25 @@ public:
     // Returns true if character is in party.
     bool inParty(uint8_t characterID);
 
+    // Returns true if character is currently available on PHS.
+    bool isPHSVisible(uint8_t characterID);
+
     // Returns a list of item IDs currently in the party's possession.
     std::array<uint16_t, 320> getPartyInventory();
     void setInventorySlot(uint32_t slotIndex, uint16_t itemID, uint8_t quantity);
+
+    // Custom items: registers an item in one of FF7's unused slots and returns its assigned id.
+    // Register during a rule's setup; the registry is rebuilt each time the game is connected.
+    uint16_t registerCustomItem(const CustomItem& item);
+
+    // True if any custom items are registered for the current game.
+    bool hasCustomItems() { return !customItems.empty(); }
+
+    // Returns the registered custom item with the given id, or nullptr if it isn't a custom item.
+    const CustomItem* findCustomItem(uint16_t itemID);
+
+    // Returns all custom items registered for the current game.
+    const std::vector<CustomItem>& getCustomItems() { return customItems; }
 
     // Returns a list of materia IDs currently in the party's possession.
     std::array<uint32_t, 200> getPartyMateria();
@@ -94,7 +122,8 @@ public:
     Event<int> onFrame;                     // Triggers when the game's frame number advances.
     Event<uint8_t> onModuleChanged;
     Event<uint16_t> onGameMomentChanged;
-    Event<> onBattleEnter; 
+    Event<> onBattleEnter;
+    Event<> onBattleResumed;                // Triggers instead of onBattleEnter when connecting mid-battle. Only for per-battle bookkeeping, never modify the battle here.
     Event<uint16_t> onBattleTransition;     // Triggers when a battle transitions from one formation to another. Like a multi-phase boss.
     Event<> onBattleExit;
     Event<uint16_t> onFieldChanged;
@@ -103,37 +132,53 @@ public:
     Event<std::string> onNameEntryOpened;
     Event<> onWorldMapEnter;
     Event<float> onDifficultyScaleChanged;  // Triggers when the difficulty scaling changes, intended to trigger rules to update.
+    Event<CustomItemUse> onCustomItemUsed;  // Triggers when a registered custom item is used from the menu.
 
     // Read/Write RAM Functions
     template <typename T>
     T read(uintptr_t offset)
     {
         T value{};
-        emulator->read(offset, &value, sizeof(value));
+        if (isConnected())
+        {
+            emulator->read(offset, &value, sizeof(value));
+        }
         return value;
     }
 
     bool read(uintptr_t offset, uintptr_t size, uint8_t* dataOut)
     {
-        return emulator->read(offset, dataOut, size);
+        return isConnected() && emulator->read(offset, dataOut, size);
     }
 
     template <typename T>
     void write(uintptr_t offset, T value)
     {
-        emulator->write(offset, &value, sizeof(value));
+        if (isConnected())
+        {
+            emulator->write(offset, &value, sizeof(value));
+        }
     }
 
     void write(uintptr_t offset, uint8_t* dataIn, uintptr_t size)
     {
-        emulator->write(offset, dataIn, size);
+        if (isConnected())
+        {
+            emulator->write(offset, dataIn, size);
+        }
     }
 
     std::string readString(uintptr_t offset, uint32_t length);
     size_t writeString(uintptr_t offset, uint32_t length, const std::string& string, bool centerAlign = false);
 
 private:
+    // Rebuilds the custom item registry, fires onStart, then injects registered items into the kernel.
+    void onGameStart();
+    void injectCustomItems();
+    void runQueuedActions();
+
     Emulator* emulator;
+    std::atomic<bool> connected = false;
     GameVersion gameVersion = GameVersion::PlayStationUS;
     uint8_t gameDisc = 1;
 
@@ -148,8 +193,15 @@ private:
     int framesSinceReload = 0;
     bool justEnteredGame = false;
     bool waitingForGameOver = false;
-    float difficultyScale = 1.0f;
+    std::atomic<float> difficultyScale = 1.0f;
 
-    // A set of pointers to the last line of field script executed within each group. 
+    // A set of pointers to the last line of field script executed within each group.
     uint16_t fieldScriptExecutionTable[64];
+
+    // Custom item registry, rebuilt each game start. Menu-use detection lives in MenuModule.
+    std::vector<CustomItem> customItems;
+
+    // Actions queued from other threads, drained by update().
+    std::mutex queuedActionsMutex;
+    std::vector<std::function<void()>> queuedActions;
 };

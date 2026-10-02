@@ -6,6 +6,9 @@
 #include "utilities/StringList.h"
 
 #include <atomic>
+#include <mutex>
+#include <optional>
+#include <string>
 #include <thread>
 
 #define APP_NAME "LiveMod FF7"
@@ -15,8 +18,8 @@
 #define APP_WINDOW_MIN_HEIGHT 480
 #define APP_VERSION_MAJOR 0
 #define APP_VERSION_MINOR 8
-#define APP_VERSION_PATCH 3
-#define APP_VERSION_STRING "v0.8.3"
+#define APP_VERSION_PATCH 4
+#define APP_VERSION_STRING "v0.8.4"
 #define APP_SETTINGS_FOLDER "settings"
 
 class App : public AppFrame::Application
@@ -64,10 +67,28 @@ public:
     void connect();
     void disconnect();
     void reconnect();
-    void runGameManager();
     void stopGameManager();
 
 protected:
+    // Everything the manager thread needs to connect, resolved on the GUI thread before it starts.
+    struct ConnectionTarget
+    {
+        EmulatorType emulatorType = EmulatorType::DuckStation;
+        std::string processName;
+        uintptr_t memoryAddress = 0;
+    };
+
+    // Creates and sets up the GameManager on the GUI thread, then starts the manager thread to connect
+    // and run it. Returns false (and reports an error status) if the connection settings are invalid.
+    bool startGameManager();
+    void runGameManager(ConnectionTarget target);
+
+    // Reconnects when the game goes from the main menu to in game, so settings changed on the main menu apply.
+    void checkForGameStart();
+
+    void setConnectionStatus(ConnectionState state, const std::string& status);
+    std::string getConnectionStatus();
+
     AppFrame::GUIImage logo;
     Tracker tracker;
     std::vector<AppFrame::GUIImage> characterPortraits;
@@ -79,10 +100,14 @@ protected:
     int selectedSetupIndex = 0;
 
     // Setup
+    // The GameManager is created, set up, and deleted on the GUI thread only. The manager thread
+    // connects and runs updates in between.
     GameManager* game = nullptr;
     std::thread* managerThread = nullptr;
     std::atomic<bool> managerRunning = false;
-    GameManager::GameState previousState = GameManager::GameState::BootScreen;
+    std::atomic<bool> stopRequested = false;
+    // Last game state seen by checkForGameStart, empty until the first one after connecting.
+    std::optional<GameManager::GameState> previousState;
 
     GameVersion selectedGameVersion = GameVersion::PlayStationUS;
     EmulatorType selectedEmulatorType = EmulatorType::DuckStation;
@@ -95,8 +120,14 @@ protected:
     char processMemoryOffset[20];
     char seedValue[9];
 
-    ConnectionState connectionState = ConnectionState::NotConnected;
+    // Written by both threads. connectionStatus is guarded by connectionStatusMutex.
+    std::atomic<ConnectionState> connectionState = ConnectionState::NotConnected;
+    std::mutex connectionStatusMutex;
     std::string connectionStatus = "Not Connected";
+
+    // The seed can change on the manager thread (loaded from a save), it's handed to the GUI through these.
+    std::atomic<uint32_t> pendingSeed = 0;
+    std::atomic<bool> seedPending = false;
 
     AppFrame::AppConfig configure() const override;
     bool onInitialize() override;

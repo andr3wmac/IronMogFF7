@@ -132,15 +132,22 @@ bool App::onInitialize()
 
 void App::onShutdown()
 {
-    if (managerThread != nullptr)
-    {
-        stopGameManager();
-    }
+    // Stop the manager thread before anything it uses is torn down (GUI, statics, audio).
+    stopGameManager();
     Platform::shutdown();
 }
 
 void App::onFrame()
 {
+    // Pick up a seed change made on the manager thread (e.g. the seed stored in a loaded save).
+    if (seedPending.exchange(false))
+    {
+        snprintf(seedValue, sizeof(seedValue), "%08X", pendingSeed.load());
+    }
+
+    // Done outside of draw() so it happens regardless of which tab is visible.
+    checkForGameStart();
+
     draw();
 }
 
@@ -162,21 +169,20 @@ void App::connect()
         {
             stopGameManager();
         }
-        else 
+        else
         {
             return;
         }
     }
 
-    managerThread = new std::thread(&App::runGameManager, this);
+    startGameManager();
 }
 
 void App::disconnect()
 {
-    connectionState = ConnectionState::NotConnected;
-    connectionStatus = "Not Connected";
+    setConnectionStatus(ConnectionState::NotConnected, "Not Connected");
 
-    if (managerThread == nullptr || !managerRunning.load())
+    if (managerThread == nullptr)
     {
         return;
     }
@@ -187,59 +193,43 @@ void App::disconnect()
 
 void App::reconnect()
 {
-    connectionState = ConnectionState::Connecting;
-    connectionStatus = "Reconnecting to Emulator..";
-
     stopGameManager();
-    managerThread = new std::thread(&App::runGameManager, this);
+    startGameManager();
 }
 
-void App::runGameManager()
+bool App::startGameManager()
 {
-    // Prepare game manager
-    if (game != nullptr)
-    {
-        delete game;
-        game = nullptr;
-    }
+    // Resolve where we're connecting to up front so bad input is reported here rather than crashing the manager thread.
+    ConnectionTarget target;
+    target.emulatorType = selectedEmulatorType;
 
-    game = new GameManager();
-    BIND_EVENT(game->onStart, App::onStart);
-
-    // Connect
-    connectionState = ConnectionState::Connecting;
-    connectionStatus = "Connecting to Emulator..";
-
-    bool connected = false;
-
+    std::string emulatorName;
     if (selectedEmulatorType == EmulatorType::DuckStation)
     {
-        connectionStatus = "Connecting to DuckStation..";
-        std::string targetProcess = "duckstation-qt-x64-ReleaseLTCG.exe";
-        connected = game->connectToEmulator(targetProcess);
+        emulatorName = "DuckStation";
+        target.processName = "duckstation-qt-x64-ReleaseLTCG.exe";
     }
     if (selectedEmulatorType == EmulatorType::BizHawk)
     {
-        connectionStatus = "Connecting to BizHawk..";
-        std::string targetProcess = "EmuHawk.exe";
-        connected = game->connectToEmulator(targetProcess);
+        emulatorName = "BizHawk";
+        target.processName = "EmuHawk.exe";
     }
     if (selectedEmulatorType == EmulatorType::Custom)
     {
-        uintptr_t customAddress = Utilities::parseAddress(processMemoryOffset);
-        connected = game->connectToEmulator(runningProcesses[selectedProcessIdx], customAddress);
-    }
+        if (selectedProcessIdx < 0 || selectedProcessIdx >= (int)runningProcesses.size())
+        {
+            setConnectionStatus(ConnectionState::Error, "Select an emulator process.");
+            return false;
+        }
 
-    if (connected)
-    {
-        connectionState = ConnectionState::Connected;
-        connectionStatus = "Connected to emulator.";
-    }
-    else
-    {
-        connectionState = ConnectionState::Error;
-        connectionStatus = "Failed to connect to emulator.";
-        return;
+        if (!Utilities::tryParseAddress(processMemoryOffset, target.memoryAddress))
+        {
+            setConnectionStatus(ConnectionState::Error, "Invalid memory offset.");
+            return false;
+        }
+
+        emulatorName = runningProcesses[selectedProcessIdx];
+        target.processName = runningProcesses[selectedProcessIdx];
     }
 
     // Reset global restrictions before applying the selected mods.
@@ -250,8 +240,12 @@ void App::runGameManager()
     Randomizer::setItemBanFilter(&Restrictions::isItemBanned);
     Randomizer::setMateriaBanFilter(&Restrictions::isMateriaBanned);
 
-    tracker.setup(game);
+    // Setup doesn't touch emulator memory, so it's done here on the GUI thread. That keeps every
+    // mod's manager pointer owned by this thread and never changing while the GUI reads it.
+    game = new GameManager();
+    BIND_EVENT(game->onStart, App::onStart);
     game->setup(selectedGameVersion, Utilities::hexStringToSeed(seedValue));
+    tracker.setup(game);
 
     // Set up the mods after the engine so the seed is ready and their event
     // listeners are bound before the ban-enforcement listeners below.
@@ -265,14 +259,41 @@ void App::runGameManager()
     game->onFieldChanged.addListener(this, "Restrictions::enforceFieldBans", [this](uint16_t fieldID) { Restrictions::enforceFieldBans(game, fieldID); });
     game->onShopMenuChanged.addListener(this, "Restrictions::enforceShopBans", [this](uint8_t menuIndex) { Restrictions::enforceShopBans(game, menuIndex); });
 
+    setConnectionStatus(ConnectionState::Connecting, "Connecting to " + emulatorName + "..");
+
+    stopRequested = false;
     managerRunning = true;
-    while (managerRunning.load())
+    managerThread = new std::thread(&App::runGameManager, this, target);
+    return true;
+}
+
+void App::runGameManager(ConnectionTarget target)
+{
+    bool connected = false;
+    if (target.emulatorType == EmulatorType::Custom)
+    {
+        connected = game->connectToEmulator(target.processName, target.memoryAddress);
+    }
+    else
+    {
+        connected = game->connectToEmulator(target.processName);
+    }
+
+    if (!connected)
+    {
+        setConnectionStatus(ConnectionState::Error, "Failed to connect to emulator.");
+        managerRunning = false;
+        return;
+    }
+
+    setConnectionStatus(ConnectionState::Connected, "Connected to emulator.");
+
+    while (!stopRequested.load())
     {
         if (!game->update())
         {
             // If update returns false then a fatal error occurred.
-            connectionState = ConnectionState::Error;
-            connectionStatus = "Connection lost.";
+            setConnectionStatus(ConnectionState::Error, "Connection lost.");
             break;
         }
 
@@ -281,7 +302,7 @@ void App::runGameManager()
         {
             Platform::sleep(16.67);
         }
-        else 
+        else
         {
             Platform::sleep(1.0);
         }
@@ -291,15 +312,65 @@ void App::runGameManager()
 
 void App::stopGameManager()
 {
-    tracker.reset();
-    managerRunning = false;
+    stopRequested = true;
     if (managerThread != nullptr)
     {
         managerThread->join();
         delete managerThread;
         managerThread = nullptr;
     }
-    previousState = GameManager::GameState::BootScreen;
+    managerRunning = false;
+
+    // The manager thread is gone, so the GameManager can be safely torn down here on the GUI thread.
+    tracker.reset();
+    ModManager::shutdown(game);
+    delete game;
+    game = nullptr;
+
+    previousState.reset();
+}
+
+void App::checkForGameStart()
+{
+    if (connectionState != ConnectionState::Connected || game == nullptr)
+    {
+        return;
+    }
+
+    GameManager::GameState state = game->getState();
+
+    // The first state seen after connecting is only a baseline. Connecting while already in game has
+    // just applied the current settings, so there's nothing to pick up and reconnecting could land mid-battle.
+    if (previousState.has_value() && previousState != GameManager::GameState::InGame && state == GameManager::GameState::InGame)
+    {
+        // Save the current configuration in case of a crash, etc
+        // We do not overwrite Last Settings if we're currently on Default. It's too common to press
+        // Connect without thinking about it and then lose Last Settings in the process.
+        if (availableSettings[selectedSettingsIdx] != "Default")
+        {
+            saveSettings("settings/Last Settings.cfg", true);
+        }
+
+        // Reconnect so any settings changed on the main menu are applied to this run.
+        LOG("Detected game start, reconnecting GameManager..");
+        reconnect();
+        return;
+    }
+
+    previousState = state;
+}
+
+void App::setConnectionStatus(ConnectionState state, const std::string& status)
+{
+    std::lock_guard<std::mutex> lock(connectionStatusMutex);
+    connectionStatus = status;
+    connectionState = state;
+}
+
+std::string App::getConnectionStatus()
+{
+    std::lock_guard<std::mutex> lock(connectionStatusMutex);
+    return connectionStatus;
 }
 
 void App::generateSeed()
@@ -424,8 +495,9 @@ void App::onResize(int width, int height)
 
 void App::onStart()
 {
-    uint32_t chosenSeed = game->getSeed();
-    snprintf(seedValue, 9, "%08X", chosenSeed);
+    // Runs on the manager thread, the GUI thread applies it to seedValue.
+    pendingSeed = game->getSeed();
+    seedPending = true;
 }
 
 void App::guiSettingsRead(const char* section, const char* line)
@@ -472,8 +544,17 @@ void App::guiSettingsRead(const char* section, const char* line)
             tracker.attemptsDisplayMode = (AttemptsDisplayMode)attemptsDisplayMode;
             return;
         }
-        if (readInt("Attempts", &tracker.attemptCounter)) return;
-        if (readInt("GameOvers", &tracker.gameOverCounter)) return;
+        int counter = 0;
+        if (readInt("Attempts", &counter))
+        {
+            tracker.attemptCounter = counter;
+            return;
+        }
+        if (readInt("GameOvers", &counter))
+        {
+            tracker.gameOverCounter = counter;
+            return;
+        }
     }
 }
 
@@ -486,8 +567,8 @@ void App::guiSettingsWrite(ImGuiTextBuffer* buf)
     buf->appendf("ShowSong=%d\n", tracker.showSong ? 1 : 0);
     buf->appendf("ShowModSummary=%d\n", tracker.showModSummary ? 1 : 0);
     buf->appendf("AttemptsDisplayMode=%d\n", (int)tracker.attemptsDisplayMode);
-    buf->appendf("Attempts=%d\n", tracker.attemptCounter);
-    buf->appendf("GameOvers=%d\n", tracker.gameOverCounter);
+    buf->appendf("Attempts=%d\n", tracker.attemptCounter.load());
+    buf->appendf("GameOvers=%d\n", tracker.gameOverCounter.load());
     buf->append("\n");
 
     buf->append("[IronMogFF7][Appearance]\n");

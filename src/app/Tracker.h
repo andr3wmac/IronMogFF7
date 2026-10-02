@@ -1,4 +1,5 @@
 #include "LiveModFF7Core/game/GameManager.h"
+#include <atomic>
 
 struct TrackedCharacter
 {
@@ -37,8 +38,9 @@ public:
     TrackedCharacter characters[9];
     std::string inGameTime = "";
     std::string currentSong = "";
-    int attemptCounter = 0;
-    int gameOverCounter = 0;
+    // Incremented by game events on the manager thread and edited from the GUI, hence atomic.
+    std::atomic<int> attemptCounter = 0;
+    std::atomic<int> gameOverCounter = 0;
     std::string modsSummary = "";
 
 private:

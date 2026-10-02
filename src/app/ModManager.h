@@ -11,6 +11,9 @@ namespace ModManager
     // Call after GameManager::setup() so the seed is set before any mod runs.
     void setup(GameManager* game);
 
+    // Call before deleting the GameManager so no mod is left pointing at it.
+    void shutdown(GameManager* game);
+
     bool isModEnabled(const std::string& modName);
     Mod* getMod(const std::string& modName);
 

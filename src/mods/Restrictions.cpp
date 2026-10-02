@@ -37,6 +37,10 @@ bool Restrictions::isMateriaBanned(uint16_t materiaID)
 void Restrictions::enforceBattleBans(GameManager* game)
 {
     const auto& [scene, formation] = game->getBattleFormation();
+    if (scene == nullptr || formation == nullptr)
+    {
+        return;
+    }
 
     std::set<int> activeEnemyIndexes;
     for (int i = 0; i < 6; ++i)

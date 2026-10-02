@@ -50,6 +50,8 @@ Currently only Windows platforms are supported and Microsoft Visual Studio 2022 
 - [Zheal](https://www.twitch.tv/zheal)
 - [Kuma](https://www.twitch.tv/kumatv__)
 - brutalspeed
+- angryeggs
+- Donkey The Monkey
 
 # Resources
 Below are some of the notable resources that were referenced during development:

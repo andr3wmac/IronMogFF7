@@ -421,6 +421,25 @@ struct StatusFlags
     CONST_U16 Sadness    = (1 << 4);
 };
 
+struct MenuOffsets
+{
+    CONST_PTR MenuOpenFlag      = 0x62FC0;  // int32_t reads 0xFFFFFFFF while no menu is up and 0x00000001 while one is.
+    CONST_PTR ItemListScroll    = 0x1D3DF0; // uint8_t rows scrolled from the top of the item list
+    CONST_PTR ItemListCursor    = 0x1D3DF9; // uint8_t highlighted row within the visible window
+    CONST_PTR ItemTargetActive  = 0x1D3E48; // uint8_t item screen focus/depth. 1 = browsing the item list, 2 = a character target is being chosen for the highlighted item.
+
+    // Red popup box in menu. 
+    CONST_PTR ItemPopupText   = 0x1D3E60; // Three FF-encoded, 0xFF-terminated line slots at a 0x22 (34-byte) stride.
+    CONST_PTR ItemPopupStride = 0x22;
+    CONST_PTR PopupPhaseA     = 0x62DDB; // uint8_t open-state flag, set to 2 while the box is up (1 = opening frame).
+    CONST_PTR PopupTimer      = 0x62DE0; // uint8_t open-state flag, set to 2 while the box is up (1 = opening frame).
+    CONST_PTR PopupPhaseB     = 0x62DE5; // uint8_t frames remaining. the game decrements it 1/frame and closes the box when it hits 0.
+    CONST_PTR PopupTextPtr    = 0x62EB8; // uint32_t PS1 pointer to the popup's text. Needs to be set on first popup usage.
+    CONST_PTR PopupTextColor  = 0x62DDC; //uint8 text color / style, also lazily initialized(2 on fresh boot = renders red; 7 = white).
+    
+    CONST_U8 PopupColorWhite = 7;
+};
+
 struct ShopOffsets
 {
     CONST_PTR ShopStart  = 0x1D4714;
@@ -437,16 +456,44 @@ struct ShopOffsets
     CONST_PTR MateriaPricesStart = 0x1D6E54;
 };
 
+// KERNEL.BIN data loaded into PS1 RAM
+struct KernelOffsets
+{
+    // Section 5: Item data. 128 records, 28-byte stride.
+    CONST_PTR ItemDataStart  = 0x722CC;
+    CONST_PTR ItemDataStride = 28;
+
+    // Within-record field offsets (add to ItemDataStart + id * ItemDataStride).
+    // RestrictionMask is a uint16 bitmask where a SET bit RESTRICTS the action (verified against a
+    // memory dump: Potion=0xFFF8 sell/battle/menu, Save Crystal=0xFFFB menu-only). 
+    // Note: The ffrtt wiki describes the polarity backwards.
+    //   bit 0 (0x01): 0 = can be sold
+    //   bit 1 (0x02): 0 = can be used in battle
+    //   bit 2 (0x04): 0 = can be used in menu out of battle
+    CONST_PTR ItemRestrictionMask = 0x0A;
+
+    CONST_PTR ItemTargetFlags   = 0x0C; // uint8 where bit 0 (0x01) enables the target-selection cursor and 0x00 = no target.
+    CONST_U16 ItemMaskMenuOnly  = 0xFFFB; // Restriction mask for a menu-only, non-battle, non-sellable item (matches Save Crystal).
+
+    // Section 20: Item names. A table of 128 uint16 offsets (relative to ItemNamesStart), each pointing to an FF-text string.
+    // Name address = ItemNamesStart + read<uint16_t>(ItemNamesStart + id * 2)
+    CONST_PTR ItemNamesStart = 0x672AC;
+
+    // Scratch/padding immediately after the resident kernel text block (~1KB of 0x00), reachable as a uint16 offset from ItemNamesStart.
+    // Use it to park custom name strings instead of overwriting an existing entry's text.
+    CONST_PTR NameScratch = 0x69086;
+};
+
 struct SavemapOffsets
 {
     CONST_PTR Start = 0x9C6E4;
 
     // These are IronMog specific values we store and fetch from an unused spot in the save map.
     // This area from 0x0B5C to 0x0B7C is 32 bytes of unused data.
-    CONST_PTR IronMogSave       = Start + 0x0B5C;  // 2 Bytes for the ASCII letters IM to know we've been here.
-    CONST_PTR IronMogVersion    = Start + 0x0B5E;  // A save data format version number, uint8_t
-    CONST_PTR IronMogSeed       = Start + 0x0B5F;  // uint32_t seed used in current playthrough
-    CONST_PTR IronMogPermadeath = Start + 0x0B63;  // uint16_t used by permadeath to track dead characters
+    CONST_PTR IronMogSave        = Start + 0x0B5C;  // 2 Bytes for the ASCII letters IM to know we've been here.
+    CONST_PTR IronMogVersion     = Start + 0x0B5E;  // A save data format version number, uint8_t
+    CONST_PTR IronMogSeed        = Start + 0x0B5F;  // uint32_t seed used in current playthrough
+    CONST_PTR IronMogPermadeath  = Start + 0x0B63;  // uint16_t used by permadeath to track dead characters
 
     CONST_PTR BuggyHighwindPosition = Start + 0x0F74;
 };

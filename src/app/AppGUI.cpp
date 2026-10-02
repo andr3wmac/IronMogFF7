@@ -75,7 +75,7 @@ void App::drawMenuBar()
     if (ImGui::BeginMenu("File"))
     {
         // Loading settings is blocked while in game, same as on the Setup panel.
-        bool lockSettings = connectionState == ConnectionState::Connected && game->getState() == GameManager::GameState::InGame;
+        bool lockSettings = connectionState == ConnectionState::Connected && game != nullptr && game->getState() == GameManager::GameState::InGame;
 
         if (ImGui::MenuItem(ICON_FA_FOLDER_OPEN "  Open Settings...", nullptr, false, !lockSettings))
         {
@@ -187,27 +187,14 @@ static bool drawSetupDetails(Mod* item, bool lockSettings)
 
 void App::drawSetupPanel()
 {
+    // The manager thread can change this at any time, so work from a single snapshot per frame.
+    const ConnectionState currentConnection = connectionState.load();
+
     // We lock settings if we're both connected and in game.
-    bool lockSettings = connectionState > ConnectionState::NotConnected && connectionState < ConnectionState::Error;
-    if (lockSettings && connectionState == ConnectionState::Connected)
+    bool lockSettings = currentConnection > ConnectionState::NotConnected && currentConnection < ConnectionState::Error;
+    if (lockSettings && currentConnection == ConnectionState::Connected && game != nullptr)
     {
-        GameManager::GameState state = game->getState();
-        lockSettings &= (state == GameManager::GameState::InGame);
-
-        // Save the current configuration in case of a crash, etc
-        if (previousState != GameManager::GameState::InGame && state == GameManager::GameState::InGame)
-        {
-            // We do not overwrite Last Settings if we're currently on Default. It's too common to press
-            // Connect without thinking about it and then lose Last Settings in the process.
-            if (availableSettings[selectedSettingsIdx] != "Default")
-            {
-                saveSettings("settings/Last Settings.cfg", true);
-            }
-
-            LOG("Detected game start, reconnecting GameManager..");
-            reconnect();
-        }
-        previousState = state;
+        lockSettings &= (game->getState() == GameManager::GameState::InGame);
     }
 
     bool changed = false;
@@ -309,6 +296,7 @@ void App::drawSetupGeneral(bool lockSettings)
             if (selectedEmulatorType == EmulatorType::Custom)
             {
                 runningProcesses = Platform::getRunningProcesses();
+                selectedProcessIdx = 0;
             }
         }
 
@@ -417,17 +405,21 @@ void App::drawHeader()
     drawLogo();
     const ImVec2 end = ImGui::GetCursorPos();
 
+    // The manager thread can change these at any time, so work from a single snapshot per frame.
+    const ConnectionState currentConnection = connectionState.load();
+    const std::string currentStatus = getConnectionStatus();
+
     // Connection controls on the right, vertically centered on the logo: [dot] [status] [button]
     const float dotRadius = DPI(5.0f);
     const float buttonWidth = DPI(120.0f);
-    const float statusWidth = ImGui::CalcTextSize(connectionStatus.c_str()).x;
+    const float statusWidth = ImGui::CalcTextSize(currentStatus.c_str()).x;
     const float totalWidth = (dotRadius * 2.0f) + style.ItemSpacing.x + statusWidth + style.ItemSpacing.x + buttonWidth;
 
     ImGui::SetCursorPos(ImVec2(start.x + availableWidth - totalWidth, start.y + (logoHeight - ImGui::GetFrameHeight()) * 0.5f));
     {
         ImColor dotColor = dotRed;
-        if (connectionState == ConnectionState::Connecting) dotColor = dotYellow;
-        if (connectionState == ConnectionState::Connected) dotColor = dotGreen;
+        if (currentConnection == ConnectionState::Connecting) dotColor = dotYellow;
+        if (currentConnection == ConnectionState::Connected) dotColor = dotGreen;
 
         const ImVec2 p = ImGui::GetCursorScreenPos();
         ImGui::GetWindowDrawList()->AddCircleFilled(ImVec2(p.x + dotRadius, p.y + ImGui::GetFrameHeight() * 0.5f), dotRadius, dotColor);
@@ -435,10 +427,10 @@ void App::drawHeader()
 
         ImGui::SameLine();
         ImGui::AlignTextToFramePadding();
-        ImGui::Text(connectionStatus.c_str());
+        ImGui::TextUnformatted(currentStatus.c_str());
 
         ImGui::SameLine();
-        if (connectionState == ConnectionState::NotConnected || connectionState == ConnectionState::Error)
+        if (currentConnection == ConnectionState::NotConnected || currentConnection == ConnectionState::Error)
         {
             if (ImGui::Button("Connect", ImVec2(buttonWidth, 0.0f)))
             {
@@ -447,7 +439,7 @@ void App::drawHeader()
         }
         else
         {
-            ImGui::BeginDisabled(connectionState == ConnectionState::Connecting);
+            ImGui::BeginDisabled(currentConnection == ConnectionState::Connecting);
             if (ImGui::Button("Disconnect", ImVec2(buttonWidth, 0.0f)))
             {
                 disconnect();
@@ -524,12 +516,12 @@ void App::drawTrackerPanel()
         // Attempts/Game Overs
         if (tracker.showAttempts())
         {
-            std::string attemptsText = "Attempt #" + std::to_string(tracker.attemptCounter);
+            std::string attemptsText = "Attempt #" + std::to_string(tracker.attemptCounter.load());
             ImGui::Text(attemptsText.c_str());
         }
         if (tracker.showGameOvers())
         {
-            std::string gameOversText = "Game Overs: " + std::to_string(tracker.gameOverCounter);
+            std::string gameOversText = "Game Overs: " + std::to_string(tracker.gameOverCounter.load());
             ImGui::Text(gameOversText.c_str());
         }
         
@@ -594,11 +586,20 @@ void App::drawAppSettingsPanel()
         {
             ImGui::Text("Attempts:");
             ImGui::SameLine(DPI(160.0f));
-            ImGui::InputInt("##AppSettings_Attempts", &tracker.attemptCounter, 0, 0);
+            // The counters are also incremented on the manager thread, so edit a copy.
+            int attempts = tracker.attemptCounter;
+            if (ImGui::InputInt("##AppSettings_Attempts", &attempts, 0, 0))
+            {
+                tracker.attemptCounter = attempts;
+            }
 
             ImGui::Text("Game Overs:");
             ImGui::SameLine(DPI(160.0f));
-            ImGui::InputInt("##AppSettings_GameOvers", &tracker.gameOverCounter, 0, 0);
+            int gameOvers = tracker.gameOverCounter;
+            if (ImGui::InputInt("##AppSettings_GameOvers", &gameOvers, 0, 0))
+            {
+                tracker.gameOverCounter = gameOvers;
+            }
         }
         ImGui::EndDisabled();
     }
@@ -606,10 +607,10 @@ void App::drawAppSettingsPanel()
 
 void App::drawDebugPanel()
 {
-    std::string connectionText = "Connection: " + connectionStatus;
-    ImGui::Text(connectionText.c_str());
+    std::string connectionText = "Connection: " + getConnectionStatus();
+    ImGui::TextUnformatted(connectionText.c_str());
     
-    if (connectionState != ConnectionState::Connected)
+    if (connectionState != ConnectionState::Connected || game == nullptr)
     {
         return;
     }

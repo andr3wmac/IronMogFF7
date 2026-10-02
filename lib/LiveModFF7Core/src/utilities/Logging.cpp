@@ -38,6 +38,8 @@ void Logger::Log(const char* format, ...)
 
     std::string line = getTimestamp() + " " + formatted + "\n";
 
+    std::lock_guard<std::mutex> lock(logMutex);
+
     // Write to file
     if (logFile.is_open()) 
     {

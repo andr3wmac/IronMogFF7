@@ -36,7 +36,7 @@ void Tracker::reset()
 
 void Tracker::update()
 {
-    if (game == nullptr)
+    if (game == nullptr || !game->isConnected())
     {
         return;
     }
@@ -45,19 +45,12 @@ void Tracker::update()
     {
         Permadeath* permadeathMod = (Permadeath*)ModManager::getMod("Permadeath");
         uint16_t phsVisMask = game->read<uint16_t>(GameOffsets::PHSVisibilityMask);
+        uint16_t deadMask = (permadeathMod != nullptr) ? permadeathMod->getDeadCharacterMask() : 0;
 
         for (uint8_t i = 0; i < 9; ++i)
         {
             characters[i].isActive = Utilities::isBitSet(phsVisMask, i);
-            characters[i].isPermadead = false;
-
-            if (permadeathMod != nullptr)
-            {
-                if (permadeathMod->isCharacterDead(i))
-                {
-                    characters[i].isPermadead = true;
-                }
-            }
+            characters[i].isPermadead = Utilities::isBitSet(deadMask, i);
         }
     }
 

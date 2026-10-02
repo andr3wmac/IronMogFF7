@@ -8,6 +8,9 @@
 #include "mods/Restrictions.h"
 #include "utilities/Randomizer.h"
 
+#include <cstdlib>
+#include <fstream>
+
 REGISTER_MOD(RandomizeShops, "Randomize Shops", "Randomizers")
 
 std::string RandomizeShops::getDescription() const
@@ -180,23 +183,47 @@ void RandomizeShops::onStart()
 
     if (useBalancedPrices)
     {
-        GUI::readIni("settings/Shop Prices.ini", "ShopPrices",
-            [this](const char* section, const char* line) { this->onShopPricesRead(section, line); }
-        );
-
-        LOG("Loaded %d prices from Shop Prices.ini", customPrices.size());
+        loadCustomPrices("settings/Shop Prices.ini");
+        LOG("Loaded %zu prices from Shop Prices.ini", customPrices.size());
     }
 
     generateRandomizedShops();
 }
 
-void RandomizeShops::onShopPricesRead(const char* section, const char* line)
+// Reads Key=Price lines from the shop prices file. This runs on the game manager thread so it parses the
+// file itself rather than going through ImGui's ini loader, which isn't thread-safe.
+void RandomizeShops::loadCustomPrices(const std::string& filePath)
 {
-    char key[256];
-    int value;
-    if (sscanf(line, "%255[^=]=%d", key, &value) == 2) 
+    std::ifstream file(filePath);
+    std::string line;
+
+    while (std::getline(file, line))
     {
-        customPrices[key] = value;
+        // Section headers only group the entries, every Key=Price line is a price.
+        line = Utilities::trim(line);
+        if (line.empty() || line[0] == '[' || line[0] == ';' || line[0] == '#')
+        {
+            continue;
+        }
+
+        size_t equalsPos = line.find('=');
+        if (equalsPos == std::string::npos)
+        {
+            continue;
+        }
+
+        std::string key = Utilities::trim(line.substr(0, equalsPos));
+        std::string value = Utilities::trim(line.substr(equalsPos + 1));
+
+        char* end = nullptr;
+        long price = std::strtol(value.c_str(), &end, 10);
+        if (key.empty() || value.empty() || *end != '\0' || price < 0)
+        {
+            LOG("Ignored invalid shop price line: %s", line.c_str());
+            continue;
+        }
+
+        customPrices[key] = (uint32_t)price;
     }
 }
 
@@ -214,6 +241,12 @@ void RandomizeShops::generateRandomizedShops()
 
     for (const auto& [id, item] : GameData::items)
     {
+        if (id >= itemBuyPrices.size())
+        {
+            LOG("Item ID %d is outside the shop price table, skipping.", id);
+            continue;
+        }
+
         uint32_t itemPrice = item.price;
 
         // Load custom prices if available
@@ -240,6 +273,12 @@ void RandomizeShops::generateRandomizedShops()
 
     for (const auto& [id, materia] : GameData::materia)
     {
+        if (id >= materiaBuyPrices.size())
+        {
+            LOG("Materia ID %d is outside the shop price table, skipping.", id);
+            continue;
+        }
+
         uint32_t materiaPrice = materia.price;
 
         // Load custom prices if available
@@ -324,6 +363,10 @@ void RandomizeShops::generateRandomizedShops()
                     uint16_t oldItemID = randomizedShop.items[j].id;
                     uint32_t oldPrice = randomizedShop.items[j].price;
                     uint16_t newItemID = randomizeShopItem(oldItemID, chosenItems);
+                    if (newItemID >= itemSellPrices.size())
+                    {
+                        newItemID = oldItemID;
+                    }
 
                     uint32_t price = GameData::getItemPrice(newItemID);
                     if (price <= 2)
@@ -354,7 +397,16 @@ void RandomizeShops::generateRandomizedShops()
                 {
                     uint16_t oldMateriaID = randomizedShop.materia[j].id;
                     uint32_t oldPrice = randomizedShop.materia[j].price;
-                    uint8_t newMateriaID = (uint8_t)randomizeShopMateria(oldMateriaID, chosenMateria);
+                    uint16_t randomMateriaID = randomizeShopMateria(oldMateriaID, chosenMateria);
+
+                    // UINT16_MAX means there were no candidates (e.g. every materia is banned). Keep the original
+                    // rather than indexing the price tables with it, the ban pass will remove it if needed.
+                    if (randomMateriaID >= materiaSellPrices.size())
+                    {
+                        LOG("No materia candidates for shop %d, keeping %d", shopID, oldMateriaID);
+                        randomMateriaID = oldMateriaID;
+                    }
+                    uint8_t newMateriaID = (uint8_t)randomMateriaID;
 
                     uint32_t price = GameData::getMateriaPrice(newMateriaID);
                     if (price <= 1)

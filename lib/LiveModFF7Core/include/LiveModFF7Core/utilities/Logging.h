@@ -4,6 +4,7 @@
 #include <fstream>
 #include <ctime>
 #include <cstdarg>
+#include <mutex>
 
 class Logger {
 public:
@@ -14,6 +15,7 @@ public:
 
 private:
     std::ofstream logFile;
+    std::mutex logMutex; // LOG is called from both the GUI and game manager threads.
     std::string getTimestamp();
     std::string formatString(const char* format, va_list args);
 };

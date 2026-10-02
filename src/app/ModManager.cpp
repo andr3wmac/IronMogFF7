@@ -10,14 +10,27 @@
 
 void ModManager::setup(GameManager* game)
 {
+    // Every mod gets the manager, not just the enabled ones, so one that is switched on after
+    // connecting can still safely reference it (e.g. describe() for the tracker summary).
     for (Mod* mod : Mod::getList())
     {
-        if (!mod->enabled)
-        {
-            continue;
-        }
         mod->setManager(game);
-        mod->setup();
+        if (mod->enabled)
+        {
+            mod->setup();
+        }
+    }
+}
+
+void ModManager::shutdown(GameManager* game)
+{
+    // Mods outlive the manager, so make sure none of them keep a dangling pointer to it.
+    for (Mod* mod : Mod::getList())
+    {
+        if (mod->getManager() == game)
+        {
+            mod->setManager(nullptr);
+        }
     }
 }
 

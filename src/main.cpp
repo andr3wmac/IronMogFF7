@@ -10,6 +10,13 @@ protected:
         AudioManager::initialize();
         return App::onInitialize();
     }
+
+    void onShutdown() override
+    {
+        // App stops the manager thread first, so nothing is still using audio when it shuts down.
+        App::onShutdown();
+        AudioManager::shutdown();
+    }
 };
 
 APPFRAME_MAIN(IronMogApp)
