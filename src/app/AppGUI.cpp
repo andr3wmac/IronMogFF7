@@ -44,10 +44,17 @@ void App::draw()
                 drawTrackerPanel();
                 ImGui::EndTabItem();
             }
-            if (ImGui::BeginTabItem(ICON_FA_COG))
+            if (showPreferencesTab)
             {
-                drawAppSettingsPanel();
-                ImGui::EndTabItem();
+                // Bring the tab to the front when it's opened from the File menu.
+                ImGuiTabItemFlags flags = selectPreferencesTab ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None;
+                selectPreferencesTab = false;
+
+                if (ImGui::BeginTabItem("Preferences", &showPreferencesTab, flags))
+                {
+                    drawPreferencesPanel();
+                    ImGui::EndTabItem();
+                }
             }
             if (showDebugTab)
             {
@@ -84,6 +91,12 @@ void App::drawMenuBar()
         if (ImGui::MenuItem(ICON_FA_SAVE "  Save Settings As..."))
         {
             saveSettingsFileAs();
+        }
+        ImGui::Separator();
+        if (ImGui::MenuItem(ICON_FA_COG "  Preferences..."))
+        {
+            showPreferencesTab = true;
+            selectPreferencesTab = true;
         }
         ImGui::Separator();
         if (ImGui::MenuItem("Exit"))
@@ -456,17 +469,22 @@ void App::drawTrackerPanel()
 {
     tracker.update();
 
-    gui.pushFont("Reactor7");
+    const ImGuiStyle& style = ImGui::GetStyle();
+    const int imgWidth = DPI(46);
+    const int imgHeight = DPI(53);
+
+    // The display keeps the size of the old fixed window, which fit the row of character portraits with
+    // a little padding either side, so streamers get a consistent capture region. Options sit to the right.
+    const float displayWidth = (imgWidth * 9) + (style.ItemSpacing.x * 8.0f) + style.WindowPadding.x;
 
     ImGui::Spacing();
-    ImGui::BeginChild("##ScrollBox", ImVec2(0, 0));
+
+    gui.pushFont("Reactor7");
+    ImGui::BeginChild("##TrackerDisplay", ImVec2(displayWidth, 0));
     {
         // Permadeath Character Portraits
         if (tracker.showCharacters)
         {
-            const int imgWidth = DPI(46);
-            const int imgHeight = DPI(53);
-
             for (int i = 0; i < 9; ++i)
             {
                 float iconAlpha = 0.25f;
@@ -535,12 +553,83 @@ void App::drawTrackerPanel()
         ImGui::Unindent(DPI(10.0f));
     }
     ImGui::EndChild();
-    ImGui::Spacing();
-
     gui.popFont();
+
+    // Dividing line between the display and its options.
+    const float panelHeight = ImGui::GetItemRectSize().y;
+    ImGui::SameLine(0.0f, 0.0f);
+    {
+        const ImVec2 p = ImGui::GetCursorScreenPos();
+        ImGui::GetWindowDrawList()->AddLine(p, ImVec2(p.x, p.y + panelHeight), ImGui::GetColorU32(ImGuiCol_Separator));
+        ImGui::Dummy(ImVec2(1.0f, panelHeight));
+    }
+    ImGui::SameLine(0.0f, style.WindowPadding.x);
+
+    ImGui::BeginChild("##TrackerOptions", ImVec2(0, 0));
+    {
+        drawTrackerOptions();
+    }
+    ImGui::EndChild();
 }
 
-void App::drawAppSettingsPanel()
+void App::drawTrackerOptions()
+{
+    const float labelWidth = DPI(100.0f);
+    const float maxItemWidth = DPI(200.0f);
+
+    ImGui::SeparatorText("Display");
+    {
+        ImGui::Checkbox("Show Characters", &tracker.showCharacters);
+        ImGui::Checkbox("Show Seed", &tracker.showSeed);
+        ImGui::Checkbox("Show Time", &tracker.showTime);
+        ImGui::Checkbox("Show Song", &tracker.showSong);
+        ImGui::Checkbox("Show Mod Summary", &tracker.showModSummary);
+    }
+    ImGui::Spacing();
+
+    ImGui::SeparatorText("Attempt Counter");
+    {
+        float itemWidth = std::min(ImGui::GetContentRegionAvail().x - labelWidth, maxItemWidth);
+
+        ImGui::AlignTextToFramePadding();
+        ImGui::Text("Mode:");
+        ImGui::SetItemTooltip("Sets the display mode of the attempts counter on the tracker.\nAutomatic will switch between Attempts and Game Overs\nbased on whether No Saving is enabled or not.");
+        ImGui::SameLine(labelWidth);
+        ImGui::SetNextItemWidth(itemWidth);
+        int attemptCounterIndex = (int)tracker.attemptsDisplayMode;
+        if (ImGui::Combo("##Tracker_AttemptCounterMode", &attemptCounterIndex, attemptsDisplayModes, IM_ARRAYSIZE(attemptsDisplayModes)))
+        {
+            tracker.attemptsDisplayMode = (AttemptsDisplayMode)attemptCounterIndex;
+        }
+
+        ImGui::BeginDisabled(tracker.attemptsDisplayMode == AttemptsDisplayMode::Disabled);
+        {
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Attempts:");
+            ImGui::SameLine(labelWidth);
+            ImGui::SetNextItemWidth(itemWidth);
+            // The counters are also incremented on the manager thread, so edit a copy.
+            int attempts = tracker.attemptCounter;
+            if (ImGui::InputInt("##Tracker_Attempts", &attempts, 0, 0))
+            {
+                tracker.attemptCounter = attempts;
+            }
+
+            ImGui::AlignTextToFramePadding();
+            ImGui::Text("Game Overs:");
+            ImGui::SameLine(labelWidth);
+            ImGui::SetNextItemWidth(itemWidth);
+            int gameOvers = tracker.gameOverCounter;
+            if (ImGui::InputInt("##Tracker_GameOvers", &gameOvers, 0, 0))
+            {
+                tracker.gameOverCounter = gameOvers;
+            }
+        }
+        ImGui::EndDisabled();
+    }
+}
+
+void App::drawPreferencesPanel()
 {
     ImGui::SeparatorText("Appearance");
     ImGui::SetNextItemWidth(DPI(200.0f));
@@ -560,48 +649,6 @@ void App::drawAppSettingsPanel()
     if (saveAppearance && ImGui::GetIO().IniFilename)
     {
         ImGui::SaveIniSettingsToDisk(ImGui::GetIO().IniFilename);
-    }
-
-    ImGui::Spacing();
-    ImGui::SeparatorText("Tracker");
-    {
-        ImGui::Checkbox("Show Characters", &tracker.showCharacters);
-        ImGui::Checkbox("Show Seed", &tracker.showSeed);
-        ImGui::Checkbox("Show Time", &tracker.showTime);
-        ImGui::Checkbox("Show Song", &tracker.showSong);
-        ImGui::Checkbox("Show Mod Summary", &tracker.showModSummary);
-
-        ImGui::Spacing();
-        ImGui::Text("Attempt Counter Mode:");
-        ImGui::SetItemTooltip("Sets the display mode of the attempts counter on the tracker.\nAutomatic will switch between Attempts and Game Overs\nbased on whether No Saving is enabled or not.");
-        ImGui::SameLine(DPI(160.0f));
-        ImGui::SetNextItemWidth(DPI(200.0f));
-        int attemptCounterIndex = (int)tracker.attemptsDisplayMode;
-        if (ImGui::Combo("##AppSettings_AttemptCounterMove", &attemptCounterIndex, attemptsDisplayModes, IM_ARRAYSIZE(attemptsDisplayModes)))
-        {
-            tracker.attemptsDisplayMode = (AttemptsDisplayMode)attemptCounterIndex;
-        }
-
-        ImGui::BeginDisabled(tracker.attemptsDisplayMode == AttemptsDisplayMode::Disabled);
-        {
-            ImGui::Text("Attempts:");
-            ImGui::SameLine(DPI(160.0f));
-            // The counters are also incremented on the manager thread, so edit a copy.
-            int attempts = tracker.attemptCounter;
-            if (ImGui::InputInt("##AppSettings_Attempts", &attempts, 0, 0))
-            {
-                tracker.attemptCounter = attempts;
-            }
-
-            ImGui::Text("Game Overs:");
-            ImGui::SameLine(DPI(160.0f));
-            int gameOvers = tracker.gameOverCounter;
-            if (ImGui::InputInt("##AppSettings_GameOvers", &gameOvers, 0, 0))
-            {
-                tracker.gameOverCounter = gameOvers;
-            }
-        }
-        ImGui::EndDisabled();
     }
 }
 

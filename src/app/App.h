@@ -61,7 +61,8 @@ public:
     void drawSetupPanel();
     void drawSetupGeneral(bool lockSettings);
     void drawTrackerPanel();
-    void drawAppSettingsPanel();
+    void drawTrackerOptions();
+    void drawPreferencesPanel();
     void drawDebugPanel();
 
     void connect();
@@ -95,6 +96,8 @@ protected:
     AppFrame::GUIImage deadIcon;
     float accentColor[3] = { 80.0f / 255.0f, 1.0f, 140.0f / 255.0f };
     bool showDebugTab = false;
+    bool showPreferencesTab = false;
+    bool selectPreferencesTab = false;
     bool openAboutPopup = false;
     SetupPage selectedSetupPage = SetupPage::General;
     int selectedSetupIndex = 0;

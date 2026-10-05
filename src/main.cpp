@@ -2,7 +2,7 @@
 #include "app/audio/AudioManager.h"
 #include "AppFrame/EntryPoint.h"
 
-class IronMogApp : public App
+class LiveModFF7App : public App
 {
 protected:
     bool onInitialize() override
@@ -19,4 +19,4 @@ protected:
     }
 };
 
-APPFRAME_MAIN(IronMogApp)
+APPFRAME_MAIN(LiveModFF7App)
