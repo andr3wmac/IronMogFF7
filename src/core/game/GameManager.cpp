@@ -395,6 +395,15 @@ GameManager::GameState GameManager::getState()
     return GameState::InGame;
 }
 
+void GameManager::shutdown()
+{
+    if (lastGameState == GameState::InGame)
+    {
+        lastGameState = GameState::BootScreen;
+        onExit.invoke();
+    }
+}
+
 bool GameManager::update()
 {
     double currentTime = Utilities::getTimeMS();
@@ -412,6 +421,7 @@ bool GameManager::update()
             // Clearing save data prevents stale state getting stuck from a game over.
             clearSaveData();
             AudioManager::pauseMusic();
+            onExit.invoke();
         }
 
         if (lastGameState != GameState::InGame && state == GameState::InGame)

@@ -44,6 +44,9 @@ public:
     GameState getState();
     bool update();
 
+    // Call before disconnecting so rules and extras can undo changes they've made to the game.
+    void shutdown();
+
     float getDifficultyScale() { return difficultyScale; }
     void setDifficultyScale(float newScale);
 
@@ -91,6 +94,7 @@ public:
 
     // Events
     Event<> onStart;
+    Event<> onExit;                         // Triggers when leaving the game, either back to the title screen or by disconnecting.
     Event<> onNewGame;
     Event<> onGameOver;
     Event<bool> onUpdate;                   // Triggers when IronMog updates which is more frequent than the game framerate. 

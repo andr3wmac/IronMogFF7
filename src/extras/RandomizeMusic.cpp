@@ -8,11 +8,30 @@
 #include "core/utilities/Utilities.h"
 
 #include <imgui.h>
+#include <cstdlib>
+#include <cstring>
 #include <filesystem>
 namespace fs = std::filesystem;
 
 const uint16_t UnsetMusicID = 65535;
-const uint16_t FullVolume = 0x7F;
+
+// The AKAO sound driver's master music volume is 16.16 fixed point and only 
+// the integer part masked with 0x7F is used, so 0x80 is silent. 
+const uint32_t MusicVolumeOne    = 0x00010000;
+const uint32_t MusicVolumeFull   = 0x007F0000;
+const uint32_t MusicVolumeSilent = 0x00800000;
+const uint32_t MusicVolumeMask   = 0x007F0000;
+
+// A fade that never ends, which also stops the driver from fading in new songs.
+const int16_t MusicFadeTicksLocked = 0x7FFF;
+
+// AKAO command handlers that change the master music volume, and a handler that does nothing.
+const uint32_t AKAONoopHandler = 0x8002CF98;
+const std::pair<uint8_t, uint32_t> AKAOMusicVolumeCommands[] = {
+    { 0xC0, 0x8002BA5C },   // Set music volume
+    { 0xC1, 0x8002BA98 },   // Fade music volume
+    { 0xC2, 0x8002BB20 },   // Fade music volume from one level to another
+};
 
 const std::vector<std::string> MusicList = {
     "none", "nothing", "oa", "ob", "dun2", "guitar2", "fanfare", "makoro", "bat",
@@ -40,6 +59,7 @@ RandomizeMusic::RandomizeMusic()
 void RandomizeMusic::setup()
 {
     BIND_EVENT(game->onStart, RandomizeMusic::onStart);
+    BIND_EVENT(game->onExit, RandomizeMusic::onExit);
     BIND_EVENT(game->onEmulatorPaused, RandomizeMusic::onEmulatorPaused);
     BIND_EVENT(game->onEmulatorResumed, RandomizeMusic::onEmulatorResumed);
     BIND_EVENT(game->onUpdate, RandomizeMusic::onUpdate);
@@ -47,6 +67,7 @@ void RandomizeMusic::setup()
 
     previousMusicID = UnsetMusicID;
     previousBattlePaused = 0;
+    gameMusicState = GameMusicState::Playing;
 }
 
 bool RandomizeMusic::onSettingsGUI()
@@ -131,6 +152,30 @@ void RandomizeMusic::onDebugGUI()
 
     std::string validStackStr = "Stack: " + std::to_string(previousValidStack[0]) + " " + std::to_string(previousValidStack[1]);
     ImGui::Text(validStackStr.c_str());
+
+    const char* stateNames[] = { "Playing", "Muting", "Muted" };
+    uint32_t volume = game->read<uint32_t>(AKAOOffsets::MusicVolume);
+    int16_t fadeTicks = game->read<int16_t>(AKAOOffsets::MusicFadeTicks);
+    std::string gameMusicText = "Game Music: " + std::string(stateNames[(int)gameMusicState]) + " (Volume: " +
+        Utilities::seedToHexString(volume) + ", Fade: " + std::to_string(fadeTicks) + ")";
+    ImGui::Text(gameMusicText.c_str());
+
+    std::string leakText = "Leaks: " + std::to_string(leakCount) + ", Mute Repairs: " + std::to_string(muteRepairCount);
+    ImGui::Text(leakText.c_str());
+
+    VolumeTestState testState = volumeTestState;
+    bool testRunning = testState == VolumeTestState::Requested || testState == VolumeTestState::Running;
+    ImGui::BeginDisabled(testRunning || gameMusicState != GameMusicState::Muted);
+    if (ImGui::Button("Test Volume Commands"))
+    {
+        volumeTestState = VolumeTestState::Requested;
+    }
+    ImGui::EndDisabled();
+    ImGui::SetItemTooltip("Sends the game's volume commands to the sound driver\nand checks the game music stays muted.");
+
+    ImGui::SameLine();
+    const char* testNames[] = { "", "Running..", "Running..", "Passed", "Failed, see log" };
+    ImGui::Text(testNames[(int)testState]);
 }
 
 std::vector<std::string> RandomizeMusic::describe(ExtraDescripionType descType)
@@ -166,6 +211,27 @@ std::string RandomizeMusic::getCurrentlyPlaying()
 void RandomizeMusic::onStart()
 {
     scanMusicFolder();
+    previousMusicID = UnsetMusicID;
+
+    // Game music stays muted unless we find a song we don't have a replacement for. Muting up
+    // front means a song can't sneak a few notes out before we notice its music ID changed.
+    if (!disabled && enabled)
+    {
+        muteGameMusic();
+    }
+}
+
+void RandomizeMusic::onExit()
+{
+    // Leave the game the way we found it.
+    if (gameMusicState != GameMusicState::Playing)
+    {
+        unmuteGameMusic();
+    }
+
+    overrideMusic = false;
+    currentSong = "";
+    previousMusicID = UnsetMusicID;
 }
 
 void RandomizeMusic::onEmulatorPaused()
@@ -190,22 +256,31 @@ void RandomizeMusic::onEmulatorResumed()
 
 void RandomizeMusic::onUpdate()
 {
-    if (disabled)
+    // Updates run more often than frames so we're more likely to see short lived leaks.
+    if (!disabled && enabled && gameMusicState == GameMusicState::Muted && leakCheckDelay == 0)
     {
-        return;
-    }
-
-    // Keep master music volume locked to 1 (lowest volume)
-    if (overrideMusic)
-    {
-        game->write<uint16_t>(GameOffsets::MusicVolume, 1);
+        detectGameMusicLeaks();
     }
 }
 
 void RandomizeMusic::onFrame(uint32_t frameNumber)
 {
-    if (disabled)
+    // Extras can be turned off mid-game, in which case we hand the music back to the game.
+    if (disabled || !enabled)
     {
+        if (gameMusicState != GameMusicState::Playing)
+        {
+            unmuteGameMusic();
+        }
+
+        if (overrideMusic)
+        {
+            overrideMusic = false;
+            currentSong = "";
+            AudioManager::pauseMusic();
+        }
+
+        previousMusicID = UnsetMusicID;
         return;
     }
 
@@ -214,7 +289,7 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
     {
         if (game->read<uint8_t>(GameOffsets::MusicLock) == 1)
         {
-            if (game->getWindowText(0) == "Cloud ‘Hojo!  Stop right there!!’")
+            if (game->getWindowText(0) == "Cloud ï¿½Hojo!  Stop right there!!ï¿½")
             {
                 game->write<uint8_t>(GameOffsets::MusicLock, 0);
             }
@@ -241,18 +316,8 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
         }
     }
 
-    if (overrideMusic)
-    {
-        // Keep master music volume locked to 1 (lowest volume)
-        game->write<uint16_t>(GameOffsets::MusicVolume, 1);
-
-        // Set all of the AKOA track volumes to 0
-        for (int i = 0; i < 24; i++)
-        {
-            uint32_t akaoTrackAddr = AKAOOffsets::TrackStart + (i * AKAOOffsets::TrackStride) + AKAOOffsets::MasterVolume;
-            game->write<uint32_t>(akaoTrackAddr, 0);
-        }
-    }
+    updateGameMusicMute();
+    updateVolumeTest();
 
     uint16_t musicID = game->read<uint16_t>(GameOffsets::MusicID);
     if (musicID != previousMusicID)
@@ -276,6 +341,12 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
         {
             currentSong = "";
             AudioManager::pauseMusic();
+
+            // Nothing should be playing anyway, but this keeps the next song muted from its first note.
+            if (gameMusicState == GameMusicState::Playing)
+            {
+                muteGameMusic();
+            }
             return;
         }
 
@@ -324,18 +395,263 @@ void RandomizeMusic::onFrame(uint32_t frameNumber)
         if (didRandomize)
         {
             overrideMusic = true;
-            game->write<uint16_t>(GameOffsets::MusicVolume, 1);
+            if (gameMusicState == GameMusicState::Playing)
+            {
+                muteGameMusic();
+            }
         }
         else
         {
             // No tracks available for this music ID, stop overriding and let the game take over.
             currentSong = "";
             overrideMusic = false;
-            game->write<uint16_t>(GameOffsets::MusicVolume, FullVolume);
+            if (gameMusicState != GameMusicState::Playing)
+            {
+                unmuteGameMusic();
+            }
             AudioManager::pauseMusic();
             LOG("No tracks available, resuming in-game music.");
         }
     }
+}
+
+void RandomizeMusic::muteGameMusic()
+{
+    // Stop the game from changing the master music volume. Only the command table is changed rather than
+    // the driver code because emulator recompilers won't notice code being changed from outside the emulator.
+    for (const auto& [command, handler] : AKAOMusicVolumeCommands)
+    {
+        game->write<uint32_t>(AKAOOffsets::CommandTable + (command * 4), AKAONoopHandler);
+    }
+
+    // The driver only recalculates voice volumes when the master volume changes on its own, so rather than
+    // setting it to silent directly we have it fade from 1 to silent in a single step. Fade ticks are written
+    // first and last so the driver can't apply a half written fade.
+    game->write<int16_t>(AKAOOffsets::MusicFadeTicks, 0);
+    game->write<int32_t>(AKAOOffsets::MusicFadeDelta, MusicVolumeSilent - MusicVolumeOne);
+    game->write<uint32_t>(AKAOOffsets::MusicVolume, MusicVolumeOne);
+    game->write<int16_t>(AKAOOffsets::MusicFadeTicks, 1);
+
+    gameMusicState = GameMusicState::Muting;
+}
+
+void RandomizeMusic::unmuteGameMusic()
+{
+    for (const auto& [command, handler] : AKAOMusicVolumeCommands)
+    {
+        game->write<uint32_t>(AKAOOffsets::CommandTable + (command * 4), handler);
+    }
+
+    // Fade from silent to full in a single step so the driver recalculates the volume of playing voices.
+    game->write<int16_t>(AKAOOffsets::MusicFadeTicks, 0);
+    game->write<int32_t>(AKAOOffsets::MusicFadeDelta, MusicVolumeFull);
+    game->write<uint32_t>(AKAOOffsets::MusicVolume, 0);
+    game->write<int16_t>(AKAOOffsets::MusicFadeTicks, 1);
+
+    gameMusicState = GameMusicState::Playing;
+}
+
+void RandomizeMusic::updateGameMusicMute()
+{
+    if (gameMusicState == GameMusicState::Playing)
+    {
+        return;
+    }
+
+    int16_t fadeTicks = game->read<int16_t>(AKAOOffsets::MusicFadeTicks);
+
+    if (gameMusicState == GameMusicState::Muting)
+    {
+        // Still waiting for the driver to apply the single step fade to silent.
+        if (fadeTicks == 1)
+        {
+            return;
+        }
+
+        // Give the driver a moment to send the new volumes to the voices before checking for leaks.
+        gameMusicState = GameMusicState::Muted;
+        leakCheckDelay = 3;
+        leakingTracks[0] = 0;
+        leakingTracks[1] = 0;
+
+        // The fade was ours so it doesn't count as a repair below.
+        game->write<int32_t>(AKAOOffsets::MusicFadeDelta, 0);
+        game->write<int16_t>(AKAOOffsets::MusicFadeTicks, MusicFadeTicksLocked);
+        fadeTicks = MusicFadeTicksLocked;
+    }
+
+    if (leakCheckDelay > 0)
+    {
+        leakCheckDelay--;
+    }
+
+    // Lock the volume with a fade that never moves or ends. While a fade is running the driver
+    // skips fading in new songs, which would otherwise briefly raise the volume.
+    int32_t fadeDelta = game->read<int32_t>(AKAOOffsets::MusicFadeDelta);
+    if (fadeDelta != 0)
+    {
+        LOG("Game music fade changed to %d, repairing mute.", fadeDelta);
+        game->write<int32_t>(AKAOOffsets::MusicFadeDelta, 0);
+        muteRepairCount++;
+    }
+
+    if (fadeTicks < MusicFadeTicksLocked / 2)
+    {
+        game->write<int16_t>(AKAOOffsets::MusicFadeTicks, MusicFadeTicksLocked);
+    }
+
+    // Loading a save state from before we muted would bring back the original handlers.
+    for (const auto& [command, handler] : AKAOMusicVolumeCommands)
+    {
+        uintptr_t entry = AKAOOffsets::CommandTable + (command * 4);
+        uint32_t entryHandler = game->read<uint32_t>(entry);
+        if (entryHandler != AKAONoopHandler)
+        {
+            LOG("Game music command %02X handler changed to %08X, repairing mute.", command, entryHandler);
+            game->write<uint32_t>(entry, AKAONoopHandler);
+            muteRepairCount++;
+        }
+    }
+
+    // If anything managed to make the music audible then mute it again.
+    uint32_t volume = game->read<uint32_t>(AKAOOffsets::MusicVolume);
+    if ((volume & MusicVolumeMask) != 0)
+    {
+        LOG("Game music volume changed to %08X, muting again.", volume);
+        muteGameMusic();
+        muteRepairCount++;
+    }
+}
+
+void RandomizeMusic::detectGameMusicLeaks()
+{
+    const uintptr_t trackTables[2] = { AKAOOffsets::MusicTracks, AKAOOffsets::Music2Tracks };
+    const uintptr_t activeMasks[2] = { AKAOOffsets::MusicTracksActive, AKAOOffsets::Music2TracksActive };
+
+    for (int player = 0; player < 2; ++player)
+    {
+        uint32_t activeTracks = game->read<uint32_t>(activeMasks[player]);
+        uint32_t leaking = 0;
+
+        for (int track = 0; track < 24; ++track)
+        {
+            uint32_t trackBit = 1 << track;
+            if ((activeTracks & trackBit) == 0)
+            {
+                continue;
+            }
+
+            uintptr_t volumeOffset = trackTables[player] + (track * AKAOOffsets::TrackStride) + AKAOOffsets::TrackVoiceVolume;
+            uint32_t volumes = game->read<uint32_t>(volumeOffset);
+            int16_t left = (int16_t)(volumes & 0xFFFF);
+            int16_t right = (int16_t)(volumes >> 16);
+
+            // Silent voices are 0, or -1 when the driver inverts the phase of a channel.
+            if (std::abs(left) <= 1 && std::abs(right) <= 1)
+            {
+                continue;
+            }
+
+            leaking |= trackBit;
+            if ((leakingTracks[player] & trackBit) == 0)
+            {
+                leakCount++;
+                LOG("Game music leak: field %d, music %d, player %d, track %d, volume %d/%d", game->getFieldID(),
+                    game->read<uint16_t>(GameOffsets::MusicID), player, track, left, right);
+            }
+        }
+
+        leakingTracks[player] = leaking;
+    }
+}
+
+void RandomizeMusic::updateVolumeTest()
+{
+    VolumeTestState testState = volumeTestState;
+    if (testState == VolumeTestState::Requested)
+    {
+        LOG("Volume command test started.");
+        volumeTestState = VolumeTestState::Running;
+        volumeTestStep = 0;
+        volumeTestFrames = 0;
+        volumeTestStartLeaks = leakCount;
+        volumeTestStartRepairs = muteRepairCount;
+    }
+    else if (testState != VolumeTestState::Running)
+    {
+        return;
+    }
+
+    if (gameMusicState != GameMusicState::Muted)
+    {
+        failVolumeTest("game music stopped being muted during the test");
+        return;
+    }
+
+    // Each command would make the music audible if it reached its real handler.
+    const uint32_t testCommands[3][4] = {
+        { 0xC0, 0x7F, 0,    0    },     // Set volume to full
+        { 0xC1, 30,   0x7F, 0    },     // Fade to full over 30 ticks
+        { 0xC2, 30,   0,    0x7F },     // Fade from silent to full over 30 ticks
+    };
+
+    volumeTestFrames++;
+    uint32_t queuedCommands = game->read<uint32_t>(AKAOOffsets::CommandCount);
+
+    if (volumeTestStep < 3)
+    {
+        // Only add a command when the queue is empty and the game isn't adding one of its own.
+        if (queuedCommands == 0 && game->read<uint32_t>(AKAOOffsets::CommandBusy) == 0)
+        {
+            uint8_t entry[AKAOOffsets::CommandStride] = {};
+            memcpy(entry, testCommands[volumeTestStep], sizeof(testCommands[volumeTestStep]));
+            game->write(AKAOOffsets::CommandQueue, entry, sizeof(entry));
+            game->write<uint32_t>(AKAOOffsets::CommandCount, 1);
+
+            volumeTestStep++;
+            volumeTestFrames = 0;
+        }
+        else if (volumeTestFrames > 60)
+        {
+            failVolumeTest("the command queue never became free");
+        }
+        return;
+    }
+
+    // The driver empties the queue every tick so the commands should be gone almost immediately.
+    if (queuedCommands != 0)
+    {
+        if (volumeTestFrames > 60)
+        {
+            failVolumeTest("the sound driver never ran the commands");
+        }
+        return;
+    }
+
+    if (leakCount != volumeTestStartLeaks)
+    {
+        failVolumeTest("game music leaked");
+        return;
+    }
+
+    if (muteRepairCount != volumeTestStartRepairs)
+    {
+        failVolumeTest("a command changed the game music volume");
+        return;
+    }
+
+    // Wait longer than the fades would have taken to be sure nothing changes.
+    if (volumeTestFrames > 60)
+    {
+        LOG("Volume command test passed.");
+        volumeTestState = VolumeTestState::Passed;
+    }
+}
+
+void RandomizeMusic::failVolumeTest(const char* reason)
+{
+    LOG("Volume command test failed: %s.", reason);
+    volumeTestState = VolumeTestState::Failed;
 }
 
 void RandomizeMusic::scanMusicFolder()

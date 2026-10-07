@@ -81,6 +81,9 @@ void App::run()
         Platform::sleep(16.67);
     }
 
+    // Disconnect cleanly so any changes that need undoing are restored in the game.
+    disconnect();
+
     gui.destroy();
     Platform::shutdown();
 }
@@ -199,6 +202,12 @@ void App::runGameManager()
         {
             Platform::sleep(1.0);
         }
+    }
+
+    // Give rules and extras a chance to undo their changes while we can still write to the emulator.
+    if (connectionState != ConnectionState::Error)
+    {
+        game->shutdown();
     }
     managerRunning = false;
 }

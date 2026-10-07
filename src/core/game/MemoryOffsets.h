@@ -8,7 +8,6 @@
 struct GameOffsets
 {
     CONST_PTR FrameNumber       = 0x51568;  // uint32_t
-    CONST_PTR MusicVolume       = 0x62F5E;  // uint16_t controlling global music volume
     CONST_PTR NextFormationID   = 0x707BC;  // uint16_t formation id of the next random encounter
     CONST_PTR MusicLock         = 0x716D4;  // uint8_t 1 is locked, 0 is unlocked
     CONST_PTR FieldID           = 0x9A05C;  // uint16_t
@@ -429,11 +428,25 @@ struct SavemapOffsets
     CONST_PTR BuggyHighwindPosition = Start + 0x0F74;
 };
 
+// AKAO sound driver, see Docs/Sound Driver.md
 struct AKAOOffsets
 {
-    CONST_PTR TrackStart = 0x96608;
-    CONST_PTR TrackStride = 0x108;
+    CONST_PTR CommandTable    = 0x49548;  // uint32_t[256] handler pointers indexed by AKAO command ID
+    CONST_PTR MusicFadeDelta  = 0x62F2C;  // int32_t added to MusicVolume every driver tick while fading
+    CONST_PTR MusicFadeTicks  = 0x62F44;  // int16_t driver ticks left in the fade, 0 when not fading
+    CONST_PTR MusicVolume     = 0x62F5C;  // uint32_t 16.16 fixed point master music volume, integer part is masked with 0x7F
+    CONST_PTR CommandBusy     = 0x62F8C;  // uint32_t 1 while the game is adding a command to the queue
+    CONST_PTR CommandCount    = 0x63010;  // uint32_t commands in the queue, the driver empties it every tick
+    CONST_PTR CommandQueue    = 0x81DC8;  // Queued commands, command ID at +0 followed by uint32_t arguments
+    CONST_PTR CommandStride   = 0x24;
 
-    // Fields on each on AKAO Track
-    CONST_PTR MasterVolume = 0x2C;
+    // Each music player has 24 tracks, one per SPU voice.
+    CONST_PTR MusicTracks       = 0x96608;  // Main music player
+    CONST_PTR MusicTracksActive = 0x9A108;  // uint32_t mask of active main music tracks
+    CONST_PTR Music2Tracks      = 0x97EC8;  // Second music player used when cross-fading songs
+    CONST_PTR Music2TracksActive= 0x9A168;  // uint32_t mask of active second music tracks
+    CONST_PTR TrackStride       = 0x108;
+
+    // Fields on each track
+    CONST_PTR TrackVoiceVolume  = 0x104;    // int16_t left then right volume sent to the SPU voice
 };
