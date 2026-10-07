@@ -88,6 +88,16 @@ struct FieldScriptOffsets
     CONST_PTR ItemID        = 0x02; // uint16_t
     CONST_PTR ItemQuantity  = 0x04; // uint8_t
     CONST_PTR MateriaID     = 0x03; // uint8_t
+
+    // Script section header, relative to ScriptStart. After the 32 byte header comes an 8 byte
+    // name per group, a uint32_t per extra (music/tutorial) block, then 32 uint16_t script entry
+    // offsets per group. All offsets are relative to ScriptStart.
+    CONST_PTR HeaderGroupCount  = 0x02; // uint8_t
+    CONST_PTR HeaderStringTable = 0x04; // uint16_t offset to string table, also the end of script code.
+    CONST_PTR HeaderExtraCount  = 0x06; // uint16_t
+    CONST_PTR HeaderSize        = 0x20;
+    CONST_PTR GroupNameLength   = 8;
+    CONST_PTR ScriptsPerGroup   = 32;
 };
 
 struct WorldOffsets

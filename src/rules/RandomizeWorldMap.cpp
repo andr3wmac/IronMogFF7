@@ -341,9 +341,13 @@ void RandomizeWorldMap::onFieldChanged(uint16_t fieldID)
         uint16_t exitIndex = getRandomEntrance(3);
         WorldMapEntrance& randEntrance = GameData::worldMapEntrances[exitIndex];
 
-        // Overwrite the MAPJUMP command to jump to the field we want.
-        game->write<uint16_t>(FieldScriptOffsets::ScriptStart + 0x35A8 + 1, randEntrance.fieldID);
-        LOG("Changed chocobo stable exit to: %d", randEntrance.fieldID);
+        // Overwrite the MAPJUMP (0x60) command to jump to the field we want.
+        std::optional<uint16_t> mapJump = game->field.findScriptOffset("sono2", 1, { 0x60, 0x03, 0x00, 0x00 });
+        if (mapJump)
+        {
+            game->write<uint16_t>(FieldScriptOffsets::ScriptStart + *mapJump + 1, randEntrance.fieldID);
+            LOG("Changed chocobo stable exit to: %d", randEntrance.fieldID);
+        }
     }
 
     // Weapons seller will teleport us back onto world map, we need to patch it.
@@ -352,9 +356,13 @@ void RandomizeWorldMap::onFieldChanged(uint16_t fieldID)
         uint16_t exitIndex = getRandomEntrance(9);
         WorldMapEntrance& randEntrance = GameData::worldMapEntrances[exitIndex];
 
-        // Overwrite the MAPJUMP command to jump to the field we want.
-        game->write<uint16_t>(FieldScriptOffsets::ScriptStart + 0x31E + 1, randEntrance.fieldID);
-        LOG("Changed weapon seller exit to: %d", randEntrance.fieldID);
+        // Overwrite the MAPJUMP (0x60) command to jump to the field we want.
+        std::optional<uint16_t> mapJump = game->field.findScriptOffset("dic", 0, { 0x60, 0x0A, 0x00, 0x00 });
+        if (mapJump)
+        {
+            game->write<uint16_t>(FieldScriptOffsets::ScriptStart + *mapJump + 1, randEntrance.fieldID);
+            LOG("Changed weapon seller exit to: %d", randEntrance.fieldID);
+        }
     }
 
     // When doing the Yuffie Wutai side quest it ends by teleporting us onto the world map
@@ -364,9 +372,13 @@ void RandomizeWorldMap::onFieldChanged(uint16_t fieldID)
         uint16_t exitIndex = getRandomEntrance(22);
         WorldMapEntrance& randEntrance = GameData::worldMapEntrances[exitIndex];
 
-        // Overwrite the MAPJUMP command to jump to the field we want.
-        game->write<uint16_t>(FieldScriptOffsets::ScriptStart + 0xDFE + 1, randEntrance.fieldID);
-        LOG("Changed Wutai side quest ending cutscene exit to: %d", randEntrance.fieldID);
+        // Overwrite the MAPJUMP (0x60) command to jump to the field we want.
+        std::optional<uint16_t> mapJump = game->field.findScriptOffset("EF", 5, { 0x60, 0x17, 0x00, 0x00 });
+        if (mapJump)
+        {
+            game->write<uint16_t>(FieldScriptOffsets::ScriptStart + *mapJump + 1, randEntrance.fieldID);
+            LOG("Changed Wutai side quest ending cutscene exit to: %d", randEntrance.fieldID);
+        }
     }
 
     for (int i = 0; i < fieldData.worldExits.size(); ++i)

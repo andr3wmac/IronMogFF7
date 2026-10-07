@@ -243,22 +243,27 @@ void Permadeath::onFieldChanged(uint16_t fieldID)
             int randomCharacter = selectRandomLivingCharacter(fieldID, CLOUD_ID);
             if (randomCharacter > -1)
             {
-                uintptr_t rufusHideScript = FieldScriptOffsets::ScriptStart + 0x952;
-                if (game->getGameVersion() == GameVersion::PlayStationUS_CSR)
+                // TLKON (0x7E) 1, SOLID (0xC7) 1.
+                std::optional<uint16_t> rufusHideOffset = game->field.findScriptOffset("lu", 11, { 0x7E, 0x01, 0xC7, 0x01 });
+                if (rufusHideOffset)
                 {
-                    rufusHideScript = FieldScriptOffsets::ScriptStart + 0x94D;
+                    uintptr_t rufusHideScript = FieldScriptOffsets::ScriptStart + *rufusHideOffset;
+
+                    // Overwrite two commands related to hiding Rufus. This seems to be harmless.
+                    game->write<uint8_t>(rufusHideScript + 0, 0xCA);
+                    game->write<uint8_t>(rufusHideScript + 1, (uint8_t)randomCharacter);
+                    game->write<uint8_t>(rufusHideScript + 2, 0xFE);
+                    game->write<uint8_t>(rufusHideScript + 3, 0xFE);
+
+                    appliedRufusRandom = true;
+                    LOG("Replaced Cloud with %s in Rufus fight due to Cloud being dead.", getCharacterName(randomCharacter).c_str());
                 }
-
-                // Overwrite two commands related to hiding Rufus. This seems to be harmless.
-                game->write<uint8_t>(rufusHideScript + 0, 0xCA);
-                game->write<uint8_t>(rufusHideScript + 1, (uint8_t)randomCharacter);
-                game->write<uint8_t>(rufusHideScript + 2, 0xFE);
-                game->write<uint8_t>(rufusHideScript + 3, 0xFE);
-
-                appliedRufusRandom = true;
-                LOG("Replaced Cloud with %s in Rufus fight due to Cloud being dead.", getCharacterName(randomCharacter).c_str());
+                else
+                {
+                    LOG("Did not replace Cloud in Rufus fight because the Rufus hide commands were not found.");
+                }
             }
-            else 
+            else
             {
                 // Everyone is dead, do nothing.
                 LOG("Did not replace Cloud in Rufus fight because all characters are dead.");
@@ -278,12 +283,14 @@ void Permadeath::onFieldChanged(uint16_t fieldID)
         }
 
         // Overwrite the command that swaps party before the dyne fight to use a character other than Barret since hes dead.
-        uintptr_t dynePartyCommand = FieldScriptOffsets::ScriptStart + 0x4FE;
-        if (game->getGameVersion() == GameVersion::PlayStationUS_CSR)
+        // PRTYE (0xCA) Barret, empty, empty.
+        std::optional<uint16_t> dynePartyCommand = game->field.findScriptOffset("dic", 0, { 0xCA, BARRET_ID, 0xFE, 0xFE });
+        if (!dynePartyCommand)
         {
-            dynePartyCommand = FieldScriptOffsets::ScriptStart + 0x508;
+            LOG("Did not replace Barret in Dyne fight because the party command was not found.");
+            return;
         }
-        game->write<uint8_t>(dynePartyCommand + 1, (uint8_t)randomCharacter);
+        game->write<uint8_t>(FieldScriptOffsets::ScriptStart + *dynePartyCommand + 1, (uint8_t)randomCharacter);
 
         LOG("Replaced Barret with %s in Dyne fight due to Barret being dead.", getCharacterName(randomCharacter).c_str());
     }
@@ -530,11 +537,15 @@ void Permadeath::updateOverrideFights()
         uint16_t fieldTrigger = game->read<uint16_t>(GameOffsets::FieldScreenFade);
         if (fieldTrigger == 256)
         {
-            uintptr_t scriptAfterRufus = FieldScriptOffsets::ScriptStart + 0x45E;
-            if (game->getGameVersion() == GameVersion::PlayStationUS_CSR)
+            // SCRLA (0x63) camera scroll that follows the Rufus fight trigger.
+            std::optional<uint16_t> afterRufusOffset = game->field.findScriptOffset("dir", 0, { 0x63, 0x00, 0x1E, 0x00 });
+            if (!afterRufusOffset)
             {
-                scriptAfterRufus = FieldScriptOffsets::ScriptStart + 0x46A;
+                LOG("Did not switch party back to Cloud after Rufus fight because the script was not found.");
+                waitingOnBattleExit = false;
+                return;
             }
+            uintptr_t scriptAfterRufus = FieldScriptOffsets::ScriptStart + *afterRufusOffset;
 
             // Overwrite the command that comes after the Rufus fight trigger with this command to switch to party back to Cloud.
             game->write<uint8_t>(scriptAfterRufus + 0, 0xCA);
