@@ -53,6 +53,7 @@ private:
     void updateOverrideFights();
     
     bool deleteEquipped = true;
+    bool deleteCloudEquipped = true;
     CloudDeathMode cloudDeathMode = CloudDeathMode::Permanent;
 
     std::vector<PermadeathExemption> exemptions;
