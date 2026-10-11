@@ -84,6 +84,10 @@ bool Permadeath::onSettingsGUI()
         ImGui::SetItemTooltip("Delete Cloud's equipment and materia when he dies in Sacrifice Your Friends mode.");
     }
 
+    ImGui::Spacing();
+    changed |= ImGui::Checkbox("Always Randomize 1v1 Fights", &alwaysRandomizeOneVOne);
+    ImGui::SetItemTooltip("Always randomize which character fights in a 1v1 (Rufus or Dyne) even if they're alive.");
+
     return changed;
 }
 
@@ -92,6 +96,7 @@ void Permadeath::loadSettings(const ConfigFile& cfg)
     deleteEquipped = cfg.get<bool>("deleteEquipped", deleteEquipped);
     deleteCloudEquipped = cfg.get<bool>("deleteCloudEquipped", deleteCloudEquipped);
     cloudDeathMode = (CloudDeathMode)cfg.get<int>("cloudDeathMode", (int)cloudDeathMode);
+    alwaysRandomizeOneVOne = cfg.get<bool>("alwaysRandomizeOneVOne", alwaysRandomizeOneVOne);
 }
 
 void Permadeath::saveSettings(ConfigFile& cfg)
@@ -99,6 +104,7 @@ void Permadeath::saveSettings(ConfigFile& cfg)
     cfg.set<bool>("deleteEquipped", deleteEquipped);
     cfg.set<bool>("deleteCloudEquipped", deleteCloudEquipped);
     cfg.set<int>("cloudDeathMode", (int)cloudDeathMode);
+    cfg.set<bool>("alwaysRandomizeOneVOne", alwaysRandomizeOneVOne);
 }
 
 void Permadeath::onDebugGUI()
@@ -112,6 +118,10 @@ void Permadeath::onDebugGUI()
         }
     }
     ImGui::Text(deadCharText.c_str());
+
+    ImGui::Text("Always randomize 1v1 fights: %s", alwaysRandomizeOneVOne ? "On" : "Off");
+    ImGui::Text("Rufus fight: %s", rufusOverrideCharacter == 0xFF ? "Cloud (unchanged)" : getCharacterName(rufusOverrideCharacter).c_str());
+    ImGui::Text("Dyne fight: %s", dyneOverrideCharacter == 0xFF ? "Barret (unchanged)" : getCharacterName(dyneOverrideCharacter).c_str());
 
     if (ImGui::Button("Clear Dead Characters"))
     {
@@ -153,6 +163,11 @@ std::vector<std::string> Permadeath::describe(RuleDescripionType descType)
         return { "Permadeath" };
     }
 
+    if (descType == RuleDescripionType::Randomized && alwaysRandomizeOneVOne)
+    {
+        return { "1v1 fights" };
+    }
+
     return {};
 }
 
@@ -160,7 +175,10 @@ void Permadeath::onStart()
 {
     loadPermadeathState();
     appliedRufusRandom = false;
+    appliedDyneRandom = false;
     waitingOnBattleExit = false;
+    rufusOverrideCharacter = 0xFF;
+    dyneOverrideCharacter = 0xFF;
 }
 
 void Permadeath::onFrame(uint32_t frameNumber)
@@ -244,12 +262,20 @@ void Permadeath::onFieldChanged(uint16_t fieldID)
 {
     reviveCloudAfterLifestream(fieldID);
 
-    if (fieldID == RUFUS_FIELD_ID && isCharacterDead(CLOUD_ID))
+    // The Rufus and Dyne fights are scripted to always use Cloud and Barret. Normally we only substitute
+    // a living character when the scripted one is permadead but when "Always Randomize 1v1 Fights" is enabled
+    // we roll a random character everytime.
+    if (fieldID == RUFUS_FIELD_ID && (isCharacterDead(CLOUD_ID) || alwaysRandomizeOneVOne))
     {
         if (game->getGameMoment() < 320)
         {
-            int randomCharacter = selectRandomLivingCharacter(fieldID, CLOUD_ID);
-            if (randomCharacter > -1)
+            // 0xFF means "exclude nobody" so Cloud can be rolled when he is alive.
+            int randomCharacter = selectRandomLivingCharacter(fieldID, alwaysRandomizeOneVOne ? 0xFF : CLOUD_ID);
+            if (randomCharacter == CLOUD_ID)
+            {
+                LOG("Left the Rufus fight alone because Cloud was selected.");
+            }
+            else if (randomCharacter > -1)
             {
                 // TLKON (0x7E) 1, SOLID (0xC7) 1.
                 std::optional<uint16_t> rufusHideOffset = game->field.findScriptOffset("lu", 11, { 0x7E, 0x01, 0xC7, 0x01 });
@@ -263,8 +289,10 @@ void Permadeath::onFieldChanged(uint16_t fieldID)
                     game->write<uint8_t>(rufusHideScript + 2, 0xFE);
                     game->write<uint8_t>(rufusHideScript + 3, 0xFE);
 
-                    appliedRufusRandom = true;
-                    LOG("Replaced Cloud with %s in Rufus fight due to Cloud being dead.", getCharacterName(randomCharacter).c_str());
+                    appliedRufusRandom    = true;
+                    rufusOverrideCharacter = (uint8_t)randomCharacter;
+                    LOG("Replaced Cloud with %s in Rufus fight%s.", getCharacterName(randomCharacter).c_str(),
+                        isCharacterDead(CLOUD_ID) ? " due to Cloud being dead" : " because 1v1 fights are always randomized");
                 }
                 else
                 {
@@ -279,28 +307,37 @@ void Permadeath::onFieldChanged(uint16_t fieldID)
         }
     }
 
-    if (fieldID == DYNE_FIELD_ID && isCharacterDead(BARRET_ID))
+    if (fieldID == DYNE_FIELD_ID && (isCharacterDead(BARRET_ID) || alwaysRandomizeOneVOne))
     {
-        // Select a random living character other than Barret.
-        int randomCharacter = selectRandomLivingCharacter(fieldID, BARRET_ID);
-        if (randomCharacter == -1)
+        // 0xFF means "exclude nobody" so Barret can be rolled when he is alive.
+        int randomCharacter = selectRandomLivingCharacter(fieldID, alwaysRandomizeOneVOne ? 0xFF : BARRET_ID);
+        if (randomCharacter == BARRET_ID)
+        {
+            LOG("Left the Dyne fight alone because Barret was selected.");
+        }
+        else if (randomCharacter == -1)
         {
             // Everyone is dead, do nothing.
             LOG("Did not replace Barret in Dyne fight because all characters are dead.");
             return;
         }
-
-        // Overwrite the command that swaps party before the dyne fight to use a character other than Barret since hes dead.
-        // PRTYE (0xCA) Barret, empty, empty.
-        std::optional<uint16_t> dynePartyCommand = game->field.findScriptOffset("dic", 0, { 0xCA, BARRET_ID, 0xFE, 0xFE });
-        if (!dynePartyCommand)
+        else
         {
-            LOG("Did not replace Barret in Dyne fight because the party command was not found.");
-            return;
-        }
-        game->write<uint8_t>(FieldScriptOffsets::ScriptStart + *dynePartyCommand + 1, (uint8_t)randomCharacter);
+            // Overwrite the command that swaps party before the dyne fight to use a character other than Barret.
+            // PRTYE (0xCA) Barret, empty, empty.
+            std::optional<uint16_t> dynePartyCommand = game->field.findScriptOffset("dic", 0, { 0xCA, BARRET_ID, 0xFE, 0xFE });
+            if (!dynePartyCommand)
+            {
+                LOG("Did not replace Barret in Dyne fight because the party command was not found.");
+                return;
+            }
+            game->write<uint8_t>(FieldScriptOffsets::ScriptStart + *dynePartyCommand + 1, (uint8_t)randomCharacter);
 
-        LOG("Replaced Barret with %s in Dyne fight due to Barret being dead.", getCharacterName(randomCharacter).c_str());
+            appliedDyneRandom    = true;
+            dyneOverrideCharacter = (uint8_t)randomCharacter;
+            LOG("Replaced Barret with %s in Dyne fight%s.", getCharacterName(randomCharacter).c_str(),
+                isCharacterDead(BARRET_ID) ? " due to Barret being dead" : " because 1v1 fights are always randomized");
+        }
     }
 }
 
@@ -534,8 +571,8 @@ void Permadeath::updateOverrideFights()
         return;
     }
     
-    // We only need to do something if Cloud is dead.
-    if (!isCharacterDead(CLOUD_ID))
+    // We only need to switch the party back if someone else was substituted into the fight.
+    if (!appliedRufusRandom)
     {
         return;
     }
