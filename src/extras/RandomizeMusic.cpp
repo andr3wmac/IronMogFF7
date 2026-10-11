@@ -81,7 +81,7 @@ bool RandomizeMusic::onSettingsGUI()
 
     // Curated Music
     ImGui::Checkbox("Use Curated Music", &useCuratedMusic);
-    ImGui::SetItemTooltip("Limits music randomization to songs chosen\nto be appropriate replacements.\ne.g. Battle music randomizes to battle music.");
+    GUI::wrappedTooltip("Limits music randomization to songs chosen to be appropriate replacements. e.g. Battle music randomizes to battle music.");
 
     // Volume
     constexpr float min = 0.0f;

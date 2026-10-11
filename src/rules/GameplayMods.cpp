@@ -22,7 +22,7 @@ bool GameplayMods::onSettingsGUI()
 
     ImGui::Spacing();
     ImGui::Text("Masamune Equippable By:");
-    ImGui::SetItemTooltip("Modifies the Masamune to be equippable and usable.");
+    GUI::wrappedTooltip("Modifies the Masamune to be equippable and usable.");
     ImGui::SameLine(DPI(200.0f));
     ImGui::SetNextItemWidth(DPI(200.0f));
 

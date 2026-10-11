@@ -44,7 +44,7 @@ bool RandomizeBosses::onSettingsGUI()
     bool changed = false;
 
     ImGui::Text("Stat Multiplier");
-    ImGui::SetItemTooltip("Multiplies each boss' HP, MP, Strength, Magic, Evade,\nSpeed, Luck, Defense, and MDefense.\nMultiplier is randomly chosen for each stat for each boss.");
+    GUI::wrappedTooltip("Multiplies each boss' HP, MP, Strength, Magic, Evade, Speed, Luck, Defense, and MDefense. Multiplier is randomly chosen for each stat for each boss.");
     ImGui::SameLine();
 
     ImGui::PushItemWidth(DPI(60.0f));
@@ -57,7 +57,7 @@ bool RandomizeBosses::onSettingsGUI()
     ImGui::PushID("RandomizeBosses.defenseSoftCap");
     changed |= ImGui::Checkbox("Defense Soft Cap", &defenseSoftCap);
     ImGui::PopID();
-    ImGui::SetItemTooltip("Prevents multiplied Def/MDef from hitting\ngame limit and becoming immune.");
+    GUI::wrappedTooltip("Prevents multiplied Def/MDef from hitting game limit and becoming immune.");
 
     if (ImGui::CollapsingHeader("Resistance and Weakness"))
     {
@@ -65,16 +65,16 @@ bool RandomizeBosses::onSettingsGUI()
 
         ImGui::Indent(DPI(25.0f));
         changed |= ImGui::RadioButton("Shuffle", randomModeInt, 0);
-        ImGui::SetItemTooltip("Resistances and weaknesses are shuffled amongst bosses.");
+        GUI::wrappedTooltip("Resistances and weaknesses are shuffled amongst bosses.");
         changed |= ImGui::RadioButton("Weighted Random", randomModeInt, 1);
-        ImGui::SetItemTooltip("Elements are randomly selected and their\neffect is set based on chosen odds.");
+        GUI::wrappedTooltip("Elements are randomly selected and their effect is set based on chosen odds.");
 
         if (randomMode == RandomMode::WeightedRandom)
         {
             ImGui::Indent(DPI(25.0f));
 
             ImGui::Text("Element Count");
-            ImGui::SetItemTooltip("The number of elements that will be rolled using the odds set below.");
+            GUI::wrappedTooltip("The number of elements that will be rolled using the odds set below.");
             ImGui::SameLine(DPI(180.0f));
             ImGui::SetNextItemWidth(DPI(200.0f));
             changed |= ImGui::SliderInt("##elementCount", &elementCount, 0, 7);

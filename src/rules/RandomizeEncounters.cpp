@@ -70,14 +70,14 @@ bool RandomizeEncounters::onSettingsGUI()
 
     changed |= ImGui::Checkbox("Random Encounters", &randomEncounters);
     changed |= ImGui::Checkbox("Scripted Encounters", &scriptedEncounters);
-    ImGui::SetItemTooltip("Randomize fights triggered from scripts excluding boss fights.");
+    GUI::wrappedTooltip("Randomize fights triggered from scripts excluding boss fights.");
     changed |= ImGui::Checkbox("World Map Encounters", &worldMapEncounters);
 
     changed |= ImGui::Checkbox("Match Battle Types", &matchBattleTypes);
-    ImGui::SetItemTooltip("Will only randomize Back Attacks to other Back Attacks, etc");
+    GUI::wrappedTooltip("Will only randomize Back Attacks to other Back Attacks, etc");
 
     ImGui::Text("Levels Below");
-    ImGui::SetItemTooltip("How many levels below the original encounter's maximum\nlevel the randomized encounter can be.");
+    GUI::wrappedTooltip("How many levels below the original encounter's maximum level the randomized encounter can be.");
     ImGui::SameLine(DPI(125.0f));
     ImGui::PushItemWidth(DPI(50.0f));
     if (ImGui::InputInt("##encLevelsBelow", &levelsBelow, 0, 0))
@@ -88,7 +88,7 @@ bool RandomizeEncounters::onSettingsGUI()
     ImGui::PopItemWidth();
 
     ImGui::Text("Levels Above");
-    ImGui::SetItemTooltip("How many levels above the original encounter's maximum\nlevel the randomized encounter can be.");
+    GUI::wrappedTooltip("How many levels above the original encounter's maximum level the randomized encounter can be.");
     ImGui::SameLine(DPI(125.0f));
     ImGui::PushItemWidth(DPI(50.0f));
     if (ImGui::InputInt("##encLevelsAbove", &levelsAbove, 0, 0))
@@ -99,7 +99,7 @@ bool RandomizeEncounters::onSettingsGUI()
     ImGui::PopItemWidth();
 
     ImGui::Text("Stat Multiplier");
-    ImGui::SetItemTooltip("Multiplies each enemy's HP, MP, Strength, Magic, Evade,\nSpeed, Luck, Defense, and MDefense.\nMultiplier is randomly chosen for each stat for each enemy.");
+    GUI::wrappedTooltip("Multiplies each enemy's HP, MP, Strength, Magic, Evade, Speed, Luck, Defense, and MDefense. Multiplier is randomly chosen for each stat for each enemy.");
     ImGui::SameLine();
 
     ImGui::PushItemWidth(DPI(60.0f));
@@ -112,7 +112,7 @@ bool RandomizeEncounters::onSettingsGUI()
     ImGui::PushID("RandomizeEncounters.defenseSoftCap");
     changed |= ImGui::Checkbox("Defense Soft Cap", &defenseSoftCap);
     ImGui::PopID();
-    ImGui::SetItemTooltip("Prevents multiplied Def/MDef from hitting\ngame limit and becoming immune.");
+    GUI::wrappedTooltip("Prevents multiplied Def/MDef from hitting game limit and becoming immune.");
 
     return changed;
 }

@@ -64,11 +64,11 @@ bool Permadeath::onSettingsGUI()
     bool changed = false;
 
     changed |= ImGui::Checkbox("Delete Equipped", &deleteEquipped);
-    ImGui::SetItemTooltip("Anything equipped at the time of death is deleted.");
+    GUI::wrappedTooltip("Anything equipped at the time of death is deleted.");
 
     ImGui::Spacing();
     ImGui::Text("Cloud Permadeath:");
-    ImGui::SetItemTooltip("Permanent: Cloud remains permanently dead.\nRevive After Lifestream: Cloud returns after the Lifestream sequence.\nSacrifice Your Friends: Other characters die in Cloud's place.");
+    GUI::wrappedTooltip("Permanent: Cloud remains permanently dead.\nRevive After Lifestream: Cloud returns after the Lifestream sequence.\nSacrifice Your Friends: Other characters die in Cloud's place.");
     ImGui::SameLine(DPI(200.0f));
     ImGui::SetNextItemWidth(DPI(200.0f));
 
@@ -82,21 +82,21 @@ bool Permadeath::onSettingsGUI()
     if (cloudDeathMode == CloudDeathMode::SacrificeYourFriends)
     {
         changed |= ImGui::Checkbox("Prefer Party Members", &sacrificePreferParty);
-        ImGui::SetItemTooltip("Sacrifices are taken from current party first, then from other\nrecruited characters. When disabled, sacrifices are chosen at random.");
+        GUI::wrappedTooltip("Sacrifices are taken from current party first, then from other recruited characters. When disabled, sacrifices are chosen at random.");
 
         changed |= ImGui::Checkbox("Include Unrecruited", &sacrificeIncludeUnrecruited);
-        ImGui::SetItemTooltip("Characters you haven't recruited yet (e.g. Yuffie, Vincent) can be sacrificed.\nWith Prefer Party Members enabled, they're only used as a last resort.");
+        GUI::wrappedTooltip("Characters you haven't recruited yet (e.g. Yuffie, Vincent) can be sacrificed. With Prefer Party Members enabled, they're only used as a last resort.");
 
         if (deleteEquipped)
         {
             changed |= ImGui::Checkbox("Delete Cloud Equipped", &deleteCloudEquipped);
-            ImGui::SetItemTooltip("Delete Cloud's equipment and materia when he dies in Sacrifice Your Friends mode.");
+            GUI::wrappedTooltip("Delete Cloud's equipment and materia when he dies in Sacrifice Your Friends mode.");
         }
     }
 
     ImGui::Spacing();
     changed |= ImGui::Checkbox("Always Randomize 1v1 Fights", &alwaysRandomizeOneVOne);
-    ImGui::SetItemTooltip("Always randomize which character fights in a 1v1 (e.g. Rufus, Dyne)\neven if the scripted character is still alive.");
+    GUI::wrappedTooltip("Always randomize which character fights in a 1v1 (e.g. Rufus, Dyne) even if the scripted character is still alive.");
 
     return changed;
 }

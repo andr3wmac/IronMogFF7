@@ -23,29 +23,29 @@ bool RandomizeShops::onSettingsGUI()
     bool changed = false;
 
     changed |= ImGui::Checkbox("Disable Shops", &disableShops);
-    ImGui::SetItemTooltip("Completely disables all shops.");
+    GUI::wrappedTooltip("Completely disables all shops.");
 
     ImGui::BeginDisabled(disableShops);
     {
         changed |= ImGui::Checkbox("Keep Shop Prices", &keepShopPrices);
-        ImGui::SetItemTooltip("Keep prices the same as the original shop.");
+        GUI::wrappedTooltip("Keep prices the same as the original shop.");
 
         ImGui::PushID("RandomizeShops.keepItemType");
         changed |= ImGui::Checkbox("Keep Item Type", &keepItemType);
         ImGui::PopID();
-        ImGui::SetItemTooltip("Randomizes weapons with other weapons, armor with other armor, etc");
+        GUI::wrappedTooltip("Randomizes weapons with other weapons, armor with other armor, etc");
 
         changed |= ImGui::Checkbox("Exclude Rare Items", &excludeRareItems);
-        ImGui::SetItemTooltip("Items and materia which are not intended to be bought and\nsold (1 gil price) will not be included in shop randomization.");
+        GUI::wrappedTooltip("Items and materia which are not intended to be bought and sold (1 gil price) will not be included in shop randomization.");
 
         changed |= ImGui::Checkbox("Exclude Sources", &excludeSources);
-        ImGui::SetItemTooltip("Excludes power, guard, magic, mind, speed, and luck sources.");
+        GUI::wrappedTooltip("Excludes power, guard, magic, mind, speed, and luck sources.");
 
         changed |= ImGui::Checkbox("Use Balanced Prices", &useBalancedPrices);
-        ImGui::SetItemTooltip("Loads a set of balanced prices from `settings/Shop Prices.ini`");
+        GUI::wrappedTooltip("Loads a set of balanced prices from `settings/Shop Prices.ini`");
 
         ImGui::Text("Price Multiplier");
-        ImGui::SetItemTooltip("Multiplies the price of each item/materia.");
+        GUI::wrappedTooltip("Multiplies the price of each item/materia.");
         ImGui::SameLine();
 
         ImGui::PushItemWidth(DPI(60.0f));
