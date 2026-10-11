@@ -5,6 +5,7 @@
 #include "core/utilities/Utilities.h"
 #include "core/gui/GUI.h"
 
+#include <algorithm>
 #include <imgui.h>
 #include <random>
 
@@ -78,15 +79,24 @@ bool Permadeath::onSettingsGUI()
         changed = true;
     }
 
-    if (deleteEquipped && cloudDeathMode == CloudDeathMode::SacrificeYourFriends)
+    if (cloudDeathMode == CloudDeathMode::SacrificeYourFriends)
     {
-        changed |= ImGui::Checkbox("Delete Cloud Equipped", &deleteCloudEquipped);
-        ImGui::SetItemTooltip("Delete Cloud's equipment and materia when he dies in Sacrifice Your Friends mode.");
+        changed |= ImGui::Checkbox("Prefer Party Members", &sacrificePreferParty);
+        ImGui::SetItemTooltip("Sacrifices are taken from current party first, then from other\nrecruited characters. When disabled, sacrifices are chosen at random.");
+
+        changed |= ImGui::Checkbox("Include Unrecruited", &sacrificeIncludeUnrecruited);
+        ImGui::SetItemTooltip("Characters you haven't recruited yet (e.g. Yuffie, Vincent) can be sacrificed.\nWith Prefer Party Members enabled, they're only used as a last resort.");
+
+        if (deleteEquipped)
+        {
+            changed |= ImGui::Checkbox("Delete Cloud Equipped", &deleteCloudEquipped);
+            ImGui::SetItemTooltip("Delete Cloud's equipment and materia when he dies in Sacrifice Your Friends mode.");
+        }
     }
 
     ImGui::Spacing();
     changed |= ImGui::Checkbox("Always Randomize 1v1 Fights", &alwaysRandomizeOneVOne);
-    ImGui::SetItemTooltip("Always randomize which character fights in a 1v1 (Rufus or Dyne) even if they're alive.");
+    ImGui::SetItemTooltip("Always randomize which character fights in a 1v1 (e.g. Rufus, Dyne)\neven if the scripted character is still alive.");
 
     return changed;
 }
@@ -96,6 +106,8 @@ void Permadeath::loadSettings(const ConfigFile& cfg)
     deleteEquipped = cfg.get<bool>("deleteEquipped", deleteEquipped);
     deleteCloudEquipped = cfg.get<bool>("deleteCloudEquipped", deleteCloudEquipped);
     cloudDeathMode = (CloudDeathMode)cfg.get<int>("cloudDeathMode", (int)cloudDeathMode);
+    sacrificePreferParty = cfg.get<bool>("sacrificePreferParty", sacrificePreferParty);
+    sacrificeIncludeUnrecruited = cfg.get<bool>("sacrificeIncludeUnrecruited", sacrificeIncludeUnrecruited);
     alwaysRandomizeOneVOne = cfg.get<bool>("alwaysRandomizeOneVOne", alwaysRandomizeOneVOne);
 }
 
@@ -104,6 +116,8 @@ void Permadeath::saveSettings(ConfigFile& cfg)
     cfg.set<bool>("deleteEquipped", deleteEquipped);
     cfg.set<bool>("deleteCloudEquipped", deleteCloudEquipped);
     cfg.set<int>("cloudDeathMode", (int)cloudDeathMode);
+    cfg.set<bool>("sacrificePreferParty", sacrificePreferParty);
+    cfg.set<bool>("sacrificeIncludeUnrecruited", sacrificeIncludeUnrecruited);
     cfg.set<bool>("alwaysRandomizeOneVOne", alwaysRandomizeOneVOne);
 }
 
@@ -160,7 +174,14 @@ std::vector<std::string> Permadeath::describe(RuleDescripionType descType)
 {
     if (descType == RuleDescripionType::Unique)
     {
-        return { "Permadeath" };
+        if (cloudDeathMode == CloudDeathMode::SacrificeYourFriends)
+        {
+            return { "Permadeath (with Sacrifice Your Friends)" };
+        }
+        else 
+        {
+            return { "Permadeath" };
+        }
     }
 
     if (descType == RuleDescripionType::Randomized && alwaysRandomizeOneVOne)
@@ -392,15 +413,44 @@ void Permadeath::sacrificeFriendForCloud()
         return;
     }
 
-    // Sacrifices can come from the entire roster, even characters not yet recruited or visible in PHS.
-    std::vector<uint8_t> livingCharacters;
+    // Sort living friends into priority tiers: current party, other recruited (visible in PHS), then unrecruited.
+    // Without Prefer Party Members everyone shares a single tier and who is sacrificed is purely random.
+    std::array<uint8_t, 3> partyIDs = game->getPartyIDs();
+    uint16_t phsVisMask = game->read<uint16_t>(GameOffsets::PHSVisibilityMask);
+    std::array<std::vector<uint8_t>, 3> tiers;
     for (uint8_t id = 0; id < 9; ++id)
     {
-        if (id != CLOUD_ID && !isCharacterDead(id))
+        if (id == CLOUD_ID || isCharacterDead(id))
         {
-            livingCharacters.push_back(id);
+            continue;
         }
+
+        bool inParty = std::find(partyIDs.begin(), partyIDs.end(), id) != partyIDs.end();
+        bool recruited = inParty || Utilities::isBitSet(phsVisMask, id);
+        if (!recruited && !sacrificeIncludeUnrecruited)
+        {
+            continue;
+        }
+
+        int tier = 0;
+        if (sacrificePreferParty)
+        {
+            tier = inParty ? 0 : (recruited ? 1 : 2);
+        }
+        tiers[tier].push_back(id);
     }
+
+    // Shuffle deterministically from the seed so the chosen victims are stable across reloads.
+    uint64_t rngSeed = Utilities::makeSeed64(game->getSeed(), game->getFieldID());
+    std::mt19937_64 rng(rngSeed);
+
+    std::vector<uint8_t> livingCharacters;
+    for (std::vector<uint8_t>& tier : tiers)
+    {
+        std::shuffle(tier.begin(), tier.end(), rng);
+        livingCharacters.insert(livingCharacters.end(), tier.begin(), tier.end());
+    }
+
     if ((int)livingCharacters.size() < cloudDeathCount)
     {
         // Not enough friends left to pay the toll, so Cloud's death stands.
@@ -408,11 +458,6 @@ void Permadeath::sacrificeFriendForCloud()
         LOG("Cloud Permadeath: not enough living characters to sacrifice; Cloud remains dead.");
         return;
     }
-
-    // Shuffle deterministically from the seed so the chosen victims are stable across reloads.
-    uint64_t rngSeed = Utilities::makeSeed64(game->getSeed(), game->getFieldID());
-    std::mt19937_64 rng(rngSeed);
-    std::shuffle(livingCharacters.begin(), livingCharacters.end(), rng);
 
     reviveCharacter(CLOUD_ID);
 

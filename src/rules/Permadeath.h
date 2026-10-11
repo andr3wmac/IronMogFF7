@@ -55,6 +55,8 @@ private:
     bool deleteEquipped = true;
     bool deleteCloudEquipped = true;
     CloudDeathMode cloudDeathMode = CloudDeathMode::Permanent;
+    bool sacrificePreferParty = false;
+    bool sacrificeIncludeUnrecruited = true;
     bool alwaysRandomizeOneVOne = false;
 
     std::vector<PermadeathExemption> exemptions;

@@ -36,6 +36,9 @@ void RandomizeEncounters::setup()
     // Emerald Weapon only eyes formation (was probably for testing?)
     addExclusions({ 987 });
 
+    // Tonberry formations are level 25 in the data, which lets them show up far too early.
+    addLevelOverrides({ 738, 739, 956 }, 40);
+
     // Add all boss formations to excluded formations
     {
         std::set<uint16_t> bossIDs;
@@ -453,10 +456,29 @@ uint8_t getMaxLevelInFormation(const BattleScene& scene, const BattleFormation& 
 
 void RandomizeEncounters::addExclusions(std::initializer_list<uint16_t> ids)
 {
-    for (uint16_t id : ids) 
+    for (uint16_t id : ids)
     {
         excludedFormations.set(id);
     }
+}
+
+void RandomizeEncounters::addLevelOverrides(std::initializer_list<uint16_t> ids, uint8_t level)
+{
+    for (uint16_t id : ids)
+    {
+        formationLevelOverrides[id] = level;
+    }
+}
+
+uint8_t RandomizeEncounters::getFormationLevel(const BattleScene& scene, const BattleFormation& formation)
+{
+    auto it = formationLevelOverrides.find(formation.id);
+    if (it != formationLevelOverrides.end())
+    {
+        return it->second;
+    }
+
+    return getMaxLevelInFormation(scene, formation);
 }
 
 std::vector<uint16_t> RandomizeEncounters::findCandidates(int maxLevel, int battleType, bool isArenaBattle)
@@ -487,7 +509,7 @@ std::vector<uint16_t> RandomizeEncounters::findCandidates(int maxLevel, int batt
             }
 
             // Skip formation if it exceeds the allowable range
-            int candidateMaxLevel = getMaxLevelInFormation(candidateScene, candidateFormation);
+            int candidateMaxLevel = getFormationLevel(candidateScene, candidateFormation);
             if (candidateMaxLevel < maxLevel - levelsBelow || candidateMaxLevel > (maxLevel + scaledLevelsAbove))
             {
                 continue;
@@ -529,7 +551,7 @@ void RandomizeEncounters::generateRandomEncounterMap()
                 continue;
             }
 
-            uint8_t maxLevel = getMaxLevelInFormation(scene, formation);
+            uint8_t maxLevel = getFormationLevel(scene, formation);
             randomEncounterMap[formation.id] = findCandidates(maxLevel, formation.battleType, formation.isArenaBattle());
         }
     }
