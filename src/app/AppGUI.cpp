@@ -11,7 +11,6 @@
 
 #include <imgui.h>
 
-static const char* gameVersions[]{ "PlayStation | US (Original)", "PlayStation | US (CSR v0.13.0)"};
 static const char* emulators[]{ "DuckStation", "BizHawk", "Custom" };
 static const char* attemptsDisplayModes[]{ "Automatic", "Attempts", "Game Overs", "Disabled"};
 
@@ -103,7 +102,7 @@ void App::drawSetupPanel()
             ImGui::SameLine(DPI(70.0f));
             ImGui::SetNextItemWidth(DPI(393.0f));
             int versionIndex = (int)selectedGameVersion;
-            if (ImGui::Combo("##VersionList", &versionIndex, gameVersions, IM_ARRAYSIZE(gameVersions)))
+            if (ImGui::Combo("##VersionList", &versionIndex, gameVersionNames, IM_ARRAYSIZE(gameVersionNames)))
             {
                 selectedGameVersion = (GameVersion)versionIndex;
             }

@@ -287,14 +287,7 @@ void GameManager::setup(GameVersion version, uint32_t inputSeed)
 {
     // Prepare game data based on version
     gameVersion = version;
-    if (gameVersion == GameVersion::PlayStationUS)
-    {
-        LOG("Loading game data for PlayStation US (Original)");
-    }
-    if (gameVersion == GameVersion::PlayStationUS_CSR)
-    {
-        LOG("Loading game data for PlayStation US (CSR)");
-    }
+    LOG("Loading game data for %s", gameVersionNames[(int)gameVersion]);
     GameData::clearGameData();
     GameData::loadGameData(gameVersion, gameDisc);
 
