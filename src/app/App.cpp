@@ -92,16 +92,20 @@ void App::connect()
 {
     if (managerThread != nullptr)
     {
-        if (connectionState == ConnectionState::Error)
-        {
-            stopGameManager();
-        }
-        else 
+        if (managerRunning.load())
         {
             return;
         }
+
+        // The previous manager thread has exited (or is exiting), join it before starting a new one.
+        stopGameManager();
     }
 
+    // Leave the Error state and mark the manager as running before the thread starts. Otherwise the
+    // main loop can see a stale Error state with the new thread and join it, freezing the GUI.
+    connectionState = ConnectionState::Connecting;
+    connectionStatus = "Connecting to Emulator..";
+    managerRunning = true;
     managerThread = new std::thread(&App::runGameManager, this);
 }
 
@@ -125,6 +129,7 @@ void App::reconnect()
     connectionStatus = "Reconnecting to Emulator..";
 
     stopGameManager();
+    managerRunning = true;
     managerThread = new std::thread(&App::runGameManager, this);
 }
 
@@ -173,6 +178,7 @@ void App::runGameManager()
     {
         connectionState = ConnectionState::Error;
         connectionStatus = "Failed to connect to emulator.";
+        managerRunning = false;
         return;
     }
 
@@ -182,7 +188,8 @@ void App::runGameManager()
     tracker.setup(game);
     game->setup(selectedGameVersion, Utilities::hexStringToSeed(seedValue));
 
-    managerRunning = true;
+    // Note: managerRunning is set by whoever started this thread, so a stop request made while we
+    // were connecting is not overwritten here.
     while (managerRunning.load())
     {
         if (!game->update())
