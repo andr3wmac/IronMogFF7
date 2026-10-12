@@ -283,9 +283,8 @@ void Permadeath::onFieldChanged(uint16_t fieldID)
 {
     reviveCloudAfterLifestream(fieldID);
 
-    // The Rufus and Dyne fights are scripted to always use Cloud and Barret. Normally we only substitute
-    // a living character when the scripted one is permadead but when "Always Randomize 1v1 Fights" is enabled
-    // we roll a random character everytime.
+    // The Rufus and Dyne fights are scripted to always use Cloud and Barret. Normally we only substitute a living character 
+    // when the scripted one is permadead but when "Always Randomize 1v1 Fights" is enabled we roll a random character everytime.
     if (fieldID == RUFUS_FIELD_ID && (isCharacterDead(CLOUD_ID) || alwaysRandomizeOneVOne))
     {
         if (game->getGameMoment() < 320)

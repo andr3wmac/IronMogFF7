@@ -57,7 +57,7 @@ private:
     CloudDeathMode cloudDeathMode = CloudDeathMode::Permanent;
     bool sacrificePreferParty = false;
     bool sacrificeIncludeUnrecruited = true;
-    bool alwaysRandomizeOneVOne = false;
+    bool alwaysRandomizeOneVOne = true;
 
     std::vector<PermadeathExemption> exemptions;
     Flags<uint16_t> deadCharacters;
