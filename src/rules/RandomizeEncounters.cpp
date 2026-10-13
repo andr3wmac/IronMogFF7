@@ -37,7 +37,7 @@ void RandomizeEncounters::setup()
     addExclusions({ 987 });
 
     // Tonberry formations are level 25 in the data, which lets them show up far too early.
-    addLevelOverrides({ 738, 739, 956 }, 40);
+    addLevelOverrides({ 738, 739, 956 }, 45);
 
     // Add all boss formations to excluded formations
     {
@@ -251,7 +251,7 @@ std::vector<std::string> RandomizeEncounters::describe(RuleDescripionType descTy
         }
         else if (levelsBelow > 0 && levelsAbove == 0)
         {
-            return { "Random encounters up to " + std::to_string(scaledLevelsAbove) + " levels lower" };
+            return { "Random encounters up to " + std::to_string(levelsBelow) + " levels lower" };
         }
         else if (levelsBelow > 0 && levelsAbove > 0)
         {
