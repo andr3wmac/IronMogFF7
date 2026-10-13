@@ -1,4 +1,5 @@
 #include "RandomizeFieldItems.h"
+#include "core/gui/GUI.h"
 #include "core/game/GameData.h"
 #include "core/game/MemoryOffsets.h"
 #include "core/utilities/Logging.h"
@@ -24,16 +25,16 @@ bool RandomizeFieldItems::onSettingsGUI()
 
     int* randomModeInt = (int*)(&randomMode);
     changed |= ImGui::RadioButton("Shuffle", randomModeInt, 0);
-    ImGui::SetItemTooltip("Items will be replaced by an item from another field.");
+    GUI::wrappedTooltip("Items will be replaced by an item from another field.");
     changed |= ImGui::RadioButton("Random", randomModeInt, 1);
-    ImGui::SetItemTooltip("Items are replaced with a random selection.");
+    GUI::wrappedTooltip("Items are replaced with a random selection.");
 
     ImGui::BeginDisabled(randomMode != RandomMode::Random);
     {
         ImGui::PushID("RandomizeFieldItems.keepItemType");
         changed |= ImGui::Checkbox("Keep Item Type", &keepItemType);
         ImGui::PopID();
-        ImGui::SetItemTooltip("Randomizes weapons with other weapons, armor with other armor, etc");
+        GUI::wrappedTooltip("Randomizes weapons with other weapons, armor with other armor, etc");
     }
     ImGui::EndDisabled();
 

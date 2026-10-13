@@ -287,14 +287,7 @@ void GameManager::setup(GameVersion version, uint32_t inputSeed)
 {
     // Prepare game data based on version
     gameVersion = version;
-    if (gameVersion == GameVersion::PlayStationUS)
-    {
-        LOG("Loading game data for PlayStation US (Original)");
-    }
-    if (gameVersion == GameVersion::PlayStationUS_CSR)
-    {
-        LOG("Loading game data for PlayStation US (CSR)");
-    }
+    LOG("Loading game data for %s", gameVersionNames[(int)gameVersion]);
     GameData::clearGameData();
     GameData::loadGameData(gameVersion, gameDisc);
 
@@ -395,6 +388,15 @@ GameManager::GameState GameManager::getState()
     return GameState::InGame;
 }
 
+void GameManager::shutdown()
+{
+    if (lastGameState == GameState::InGame)
+    {
+        lastGameState = GameState::BootScreen;
+        onExit.invoke();
+    }
+}
+
 bool GameManager::update()
 {
     double currentTime = Utilities::getTimeMS();
@@ -412,6 +414,7 @@ bool GameManager::update()
             // Clearing save data prevents stale state getting stuck from a game over.
             clearSaveData();
             AudioManager::pauseMusic();
+            onExit.invoke();
         }
 
         if (lastGameState != GameState::InGame && state == GameState::InGame)

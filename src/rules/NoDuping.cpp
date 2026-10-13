@@ -14,6 +14,7 @@ void NoDuping::setup()
     BIND_EVENT(game->onStart, NoDuping::onStart);
     BIND_EVENT(game->onBattleEnter, NoDuping::onBattleEnter);
     BIND_EVENT_ONE_ARG(game->onFrame, NoDuping::onFrame);
+    BIND_EVENT_ONE_ARG(game->onFieldChanged, NoDuping::onFieldChanged);
 }
 
 std::vector<std::string> NoDuping::describe(RuleDescripionType descType)
@@ -254,15 +255,29 @@ void NoDuping::checkWItemDuping()
     }
 }
 
+void NoDuping::onFieldChanged(uint16_t fieldID)
+{
+    hyouElixirGroup.reset();
+    hyouElixirMessage.reset();
+
+    // Great Glacier Cave hyou8_2
+    if (fieldID == 678)
+    {
+        // MESSAGE (0x40) window 0, string 0x1C, followed by the next command (0x53).
+        hyouElixirGroup = game->field.findGroupIndex("tr00");
+        hyouElixirMessage = game->field.findScriptOffset("tr00", 1, { 0x40, 0x00, 0x1C, 0x53 });
+    }
+}
+
 void NoDuping::checkFieldItemDuping()
 {
     uint16_t fieldID = game->getFieldID();
 
     // Great Glacier Cave hyou8_2
-    if (fieldID == 678)
+    if (fieldID == 678 && hyouElixirGroup && hyouElixirMessage)
     {
-        uint16_t fieldScriptPtr = game->getScriptExecutionPointer(12);
-        if (fieldScriptPtr == 0x4E4)
+        uint16_t fieldScriptPtr = game->getScriptExecutionPointer(*hyouElixirGroup);
+        if (fieldScriptPtr == *hyouElixirMessage)
         {
             Flags<uint8_t> elixirFlags = game->read<uint8_t>(0x9D2AD);
             if (!elixirFlags.isBitSet(0))

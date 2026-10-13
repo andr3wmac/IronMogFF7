@@ -53,7 +53,11 @@ private:
     void updateOverrideFights();
     
     bool deleteEquipped = true;
+    bool deleteCloudEquipped = true;
     CloudDeathMode cloudDeathMode = CloudDeathMode::Permanent;
+    bool sacrificePreferParty = false;
+    bool sacrificeIncludeUnrecruited = true;
+    bool alwaysRandomizeOneVOne = true;
 
     std::vector<PermadeathExemption> exemptions;
     Flags<uint16_t> deadCharacters;
@@ -64,4 +68,8 @@ private:
     bool appliedDyneRandom = false;
     bool waitingOnBattleExit = false;
     uint16_t lastFieldTrigger = 0;
+
+    // Character chosen to take over each scripted 1v1 fight. 0xFF means the fight was left alone.
+    uint8_t rufusOverrideCharacter = 0xFF;
+    uint8_t dyneOverrideCharacter = 0xFF;
 };

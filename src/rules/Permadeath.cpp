@@ -5,6 +5,7 @@
 #include "core/utilities/Utilities.h"
 #include "core/gui/GUI.h"
 
+#include <algorithm>
 #include <imgui.h>
 #include <random>
 
@@ -63,11 +64,11 @@ bool Permadeath::onSettingsGUI()
     bool changed = false;
 
     changed |= ImGui::Checkbox("Delete Equipped", &deleteEquipped);
-    ImGui::SetItemTooltip("Anything equipped at the time of death is deleted.");
+    GUI::wrappedTooltip("Anything equipped at the time of death is deleted.");
 
     ImGui::Spacing();
     ImGui::Text("Cloud Permadeath:");
-    ImGui::SetItemTooltip("Permanent: Cloud remains permanently dead.\nRevive After Lifestream: Cloud returns after the Lifestream sequence.\nSacrifice Your Friends: Other characters die in Cloud's place.");
+    GUI::wrappedTooltip("Permanent: Cloud remains permanently dead.\nRevive After Lifestream: Cloud returns after the Lifestream sequence.\nSacrifice Your Friends: Other characters die in Cloud's place.");
     ImGui::SameLine(DPI(200.0f));
     ImGui::SetNextItemWidth(DPI(200.0f));
 
@@ -78,19 +79,46 @@ bool Permadeath::onSettingsGUI()
         changed = true;
     }
 
+    if (cloudDeathMode == CloudDeathMode::SacrificeYourFriends)
+    {
+        changed |= ImGui::Checkbox("Prefer Party Members", &sacrificePreferParty);
+        GUI::wrappedTooltip("Sacrifices are taken from current party first, then from other recruited characters. When disabled, sacrifices are chosen at random.");
+
+        changed |= ImGui::Checkbox("Include Unrecruited", &sacrificeIncludeUnrecruited);
+        GUI::wrappedTooltip("Characters you haven't recruited yet (e.g. Yuffie, Vincent) can be sacrificed. With Prefer Party Members enabled, they're only used as a last resort.");
+
+        if (deleteEquipped)
+        {
+            changed |= ImGui::Checkbox("Delete Cloud Equipped", &deleteCloudEquipped);
+            GUI::wrappedTooltip("Delete Cloud's equipment and materia when he dies in Sacrifice Your Friends mode.");
+        }
+    }
+
+    ImGui::Spacing();
+    changed |= ImGui::Checkbox("Always Randomize 1v1 Fights", &alwaysRandomizeOneVOne);
+    GUI::wrappedTooltip("Always randomize which character fights in a 1v1 (e.g. Rufus, Dyne) even if the scripted character is still alive.");
+
     return changed;
 }
 
 void Permadeath::loadSettings(const ConfigFile& cfg)
 {
     deleteEquipped = cfg.get<bool>("deleteEquipped", deleteEquipped);
+    deleteCloudEquipped = cfg.get<bool>("deleteCloudEquipped", deleteCloudEquipped);
     cloudDeathMode = (CloudDeathMode)cfg.get<int>("cloudDeathMode", (int)cloudDeathMode);
+    sacrificePreferParty = cfg.get<bool>("sacrificePreferParty", sacrificePreferParty);
+    sacrificeIncludeUnrecruited = cfg.get<bool>("sacrificeIncludeUnrecruited", sacrificeIncludeUnrecruited);
+    alwaysRandomizeOneVOne = cfg.get<bool>("alwaysRandomizeOneVOne", alwaysRandomizeOneVOne);
 }
 
 void Permadeath::saveSettings(ConfigFile& cfg)
 {
     cfg.set<bool>("deleteEquipped", deleteEquipped);
+    cfg.set<bool>("deleteCloudEquipped", deleteCloudEquipped);
     cfg.set<int>("cloudDeathMode", (int)cloudDeathMode);
+    cfg.set<bool>("sacrificePreferParty", sacrificePreferParty);
+    cfg.set<bool>("sacrificeIncludeUnrecruited", sacrificeIncludeUnrecruited);
+    cfg.set<bool>("alwaysRandomizeOneVOne", alwaysRandomizeOneVOne);
 }
 
 void Permadeath::onDebugGUI()
@@ -104,6 +132,10 @@ void Permadeath::onDebugGUI()
         }
     }
     ImGui::Text(deadCharText.c_str());
+
+    ImGui::Text("Always randomize 1v1 fights: %s", alwaysRandomizeOneVOne ? "On" : "Off");
+    ImGui::Text("Rufus fight: %s", rufusOverrideCharacter == 0xFF ? "Cloud (unchanged)" : getCharacterName(rufusOverrideCharacter).c_str());
+    ImGui::Text("Dyne fight: %s", dyneOverrideCharacter == 0xFF ? "Barret (unchanged)" : getCharacterName(dyneOverrideCharacter).c_str());
 
     if (ImGui::Button("Clear Dead Characters"))
     {
@@ -142,7 +174,19 @@ std::vector<std::string> Permadeath::describe(RuleDescripionType descType)
 {
     if (descType == RuleDescripionType::Unique)
     {
-        return { "Permadeath" };
+        if (cloudDeathMode == CloudDeathMode::SacrificeYourFriends)
+        {
+            return { "Permadeath (with Sacrifice Your Friends)" };
+        }
+        else 
+        {
+            return { "Permadeath" };
+        }
+    }
+
+    if (descType == RuleDescripionType::Randomized && alwaysRandomizeOneVOne)
+    {
+        return { "1v1 fights" };
     }
 
     return {};
@@ -152,7 +196,10 @@ void Permadeath::onStart()
 {
     loadPermadeathState();
     appliedRufusRandom = false;
+    appliedDyneRandom = false;
     waitingOnBattleExit = false;
+    rufusOverrideCharacter = 0xFF;
+    dyneOverrideCharacter = 0xFF;
 }
 
 void Permadeath::onFrame(uint32_t frameNumber)
@@ -236,29 +283,43 @@ void Permadeath::onFieldChanged(uint16_t fieldID)
 {
     reviveCloudAfterLifestream(fieldID);
 
-    if (fieldID == RUFUS_FIELD_ID && isCharacterDead(CLOUD_ID))
+    // The Rufus and Dyne fights are scripted to always use Cloud and Barret. Normally we only substitute a living character 
+    // when the scripted one is permadead but when "Always Randomize 1v1 Fights" is enabled we roll a random character everytime.
+    if (fieldID == RUFUS_FIELD_ID && (isCharacterDead(CLOUD_ID) || alwaysRandomizeOneVOne))
     {
         if (game->getGameMoment() < 320)
         {
-            int randomCharacter = selectRandomLivingCharacter(fieldID, CLOUD_ID);
-            if (randomCharacter > -1)
+            // 0xFF means "exclude nobody" so Cloud can be rolled when he is alive.
+            int randomCharacter = selectRandomLivingCharacter(fieldID, alwaysRandomizeOneVOne ? 0xFF : CLOUD_ID);
+            if (randomCharacter == CLOUD_ID)
             {
-                uintptr_t rufusHideScript = FieldScriptOffsets::ScriptStart + 0x952;
-                if (game->getGameVersion() == GameVersion::PlayStationUS_CSR)
-                {
-                    rufusHideScript = FieldScriptOffsets::ScriptStart + 0x94D;
-                }
-
-                // Overwrite two commands related to hiding Rufus. This seems to be harmless.
-                game->write<uint8_t>(rufusHideScript + 0, 0xCA);
-                game->write<uint8_t>(rufusHideScript + 1, (uint8_t)randomCharacter);
-                game->write<uint8_t>(rufusHideScript + 2, 0xFE);
-                game->write<uint8_t>(rufusHideScript + 3, 0xFE);
-
-                appliedRufusRandom = true;
-                LOG("Replaced Cloud with %s in Rufus fight due to Cloud being dead.", getCharacterName(randomCharacter).c_str());
+                LOG("Left the Rufus fight alone because Cloud was selected.");
             }
-            else 
+            else if (randomCharacter > -1)
+            {
+                // TLKON (0x7E) 1, SOLID (0xC7) 1.
+                std::optional<uint16_t> rufusHideOffset = game->field.findScriptOffset("lu", 11, { 0x7E, 0x01, 0xC7, 0x01 });
+                if (rufusHideOffset)
+                {
+                    uintptr_t rufusHideScript = FieldScriptOffsets::ScriptStart + *rufusHideOffset;
+
+                    // Overwrite two commands related to hiding Rufus. This seems to be harmless.
+                    game->write<uint8_t>(rufusHideScript + 0, 0xCA);
+                    game->write<uint8_t>(rufusHideScript + 1, (uint8_t)randomCharacter);
+                    game->write<uint8_t>(rufusHideScript + 2, 0xFE);
+                    game->write<uint8_t>(rufusHideScript + 3, 0xFE);
+
+                    appliedRufusRandom    = true;
+                    rufusOverrideCharacter = (uint8_t)randomCharacter;
+                    LOG("Replaced Cloud with %s in Rufus fight%s.", getCharacterName(randomCharacter).c_str(),
+                        isCharacterDead(CLOUD_ID) ? " due to Cloud being dead" : " because 1v1 fights are always randomized");
+                }
+                else
+                {
+                    LOG("Did not replace Cloud in Rufus fight because the Rufus hide commands were not found.");
+                }
+            }
+            else
             {
                 // Everyone is dead, do nothing.
                 LOG("Did not replace Cloud in Rufus fight because all characters are dead.");
@@ -266,26 +327,37 @@ void Permadeath::onFieldChanged(uint16_t fieldID)
         }
     }
 
-    if (fieldID == DYNE_FIELD_ID && isCharacterDead(BARRET_ID))
+    if (fieldID == DYNE_FIELD_ID && (isCharacterDead(BARRET_ID) || alwaysRandomizeOneVOne))
     {
-        // Select a random living character other than Barret.
-        int randomCharacter = selectRandomLivingCharacter(fieldID, BARRET_ID);
-        if (randomCharacter == -1)
+        // 0xFF means "exclude nobody" so Barret can be rolled when he is alive.
+        int randomCharacter = selectRandomLivingCharacter(fieldID, alwaysRandomizeOneVOne ? 0xFF : BARRET_ID);
+        if (randomCharacter == BARRET_ID)
+        {
+            LOG("Left the Dyne fight alone because Barret was selected.");
+        }
+        else if (randomCharacter == -1)
         {
             // Everyone is dead, do nothing.
             LOG("Did not replace Barret in Dyne fight because all characters are dead.");
             return;
         }
-
-        // Overwrite the command that swaps party before the dyne fight to use a character other than Barret since hes dead.
-        uintptr_t dynePartyCommand = FieldScriptOffsets::ScriptStart + 0x4FE;
-        if (game->getGameVersion() == GameVersion::PlayStationUS_CSR)
+        else
         {
-            dynePartyCommand = FieldScriptOffsets::ScriptStart + 0x508;
-        }
-        game->write<uint8_t>(dynePartyCommand + 1, (uint8_t)randomCharacter);
+            // Overwrite the command that swaps party before the dyne fight to use a character other than Barret.
+            // PRTYE (0xCA) Barret, empty, empty.
+            std::optional<uint16_t> dynePartyCommand = game->field.findScriptOffset("dic", 0, { 0xCA, BARRET_ID, 0xFE, 0xFE });
+            if (!dynePartyCommand)
+            {
+                LOG("Did not replace Barret in Dyne fight because the party command was not found.");
+                return;
+            }
+            game->write<uint8_t>(FieldScriptOffsets::ScriptStart + *dynePartyCommand + 1, (uint8_t)randomCharacter);
 
-        LOG("Replaced Barret with %s in Dyne fight due to Barret being dead.", getCharacterName(randomCharacter).c_str());
+            appliedDyneRandom    = true;
+            dyneOverrideCharacter = (uint8_t)randomCharacter;
+            LOG("Replaced Barret with %s in Dyne fight%s.", getCharacterName(randomCharacter).c_str(),
+                isCharacterDead(BARRET_ID) ? " due to Barret being dead" : " because 1v1 fights are always randomized");
+        }
     }
 }
 
@@ -340,15 +412,44 @@ void Permadeath::sacrificeFriendForCloud()
         return;
     }
 
-    // Sacrifices can come from the entire roster, even characters not yet recruited or visible in PHS.
-    std::vector<uint8_t> livingCharacters;
+    // Sort living friends into priority tiers: current party, other recruited (visible in PHS), then unrecruited.
+    // Without Prefer Party Members everyone shares a single tier and who is sacrificed is purely random.
+    std::array<uint8_t, 3> partyIDs = game->getPartyIDs();
+    uint16_t phsVisMask = game->read<uint16_t>(GameOffsets::PHSVisibilityMask);
+    std::array<std::vector<uint8_t>, 3> tiers;
     for (uint8_t id = 0; id < 9; ++id)
     {
-        if (id != CLOUD_ID && !isCharacterDead(id))
+        if (id == CLOUD_ID || isCharacterDead(id))
         {
-            livingCharacters.push_back(id);
+            continue;
         }
+
+        bool inParty = std::find(partyIDs.begin(), partyIDs.end(), id) != partyIDs.end();
+        bool recruited = inParty || Utilities::isBitSet(phsVisMask, id);
+        if (!recruited && !sacrificeIncludeUnrecruited)
+        {
+            continue;
+        }
+
+        int tier = 0;
+        if (sacrificePreferParty)
+        {
+            tier = inParty ? 0 : (recruited ? 1 : 2);
+        }
+        tiers[tier].push_back(id);
     }
+
+    // Shuffle deterministically from the seed so the chosen victims are stable across reloads.
+    uint64_t rngSeed = Utilities::makeSeed64(game->getSeed(), game->getFieldID());
+    std::mt19937_64 rng(rngSeed);
+
+    std::vector<uint8_t> livingCharacters;
+    for (std::vector<uint8_t>& tier : tiers)
+    {
+        std::shuffle(tier.begin(), tier.end(), rng);
+        livingCharacters.insert(livingCharacters.end(), tier.begin(), tier.end());
+    }
+
     if ((int)livingCharacters.size() < cloudDeathCount)
     {
         // Not enough friends left to pay the toll, so Cloud's death stands.
@@ -356,11 +457,6 @@ void Permadeath::sacrificeFriendForCloud()
         LOG("Cloud Permadeath: not enough living characters to sacrifice; Cloud remains dead.");
         return;
     }
-
-    // Shuffle deterministically from the seed so the chosen victims are stable across reloads.
-    uint64_t rngSeed = Utilities::makeSeed64(game->getSeed(), game->getFieldID());
-    std::mt19937_64 rng(rngSeed);
-    std::shuffle(livingCharacters.begin(), livingCharacters.end(), rng);
 
     reviveCharacter(CLOUD_ID);
 
@@ -415,7 +511,8 @@ void Permadeath::killCharacter(uint8_t id)
     justDiedCharacters.insert(id);
     LOG("Character has died: %d", id);
 
-    if (deleteEquipped)
+    bool keepCloudEquipped = id == CLOUD_ID && cloudDeathMode == CloudDeathMode::SacrificeYourFriends && !deleteCloudEquipped;
+    if (deleteEquipped && !keepCloudEquipped)
     {
         // Weapons IDs for each characters default weapon.
         static uint8_t defaultWeapons[] = { 0, 32, 16, 62, 48, 87, 101, 114, 73 };
@@ -518,8 +615,8 @@ void Permadeath::updateOverrideFights()
         return;
     }
     
-    // We only need to do something if Cloud is dead.
-    if (!isCharacterDead(CLOUD_ID))
+    // We only need to switch the party back if someone else was substituted into the fight.
+    if (!appliedRufusRandom)
     {
         return;
     }
@@ -530,11 +627,15 @@ void Permadeath::updateOverrideFights()
         uint16_t fieldTrigger = game->read<uint16_t>(GameOffsets::FieldScreenFade);
         if (fieldTrigger == 256)
         {
-            uintptr_t scriptAfterRufus = FieldScriptOffsets::ScriptStart + 0x45E;
-            if (game->getGameVersion() == GameVersion::PlayStationUS_CSR)
+            // SCRLA (0x63) camera scroll that follows the Rufus fight trigger.
+            std::optional<uint16_t> afterRufusOffset = game->field.findScriptOffset("dir", 0, { 0x63, 0x00, 0x1E, 0x00 });
+            if (!afterRufusOffset)
             {
-                scriptAfterRufus = FieldScriptOffsets::ScriptStart + 0x46A;
+                LOG("Did not switch party back to Cloud after Rufus fight because the script was not found.");
+                waitingOnBattleExit = false;
+                return;
             }
+            uintptr_t scriptAfterRufus = FieldScriptOffsets::ScriptStart + *afterRufusOffset;
 
             // Overwrite the command that comes after the Rufus fight trigger with this command to switch to party back to Cloud.
             game->write<uint8_t>(scriptAfterRufus + 0, 0xCA);

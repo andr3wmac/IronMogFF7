@@ -4,6 +4,9 @@
 #include "core/utilities/Logging.h"
 #include "rules/Restrictions.h"
 
+#include <algorithm>
+#include <cstring>
+
 void FieldModule::setup(GameManager* game)
 {
     this->game = game;
@@ -420,4 +423,88 @@ void FieldModule::overwriteMessage(int msgIndex, const std::string& newText)
     {
         game->writeString(FieldScriptOffsets::ScriptStart + fieldMsg.strOffset, fieldMsg.strLength, newText);
     }
+}
+
+std::optional<uint8_t> FieldModule::findGroupIndex(const std::string& groupName)
+{
+    uint8_t groupCount = game->read<uint8_t>(FieldScriptOffsets::ScriptStart + FieldScriptOffsets::HeaderGroupCount);
+
+    // Names are 8 bytes and zero padded.
+    std::vector<char> names(groupCount * FieldScriptOffsets::GroupNameLength);
+    game->read(FieldScriptOffsets::ScriptStart + FieldScriptOffsets::HeaderSize, names.size(), (uint8_t*)names.data());
+
+    for (int i = 0; i < groupCount; ++i)
+    {
+        if (strncmp(&names[i * FieldScriptOffsets::GroupNameLength], groupName.c_str(), FieldScriptOffsets::GroupNameLength) == 0)
+        {
+            return (uint8_t)i;
+        }
+    }
+
+    LOG("Script search failed: no group named %s in field %d.", groupName.c_str(), fieldID);
+    return std::nullopt;
+}
+
+std::optional<uint16_t> FieldModule::findScriptOffset(const std::string& groupName, uint8_t scriptIndex, const std::vector<uint8_t>& pattern)
+{
+    if (pattern.empty() || scriptIndex >= FieldScriptOffsets::ScriptsPerGroup)
+    {
+        return std::nullopt;
+    }
+
+    std::optional<uint8_t> groupIndex = findGroupIndex(groupName);
+    if (!groupIndex)
+    {
+        return std::nullopt;
+    }
+
+    uint8_t groupCount   = game->read<uint8_t>(FieldScriptOffsets::ScriptStart + FieldScriptOffsets::HeaderGroupCount);
+    uint16_t stringTable = game->read<uint16_t>(FieldScriptOffsets::ScriptStart + FieldScriptOffsets::HeaderStringTable);
+    uint16_t extraCount  = game->read<uint16_t>(FieldScriptOffsets::ScriptStart + FieldScriptOffsets::HeaderExtraCount);
+
+    // The script entry table follows the group names and extra block offsets.
+    uintptr_t namesSize = groupCount * FieldScriptOffsets::GroupNameLength;
+    uintptr_t entryTableOffset = FieldScriptOffsets::HeaderSize + namesSize + (extraCount * sizeof(uint32_t));
+    std::vector<uint16_t> entries(groupCount * FieldScriptOffsets::ScriptsPerGroup);
+    game->read(FieldScriptOffsets::ScriptStart + entryTableOffset, entries.size() * sizeof(uint16_t), (uint8_t*)entries.data());
+
+    // A script runs until the next script entry in the field, or the string table for the last script.
+    uint16_t scriptStart = entries[*groupIndex * FieldScriptOffsets::ScriptsPerGroup + scriptIndex];
+    uint16_t scriptEnd = stringTable;
+    for (uint16_t entry : entries)
+    {
+        if (entry > scriptStart && entry < scriptEnd)
+        {
+            scriptEnd = entry;
+        }
+    }
+
+    if (scriptStart < entryTableOffset + entries.size() * sizeof(uint16_t) || scriptStart >= scriptEnd)
+    {
+        LOG("Script search failed: invalid script %s:%d in field %d.", groupName.c_str(), scriptIndex, fieldID);
+        return std::nullopt;
+    }
+
+    std::vector<uint8_t> script(scriptEnd - scriptStart);
+    game->read(FieldScriptOffsets::ScriptStart + scriptStart, script.size(), script.data());
+
+    std::optional<uint16_t> result;
+    for (size_t i = 0; i + pattern.size() <= script.size(); ++i)
+    {
+        if (std::equal(pattern.begin(), pattern.end(), script.begin() + i))
+        {
+            if (result)
+            {
+                LOG("Script search failed: pattern found more than once in %s:%d in field %d.", groupName.c_str(), scriptIndex, fieldID);
+                return std::nullopt;
+            }
+            result = (uint16_t)(scriptStart + i);
+        }
+    }
+
+    if (!result)
+    {
+        LOG("Script search failed: pattern not found in %s:%d in field %d.", groupName.c_str(), scriptIndex, fieldID);
+    }
+    return result;
 }
