@@ -296,7 +296,7 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
         }
 
         // HACK: CSR has fails to apply colors when we flash to cloud upside in the tree.
-        if (game->getGameVersion() == GameVersion::PlayStationUS_CSR && 
+        if (isCSRVersion(game->getGameVersion()) && 
             game->getFieldID() == 707 && game->getGameMoment() == 794 &&
             screenFade > 5)
         {

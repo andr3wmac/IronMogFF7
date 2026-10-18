@@ -28,7 +28,7 @@ bool RandomizeEnemyDrops::onSettingsGUI()
     bool changed = false;
 
     changed |= ImGui::Checkbox("Randomize Every Fight", &randomizeEveryFight);
-    ImGui::SetItemTooltip("Whether drops should be randomized every fight\nor randomized once for each enemy.");
+    GUI::wrappedTooltip("Whether drops should be randomized every fight or randomized once for each enemy.");
 
     changed |= ImGui::Checkbox("Randomize Morphs", &randomizeMorphs);
 
@@ -36,11 +36,11 @@ bool RandomizeEnemyDrops::onSettingsGUI()
     changed |= ImGui::Checkbox("Keep Item Type", &keepItemType);
     ImGui::PopID();
 
-    ImGui::SetItemTooltip("Randomizes weapons with other weapons, armor with other armor, etc");
+    GUI::wrappedTooltip("Randomizes weapons with other weapons, armor with other armor, etc");
 
     // AP Multiplier
     ImGui::Text("AP Multiplier");
-    ImGui::SetItemTooltip("Multiplies the AP obtained from each enemy.");
+    GUI::wrappedTooltip("Multiplies the AP obtained from each enemy.");
     ImGui::SameLine(DPI(140.0f));
 
     ImGui::PushItemWidth(DPI(60.0f));
@@ -53,7 +53,7 @@ bool RandomizeEnemyDrops::onSettingsGUI()
 
     // Exp Multiplier
     ImGui::Text("Exp Multiplier");
-    ImGui::SetItemTooltip("Multiplies the exp obtained from each enemy.");
+    GUI::wrappedTooltip("Multiplies the exp obtained from each enemy.");
     ImGui::SameLine(DPI(140.0f));
 
     ImGui::PushItemWidth(DPI(60.0f));
@@ -66,7 +66,7 @@ bool RandomizeEnemyDrops::onSettingsGUI()
 
     // Gil Multiplier
     ImGui::Text("Gil Multiplier");
-    ImGui::SetItemTooltip("Multiplies the gil dropped by each enemy.");
+    GUI::wrappedTooltip("Multiplies the gil dropped by each enemy.");
     ImGui::SameLine(DPI(140.0f));
 
     ImGui::PushItemWidth(DPI(60.0f));

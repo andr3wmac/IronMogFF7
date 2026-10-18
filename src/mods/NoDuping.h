@@ -2,6 +2,7 @@
 #include "Mod.h"
 #include <cstdint>
 #include <deque>
+#include <optional>
 
 class NoDuping : public Mod
 {
@@ -17,6 +18,7 @@ private:
     void onStart();
     void onBattleEnter();
     void onFrame(uint32_t frameNumber);
+    void onFieldChanged(uint16_t fieldID);
 
     void checkPartyMembers();
     void checkWItemDuping();
@@ -27,4 +29,8 @@ private:
     bool cancelWasPressed = false;
     uint8_t lastTargetTrigger = 0xFF;
     int lastActivePlayer = -1;
+
+    // Location of the elixir pickup message in hyou8_2, resolved when the field loads.
+    std::optional<uint8_t> hyouElixirGroup;
+    std::optional<uint16_t> hyouElixirMessage;
 };

@@ -72,7 +72,7 @@ bool DifficultyProgression::onSettingsGUI()
 
     ImGui::Spacing();
     ImGui::Text("Source:");
-    ImGui::SetItemTooltip("How progress is determined.\nGame Progress: as you advance the story difficulty increases.\nHighest Level: difficulty increases with max level of your party.\nIn-Game Time: difficulty increases as time passes.");
+    GUI::wrappedTooltip("How progress is determined.\nGame Progress: as you advance the story difficulty increases.\nHighest Level: difficulty increases with max level of your party.\nIn-Game Time: difficulty increases as time passes.");
     ImGui::SameLine(DPI(120.0f));
     ImGui::SetNextItemWidth(DPI(200.0f));
 
@@ -85,7 +85,7 @@ bool DifficultyProgression::onSettingsGUI()
 
     ImGui::Spacing();
     ImGui::Text("Start At:");
-    ImGui::SetItemTooltip("The amount of progression you start the game at.\nThis prevents always starting at lowest difficulty.");
+    GUI::wrappedTooltip("The amount of progression you start the game at. This prevents always starting at lowest difficulty.");
     ImGui::SameLine(DPI(120.0f));
     ImGui::PushItemWidth(DPI(50.0f));
     if (ImGui::InputFloat("##DifficultyProgression_progressionStart", &progressionStart, 0, 0, "%.2f"))
@@ -102,7 +102,7 @@ bool DifficultyProgression::onSettingsGUI()
     {
         ImGui::Spacing();
         ImGui::Text("End Moment:");
-        ImGui::SetItemTooltip("The point in the game where difficulty has fully progressed.");
+        GUI::wrappedTooltip("The point in the game where difficulty has fully progressed.");
         ImGui::SameLine(DPI(120.0f));
 
         changed = GUI::comboFixedWidth("##DifficultyProgression_progressionEnd", &progressionEnd,
@@ -116,7 +116,7 @@ bool DifficultyProgression::onSettingsGUI()
     {
         ImGui::Spacing();
         ImGui::Text("End Level:");
-        ImGui::SetItemTooltip("When a member of your party reaches\nthis level progression is complete.");
+        GUI::wrappedTooltip("When a member of your party reaches this level progression is complete.");
         ImGui::SameLine(DPI(120.0f));
         ImGui::PushItemWidth(DPI(50.0f));
         if (ImGui::InputInt("##DifficultyProgression_endLevel", &progressionEndLevel, 0, 0))
@@ -132,7 +132,7 @@ bool DifficultyProgression::onSettingsGUI()
     {
         ImGui::Spacing();
         ImGui::Text("End Time:");
-        ImGui::SetItemTooltip("The in-game time where difficulty has fully progressed.");
+        GUI::wrappedTooltip("The in-game time where difficulty has fully progressed.");
         ImGui::SameLine(DPI(120.0f));
         ImGui::PushItemWidth(DPI(25.0f));
 

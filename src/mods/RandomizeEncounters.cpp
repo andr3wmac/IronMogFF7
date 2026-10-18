@@ -41,6 +41,9 @@ void RandomizeEncounters::setup()
     // Emerald Weapon only eyes formation (was probably for testing?)
     addExclusions({ 987 });
 
+    // Tonberry formations are level 25 in the data, which lets them show up far too early.
+    addLevelOverrides({ 738, 739, 956 }, 45);
+
     // Add all boss formations to excluded formations
     {
         std::set<uint16_t> bossIDs;
@@ -72,14 +75,14 @@ bool RandomizeEncounters::onSettingsGUI()
 
     changed |= ImGui::Checkbox("Random Encounters", &randomEncounters);
     changed |= ImGui::Checkbox("Scripted Encounters", &scriptedEncounters);
-    ImGui::SetItemTooltip("Randomize fights triggered from scripts excluding boss fights.");
+    GUI::wrappedTooltip("Randomize fights triggered from scripts excluding boss fights.");
     changed |= ImGui::Checkbox("World Map Encounters", &worldMapEncounters);
 
     changed |= ImGui::Checkbox("Match Battle Types", &matchBattleTypes);
-    ImGui::SetItemTooltip("Will only randomize Back Attacks to other Back Attacks, etc");
+    GUI::wrappedTooltip("Will only randomize Back Attacks to other Back Attacks, etc");
 
     ImGui::Text("Levels Below");
-    ImGui::SetItemTooltip("How many levels below the original encounter's maximum\nlevel the randomized encounter can be.");
+    GUI::wrappedTooltip("How many levels below the original encounter's maximum level the randomized encounter can be.");
     ImGui::SameLine(DPI(125.0f));
     ImGui::PushItemWidth(DPI(50.0f));
     if (ImGui::InputInt("##encLevelsBelow", &levelsBelow, 0, 0))
@@ -90,7 +93,7 @@ bool RandomizeEncounters::onSettingsGUI()
     ImGui::PopItemWidth();
 
     ImGui::Text("Levels Above");
-    ImGui::SetItemTooltip("How many levels above the original encounter's maximum\nlevel the randomized encounter can be.");
+    GUI::wrappedTooltip("How many levels above the original encounter's maximum level the randomized encounter can be.");
     ImGui::SameLine(DPI(125.0f));
     ImGui::PushItemWidth(DPI(50.0f));
     if (ImGui::InputInt("##encLevelsAbove", &levelsAbove, 0, 0))
@@ -101,7 +104,7 @@ bool RandomizeEncounters::onSettingsGUI()
     ImGui::PopItemWidth();
 
     ImGui::Text("Stat Multiplier");
-    ImGui::SetItemTooltip("Multiplies each enemy's HP, MP, Strength, Magic, Evade,\nSpeed, Luck, Defense, and MDefense.\nMultiplier is randomly chosen for each stat for each enemy.");
+    GUI::wrappedTooltip("Multiplies each enemy's HP, MP, Strength, Magic, Evade, Speed, Luck, Defense, and MDefense. Multiplier is randomly chosen for each stat for each enemy.");
     ImGui::SameLine();
 
     ImGui::PushItemWidth(DPI(60.0f));
@@ -114,7 +117,7 @@ bool RandomizeEncounters::onSettingsGUI()
     ImGui::PushID("RandomizeEncounters.defenseSoftCap");
     changed |= ImGui::Checkbox("Defense Soft Cap", &defenseSoftCap);
     ImGui::PopID();
-    ImGui::SetItemTooltip("Prevents multiplied Def/MDef from hitting\ngame limit and becoming immune.");
+    GUI::wrappedTooltip("Prevents multiplied Def/MDef from hitting game limit and becoming immune.");
 
     return changed;
 }
@@ -253,7 +256,7 @@ std::vector<std::string> RandomizeEncounters::describe(ModDescriptionType descTy
         }
         else if (levelsBelow > 0 && levelsAbove == 0)
         {
-            return { "Random encounters up to " + std::to_string(scaledLevelsAbove) + " levels lower" };
+            return { "Random encounters up to " + std::to_string(levelsBelow) + " levels lower" };
         }
         else if (levelsBelow > 0 && levelsAbove > 0)
         {
@@ -458,10 +461,29 @@ uint8_t getMaxLevelInFormation(const BattleScene& scene, const BattleFormation& 
 
 void RandomizeEncounters::addExclusions(std::initializer_list<uint16_t> ids)
 {
-    for (uint16_t id : ids) 
+    for (uint16_t id : ids)
     {
         excludedFormations.set(id);
     }
+}
+
+void RandomizeEncounters::addLevelOverrides(std::initializer_list<uint16_t> ids, uint8_t level)
+{
+    for (uint16_t id : ids)
+    {
+        formationLevelOverrides[id] = level;
+    }
+}
+
+uint8_t RandomizeEncounters::getFormationLevel(const BattleScene& scene, const BattleFormation& formation)
+{
+    auto it = formationLevelOverrides.find(formation.id);
+    if (it != formationLevelOverrides.end())
+    {
+        return it->second;
+    }
+
+    return getMaxLevelInFormation(scene, formation);
 }
 
 std::vector<uint16_t> RandomizeEncounters::findCandidates(int maxLevel, int battleType, bool isArenaBattle)
@@ -492,7 +514,7 @@ std::vector<uint16_t> RandomizeEncounters::findCandidates(int maxLevel, int batt
             }
 
             // Skip formation if it exceeds the allowable range
-            int candidateMaxLevel = getMaxLevelInFormation(candidateScene, candidateFormation);
+            int candidateMaxLevel = getFormationLevel(candidateScene, candidateFormation);
             if (candidateMaxLevel < maxLevel - levelsBelow || candidateMaxLevel > (maxLevel + scaledLevelsAbove))
             {
                 continue;
@@ -534,7 +556,7 @@ void RandomizeEncounters::generateRandomEncounterMap()
                 continue;
             }
 
-            uint8_t maxLevel = getMaxLevelInFormation(scene, formation);
+            uint8_t maxLevel = getFormationLevel(scene, formation);
             randomEncounterMap[formation.id] = findCandidates(maxLevel, formation.battleType, formation.isArenaBattle());
         }
     }

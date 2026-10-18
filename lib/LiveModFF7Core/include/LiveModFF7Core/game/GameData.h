@@ -10,11 +10,32 @@
 #define SHOP_ITEM_MAX 10
 #define ESKILL_EMPTY 562949953421567
 
+// Note: these values are the indices of the game version menu, so names and enum must stay in sync.
 enum class GameVersion : uint8_t
 {
-    PlayStationUS = 0,
-    PlayStationUS_CSR = 1
+    PlayStationUS                   = 0,
+    PlayStationUS_CSR_0_13_0        = 1,
+    PlayStationUS_CSR_0_14_3        = 2,
+    PlayStationUS_CSRPlus_0_3_0     = 3,
+    PlayStationUS_CSRHighwind_0_5_7 = 4,
+    Count
 };
+
+inline const char* gameVersionNames[]
+{
+    "PlayStation | US (Original)",
+    "PlayStation | US (CSR v0.13.0)",
+    "PlayStation | US (CSR v0.14.3)",
+    "PlayStation | US (CSR+ v0.3.0)",
+    "PlayStation | US (CSR Highwind v0.5.7)"
+};
+static_assert(sizeof(gameVersionNames) / sizeof(gameVersionNames[0]) == (size_t)GameVersion::Count, "Missing game version name");
+
+// True for any of the CutScenes Removed editions (CSR, CSR+, Highwind).
+inline bool isCSRVersion(GameVersion version)
+{
+    return version != GameVersion::PlayStationUS;
+}
 
 enum class ItemType : uint8_t
 {

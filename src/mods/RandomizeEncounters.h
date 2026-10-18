@@ -26,6 +26,8 @@ private:
     void onDifficultyScaleChanged(float newDifficultyScale);
 
     void addExclusions(std::initializer_list<uint16_t> ids);
+    void addLevelOverrides(std::initializer_list<uint16_t> ids, uint8_t level);
+    uint8_t getFormationLevel(const BattleScene& scene, const BattleFormation& formation);
     std::vector<uint16_t> findCandidates(int maxLevel, int battleType, bool isArenaBattle);
     void generateRandomEncounterMap();
     void generateEnemyStatMultipliers();
@@ -42,6 +44,7 @@ private:
 
     std::bitset<UINT16_MAX> bossFormations;
     std::bitset<UINT16_MAX> excludedFormations;
+    std::unordered_map<uint16_t, uint8_t> formationLevelOverrides;
     std::unordered_map<uint16_t, std::vector<uint16_t>> randomEncounterMap;
     std::unordered_map<uint16_t, StatMultiplierSet> enemyStatMultipliers;
     std::mt19937 rng;

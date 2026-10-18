@@ -307,6 +307,12 @@ void App::runGameManager(ConnectionTarget target)
             Platform::sleep(1.0);
         }
     }
+
+    // Give mods a chance to undo their changes while we can still write to the emulator.
+    if (connectionState != ConnectionState::Error)
+    {
+        game->shutdown();
+    }
     managerRunning = false;
 }
 
