@@ -33,21 +33,7 @@ const std::pair<uint8_t, uint32_t> AKAOMusicVolumeCommands[] = {
     { 0xC2, 0x8002BB20 },   // Fade music volume from one level to another
 };
 
-const std::vector<std::string> MusicList = {
-    "none", "nothing", "oa", "ob", "dun2", "guitar2", "fanfare", "makoro", "bat",
-    "fiddle", "kurai", "chu", "ketc", "earis", "ta", "tb", "sato",
-    "parade", "comical", "yume", "mati", "sido", "siera", "walz", "corneo",
-    "horror", "canyon", "red", "seto", "ayasi", "sinra", "sinraslo", "dokubo",
-    "bokujo", "tm", "tifa", "costa", "rocket", "earislo", "chase", "rukei",
-    "cephiros", "barret", "corel", "boo", "elec", "rhythm", "fan2", "hiku",
-    "cannon", "date", "cintro", "cinco", "chu2", "yufi", "aseri", "gold1",
-    "mura1", "yado", "over2", "crwin", "crlost", "odds", "geki", "junon",
-    "tender", "wind", "vincent", "bee", "jukai", "sadbar", "aseri2", "kita",
-    "sid2", "sadsid", "iseki", "hen", "utai", "snow", "yufi2", "mekyu",
-    "condor", "lb2", "gun", "weapon", "pj", "sea", "ld", "lb1",
-    "sensui", "ro", "jyro", "nointro", "riku", "si", "mogu", "pre",
-    "fin", "heart", "roll"
-};
+using MusicLibrary::MusicList;
 
 REGISTER_MOD(RandomizeMusic, "Randomize Music", "Randomizers")
 
@@ -90,7 +76,7 @@ bool RandomizeMusic::onSettingsGUI()
 
     // Volume
     constexpr float min = 0.0f;
-    constexpr float max = 2.0f;
+    constexpr float max = MaxVolume;
     ImGui::Text("Volume");
     ImGui::SameLine(DPI(75.0f));
     ImGui::SetNextItemWidth(DPI(250.0f));
@@ -102,17 +88,10 @@ bool RandomizeMusic::onSettingsGUI()
         previousVolume = currentVolume;
     }
 
-    // Rescan. While a game manager exists the music state belongs to its thread, so hand the work over.
+    // Rescan
     if (ImGui::Button("Rescan Music Folder", ImVec2(DPI(150.0f), 0.0f)))
     {
-        if (game != nullptr)
-        {
-            game->queueAction([this]() { scanMusicFolder(); });
-        }
-        else
-        {
-            scanMusicFolder();
-        }
+        rescanMusicFolder();
     }
 
     ImGui::SameLine();
@@ -123,7 +102,7 @@ bool RandomizeMusic::onSettingsGUI()
     ImGui::BeginDisabled(game == nullptr);
     if (ImGui::Button("Reroll Music", ImVec2(DPI(150.0f), 0.0f)))
     {
-        game->queueAction([this]() { randomizeMusic(previousMusicID); });
+        reroll();
     }
     ImGui::EndDisabled();
 
@@ -219,6 +198,39 @@ std::string RandomizeMusic::getCurrentlyPlaying()
 
     std::lock_guard<std::mutex> lock(currentSongMutex);
     return currentSong;
+}
+
+void RandomizeMusic::setVolume(float volume)
+{
+    currentVolume = volume;
+    previousVolume = volume;
+    AudioManager::setMusicVolume(volume);
+}
+
+bool RandomizeMusic::canReroll()
+{
+    return game != nullptr && enabled && !disabled;
+}
+
+void RandomizeMusic::reroll()
+{
+    if (game != nullptr)
+    {
+        game->queueAction([this]() { randomizeMusic(previousMusicID); });
+    }
+}
+
+void RandomizeMusic::rescanMusicFolder()
+{
+    // While a game manager exists the music state belongs to its thread, so hand the work over.
+    if (game != nullptr)
+    {
+        game->queueAction([this]() { scanMusicFolder(); });
+    }
+    else
+    {
+        scanMusicFolder();
+    }
 }
 
 void RandomizeMusic::onStart()
@@ -670,59 +682,22 @@ void RandomizeMusic::failVolumeTest(const char* reason)
 
 void RandomizeMusic::scanMusicFolder()
 {
-    musicMap.clear();
     uniqueTrackList.clear();
     trackCount = 0;
 
-    // Scan music folder
-    const std::string basePath = "music";
-
-    if (!fs::exists(basePath) || !fs::is_directory(basePath))
+    if (!MusicLibrary::scan(musicMap))
     {
         LOG("Randomize Music Error: music directory does not exist.");
         disabled = true;
         return;
     }
 
-    for (const auto& musicEntry : fs::directory_iterator(basePath)) 
+    for (const auto& [name, tracks] : musicMap)
     {
-        if (!musicEntry.is_directory())
+        for (const Track& track : tracks)
         {
-            continue;
-        }
-
-        const std::string& name = musicEntry.path().filename().string();
-
-        // This is to prevent someone from overriding silence.
-        if (name == "none" || name == "nothing")
-        {
-            continue;
-        }
-
-        fs::path subdir = fs::path(basePath) / name;
-
-        if (!fs::exists(subdir) || !fs::is_directory(subdir))
-        {
-            continue;
-        }
-
-        for (const auto& entry : fs::directory_iterator(subdir))
-        {
-            if (!entry.is_regular_file())
-            {
-                continue;
-            }
-
-            std::string ext = entry.path().extension().string();
-            for (char& c : ext) c = std::tolower(c);
-
-            if (ext == ".mp3" || ext == ".wav")
-            {
-                Track track = loadTrack(entry.path().string());
-                musicMap[name].push_back(track);
-                addUniqueTrack(track);
-                trackCount++;
-            }
+            addUniqueTrack(track);
+            trackCount++;
         }
     }
 
@@ -735,29 +710,6 @@ void RandomizeMusic::scanMusicFolder()
         LOG("Randomize Music Error: no music was found.");
         disabled = true;
     }
-}
-
-Track RandomizeMusic::loadTrack(std::string path)
-{
-    Track track;
-    track.path = path;
-
-    std::string cfgFilename = Utilities::replaceExtension(path, ".mp3", ".cfg");
-    cfgFilename = Utilities::replaceExtension(cfgFilename, ".wav", ".cfg");
-
-    ConfigFile cfg;
-    if (!cfg.load(cfgFilename))
-    {
-        return track;
-    }
-
-    track.start     = cfg.get<uint64_t>("Start", 0);
-    track.loopStart = cfg.get<uint64_t>("LoopStart", 0);
-    track.loopEnd   = cfg.get<uint64_t>("LoopEnd", UINT64_MAX);
-    track.playOnce  = cfg.get<bool>("PlayOnce", false);
-    track.noFade    = cfg.get<bool>("NoFade", false);
-
-    return track;
 }
 
 void RandomizeMusic::addUniqueTrack(const Track& newTrack)

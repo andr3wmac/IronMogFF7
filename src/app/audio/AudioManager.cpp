@@ -2,12 +2,14 @@
 #include "miniaudio.h"
 #include "LiveModFF7Core/utilities/Logging.h"
 
+#include <cstring>
 #include <mutex>
 
 ma_engine gAudioEngine;
 ma_sound gMusicA;
 ma_sound gMusicB;
 ma_sound* pActiveMusic = nullptr;
+std::string gActiveMusicPath;
 bool gAudioEngineInitialized = false;
 
 // Music can be controlled from both the GUI and game manager threads.
@@ -44,6 +46,7 @@ void AudioManager::shutdown()
         }
     }
     pActiveMusic = nullptr;
+    gActiveMusicPath.clear();
 
     if (gAudioEngineInitialized)
     {
@@ -60,6 +63,11 @@ bool AudioManager::playMusic(std::string path)
 bool AudioManager::playMusic(std::string path, uint64_t start, uint64_t loopStart, uint64_t loopEnd, bool playOnce, bool noFade)
 {
     std::lock_guard<std::mutex> lock(gMusicMutex);
+
+    if (!gAudioEngineInitialized)
+    {
+        return false;
+    }
 
     // Determine which slot to use for the new song
     ma_sound* pOldMusic = pActiveMusic;
@@ -84,6 +92,8 @@ bool AudioManager::playMusic(std::string path, uint64_t start, uint64_t loopStar
     ma_result result = ma_sound_init_from_file(&gAudioEngine, path.c_str(), MA_SOUND_FLAG_DECODE | MA_SOUND_FLAG_ASYNC, NULL, NULL, pNewMusic);
     if (result != MA_SUCCESS)
     {
+        // A failed init can leave the slot looking initialized, which would have us uninit it again next time.
+        memset(pNewMusic, 0, sizeof(*pNewMusic));
         return false;
     }
 
@@ -103,6 +113,7 @@ bool AudioManager::playMusic(std::string path, uint64_t start, uint64_t loopStar
     ma_sound_set_fade_in_milliseconds(pNewMusic, 0.0f, 1.0f, fadeTimeMS);
     ma_sound_start(pNewMusic);
     pActiveMusic = pNewMusic;
+    gActiveMusicPath = path;
 
     return true;
 }
@@ -123,4 +134,47 @@ void AudioManager::resumeMusic()
 {
     std::lock_guard<std::mutex> lock(gMusicMutex);
     ma_sound_start(pActiveMusic);
+}
+
+void AudioManager::seekMusic(float seconds)
+{
+    std::lock_guard<std::mutex> lock(gMusicMutex);
+    if (pActiveMusic != nullptr)
+    {
+        ma_sound_seek_to_second(pActiveMusic, seconds);
+    }
+}
+
+bool AudioManager::isMusicPlaying()
+{
+    std::lock_guard<std::mutex> lock(gMusicMutex);
+    return pActiveMusic != nullptr && ma_sound_is_playing(pActiveMusic);
+}
+
+std::string AudioManager::getMusicPath()
+{
+    std::lock_guard<std::mutex> lock(gMusicMutex);
+    return gActiveMusicPath;
+}
+
+float AudioManager::getMusicPosition()
+{
+    std::lock_guard<std::mutex> lock(gMusicMutex);
+    float position = 0.0f;
+    if (pActiveMusic == nullptr || ma_sound_get_cursor_in_seconds(pActiveMusic, &position) != MA_SUCCESS)
+    {
+        return 0.0f;
+    }
+    return position;
+}
+
+float AudioManager::getMusicLength()
+{
+    std::lock_guard<std::mutex> lock(gMusicMutex);
+    float length = 0.0f;
+    if (pActiveMusic == nullptr || ma_sound_get_length_in_seconds(pActiveMusic, &length) != MA_SUCCESS)
+    {
+        return 0.0f;
+    }
+    return length;
 }

@@ -43,6 +43,18 @@ void App::draw()
                 drawTrackerPanel();
                 ImGui::EndTabItem();
             }
+            if (showMusicManagerTab)
+            {
+                // Bring the tab to the front when it's opened from the Tools menu.
+                ImGuiTabItemFlags flags = selectMusicManagerTab ? ImGuiTabItemFlags_SetSelected : ImGuiTabItemFlags_None;
+                selectMusicManagerTab = false;
+
+                if (ImGui::BeginTabItem("Music Manager", &showMusicManagerTab, flags))
+                {
+                    musicManager.draw(connectionState == ConnectionState::Connected ? game : nullptr);
+                    ImGui::EndTabItem();
+                }
+            }
             if (showPreferencesTab)
             {
                 // Bring the tab to the front when it's opened from the File menu.
@@ -107,6 +119,10 @@ void App::drawMenuBar()
 
     if (ImGui::BeginMenu("Tools"))
     {
+        if (ImGui::MenuItem("Music Manager", nullptr, &showMusicManagerTab) && showMusicManagerTab)
+        {
+            selectMusicManagerTab = true;
+        }
         ImGui::MenuItem("Debug Panel", "Ctrl+D", &showDebugTab);
         ImGui::EndMenu();
     }

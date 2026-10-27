@@ -1,23 +1,10 @@
 #pragma once
+#include "app/audio/MusicLibrary.h"
 #include "mods/Mod.h"
 #include <atomic>
 #include <cstdint>
 #include <mutex>
 #include <unordered_map>
-
-// Represents a song found in the 'music' folder
-struct Track
-{
-    std::string path;
-
-    // These are all in PCM samples
-    uint64_t start = 0;
-    uint64_t loopStart = 0;
-    uint64_t loopEnd = UINT64_MAX;
-
-    bool playOnce = false;
-    bool noFade = false;
-};
 
 // Whether the game's own music is audible or muted by us.
 enum class GameMusicState : uint8_t
@@ -56,6 +43,15 @@ public:
     bool isPlaying();
     std::string getCurrentlyPlaying();
 
+    // Called from the GUI thread.
+    float getVolume() const { return currentVolume; }
+    void setVolume(float volume);
+    bool canReroll();
+    void reroll();
+    void rescanMusicFolder();
+
+    static constexpr float MaxVolume = 2.0f;
+
 private:
     void onStart();
     void onExit();
@@ -72,7 +68,6 @@ private:
     void failVolumeTest(const char* reason);
 
     void scanMusicFolder();
-    Track loadTrack(std::string path);
     void addUniqueTrack(const Track& newTrack);
     bool randomizeMusic(uint16_t musicID);
     void play(const Track& track);
@@ -107,6 +102,6 @@ private:
     int volumeTestStartRepairs = 0;
 
     std::unordered_map<uint16_t, uint16_t> previousTrackSelection;
-    std::unordered_map<std::string, std::vector<Track>> musicMap;
+    TrackMap musicMap;
     std::vector<Track> uniqueTrackList;
 };

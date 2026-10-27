@@ -1,5 +1,6 @@
 #pragma once
 
+#include "app/MusicManager.h"
 #include "app/Tracker.h"
 #include "AppFrame/Application.h"
 #include "LiveModFF7Core/game/GameManager.h"
@@ -92,10 +93,13 @@ protected:
 
     AppFrame::GUIImage logo;
     Tracker tracker;
+    MusicManager musicManager;
     std::vector<AppFrame::GUIImage> characterPortraits;
     AppFrame::GUIImage deadIcon;
     float accentColor[3] = { 80.0f / 255.0f, 1.0f, 140.0f / 255.0f };
     bool showDebugTab = false;
+    bool showMusicManagerTab = false;
+    bool selectMusicManagerTab = false;
     bool showPreferencesTab = false;
     bool selectPreferencesTab = false;
     bool openAboutPopup = false;

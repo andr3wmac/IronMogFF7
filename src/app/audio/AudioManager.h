@@ -12,4 +12,10 @@ public:
     static void setMusicVolume(float volume);
     static void pauseMusic();
     static void resumeMusic();
+    static void seekMusic(float seconds);
+
+    static bool isMusicPlaying();
+    static std::string getMusicPath();      // Path of the current song, empty if nothing has been played
+    static float getMusicPosition();        // Seconds
+    static float getMusicLength();          // Seconds, 0 while still unknown
 };
