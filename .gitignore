@@ -62,3 +62,8 @@ Testing/
 .cache/
 .vs
 *.sln
+
+# Python
+__pycache__/
+*.py[codz]
+*$py.class
