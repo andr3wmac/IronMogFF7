@@ -1,5 +1,6 @@
 import os
 import re
+import struct
 import sys
 import ff7
 from ff7.field import opcodes, specialOpcodes, Op, fieldIDTable
@@ -24,7 +25,7 @@ class GameDataGenerator:
 
     def write_header(self):
         self.write_line("// Auto-generated game data file", 0)
-        self.write_line("#include \"GameData.h\"", 0)
+        self.write_line("#include \"LiveModFF7Core/game/GameData.h\"", 0)
         self.write_line("", 0)
         self.write_line("void GameData::" + self.functionName + "(GameVersion gameVersion, uint8_t gameDisc)", 0)
         self.write_line("{", 0)
@@ -159,6 +160,28 @@ def outputInventory(gen, discPath, version):
 
     shopPricesIni.close()
 
+def outputLimitBreaks(gen, discPath, version):
+    # Limit names are ability strings 128 onwards, each prefixed with a color code.
+    kernelBin = ff7.kernel.Archive(ff7.game.retrieveFile(discPath, "INIT", "KERNEL.BIN"))
+    limitNames = []
+    for index, numStrings, compressed, transDir, transFileName in ff7.data.kernelStringData:
+        if index == 9:
+            lines = ff7.kernel.StringList(kernelBin.getFile(9, index).getData(), numStrings, ff7.game.isJapanese(version)).getStrings()
+            limitNames = [lines[idx][10:] for idx in range(128, 199)]
+
+    # Limit attack records live in the limit menu overlay, in limit ID order.
+    limitData = ff7.menu.LimitMenuData(ff7.game.retrieveFile(discPath, "MENU", "LIMTMENU.MNU"))
+    for limitIndex, attack in enumerate(limitData.attacks):
+        gen.write_line("addLimitBreak(\"" + limitNames[limitIndex] + "\", " + listToCPPArray(list(attack.values())) + ");", 4)
+
+    # Each character's limit breaks, from their 56-byte block in the battle and growth data: 12 attack
+    # IDs (0x80 + limit ID, 0xFF when empty), three per limit level, in learned-limit bit order.
+    battleGrowth = kernelBin.getFiles()[2].getData()
+    for characterID in range(9):
+        limits = battleGrowth[characterID * 56 + 0x0C:characterID * 56 + 0x18]
+        gen.write_line("addCharacterLimits(" + str(characterID) + ", " + listToCPPArray(list(limits)) + ");", 4)
+    gen.write_line("")
+
 def outputOther(gen, discPath, version):
     # Enemy Skills
     # TODO: we can pull this data from kernel, instead its hardcoded from inspection with Scarlet.
@@ -188,6 +211,12 @@ def outputOther(gen, discPath, version):
     gen.write_line("addESkill(\"Shadow Flare\", 0b00000011, 100, 22);", 4)
     gen.write_line("addESkill(\"Pandora’s Box\", 0b00000111, 110, 23);", 4)
     gen.write_line("")
+
+def fnv1a(data):
+    hash = 2166136261
+    for byte in data:
+        hash = ((hash ^ byte) * 16777619) & 0xFFFFFFFF
+    return hash
 
 def unpack_ushort(byteA, byteB):
     value = byteA | (byteB << 8)
@@ -263,7 +292,10 @@ def outputFields(gen, discPath, version):
                 materia_id = values[4]
                 gen.write_line("addFieldScriptMateria(" + fieldID + ", " + str(groupIndex) + ", " + str(scriptIndex) + ", " + f"0x{addr:X}" + ", " + str(materia_id) + ");", 4)
 
-            if (mnemonic == "mes"):
+            if (mnemonic == "mes" and values[3] not in fieldStrings):
+                # Highwind leaves dead code after a ret (MDS7PB_2) that references strings it removed.
+                print("Skipping message with invalid string index %d in %s at 0x%X" % (values[3], map, addr))
+            elif (mnemonic == "mes"):
                 windowIndex = values[2]
                 string = fieldStrings[values[3]]
 
@@ -325,6 +357,16 @@ def outputFields(gen, discPath, version):
         for model in modelSection.models:
             globalModelIDs.append(model.globalModelID)
         gen.write_line("addFieldModels(" + fieldID + ", {" + ",".join(str(x) for x in globalModelIDs) + "});", 4)    
+
+        # Lighting reserve layout from the field's BSX, needed to load a larger party model in place of another.
+        # The hash covers the model section header and records so a fully staged BSX can be recognized.
+        if any(1 <= x <= 9 for x in globalModelIDs):
+            bsx = ff7.utils.loadLzs(ff7.game.retrieveFile(discPath, "FIELD", map + ".BSX"))
+            bsxBytes, modelHeaderOffset = struct.unpack_from("<II", bsx, 0)
+            modelCount = struct.unpack_from("<I", bsx, modelHeaderOffset + 4)[0]
+            lightingOffset = struct.unpack_from("<I", bsx, modelHeaderOffset + 12)[0]
+            directoryHash = fnv1a(bsx[modelHeaderOffset:modelHeaderOffset + 16 + modelCount * 48])
+            gen.write_line(f"addFieldModelLighting({fieldID}, {bsxBytes}, 0x{modelHeaderOffset:X}, 0x{lightingOffset:X}, {modelCount}, 0x{directoryHash:08X});", 4)
 
         # Field Encounters
         encounterSection = mapData.getEncounterSection()
@@ -573,7 +615,7 @@ def outputBosses(gen, discPath, version):
 
     gen.write_line("")
 
-def outputModel(modelName, model):
+def outputModel(gen, modelName, model):
     parts_strings = []
     for i in range(0, len(model.parts)):
         part = model.parts[i]
@@ -582,13 +624,13 @@ def outputModel(modelName, model):
 
     gen.write_line("addModel(\"" + modelName + "\", " + str(model.poly_count) + ", " + listToCPPArray(parts_strings) + ");", 4)
 
-def outputModelFromField(discPath, fieldFile, modelIndex, modelName):
+def outputModelFromField(gen, discPath, fieldFile, modelIndex, modelName):
     models = ff7.models.loadModelsFromBSX(ff7.game.retrieveFile(discPath, "FIELD", fieldFile), discPath)
     if modelIndex >= len(models):
         print("Model index exceeds model count from field file: " + fieldFile)
         return
     
-    outputModel(modelName, models[modelIndex])
+    outputModel(gen, modelName, models[modelIndex])
 
 def outputModels(gen, discPath, version):
     # Global Models
@@ -604,23 +646,36 @@ def outputModels(gen, discPath, version):
     
     for modelName, modelFile in modelFiles.items():
         model = ff7.models.loadModelFromBCX(ff7.game.retrieveFile(discPath, "FIELD", modelFile))
-        outputModel(modelName, model)
+        outputModel(gen, modelName, model)
+
+    # Field RAM footprint of each global party model, in global model ID order: retained BCX geometry
+    # (everything before the model header) and matrix plus double-buffered packet space.
+    globalModelFiles = ["CLOUD.BCX", "EARITH.BCX", "BALLET.BCX", "TIFA.BCX", "RED.BCX", "CID.BCX", "YUFI.BCX", "KETCY.BCX", "VINCENT.BCX"]
+    polyTypes = ["quad_color_tex", "tri_color_tex", "quad_mono_tex", "tri_mono_tex", "tri_mono", "quad_mono", "tri_color", "quad_color"]
+    packetBytes = [52, 40, 40, 32, 20, 24, 28, 36]
+    for index, modelFile in enumerate(globalModelFiles):
+        data = ff7.utils.loadLzs(ff7.game.retrieveFile(discPath, "FIELD", modelFile))
+        retainedBytes = struct.unpack_from("<I", data, 4)[0]
+        model = ff7.models.loadModelFromBCX(ff7.game.retrieveFile(discPath, "FIELD", modelFile))
+        packets = sum(len(getattr(part, polyType)) * size for part in model.parts for polyType, size in zip(polyTypes, packetBytes))
+        drawBytes = len(model.skeleton) * 32 + 2 * packets
+        gen.write_line(f"addGlobalModelFootprint({index + 1}, {retainedBytes}, {drawBytes});", 4)
 
     # Field Specific Models
-    outputModelFromField(discPath, "MD8_2.BSX", 1, "AERITH_INTRO")
-    outputModelFromField(discPath, "MRKT1.BSX", 4, "CLOUD_DRESS")
-    outputModelFromField(discPath, "MRKT2.BSX", 3, "AERITH_DRESS")
-    outputModelFromField(discPath, "COLNE_4.BSX", 5, "TIFA_DRESS")
-    outputModelFromField(discPath, "MD0.BSX", 4, "CLOUD_SWORD")
-    outputModelFromField(discPath, "BLACKBGB.BSX", 2, "CLOUD_BIKE")
-    outputModelFromField(discPath, "MTCRL_3.BSX", 3, "BARRET_COREL")
-    outputModelFromField(discPath, "ITHOS.BSX", 9, "CLOUD_WHEELCHAIR")
-    outputModelFromField(discPath, "MD8_5.BSX", 1, "CLOUD_PARACHUTE")
-    outputModelFromField(discPath, "MD8_5.BSX", 2, "TIFA_PARACHUTE")
-    outputModelFromField(discPath, "MD8_5.BSX", 3, "BARRET_PARACHUTE")
-    outputModelFromField(discPath, "MD8_5.BSX", 4, "REDXIII_PARACHUTE")
-    outputModelFromField(discPath, "MD8_5.BSX", 5, "CID_PARACHUTE")
-    outputModelFromField(discPath, "FSHIP_12.BSX", 5, "YUFFIE_PARACHUTE")
+    outputModelFromField(gen, discPath, "MD8_2.BSX", 1, "AERITH_INTRO")
+    outputModelFromField(gen, discPath, "MRKT1.BSX", 4, "CLOUD_DRESS")
+    outputModelFromField(gen, discPath, "MRKT2.BSX", 3, "AERITH_DRESS")
+    outputModelFromField(gen, discPath, "COLNE_4.BSX", 5, "TIFA_DRESS")
+    outputModelFromField(gen, discPath, "MD0.BSX", 4, "CLOUD_SWORD")
+    outputModelFromField(gen, discPath, "BLACKBGB.BSX", 2, "CLOUD_BIKE")
+    outputModelFromField(gen, discPath, "MTCRL_3.BSX", 3, "BARRET_COREL")
+    outputModelFromField(gen, discPath, "ITHOS.BSX", 9, "CLOUD_WHEELCHAIR")
+    outputModelFromField(gen, discPath, "MD8_5.BSX", 1, "CLOUD_PARACHUTE")
+    outputModelFromField(gen, discPath, "MD8_5.BSX", 2, "TIFA_PARACHUTE")
+    outputModelFromField(gen, discPath, "MD8_5.BSX", 3, "BARRET_PARACHUTE")
+    outputModelFromField(gen, discPath, "MD8_5.BSX", 4, "REDXIII_PARACHUTE")
+    outputModelFromField(gen, discPath, "MD8_5.BSX", 5, "CID_PARACHUTE")
+    outputModelFromField(gen, discPath, "FSHIP_12.BSX", 5, "YUFFIE_PARACHUTE")
 
     # These were all extracted from game memory at runtime.
     gen.write_line("addModel(\"CLOUD_WORLD\", 378, {{0, 0, 0, 0, 0, 0, 12, 6}, {0, 0, 0, 0, 0, 0, 6, 27}, {2, 4 + 2, 0, 0, 0, 0, 148 + 2, 12 + 1}, {0, 0, 0, 0, 0, 0, 10, 9}, {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 0, 0, 0, 0, 0, 6}, {0, 0, 0, 0, 0, 0, 10, 9}, {0, 0, 0, 0, 0, 0, 0, 14}, {0, 0, 0, 0, 0, 0, 0, 6}, {0, 0, 0, 0, 0, 0, 8, 4}, {0, 0, 0, 0, 0, 0, 4, 14}, {0, 0, 0, 0, 0, 0, 2, 7}, {0, 0, 0, 0, 0, 0, 8, 4}, {0, 0, 0, 0, 0, 0, 4, 14}, {0, 0, 0, 0, 0, 0, 2, 7}});", 4)
@@ -671,34 +726,44 @@ def outputModels(gen, discPath, version):
             
         gen.write_line("addBattleModel(\"" + modelName + "\", " + listToCPPArray(battleModelHeaderSizes[modelName]) + ", " + listToCPPArray(part_strings) + ");", 4)
 
-discPath = sys.argv[1]
+# Opens a disc given an extracted directory or a disc image file (.bin/.iso).
+# Returns either the directory path or a ff7.cd.Image, as ff7.game expects.
+def openDisc(path):
+    if os.path.isdir(path):
+        return path
+    if os.path.isfile(path):
+        return ff7.cd.Image(path)
+    raise EnvironmentError("'%s' is not a directory or disc image" % path)
 
-if not os.path.isdir(discPath):
-    raise EnvironmentError("'%s' is not a directory" % discPath)
+# 'disc' can be an extracted directory path or a ff7.cd.Image.
+def generateGameData(disc, outputFileName="GameDataGenerated.cpp", outputFunction="loadGameData"):
+    # Check that this is a FF7 disc
+    version, discNumber, execFileName = ff7.game.checkDisc(disc)
 
-# Check that this is a FF7 disc
-version, discNumber, execFileName = ff7.game.checkDisc(discPath)
+    gen = GameDataGenerator(outputFileName, outputFunction)
+    gen.open_file()
+    gen.write_header()
 
-outputFileName = "GameDataGenerated.cpp"
-outputFunction = "loadGameData"
+    outputInventory(gen, disc, version)
+    outputLimitBreaks(gen, disc, version)
+    outputOther(gen, disc, version)
+    outputFields(gen, disc, version)
+    outputWorldMap(gen, disc, version)
+    outputShops(gen, disc, version)
+    outputBattles(gen, disc, version)
+    outputBosses(gen, disc, version)
+    outputModels(gen, disc, version)
 
-if len(sys.argv) > 2:
-    outputFileName = sys.argv[2]
-if len(sys.argv) > 3:
-    outputFunction = sys.argv[3]
+    gen.write_footer()
+    gen.close_file()
 
-gen = GameDataGenerator(outputFileName, outputFunction)
-gen.open_file()
-gen.write_header()
+if __name__ == "__main__":
+    outputFileName = "GameDataGenerated.cpp"
+    outputFunction = "loadGameData"
 
-outputInventory(gen, discPath, version)
-outputOther(gen, discPath, version)
-outputFields(gen, discPath, version)
-outputWorldMap(gen, discPath, version)
-outputShops(gen, discPath, version)
-outputBattles(gen, discPath, version)
-outputBosses(gen, discPath, version)
-outputModels(gen, discPath, version)
+    if len(sys.argv) > 2:
+        outputFileName = sys.argv[2]
+    if len(sys.argv) > 3:
+        outputFunction = sys.argv[3]
 
-gen.write_footer()
-gen.close_file()
+    generateGameData(openDisc(sys.argv[1]), outputFileName, outputFunction)

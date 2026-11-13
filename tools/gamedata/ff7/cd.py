@@ -18,6 +18,7 @@ import struct
 class Image:
 
     # Open the specified image file and check for a valid ISO9660 file system.
+    # 'imageFileName' may also be a seekable binary file object (e.g. an io.BytesIO holding a patched image), which is used as-is.
     def __init__(self, imageFileName):
         self.blockSize = None      # Number of bytes in one block (for seeking)
         self.blockOffset = None    # Offset of user data of first sector
@@ -25,7 +26,12 @@ class Image:
         self.rootDirSize = None    # Size of root directory extent
 
         # Open the file
-        self.file = open(imageFileName, "rb")
+        if hasattr(imageFileName, "read"):
+            self.file = imageFileName
+            imageFileName = getattr(imageFileName, "name", "<in-memory image>")
+        else:
+            self.file = open(imageFileName, "rb")
+        self.file.seek(0)
 
         # Determine the image type
         header = self.file.read(12)

@@ -950,7 +950,7 @@ mapNames = [
 ]
 
 def fieldMaps(version):
-    maps = mapNames
+    maps = list(mapNames)  # copy, so repeated calls don't mutate mapNames
 
     # The FRCYO2 map (Chocobo stable disc 2/3) is only present in European
     # versions of the game.

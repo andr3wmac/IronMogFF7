@@ -40,3 +40,46 @@ class ShopMenuData:
         for id in range(0, shop_count):
             shop_addr = shop_start + (id * 84)
             self.shops.append(Shop(data, shop_addr))
+
+
+# Limit Menu data file
+class LimitMenuData:
+
+    # Parse the limit break attack records from an open file object.
+    def __init__(self, fileobj):
+        data = fileobj.read()
+
+        record_start = 0x1324
+        numAttacks = 71
+
+        # 28 bytes per record as established
+        fmt = "< I B I B B H B B B B H B I H H"
+        record_size = struct.calcsize(fmt)
+
+        # Simple bounds check
+        if len(data) < record_start + (record_size * numAttacks):
+            raise ValueError(f"Buffer too small. Expected {record_size * numAttacks} bytes.")
+
+        self.attacks = []
+
+        for i in range(numAttacks):
+            start = record_start + (i * record_size)
+            unpacked = struct.unpack(fmt, data[start:start + record_size])
+
+            self.attacks.append({
+                "unknown0":         unpacked[0],
+                "casting_cost":     unpacked[1],
+                "unknown1":         unpacked[2],
+                "unknown2":         unpacked[3],
+                "attack_type":      unpacked[4],
+                "attack_attribute": unpacked[5],
+                "id_number":        unpacked[6],
+                "restore_apply":    unpacked[7],
+                "strength":         unpacked[8],
+                "restore_type":     unpacked[9],
+                "unknown3":         unpacked[10],
+                "times_attacking":  unpacked[11],
+                "statuses":         unpacked[12],
+                "element":          unpacked[13],
+                "unknown4":         unpacked[14],
+            })
