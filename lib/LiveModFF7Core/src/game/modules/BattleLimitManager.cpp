@@ -12,6 +12,32 @@ static constexpr int LimitCount = 71;
 static constexpr uint8_t NoLimit = 0x7F;     // Player data's empty limit ID.
 static constexpr uint8_t NoListLimit = 0xFF; // Kernel list's empty attack ID, which reads as NoLimit.
 
+// What follows each list in a character's block: u16 learning requirements (kills for levels 2 and 3,
+// then uses of a level's first limit for its second and third, levels 1-3; 0xFFFF never) and four u32
+// limit gauge values, one per level. Identical on US and CSR. The battle results code learns limits from
+// the requirements alone, by position, so they have to travel with the list.
+struct LimitGrowth
+{
+    std::array<uint16_t, 8> requirements;
+    std::array<uint32_t, 4> gauges;
+
+    bool operator==(const LimitGrowth& other) const { return requirements == other.requirements && gauges == other.gauges; }
+    bool operator!=(const LimitGrowth& other) const { return !(*this == other); }
+};
+static_assert(sizeof(LimitGrowth) == 32, "LimitGrowth must match the kernel layout.");
+
+static const std::array<LimitGrowth, 9> NativeLimitGrowth = {{
+    {{0x0078, 0x0140, 0x0008, 0xFFFF, 0x0007, 0xFFFF, 0x0006, 0xFFFF}, {140, 324, 435, 506}},   // Cloud
+    {{0x0050, 0x00A0, 0x0009, 0xFFFF, 0x0008, 0xFFFF, 0x0006, 0xFFFF}, {129, 240, 374, 450}},   // Barret
+    {{0x0060, 0x00C0, 0x0009, 0xFFFF, 0x0007, 0xFFFF, 0x0006, 0xFFFF}, {120, 334, 509, 566}},   // Tifa
+    {{0x0050, 0x00A0, 0x0008, 0xFFFF, 0x0006, 0xFFFF, 0x0005, 0xFFFF}, {200, 284, 322, 436}},   // Aerith
+    {{0x0048, 0x0090, 0x0008, 0xFFFF, 0x0007, 0xFFFF, 0x0006, 0xFFFF}, {195, 300, 389, 486}},   // Red XIII
+    {{0x0040, 0x0080, 0x0008, 0xFFFF, 0x0007, 0xFFFF, 0x0006, 0xFFFF}, {200, 300, 400, 480}},   // Yuffie
+    {{0x0028, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF}, {160, 180, 9590, 12760}}, // Cait Sith
+    {{0x0028, 0x0060, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF, 0xFFFF}, {202, 244, 319, 426}},   // Vincent
+    {{0x003C, 0x0088, 0x0007, 0xFFFF, 0x0006, 0xFFFF, 0x0005, 0xFFFF}, {200, 280, 380, 480}},   // Cid
+}};
+
 // Character AI offsets by character ID (Young Cloud, Sephiroth and a spare after the nine), identical
 // on US and CSR. Event 1 of a block is the main script, which runs a character's turns when the game
 // controls them; only Vincent's (for his transformed forms) exists among the nine.
@@ -31,7 +57,11 @@ static constexpr CodePatch CaitLevelRead = {0xDF1BC, 0x9042CA5E};   // lbu v0,Ca
 static constexpr CodePatch CaitLevelCompare = {0xDF1C0, 0x00000000}; // nop before comparing that level with a0 (2)
 static constexpr CodePatch TifaLevelRead = {0xE53EC, 0x9063C84E};   // lbu v1,Tifa+0x0E: reel setup
 static constexpr CodePatch TifaLearnedRead = {0xE5480, 0x24A5C862}; // addiu a1,Tifa+0x22: reel setup
-static constexpr CodePatch LimitMenuPatches[] = {TifaMenuCheck, CaitMenuCheck, CaitLevelRead, CaitLevelCompare, TifaLevelRead, TifaLearnedRead};
+// Once the party's models have loaded, the palettes of whoever is character 6 are copied to the fixed
+// VRAM position (16, 480) that the slot reels are drawn with. The reel pictures are in Cait Sith's model
+// texture, which the source's model swap provides.
+static constexpr CodePatch CaitPaletteCheck = {0xC61D0, 0x34150006}; // ori s5,zero,6: reel palettes for character 6
+static constexpr CodePatch LimitMenuPatches[] = {TifaMenuCheck, CaitMenuCheck, CaitLevelRead, CaitLevelCompare, TifaLevelRead, TifaLearnedRead, CaitPaletteCheck};
 
 // Replaces the low 16 bits (an immediate relative to 0x800A0000) with a field of a character's record.
 uint32_t recordImmediate(uint32_t instruction, uint8_t characterID, uint32_t field)
@@ -138,6 +168,59 @@ void BattleLimitManager::updateLimitLists(bool restore)
             game->write(limitListAddress(id), (uint8_t*)wanted.data(), sizeof(LimitList));
         }
     }
+
+    // The requirements and gauge values follow the list, under the same rule.
+    std::array<LimitGrowth, 9> currentGrowth;
+    for (uint8_t id = 0; id < currentGrowth.size(); ++id)
+    {
+        if (!game->read(limitListAddress(id) + sizeof(LimitList), sizeof(LimitGrowth), (uint8_t*)&currentGrowth[id]) ||
+            std::find(NativeLimitGrowth.begin(), NativeLimitGrowth.end(), currentGrowth[id]) == NativeLimitGrowth.end())
+        {
+            return;
+        }
+    }
+
+    for (uint8_t id = 0; id < currentGrowth.size(); ++id)
+    {
+        const LimitGrowth& wanted = NativeLimitGrowth[restore ? id : limitSource(id)];
+        if (currentGrowth[id] != wanted)
+        {
+            game->write(limitListAddress(id) + sizeof(LimitList), (uint8_t*)&wanted, sizeof(LimitGrowth));
+        }
+    }
+}
+
+// Learned bits index the list, so a bit on a position the source's list leaves empty names no limit: it
+// shows as a blank entry and can never be used. Such bits come from saves made while only the lists were
+// swapped. Cleared at battle start, when the mapping is certain to be the save's own.
+void BattleLimitManager::clearUnusableLearnedLimits()
+{
+    for (uint8_t id = 0; id < sets.size(); ++id)
+    {
+        uintptr_t record = getCharacterDataOffset(id);
+        // Cait Sith's and Vincent's records hold other characters until they join.
+        if (sets[id] == NoSwap || game->read<uint8_t>(record) != id)
+        {
+            continue;
+        }
+
+        const LimitList& list = GameData::characterLimits[limitSource(id)];
+        uint16_t usable = 0;
+        for (size_t position = 0; position < list.size(); ++position)
+        {
+            if (list[position] != NoListLimit)
+            {
+                usable |= uint16_t(1 << position);
+            }
+        }
+
+        uint16_t learned = game->read<uint16_t>(record + CharacterDataOffsets::LearnedLimits);
+        if (learned & ~usable)
+        {
+            game->write<uint16_t>(record + CharacterDataOffsets::LearnedLimits, learned & usable);
+            LOG("Limit swaps: cleared %s's learned limits 0x%X that %s's set has no limit for.", getCharacterName(id).c_str(), learned & ~usable, getCharacterName(limitSource(id)).c_str());
+        }
+    }
 }
 
 // Party members' player data holds their current level's limits: IDs at LimitIDs and attack records at
@@ -221,8 +304,9 @@ void BattleLimitManager::updateCharacterAI(bool restore)
     }
 }
 
-// The battle overlay is loaded for each battle and these instructions only run once a limit menu opens,
-// so patching at battle start lands before their first use.
+// The battle overlay is loaded for each battle. The menu instructions only run once a limit menu opens
+// and the palette copy runs once the party's models have loaded, so patching at battle start lands
+// before their first use.
 void BattleLimitManager::patchLimitMenus(bool restore)
 {
     if (game->read<uint8_t>(GameOffsets::CurrentModule) != GameModule::Battle)
@@ -232,13 +316,14 @@ void BattleLimitManager::patchLimitMenus(bool restore)
 
     uint8_t tifa = restore ? CharacterID::Tifa : characterUsing(CharacterID::Tifa);
     uint8_t cait = restore ? CharacterID::CaitSith : characterUsing(CharacterID::CaitSith);
-    std::array<uint32_t, 6> wanted = {
+    std::array<uint32_t, 7> wanted = {
         (TifaMenuCheck.original & 0xFFFF0000) | tifa,
         (CaitMenuCheck.original & 0xFFFF0000) | cait,
         cait < 9 ? recordImmediate(CaitLevelRead.original, cait, CharacterDataOffsets::CurrentLimitLevel) : CaitLevelRead.original,
         0x34040002, // ori a0,zero,2: the level compare no longer relies on a0 still holding Tifa's ID.
         tifa < 9 ? recordImmediate(TifaLevelRead.original, tifa, CharacterDataOffsets::CurrentLimitLevel) : TifaLevelRead.original,
         tifa < 9 ? recordImmediate(TifaLearnedRead.original, tifa, CharacterDataOffsets::LearnedLimits) : TifaLearnedRead.original,
+        (CaitPaletteCheck.original & 0xFFFF0000) | cait,
     };
     if (restore)
     {
@@ -268,6 +353,7 @@ void BattleLimitManager::onBattleEnter()
     if (hasLimitData())
     {
         patchLimitMenus(false);
+        clearUnusableLearnedLimits();
         status = "Limit breaks swapped for this battle.";
     }
 }

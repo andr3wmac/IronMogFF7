@@ -195,16 +195,11 @@ void BattleModelManager::updateBattle()
             continue; // Not this battle's load yet.
         }
 
-        // Redirect as soon as the member's load is known, before its body is read.
+        // Redirect as soon as the member's load is known, before its body is read. The body pointer
+        // can't tell whether that has happened: it lies beyond the overlay's file image, so until
+        // battle init clears it, it still holds the previous battle's (identical) address.
         slot.character = member;
         slot.archiveIndex = index;
-        if (game->read<uint32_t>(BattleModelOffsets::Bodies + physical * 4) != 0)
-        {
-            slot.resolved = true;
-            ++failures;
-            LOG("Battle models: character %d's body was already assigned; the original body was kept.", member);
-            continue;
-        }
         if (game->read<uint64_t>(archiveEntry(index)) != NativeArchive[index].archive)
         {
             finishBattle("Battle archive entries do not match the audited assets.", true);
@@ -230,8 +225,18 @@ void BattleModelManager::updateBattle()
             continue;
         }
 
-        // The load callback assigns the body pointer, then relocates its animation pointer.
+        // The load callback assigns the body pointer, then relocates its animation pointer. Only a
+        // pointer assigned after battle init cleared it belongs to this battle.
         uint32_t body = game->read<uint32_t>(BattleModelOffsets::Bodies + physical * 4);
+        if (body == 0)
+        {
+            slot.bodyCleared = true;
+        }
+        if (!slot.bodyCleared)
+        {
+            waiting = true;
+            continue;
+        }
         uint32_t animations = Utilities::isRAMPointer(body, 12) ? game->read<uint32_t>((body & RamMask) + 8) : 0;
         if (!Utilities::isRAMPointer(animations, 4) || animations < body)
         {

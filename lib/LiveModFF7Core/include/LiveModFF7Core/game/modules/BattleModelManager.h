@@ -36,6 +36,7 @@ private:
         uint8_t character = NoSwap;
         uint16_t archiveIndex = 0; // Archive entry the member's load reads, which varies with weapon.
         bool redirected = false;
+        bool bodyCleared = false;  // Seen without a body this battle; until then the pointer is the last battle's.
         bool resolved = false;
     };
 

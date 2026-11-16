@@ -4,12 +4,15 @@
 
 class GameManager;
 
-// Gives characters another character's set of limit breaks. Limit levels, gauges and learned limits stay
-// the character's own. A learned limit's position carries over to the source's limit in that position.
+// Gives characters another character's set of limit breaks, with its progression. Limit levels, kill and
+// use counts and learned limits stay in the character's own record, and a learned limit's position
+// carries over to the source's limit in that position.
 //
 // - Each character's limit list in the kernel (resident battle and growth data) becomes the source's.
 //   Battle init validates party members' limits against these lists, limits execute through them, and
 //   every menu names limits by their IDs, so all of these follow.
+// - The learning requirements and gauge values after the list become the source's too, so limits are
+//   learned at the source's pace and only in positions its list has.
 // - Party members' player data (their current level's limit IDs and attack records) is kept consistent
 //   with the lists between battles, before battle init checks it.
 // - A source whose AI has a main (turn) script lends it: Vincent's transformed forms act through it.
@@ -41,6 +44,7 @@ private:
     uint8_t characterUsing(uint8_t sourceCharacterID) const;
 
     void updateLimitLists(bool restore);
+    void clearUnusableLearnedLimits();
     void updatePartyLimits(bool restore);
     void updateCharacterAI(bool restore);
     void patchLimitMenus(bool restore);
