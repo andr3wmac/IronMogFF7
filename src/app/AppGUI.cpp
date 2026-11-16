@@ -509,7 +509,8 @@ void App::drawTrackerPanel()
                 }
 
                 ImVec2 p = ImGui::GetCursorScreenPos();
-                GUI::drawImage(characterPortraits[i], imgWidth, imgHeight, iconAlpha);
+                const TrackedCharacter& character = tracker.characters[i];
+                GUI::drawImage(character.isRevealed ? characterPortraits[character.portrait] : unknownIcon, imgWidth, imgHeight, iconAlpha);
                 ImGui::SameLine();
 
                 // Draw red X over the portrait if the character is permadead.

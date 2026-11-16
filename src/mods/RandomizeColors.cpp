@@ -26,7 +26,7 @@ std::string RandomizeColors::getDescription() const
 void RandomizeColors::setup()
 {
     BIND_EVENT(game->onStart, RandomizeColors::onStart);
-    BIND_EVENT_ONE_ARG(game->onFieldChanged, RandomizeColors::onFieldChanged);
+    BIND_EVENT(game->onFieldModelsReady, RandomizeColors::onFieldModelsReady);
     BIND_EVENT(game->onBattleEnter, RandomizeColors::onBattleEnter);
     BIND_EVENT(game->onWorldMapEnter, RandomizeColors::onWorldMapEnter);
     BIND_EVENT_ONE_ARG(game->onModuleChanged, RandomizeColors::onModuleChanged);
@@ -57,9 +57,14 @@ void RandomizeColors::onDebugGUI()
             {
                 waitingForBattle = true;
             }
-            else 
+            else if (game->getGameModule() == GameModule::Field)
             {
-                modelEditor.openFieldModels();
+                modelEditor.openLoadedFieldModels();
+                applyColors();
+            }
+            else
+            {
+                modelEditor.searchForModels();
                 applyColors();
             }
         });
@@ -221,9 +226,9 @@ void RandomizeColors::onStart()
     modelEditor.clear();
 }
 
-void RandomizeColors::onFieldChanged(uint16_t fieldID)
+void RandomizeColors::onFieldModelsReady()
 {
-    modelEditor.openFieldModels();
+    modelEditor.openLoadedFieldModels();
     applyColors();
     appliedHackFix = false;
 }
@@ -235,7 +240,7 @@ void RandomizeColors::onBattleEnter()
 
 void RandomizeColors::onWorldMapEnter()
 {
-    modelEditor.openFieldModels();
+    modelEditor.searchForModels();
     applyColors();
 }
 
@@ -269,17 +274,6 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
     
     if (gameModule == GameModule::Field && !appliedHackFix)
     {
-        uint16_t screenFade = game->read<uint16_t>(GameOffsets::FieldScreenFade);
-
-        // HACK: fix for Tifa and Cloud scene before northern crater
-        if (game->getFieldID() == 771 && game->getGameMoment() == 1612 && 
-            screenFade > 1 && screenFade < 120)
-        {
-            modelEditor.openFieldModels();
-            applyColors();
-            appliedHackFix = true;
-        }
-
         // HACK: fix for Aerith forest scene after demons gate.
         // Her model seems to have the colors reloaded after they do a bright white
         // effect to it. Its reloaded behind the tree, so we detect when her models
@@ -293,16 +287,6 @@ void RandomizeColors::onFrame(uint32_t frameNumber)
                 applyColors();
                 appliedHackFix = true;
             }
-        }
-
-        // HACK: CSR has fails to apply colors when we flash to cloud upside in the tree.
-        if (isCSRVersion(game->getGameVersion()) && 
-            game->getFieldID() == 707 && game->getGameMoment() == 794 &&
-            screenFade > 5)
-        {
-            modelEditor.openFieldModels();
-            applyColors();
-            appliedHackFix = true;
         }
     }
 

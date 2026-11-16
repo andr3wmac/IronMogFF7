@@ -10,6 +10,9 @@ void BattleModule::setup(GameManager* game)
 
     BIND_EVENT_ONE_ARG(game->onModuleChanged, BattleModule::onModuleChanged);
     BIND_EVENT_ONE_ARG(game->onUpdate, BattleModule::onUpdate);
+
+    models.setup(game);
+    limits.setup(game);
 }
 
 void BattleModule::onModuleChanged(uint8_t newGameModule)

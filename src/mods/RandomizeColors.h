@@ -19,7 +19,7 @@ public:
 
 private:
     void onStart();
-    void onFieldChanged(uint16_t fieldID);
+    void onFieldModelsReady();
     void onBattleEnter();
     void onWorldMapEnter();
     void onModuleChanged(uint8_t gameModule);

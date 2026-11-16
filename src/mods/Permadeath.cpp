@@ -591,13 +591,10 @@ void Permadeath::killCharacter(uint8_t id)
     bool keepCloudEquipped = id == CLOUD_ID && cloudDeathMode == CloudDeathMode::SacrificeYourFriends && !deleteCloudEquipped;
     if (deleteEquipped && !keepCloudEquipped)
     {
-        // Weapons IDs for each characters default weapon.
-        static uint8_t defaultWeapons[] = { 0, 32, 16, 62, 48, 87, 101, 114, 73 };
-
         uintptr_t characterOffset = getCharacterDataOffset(id);
 
-        // Delete equipment
-        game->write<uint8_t>(characterOffset + CharacterDataOffsets::EquippedWeapon, defaultWeapons[id]);
+        // Delete equipment. The starting weapon follows any equipment swap (Randomize Characters).
+        game->write<uint8_t>(characterOffset + CharacterDataOffsets::EquippedWeapon, game->menu.equipment.getStartingWeapon(id));
         game->write<uint8_t>(characterOffset + CharacterDataOffsets::EquippedArmor, 0x00);
         game->write<uint8_t>(characterOffset + CharacterDataOffsets::EquippedAccessory, 0xFF);
 

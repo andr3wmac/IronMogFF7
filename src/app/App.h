@@ -96,6 +96,7 @@ protected:
     MusicManager musicManager;
     std::vector<AppFrame::GUIImage> characterPortraits;
     AppFrame::GUIImage deadIcon;
+    AppFrame::GUIImage unknownIcon;
     float accentColor[3] = { 80.0f / 255.0f, 1.0f, 140.0f / 255.0f };
     bool showDebugTab = false;
     bool showMusicManagerTab = false;

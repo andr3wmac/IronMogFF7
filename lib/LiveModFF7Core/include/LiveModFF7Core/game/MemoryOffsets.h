@@ -72,6 +72,20 @@ struct FieldOffsets
     CONST_PTR Triangle = 0x74F16; // uint16_t representing the triangle we're standing on.
 };
 
+// Field model loading in the FIELD.BIN overlay. Verified on US and every supported CSR edition.
+struct FieldModelOffsets
+{
+    CONST_PTR GlobalArchive     = 0xDF08C;  // Disc LBA/length (uint32_t pair) of each global model's BCX, by global model ID - 1.
+    CONST_PTR DatModelSection   = 0x7E770;  // uint32_t pointer to the loaded DAT's model section.
+    CONST_PTR RuntimeModelCount = 0x138250; // uint8_t
+    CONST_PTR RuntimeModels     = 0x138254; // uint32_t pointer to the 36-byte runtime model records.
+    CONST_PTR FreePointer       = 0x75E10;  // uint32_t allocation end while loading, finally the lighting table.
+    CONST_PTR RetainedBsx       = 0xE0204;  // uint32_t allocation end while loading, finally the retained BSX.
+    CONST_PTR LightingTable     = 0xE0200;  // uint32_t
+    CONST_PTR AlternateLoadPath = 0xA00DC;  // uint8_t set when the field takes the BCX-only load path.
+    CONST_PTR BsxStaging        = 0x1B0000; // Decompressed BSX while the field loads.
+};
+
 struct FieldScriptOffsets
 {
     // List of uint16_t each is a pointer to current line of field script being executed for that group.
@@ -137,6 +151,13 @@ struct CharacterID
     CONST_U8 Cid      = 8;
 };
 
+// Field global model ID of each character, which differs from the character ID order.
+inline uint8_t getFieldGlobalModelID(uint8_t characterID)
+{
+    static constexpr uint8_t GlobalModelIDs[] = { 1, 3, 4, 2, 5, 7, 8, 9, 6 };
+    return characterID < 9 ? GlobalModelIDs[characterID] : 0;
+}
+
 // Character data exists for each of the cast of playabale characters and these stats are all saved onto memory card.
 // When you enter a battle, relevant fields from this are copied into Battle Allies, etc
 // Therefore, changing Current HP on character data while in a battle has no effect.
@@ -171,6 +192,7 @@ struct CharacterDataOffsets
     CONST_PTR CurrentLimitLevel = 0x0E;
     CONST_PTR CurrentLimitBar   = 0x0F;
     CONST_PTR Name              = 0x10;
+    CONST_PTR LearnedLimits     = 0x22; // uint16_t bit mask
     CONST_PTR CurrentHP         = 0x2C;
     CONST_PTR MaxHP             = 0x38;
 
@@ -246,6 +268,9 @@ struct PlayerOffsets
     CONST_PTR CurrentMP     = 0x14;
     CONST_PTR MaxMP         = 0x16;
 
+    CONST_PTR LimitIDs  = 0xAC;             // uint8_t limit ID of each LimitData entry, 0x7F when empty. Limits execute as attack 0x80 + ID.
+    CONST_PTR LimitData = 0xB4;             // Limits for the current limit level, 28-byte attack records (AttackData).
+
     CONST_PTR LimitBreakDisplay = 0x1B;     // uint8_t
     CONST_PTR EnemySkillMenu    = 0x348;    // List of 24 8-byte entries.
     CONST_PTR CharacterID       = 0x420;
@@ -283,6 +308,14 @@ struct BattleOffsets
 
     CONST_PTR ControllerInputs  = 0x62D78;  // uint16_t bitflags for controller state. Is stable even if buttons are remapped.
     CONST_PTR Inventory         = 0x1671B8; // 6 bytes per inventory. uint16_t item id, uint8_t quantity, other 3 bytes unknown.
+};
+
+// Player model loading in the battle overlay. Verified on US and every supported CSR edition.
+struct BattleModelOffsets
+{
+    CONST_PTR PlayerArchive = 0xE8068; // Disc LBA/length (uint32_t pair) of each player model, by character ID. HiCloud is entry 16.
+    CONST_PTR LoadSlots     = 0xFA9C4; // Per party member: uint16_t model load ID (character ID), uint16_t physical party slot.
+    CONST_PTR Bodies        = 0xF8384; // uint32_t pointer to the loaded body in each physical party slot.
 };
 
 struct BattleMenuOffsets
@@ -447,6 +480,18 @@ struct MenuOffsets
     CONST_PTR PopupTextColor  = 0x62DDC; //uint8 text color / style, also lazily initialized(2 on fresh boot = renders red; 7 = white).
     
     CONST_U8 PopupColorWhite = 7;
+
+    // Menu portraits are read from disc through this kernel table, both for the party and for menus
+    // that show every character. Identical on US and every supported CSR edition.
+    CONST_PTR PortraitArchive = 0x48FE8; // Disc LBA/length (uint32_t pair) of each portrait TIM, by character ID.
+    CONST_PTR PortraitsDirty  = 0x71E34; // uint8_t when 1 the party portraits reload on the next menu transition.
+
+    // The name entry overlay (NAMEMENU.MNU, loaded at 0x801D0000) carries its own portraits and names.
+    CONST_PTR NameEntryCharacter      = 0x9ABF6;  // int16_t menu argument: the character being named.
+    CONST_PTR NameEntryIndex          = 0x1D9048; // int32_t the name menu's copy of the argument, stored as it starts.
+    CONST_PTR NameEntryPortraits      = 0x1D1E7C; // 8bpp 48x48 portrait TIMs by character ID.
+    CONST_PTR NameEntryPortraitStride = 0xB24;
+    CONST_PTR NameEntryDefaults       = 0x1D8E6C; // 12-byte FF-encoded default names by character ID.
 };
 
 struct ShopOffsets
@@ -491,6 +536,30 @@ struct KernelOffsets
     // Scratch/padding immediately after the resident kernel text block (~1KB of 0x00), reachable as a uint16 offset from ItemNamesStart.
     // Use it to park custom name strings instead of overwriting an existing entry's text.
     CONST_PTR NameScratch = 0x69086;
+
+    // Section 9: Ability names. A table of 256 uint16 offsets (relative to AbilityNamesStart), each pointing to a
+    // color-coded FF-text string. Limit break names are entries 128 onwards, by limit ID.
+    CONST_PTR AbilityNamesStart = 0x668A6;
+    CONST_PTR LimitNameOffsets  = AbilityNamesStart + 128 * 2;
+
+    // Section 3: Battle and growth data (resident at 0x80082268). Each character has a 56-byte block; at
+    // +0x0C it lists their 12 limit breaks as attack IDs (0x80 + limit ID, 0xFF empty), three per limit level.
+    CONST_PTR CharacterLimits      = 0x82274;
+    CONST_PTR CharacterBlockStride = 56;
+
+    // Character AI: 12 uint16 offsets (relative to CharacterAI) by character ID, each to a block of 16
+    // event script offsets in the enemy AI format.
+    CONST_PTR CharacterAI = 0x82884;
+
+    // Section 6: Weapon data, 128 records by weapon ID (item ID - 128). Section 7: Armor data, 32 records by
+    // armor ID (item ID - 256). Each has a uint16 equip mask with a bit per character ID (Young Cloud 9, Sephiroth 10).
+    CONST_PTR WeaponDataStart    = 0x738A0;
+    CONST_PTR WeaponDataStride   = 44;
+    CONST_PTR WeaponEquipMask    = 0x0E;
+    CONST_PTR WeaponMateriaSlots = 0x1C; // 8 bytes, 0 or 4 = no slot.
+    CONST_PTR ArmorDataStart     = 0x71E44;
+    CONST_PTR ArmorDataStride    = 36;
+    CONST_PTR ArmorEquipMask     = 0x12;
 };
 
 struct SavemapOffsets

@@ -47,6 +47,12 @@ public:
     GameState getState();
     bool update();
 
+    // True while a loader needs updates at full rate, even if game frames are stalled.
+    bool needsFastUpdates() const { return fastUpdates; }
+
+    // Keeps updates at full rate for this update. Loaders call this from onLoadUpdate every update they need it.
+    void requestFastUpdates() { fastUpdates = true; }
+
     // Call before disconnecting so mods can undo changes they've made to the game.
     void shutdown();
 
@@ -119,6 +125,7 @@ public:
     Event<> onExit;                         // Triggers when leaving the game, either back to the title screen or by disconnecting.
     Event<> onNewGame;
     Event<> onGameOver;
+    Event<> onLoadUpdate;                   // Triggers early in each update, before module changes are announced. For polling native loaders, independent of game frames.
     Event<bool> onUpdate;                   // Triggers when IronMog updates which is more frequent than the game framerate. 
     Event<> onEmulatorPaused;
     Event<> onEmulatorResumed;
@@ -130,6 +137,7 @@ public:
     Event<uint16_t> onBattleTransition;     // Triggers when a battle transitions from one formation to another. Like a multi-phase boss.
     Event<> onBattleExit;
     Event<uint16_t> onFieldChanged;
+    Event<> onFieldModelsReady;             // Triggers when a field load has initialized its models, before the field is shown.
     Event<> onShopOpened;
     Event<uint8_t> onShopMenuChanged;       // Triggers when player moves the cursor between Buy and Sell in shop menu.
     Event<std::string> onNameEntryOpened;
@@ -188,6 +196,7 @@ private:
     GameState lastGameState = GameState::BootScreen;
     uint16_t lastGameMoment = 0;
     bool emulatorPaused = false;
+    bool fastUpdates = false;
     double lastUpdateDuration = 0.0;
     uint32_t seed = 0;
     uint8_t gameModule = 0;

@@ -5,6 +5,8 @@ struct TrackedCharacter
 {
     bool isActive = false;
     bool isPermadead = false;
+    bool isRevealed = true; // False while Randomize Characters hides who they look like.
+    uint8_t portrait = 0;   // Character ID of the portrait to show.
 };
 
 enum class AttemptsDisplayMode : uint8_t
@@ -46,6 +48,13 @@ public:
 private:
     void onNewGame();
     void onGameOver();
+    void onFieldChanged(uint16_t fieldID);
+    void updateSightings(uint16_t gameMoment);
 
     GameManager* game = nullptr;
+
+    // Characters seen outside the story's game moments (Yuffie's and Vincent's optional meetings).
+    uint16_t sightedMask = 0;
+    uint16_t lastGameMoment = 0;
+    std::atomic<uint16_t> loadedFieldID = 0; // Set by the manager thread once a field has loaded.
 };

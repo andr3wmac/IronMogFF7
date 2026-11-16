@@ -16,6 +16,8 @@ void FieldModule::setup(GameManager* game)
     BIND_EVENT_ONE_ARG(game->onUpdate, FieldModule::onUpdate);
     BIND_EVENT_ONE_ARG(game->onFrame, FieldModule::onFrame);
     BIND_EVENT(game->onWorldMapEnter, FieldModule::onWorldMapEnter);
+
+    models.setup(game);
 }
 
 void FieldModule::onModuleChanged(uint8_t newGameModule)

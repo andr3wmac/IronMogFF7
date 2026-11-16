@@ -1,5 +1,7 @@
 #pragma once
 
+#include "LiveModFF7Core/game/modules/EquipmentManager.h"
+#include <array>
 #include <cstdint>
 #include <string>
 
@@ -29,7 +31,34 @@ public:
     // Backs out of the item's "choose a target" prompt to the item list (a programmatic cancel).
     void cancelItemTargetPrompt();
 
+    // Shows portraitCharacterID's portrait for characterID in every menu, including name entry. Party
+    // portraits already in VRAM change at the next menu transition.
+    void setPortrait(uint8_t characterID, uint8_t portraitCharacterID);
+    void clearPortraits();
+    bool isPortraitRedirected(uint8_t characterID);
+
+    // The character whose portrait characterID shows: their override, or themselves.
+    uint8_t getPortrait(uint8_t characterID) const;
+
+    // Starts characterID's name entry with defaultCharacterID's default name.
+    void setNameEntryDefault(uint8_t characterID, uint8_t defaultCharacterID);
+    void clearNameEntryDefaults();
+    const char* getNameEntryStatus() const { return nameEntryStatus; }
+
+    // Gives characters another character's weapons, equip restrictions and starting weapon.
+    EquipmentManager equipment;
+
 private:
+    static constexpr uint8_t NoOverride = 0xFF;
+
+    void onLoadUpdate();
+    void onExit();
+    bool portraitTableResident();
+    void updatePortraits();
+    void releasePortraits();
+    void updateNameEntryPortrait();
+    void applyNameEntryDefault();
+
     bool isShopDataLoaded();
     void onShopMenuChanged(uint8_t menuIndex);
 
@@ -47,4 +76,9 @@ private:
 
     // Previous item target-select state, used to fire a custom item use only on the rising edge.
     uint8_t lastItemTargetActive = 0;
+
+    // Per character ID, NoOverride when unchanged.
+    std::array<uint8_t, 9> portraits = {NoOverride, NoOverride, NoOverride, NoOverride, NoOverride, NoOverride, NoOverride, NoOverride, NoOverride};
+    std::array<uint8_t, 9> nameDefaults = {NoOverride, NoOverride, NoOverride, NoOverride, NoOverride, NoOverride, NoOverride, NoOverride, NoOverride};
+    const char* nameEntryStatus = "Waiting for a name entry.";
 };

@@ -25,16 +25,18 @@ using GUI = AppFrame::GUI;
 AppFrame::AppConfig App::configure() const
 {
     AppFrame::AppConfig config;
-    config.windowWidth = APP_WINDOW_WIDTH;
-    config.windowHeight = APP_WINDOW_HEIGHT;
-    config.minWindowWidth = APP_WINDOW_MIN_WIDTH;
-    config.minWindowHeight = APP_WINDOW_MIN_HEIGHT;
-    config.windowTitle = APP_NAME " " APP_VERSION_STRING;
-    config.iniFilename = "settings/app.ini";
-    config.windowIconPath = "resources/icon.png";
-    config.defaultFont = { "Inter", "resources/Inter_18pt-Regular.ttf", 15.0f };
+
+    config.windowWidth      = APP_WINDOW_WIDTH;
+    config.windowHeight     = APP_WINDOW_HEIGHT;
+    config.minWindowWidth   = APP_WINDOW_MIN_WIDTH;
+    config.minWindowHeight  = APP_WINDOW_MIN_HEIGHT;
+    config.windowTitle      = APP_NAME " " APP_VERSION_STRING;
+    config.iniFilename      = "settings/app.ini";
+    config.windowIconPath   = "resources/icon.png";
+    config.defaultFont      = { "Inter", "resources/Inter_18pt-Regular.ttf", 15.0f };
+    config.iconFontPath     = "resources/fa-solid-900.ttf";
     config.fonts.push_back({ "Reactor7", "resources/Reactor7.ttf", 18.0f });
-    config.iconFontPath = "resources/fa-solid-900.ttf";
+
     return config;
 }
 
@@ -123,6 +125,7 @@ bool App::onInitialize()
     characterPortraits[8].loadFromFile("resources/cid.png");
 
     deadIcon.loadFromFile("resources/dead.png");
+    unknownIcon.loadFromFile("resources/unknown.png");
 
     // Load any settings files
     scanSettings(APP_SETTINGS_FOLDER, "Default");
@@ -297,8 +300,9 @@ void App::runGameManager(ConnectionTarget target)
             break;
         }
 
-        // Sleep longer if the emulator is paused so we lower our CPU usage.
-        if (game->isPaused())
+        // Sleep longer if the emulator is paused so we lower our CPU usage. Loaders still need
+        // full rate updates while the game's frame counter is stalled during loads.
+        if (game->isPaused() && !game->needsFastUpdates())
         {
             Platform::sleep(16.67);
         }

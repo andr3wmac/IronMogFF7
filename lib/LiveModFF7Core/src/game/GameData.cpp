@@ -6,8 +6,11 @@ static FieldData gInvalidField = { 0, "" };
 
 std::unordered_map<uint16_t, Item> GameData::items;
 std::unordered_map<uint16_t, Item> GameData::materia;
+std::vector<LimitBreak> GameData::limitBreaks;
+std::array<std::array<uint8_t, 12>, 9> GameData::characterLimits;
 std::vector<ESkill> GameData::eSkills;
 std::unordered_map<uint16_t, FieldData> GameData::fieldData;
+std::array<GlobalModelFootprint, 9> GameData::globalModelFootprints;
 std::vector<WorldMapEntrance> GameData::worldMapEntrances;
 std::vector<WorldMapEncounters> GameData::worldMapEncounters;
 std::unordered_map<uint8_t, BattleScene> GameData::battleScenes;
@@ -35,6 +38,8 @@ void GameData::clearGameData()
 {
     items.clear();
     materia.clear();
+    limitBreaks.clear();
+    characterLimits = {};
     eSkills.clear();
     fieldData.clear();
     worldMapEntrances.clear();
@@ -44,6 +49,7 @@ void GameData::clearGameData()
     shops.clear();
     models.clear();
     battleModels.clear();
+    globalModelFootprints = {};
 }
 
 Item* GameData::getItem(uint16_t id)

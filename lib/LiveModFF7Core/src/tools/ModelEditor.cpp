@@ -2,8 +2,59 @@
 #include "LiveModFF7Core/game/GameData.h"
 #include "LiveModFF7Core/game/MemoryOffsets.h"
 #include "LiveModFF7Core/utilities/Logging.h"
+#include "LiveModFF7Core/utilities/Utilities.h"
 
+#include <array>
 #include <string>
+
+static constexpr uint32_t RamMask = 0x1FFFFF;
+
+bool partMatches(const ModelPart& part, const FieldPartDescriptor& descriptor)
+{
+    const std::array<int, FieldPolygonTypeCount> counts = {part.quadColorTex, part.triColorTex, part.quadMonoTex, part.triMonoTex,
+                                                           part.triMono,      part.quadMono,    part.triColor,    part.quadColor};
+    for (int type = 0; type < FieldPolygonTypeCount; ++type)
+    {
+        if (counts[type] != descriptor.polygons[type])
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+const Model* findModel(const FieldPartDescriptor* descriptors, uint8_t partCount)
+{
+    for (const Model& model : GameData::models)
+    {
+        if (model.parts.size() != partCount)
+        {
+            continue;
+        }
+        bool matches = true;
+        for (uint8_t p = 0; p < partCount && matches; ++p)
+        {
+            matches = partMatches(model.parts[p], descriptors[p]);
+        }
+        if (matches)
+        {
+            return &model;
+        }
+    }
+    return nullptr;
+}
+
+// The battle body a party member loads follows any battle model swap.
+std::string battleBodyName(GameManager* game, uint8_t characterID)
+{
+    return getCharacterName(game->battle.models.getReplacement(characterID));
+}
+
+// Only gouraud shaded polygons carry the vertex colors that get edited.
+bool isGouraud(int type)
+{
+    return type == QuadColorTex || type == TriColorTex || type == TriColor || type == QuadColor;
+}
 
 ModelEditor::ModelEditor()
 {
@@ -37,7 +88,111 @@ std::vector<ModelEditor::ModelEditorModel>& ModelEditor::getOpenModels()
     return openModels;
 }
 
-void ModelEditor::openFieldModels()
+void ModelEditor::openLoadedFieldModels()
+{
+    openModels.clear();
+
+    if (buffer == nullptr)
+    {
+        buffer = new uint32_t[bufferSize / 4];
+    }
+
+    std::array<FieldRuntimeModel, 64> models;
+    uint8_t count = game->read<uint8_t>(FieldModelOffsets::RuntimeModelCount);
+    uint32_t address = game->read<uint32_t>(FieldModelOffsets::RuntimeModels);
+    uint32_t tableBytes = count * uint32_t(sizeof(FieldRuntimeModel));
+
+    if (count == 0 || count > models.size() || !Utilities::isRAMPointer(address, tableBytes) || 
+        !game->read(address & RamMask, tableBytes, (uint8_t*)models.data()))
+    {
+        return;
+    }
+
+    for (uint8_t i = 0; i < count; ++i)
+    {
+        const FieldRuntimeModel& loaded = models[i];
+        std::array<FieldPartDescriptor, 64> descriptors;
+        uint32_t partsAddress = loaded.skeleton + loaded.partsOffset;
+        uint32_t partsBytes = loaded.parts * uint32_t(sizeof(FieldPartDescriptor));
+
+        if (loaded.parts == 0 || loaded.parts > descriptors.size() || !Utilities::isRAMPointer(partsAddress, partsBytes) ||
+            !game->read(partsAddress & RamMask, partsBytes, (uint8_t*)descriptors.data()))
+        {
+            continue;
+        }
+
+        const Model* model = findModel(descriptors.data(), loaded.parts);
+        if (model == nullptr)
+        {
+            continue;
+        }
+
+        if (openLoadedFieldModel(*model, descriptors.data()))
+        {
+            DEBUG_LOG("Opened model: %s (slot %d)", model->name.c_str(), i);
+        }
+        else
+        {
+            DEBUG_LOG("Failed to open model: %s (slot %d)", model->name.c_str(), i);
+        }
+    }
+}
+
+// Each part's draw packets are two identical buffers back to back, each grouped by polygon type.
+bool ModelEditor::openLoadedFieldModel(const Model& model, const FieldPartDescriptor* descriptors)
+{
+    ModelEditorModel editorModel;
+    editorModel.modelName = model.name;
+
+    for (size_t p = 0; p < model.parts.size(); ++p)
+    {
+        const FieldPartDescriptor& descriptor = descriptors[p];
+
+        uint32_t packetBytes = 0;
+        for (int type = 0; type < FieldPolygonTypeCount; ++type)
+        {
+            packetBytes += descriptor.polygons[type] * FieldPacketBytes[type];
+        }
+
+        if (descriptor.packetBytes != packetBytes || packetBytes * 2 > bufferSize || !Utilities::isRAMPointer(descriptor.packets, packetBytes * 2))
+        {
+            return false;
+        }
+
+        bufferAddress = descriptor.packets & RamMask;
+        if (!game->read(bufferAddress, packetBytes, (uint8_t*)buffer))
+        {
+            return false;
+        }
+
+        ModelEditorPart& part = editorModel.parts.emplace_back();
+        uint32_t offset = 0;
+        for (int type = 0; type < FieldPolygonTypeCount; ++type)
+        {
+            for (int i = 0; i < descriptor.polygons[type]; ++i)
+            {
+                if (isGouraud(type))
+                {
+                    // readPoly starts after the packet's ordering table tag and counts the next packet's tag.
+                    ModelEditorPoly poly;
+                    if (readPoly(offset / 4 + 1, poly) * 4 != FieldPacketBytes[type])
+                    {
+                        return false;
+                    }
+
+                    poly.bufferAddressB = poly.bufferAddressA + packetBytes;
+                    part.polys.push_back(poly);
+                }
+                offset += FieldPacketBytes[type];
+            }
+        }
+    }
+
+    openModels.push_back(std::move(editorModel));
+    return true;
+}
+
+void ModelEditor::searchForModels()
 {
     openModels.clear();
 
@@ -236,7 +391,7 @@ bool ModelEditor::areBattleModelsLoaded()
             continue;
         }
 
-        std::string modelName = getCharacterName(id);
+        std::string modelName = battleBodyName(game, id);
         if (modelName == "SEPHIROTH")
         {
             // In Kalm flashback Sephiroth is in our party. No color changes
@@ -322,7 +477,7 @@ void ModelEditor::openBattleModels()
             continue;
         }
 
-        BattleModel* model = GameData::getBattleModel(getCharacterName(id));
+        BattleModel* model = GameData::getBattleModel(battleBodyName(game, id));
         if (model == nullptr)
         {
             continue;

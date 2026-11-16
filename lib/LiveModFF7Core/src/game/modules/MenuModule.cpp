@@ -4,6 +4,8 @@
 #include "LiveModFF7Core/game/GameManager.h"
 #include "LiveModFF7Core/game/MemoryOffsets.h"
 #include "LiveModFF7Core/utilities/Logging.h"
+#include <algorithm>
+#include <array>
 #include <vector>
 
 std::string CharacterNames[] = { "Cloud", "Barret", "Tifa", "Aeris", "Red XIII", "Yuffie", "Cait Sith", "Vincent", "Cid" };
@@ -16,6 +18,10 @@ void MenuModule::setup(GameManager* game)
     BIND_EVENT_ONE_ARG(game->onModuleChanged, MenuModule::onModuleChanged);
     BIND_EVENT_ONE_ARG(game->onUpdate, MenuModule::onUpdate);
     BIND_EVENT_ONE_ARG(game->onFrame, MenuModule::onFrame);
+    BIND_EVENT(game->onLoadUpdate, MenuModule::onLoadUpdate);
+    BIND_EVENT(game->onExit, MenuModule::onExit);
+
+    equipment.setup(game);
 }
 
 void MenuModule::onModuleChanged(uint8_t newGameModule)
@@ -23,10 +29,12 @@ void MenuModule::onModuleChanged(uint8_t newGameModule)
     if (gameModule != GameModule::Menu && newGameModule == GameModule::Menu)
     {
         uint8_t menuType = game->read<uint8_t>(GameOffsets::MenuType);
+
         if (menuType == MenuType::Shop)
         {
             waitingForShopData = true;
         }
+
         if (menuType == MenuType::NameEntry)
         {
             waitingForNameData = true;
@@ -62,18 +70,18 @@ void MenuModule::onUpdate(bool justConnected)
             inShopMenu = true;
         }
 
+        // The name menu stays in RAM between name entries, so the previous entry's name can still be in
+        // the buffer while the next menu loads. Wait until the menu has started for the requested
+        // character (it stores the index just before filling in the default) and shows its default.
         if (waitingForNameData)
         {
+            int16_t named = game->read<int16_t>(MenuOffsets::NameEntryCharacter);
             std::string name = game->readString(GameOffsets::NameEntryString, 9);
-
-            for (int i = 0; i < 9; ++i)
+            if (named >= 0 && named < 9 && game->read<int32_t>(MenuOffsets::NameEntryIndex) == named && name == CharacterNames[named])
             {
-                if (name == CharacterNames[i])
-                {
-                    game->onNameEntryOpened.invoke(name);
-                    waitingForNameData = false;
-                    break;
-                }
+                applyNameEntryDefault();
+                game->onNameEntryOpened.invoke(name);
+                waitingForNameData = false;
             }
         }
     }
@@ -277,4 +285,200 @@ void MenuModule::onShopMenuChanged(uint8_t menuIndex)
 {
     // Trigger anything else that might modify the shop (e.g. randomizers, ban enforcement).
     game->onShopMenuChanged.invoke(menuIndex);
+}
+
+// Every portrait file is two sectors long, stored in character ID order.
+static constexpr uint64_t FirstPortraitEntry = UINT64_C(0x000010000000D2BF);
+static constexpr uint8_t ChocoboPortrait = 11;
+
+uint64_t portraitEntry(uint8_t portraitID)
+{
+    return FirstPortraitEntry + 2 * portraitID;
+}
+
+// The name menu's embedded portraits: TIM, 8bpp with a 256x1 CLUT, 24x48 halfwords.
+static constexpr uint32_t PortraitPaletteOffset = 0x14, PortraitPaletteBytes = 512;
+static constexpr uint32_t PortraitPixelsOffset = 0x220, PortraitPixelsBytes = 2304;
+static constexpr uint32_t PortraitBytes = PortraitPixelsOffset + PortraitPixelsBytes;
+
+bool isPortrait(const std::array<uint8_t, PortraitBytes>& tim)
+{
+    auto u32 = [&](uint32_t offset) { return uint32_t(tim[offset]) | (tim[offset + 1] << 8) | (tim[offset + 2] << 16) | (uint32_t(tim[offset + 3]) << 24); };
+    return u32(0) == 0x10 && u32(4) == 9 && u32(8) == 0x20C && u32(0x10) == 0x00010100 && u32(0x214) == 0x000C + PortraitPixelsBytes && u32(0x21C) == 0x00300018;
+}
+
+void MenuModule::setPortrait(uint8_t characterID, uint8_t portraitCharacterID)
+{
+    if (characterID < portraits.size() && portraitCharacterID < portraits.size())
+    {
+        portraits[characterID] = characterID == portraitCharacterID ? NoOverride : portraitCharacterID;
+    }
+}
+
+void MenuModule::clearPortraits()
+{
+    portraits.fill(NoOverride);
+    releasePortraits();
+}
+
+bool MenuModule::isPortraitRedirected(uint8_t characterID)
+{
+    return characterID < portraits.size() && portraits[characterID] != NoOverride &&
+           game->read<uint64_t>(MenuOffsets::PortraitArchive + characterID * 8) == portraitEntry(portraits[characterID]);
+}
+
+uint8_t MenuModule::getPortrait(uint8_t characterID) const
+{
+    return characterID < portraits.size() && portraits[characterID] != NoOverride ? portraits[characterID] : characterID;
+}
+
+void MenuModule::setNameEntryDefault(uint8_t characterID, uint8_t defaultCharacterID)
+{
+    if (characterID < nameDefaults.size() && defaultCharacterID < nameDefaults.size())
+    {
+        nameDefaults[characterID] = characterID == defaultCharacterID ? NoOverride : defaultCharacterID;
+    }
+}
+
+void MenuModule::clearNameEntryDefaults()
+{
+    nameDefaults.fill(NoOverride);
+}
+
+// The portrait table is kernel data, recognized by its Chocobo entry, which is never overridden.
+bool MenuModule::portraitTableResident()
+{
+    return game->read<uint64_t>(MenuOffsets::PortraitArchive + ChocoboPortrait * 8) == portraitEntry(ChocoboPortrait);
+}
+
+void MenuModule::onLoadUpdate()
+{
+    if (!portraitTableResident())
+    {
+        return;
+    }
+    updatePortraits();
+    updateNameEntryPortrait();
+}
+
+void MenuModule::onExit()
+{
+    releasePortraits();
+}
+
+// The kernel reads each character's portrait from disc through its portrait table, so pointing an
+// entry at another file changes that portrait in every menu. Party portraits stay in VRAM until the
+// kernel's dirty flag asks for a reload, so raise it on change. The game never writes this table, so
+// it is re-applied after state loads.
+void MenuModule::updatePortraits()
+{
+    bool changed = false;
+
+    for (uint8_t id = 0; id < portraits.size(); ++id)
+    {
+        uint64_t wanted = portraitEntry(portraits[id] == NoOverride ? id : portraits[id]);
+        uintptr_t entry = MenuOffsets::PortraitArchive + id * 8;
+        if (game->read<uint64_t>(entry) != wanted)
+        {
+            game->write<uint64_t>(entry, wanted);
+            changed = true;
+        }
+    }
+
+    if (changed)
+    {
+        game->write<uint8_t>(MenuOffsets::PortraitsDirty, 1);
+        LOG("Menu portraits updated.");
+    }
+}
+
+void MenuModule::releasePortraits()
+{
+    if (!portraitTableResident())
+    {
+        return;
+    }
+    bool changed = false;
+    for (uint8_t id = 0; id < portraits.size(); ++id)
+    {
+        uintptr_t entry = MenuOffsets::PortraitArchive + id * 8;
+        if (game->read<uint64_t>(entry) != portraitEntry(id))
+        {
+            game->write<uint64_t>(entry, portraitEntry(id));
+            changed = true;
+        }
+    }
+    if (changed)
+    {
+        game->write<uint8_t>(MenuOffsets::PortraitsDirty, 1);
+    }
+}
+
+// The name menu embeds every portrait and uploads the named character's once, right after its disc
+// read. While it loads, give that portrait the override's palette and pixels. Headers are kept
+// because their VRAM coordinates differ between portraits.
+void MenuModule::updateNameEntryPortrait()
+{
+    if (game->read<uint8_t>(GameOffsets::MenuType) != MenuType::NameEntry)
+    {
+        return;
+    }
+    int16_t named = game->read<int16_t>(MenuOffsets::NameEntryCharacter);
+    if (named < 0 || named >= (int16_t)portraits.size() || portraits[named] == NoOverride)
+    {
+        return;
+    }
+
+    // The window is the overlay's disc read, which can stall frames.
+    game->requestFastUpdates();
+
+    std::array<uint8_t, PortraitBytes> original, replacement;
+    uintptr_t originalAddress = MenuOffsets::NameEntryPortraits + named * MenuOffsets::NameEntryPortraitStride;
+    uintptr_t replacementAddress = MenuOffsets::NameEntryPortraits + portraits[named] * MenuOffsets::NameEntryPortraitStride;
+    if (!game->read(originalAddress, PortraitBytes, original.data()) || !game->read(replacementAddress, PortraitBytes, replacement.data()) ||
+        !isPortrait(original) || !isPortrait(replacement))
+    {
+        return; // Overlay not loaded yet.
+    }
+
+    bool palette = std::equal(original.begin() + PortraitPaletteOffset, original.begin() + PortraitPaletteOffset + PortraitPaletteBytes,
+                              replacement.begin() + PortraitPaletteOffset);
+    bool pixels = std::equal(original.begin() + PortraitPixelsOffset, original.end(), replacement.begin() + PortraitPixelsOffset);
+    if (palette && pixels)
+    {
+        return;
+    }
+
+    // Repeats if a stale copy is overwritten by the incoming read; the portrait data never changes.
+    game->write(originalAddress + PortraitPaletteOffset, replacement.data() + PortraitPaletteOffset, PortraitPaletteBytes);
+    game->write(originalAddress + PortraitPixelsOffset, replacement.data() + PortraitPixelsOffset, PortraitPixelsBytes);
+    nameEntryStatus = "Name entry portrait replaced.";
+}
+
+// Copies the override's entry from the menu's own default-name table, as the menu does itself. The
+// dialog waits for input, so this can happen any time after the menu has filled in its default.
+void MenuModule::applyNameEntryDefault()
+{
+    int16_t named = game->read<int16_t>(MenuOffsets::NameEntryCharacter);
+    if (!portraitTableResident() || named < 0 || named >= (int16_t)nameDefaults.size() || nameDefaults[named] == NoOverride)
+    {
+        return;
+    }
+
+    std::array<uint8_t, 12> defaultName;
+    if (!game->read(MenuOffsets::NameEntryDefaults + nameDefaults[named] * 12, defaultName.size(), defaultName.data()))
+    {
+        return;
+    }
+
+    uint8_t length = 0;
+    while (length < 9 && defaultName[length] != 0xFF)
+    {
+        ++length;
+    }
+    game->write(GameOffsets::NameEntryString, defaultName.data(), length);
+    game->write<uint16_t>(GameOffsets::NameEntryString + length, 0xFFFF);
+    game->write<uint8_t>(GameOffsets::NameEntryCursor, std::min<uint8_t>(length, 8));
+    nameEntryStatus = "Name entry default replaced.";
+    LOG("Name entry for character %d starts with character %d's default name.", named, nameDefaults[named]);
 }

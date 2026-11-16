@@ -51,6 +51,36 @@ struct Item
     uint32_t price = 0;
 };
 
+// Kernel attack record, 28 bytes. Limit breaks use it in the limit menu overlay and in each party
+// member's player data.
+#pragma pack(push, 1)
+struct AttackData
+{
+    uint32_t unknown0;
+    uint8_t castingCost;
+    uint32_t unknown1;
+    uint8_t unknown2;
+    uint8_t attackType;
+    uint16_t attackAttribute;
+    uint8_t idNumber;
+    uint8_t restoreApply;
+    uint8_t strength;
+    uint8_t restoreType;
+    uint16_t unknown3;
+    uint8_t timesAttacking;
+    uint32_t statuses;
+    uint16_t element;
+    uint16_t unknown4;
+};
+#pragma pack(pop)
+static_assert(sizeof(AttackData) == 28, "Attack records are 28 bytes.");
+
+struct LimitBreak
+{
+    std::string name = "";
+    AttackData attackData;
+};
+
 struct ESkill
 {
     std::string name = "";
@@ -122,6 +152,24 @@ struct FieldWorldExit
     uint16_t fieldID = 0;
 };
 
+// Lighting reserve layout of a field's BSX, from the original files. A larger party model needs the
+// reserve moved back, and the hash recognizes the fully staged BSX while it is being loaded.
+struct FieldModelLighting
+{
+    uint32_t bsxBytes = 0;          // Decompressed BSX size; 0 when the field has no global party model.
+    uint32_t modelHeaderOffset = 0; // BSX model section header.
+    uint32_t lightingOffset = 0;    // Lighting reserve, relative to the model section header.
+    uint16_t modelCount = 0;
+    uint32_t directoryHash = 0;     // FNV-1a of the model section header and its 48-byte records.
+};
+
+// Field RAM a global party model occupies once loaded.
+struct GlobalModelFootprint
+{
+    uint32_t retainedBytes = 0;     // BCX geometry kept after loading.
+    uint32_t drawBytes = 0;         // Bone matrices plus double-buffered GPU packets.
+};
+
 struct FieldData
 {
     uint16_t id = 0;
@@ -133,6 +181,7 @@ struct FieldData
     std::vector<FieldScriptBattle> battles;
     std::vector<FieldWorldExit> worldExits;
     std::vector<uint8_t> modelIDs;
+    FieldModelLighting modelLighting;
 
     uint32_t encounterOffset = 0;
     std::array<Encounter, 10> encounterTable0{};
@@ -276,6 +325,8 @@ class GameData
 public:
     static std::unordered_map<uint16_t, Item> items;
     static std::unordered_map<uint16_t, Item> materia;
+    static std::vector<LimitBreak> limitBreaks; // By limit ID.
+    static std::array<std::array<uint8_t, 12>, 9> characterLimits; // By character ID: attack IDs (0x80 + limit ID, 0xFF empty), 3 per level.
     static std::vector<ESkill> eSkills;
     static std::unordered_map<uint16_t, FieldData> fieldData;
     static std::vector<WorldMapEntrance> worldMapEntrances;
@@ -285,6 +336,7 @@ public:
     static std::vector<Boss> bosses;
     static std::vector<Model> models;
     static std::vector<BattleModel> battleModels;
+    static std::array<GlobalModelFootprint, 9> globalModelFootprints; // Indexed by global model ID - 1.
 
     static void clearGameData();
     static void loadGameData(GameVersion gameVersion, uint8_t gameDisc);
@@ -297,6 +349,16 @@ public:
     static void addMateria(uint16_t id, const std::string& name, uint32_t shopPrice) 
     { 
         materia[id] = { name, shopPrice };
+    }
+
+    static void addLimitBreak(const std::string& name, AttackData limitBreak)
+    {
+        GameData::limitBreaks.push_back({ name, limitBreak });
+    }
+
+    static void addCharacterLimits(uint8_t characterID, std::array<uint8_t, 12> limits)
+    {
+        GameData::characterLimits[characterID] = limits;
     }
 
     static void addESkill(const std::string& name, uint8_t targetFlags, uint32_t mpCost, uint8_t idx) 
@@ -347,6 +409,11 @@ public:
     static void addFieldModels(uint16_t fieldID, std::vector<uint8_t> modelIDs) 
     {
         GameData::fieldData[fieldID].modelIDs = modelIDs;
+    }
+
+    static void addFieldModelLighting(uint16_t fieldID, uint32_t bsxBytes, uint32_t modelHeaderOffset, uint32_t lightingOffset, uint16_t modelCount, uint32_t directoryHash)
+    {
+        GameData::fieldData[fieldID].modelLighting = { bsxBytes, modelHeaderOffset, lightingOffset, modelCount, directoryHash };
     }
 
     static void addFieldEncounters(uint16_t fieldID, uint32_t encounterOffset, std::array<Encounter, 10> encounterTable0, std::array<Encounter, 10> encounterTable1)
@@ -400,6 +467,11 @@ public:
     static void addModel(const std::string& modelName, int polyCount, std::vector<ModelPart> parts) 
     {
         GameData::models.push_back({ modelName, polyCount, parts });
+    }
+
+    static void addGlobalModelFootprint(uint8_t globalModelID, uint32_t retainedBytes, uint32_t drawBytes)
+    {
+        GameData::globalModelFootprints[globalModelID - 1] = { retainedBytes, drawBytes };
     }
 
     static void addBattleModel(const std::string& modelName, std::vector<int> headerSizes, std::vector<BattleModelPart> parts) 

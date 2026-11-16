@@ -1,5 +1,7 @@
 #pragma once
 
+#include "LiveModFF7Core/game/modules/BattleLimitManager.h"
+#include "LiveModFF7Core/game/modules/BattleModelManager.h"
 #include <cstdint>
 
 class GameManager;
@@ -12,6 +14,12 @@ public:
     void onUpdate(bool justConnected);
 
     bool inBattle();
+
+    // Replaces party members' battle models during native battle loads.
+    BattleModelManager models;
+
+    // Gives party members another character's limit breaks.
+    BattleLimitManager limits;
 
 private:
     void onBattleEnter();

@@ -1,5 +1,6 @@
 #pragma once
 
+#include "LiveModFF7Core/game/FieldModelFormats.h"
 #include "LiveModFF7Core/game/GameData.h"
 #include "LiveModFF7Core/game/GameManager.h"
 #include "LiveModFF7Core/utilities/Utilities.h"
@@ -38,7 +39,12 @@ public:
     void clear();
     std::vector<ModelEditor::ModelEditorModel>& getOpenModels();
     
-    void openFieldModels();
+    // Opens every known model the field loader has initialized, read from its runtime model table. Models
+    // are identified by their parts' polygon counts, so a replaced body opens as the model it is.
+    void openLoadedFieldModels();
+
+    // Searches RAM for the packets of known models. Only for where loaded models aren't mapped (the world map).
+    void searchForModels();
     bool openFieldModel(uintptr_t address, std::string name);
 
     bool areBattleModelsLoaded();
@@ -67,6 +73,7 @@ protected:
     size_t bufferSize = 0;
 
     bool openFieldModel(int bufferIdx, const Model& model);
+    bool openLoadedFieldModel(const Model& model, const FieldPartDescriptor* descriptors);
     bool openBattleModel(int bufferIdx, const BattleModel& model);
 
     int readPoly(int bufferIdx, ModelEditorPoly& polyOut);

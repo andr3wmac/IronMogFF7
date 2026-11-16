@@ -241,6 +241,7 @@ bool GameManager::update()
     // Only perform updates when we're actually in the game.
     if (state != GameState::InGame)
     {
+        fastUpdates = false;
         return true;
     }
 
@@ -265,12 +266,24 @@ bool GameManager::update()
     }
     updatesSinceFrame++;
 
-    // Update the field script execution table.
-    read(FieldScriptOffsets::ExecutionTable, 128, (uint8_t*)(&fieldScriptExecutionTable[0]));
-    
+    uint32_t newFrameNumber = read<uint32_t>(GameOffsets::FrameNumber);
+
+    // A jump in frame number likely indicates a load game or load save state. This is checked before
+    // the loaders run so they never act on state from before the load.
+    framesSinceReload++;
+    int frameDifference = std::abs((int)newFrameNumber - (int)frameNumber);
+    if (frameDifference > 30 && framesSinceReload > 30)
+    {
+        LOG("Load detected, reloading rules %d - %d = %d", newFrameNumber, frameNumber, frameDifference);
+        loadSaveData();
+        onGameStart();
+        framesSinceReload = 0;
+    }
+
     // Check if the active module has changed.
     uint8_t newGameModule = read<uint8_t>(GameOffsets::CurrentModule);
-    if (newGameModule != gameModule)
+    bool moduleChanged = newGameModule != gameModule;
+    if (moduleChanged)
     {
         if (gameModule == GameModule::Battle && newGameModule == GameModule::Field)
         {
@@ -284,6 +297,17 @@ bool GameManager::update()
 
         // Game module changed.
         gameModule = newGameModule;
+    }
+
+    // Model loaders run before ordinary module and mod updates, including while frames are stalled.
+    fastUpdates = false;
+    onLoadUpdate.invoke();
+
+    // Update the field script execution table.
+    read(FieldScriptOffsets::ExecutionTable, 128, (uint8_t*)(&fieldScriptExecutionTable[0]));
+
+    if (moduleChanged)
+    {
         onModuleChanged.invoke(gameModule);
     }
 
@@ -331,19 +355,6 @@ bool GameManager::update()
     // Broadcast update event for anything that needs it
     bool justConnected = field.getFieldID() == 0 || framesSinceReload == 0;
     onUpdate.invoke(justConnected);
-
-    uint32_t newFrameNumber = read<uint32_t>(GameOffsets::FrameNumber);
-
-    // A jump in frame number likely indicates a load game or load save state.
-    framesSinceReload++;
-    int frameDifference = std::abs((int)newFrameNumber - (int)frameNumber);
-    if (frameDifference > 30 && framesSinceReload > 30)
-    {
-        LOG("Load detected, reloading rules %d - %d = %d", newFrameNumber, frameNumber, frameDifference);
-        loadSaveData();
-        onGameStart();
-        framesSinceReload = 0;
-    }
 
     // Detect change in frame number and trigger event
     if (newFrameNumber != frameNumber)

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "LiveModFF7Core/game/GameData.h"
+#include "LiveModFF7Core/game/modules/FieldModelManager.h"
 
 #include <cstdint>
 #include <optional>
@@ -32,6 +33,9 @@ public:
 
     // Returns the index of the named script group in the current field, e.g. for getScriptExecutionPointer.
     std::optional<uint8_t> findGroupIndex(const std::string& groupName);
+
+    // Replaces global party model bodies during native field loads.
+    FieldModelManager models;
 
 private:
     struct MessageOverwrite

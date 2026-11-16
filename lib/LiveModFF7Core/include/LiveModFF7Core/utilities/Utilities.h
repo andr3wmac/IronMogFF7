@@ -47,6 +47,11 @@ public:
         return true;
     }
 
+    static bool isRAMPointer(uint32_t pointer, uint32_t length)
+    {
+        return pointer >= 0x80100000 && pointer <= 0x80200000 - length;
+    }
+
     // Case insensitive string search
     static inline bool containsIgnoreCase(const std::string& haystack, const std::string& needle)
     {
